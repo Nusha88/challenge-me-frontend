@@ -15,7 +15,7 @@
         </v-alert>
 
         <v-alert v-else-if="!challenges.length && !loading" type="info">
-          You haven't created any challenges yet.
+          You haven't created or joined any challenges yet.
         </v-alert>
 
         <v-list v-else>
@@ -23,133 +23,88 @@
             v-for="challenge in challenges"
             :key="challenge._id"
             class="challenge-item"
+            @click="openDetails(challenge)"
           >
             <v-list-item-content>
-              <v-list-item-title class="text-h6">{{ challenge.title }}</v-list-item-title>
+              <div class="item-header">
+                <v-list-item-title class="text-h6">{{ challenge.title }}</v-list-item-title>
+                <v-chip
+                  v-if="isChallengeOwner(challenge.owner)"
+                  color="secondary"
+                  size="small"
+                  class="ml-2"
+                >
+                  Created by me
+                </v-chip>
+                <v-chip
+                  v-else
+                  color="primary"
+                  variant="outlined"
+                  size="small"
+                  class="ml-2"
+                >
+                  Joined
+                </v-chip>
+              </div>
               <v-list-item-subtitle class="mb-1">
                 {{ formatDateRange(challenge.startDate, challenge.endDate) }}
               </v-list-item-subtitle>
               <p class="mb-0">{{ challenge.description }}</p>
             </v-list-item-content>
-            <v-list-item-action>
-              <v-btn icon color="primary" @click="openEditDialog(challenge)">
-                <v-icon>mdi-pencil</v-icon>
-              </v-btn>
-            </v-list-item-action>
           </v-list-item>
         </v-list>
       </v-card-text>
     </v-card>
 
-    <v-dialog v-model="editDialog" max-width="600">
-      <v-card>
-        <v-card-title>Edit Challenge</v-card-title>
-        <v-card-text>
-          <v-form @submit.prevent="handleEditSubmit">
-            <v-text-field
-              v-model="editForm.title"
-              label="Title"
-              variant="outlined"
-              required
-              class="mb-4"
-              :error-messages="editErrors.title"
-            ></v-text-field>
-
-            <v-textarea
-              v-model="editForm.description"
-              label="Description"
-              variant="outlined"
-              rows="5"
-              required
-              class="mb-4"
-              :error-messages="editErrors.description"
-            ></v-textarea>
-
-            <div class="date-pickers mb-4">
-              <v-menu
-                v-model="editStartMenu"
-                :close-on-content-click="false"
-                max-width="290px"
-                min-width="auto"
-              >
-                <template #activator="{ props }">
-                  <v-text-field
-                    :model-value="formatDisplayDate(editForm.startDate)"
-                    label="Start Date"
-                    variant="outlined"
-                    readonly
-                    v-bind="props"
-                    :error-messages="editErrors.startDate"
-                  ></v-text-field>
-                </template>
-                <v-date-picker
-                  v-model="editStartTemp"
-                  @update:modelValue="val => onSelectEditStart(val)"
-                ></v-date-picker>
-              </v-menu>
-
-              <v-menu
-                v-model="editEndMenu"
-                :close-on-content-click="false"
-                max-width="290px"
-                min-width="auto"
-              >
-                <template #activator="{ props }">
-                  <v-text-field
-                    :model-value="formatDisplayDate(editForm.endDate)"
-                    label="End Date"
-                    variant="outlined"
-                    readonly
-                    v-bind="props"
-                    :error-messages="editErrors.endDate"
-                  ></v-text-field>
-                </template>
-                <v-date-picker
-                  v-model="editEndTemp"
-                  @update:modelValue="val => onSelectEditEnd(val)"
-                ></v-date-picker>
-              </v-menu>
-            </div>
-
-            <v-alert v-if="editErrorMessage" type="error" class="mb-4">
-              {{ editErrorMessage }}
-            </v-alert>
-
-            <v-card-actions class="px-0">
-              <v-spacer></v-spacer>
-              <v-btn variant="text" @click="closeEditDialog" :disabled="editLoading">
-                Cancel
-              </v-btn>
-              <v-btn type="submit" color="primary" :loading="editLoading" :disabled="editLoading">
-                Save
-              </v-btn>
-            </v-card-actions>
-          </v-form>
-        </v-card-text>
-      </v-card>
-    </v-dialog>
+    <ChallengeDetailsDialog
+      v-model="detailsDialogOpen"
+      :challenge="selectedChallenge"
+      :is-owner="selectedIsOwner"
+      :is-participant="selectedIsParticipant"
+      :show-join-button="false"
+      :join-loading="false"
+      :save-loading="saveLoading"
+      :save-error="saveError"
+      @save="handleDialogSave"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { challengeService } from '../services/api'
+import ChallengeDetailsDialog from './ChallengeDetailsDialog.vue'
 
 const challenges = ref([])
 const loading = ref(false)
 const errorMessage = ref('')
 const isLoggedIn = ref(!!localStorage.getItem('token'))
+const currentUserId = ref(getCurrentUserId())
 
-const editDialog = ref(false)
-const editForm = ref({ title: '', description: '', startDate: '', endDate: '' })
-const editErrors = ref({})
-const editErrorMessage = ref('')
-const editLoading = ref(false)
-const activeChallengeId = ref(null)
-const editStartMenu = ref(false)
-const editEndMenu = ref(false)
-const editStartTemp = ref('')
-const editEndTemp = ref('')
+const detailsDialogOpen = ref(false)
+const selectedChallenge = ref(null)
+const saveLoading = ref(false)
+const saveError = ref('')
+
+const selectedIsOwner = computed(() => {
+  if (!selectedChallenge.value) return false
+  return isChallengeOwner(selectedChallenge.value.owner)
+})
+
+const selectedIsParticipant = computed(() => {
+  if (!selectedChallenge.value) return false
+  return (selectedChallenge.value.participants || []).some(participant => {
+    const id = participant._id || participant
+    return id === currentUserId.value
+  })
+})
+
+watch(detailsDialogOpen, value => {
+  if (!value) {
+    selectedChallenge.value = null
+    saveError.value = ''
+  }
+})
 
 function getCurrentUserId() {
   const storedUser = localStorage.getItem('user')
@@ -182,31 +137,15 @@ function formatDateRange(start, end) {
     : startFormatted || endFormatted || ''
 }
 
-function formatDisplayDate(value) {
-  if (!value) return ''
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  })
-}
-
-function onSelectEditStart(val) {
-  editStartTemp.value = val
-  editForm.value.startDate = val
-  editStartMenu.value = false
-}
-
-function onSelectEditEnd(val) {
-  editEndTemp.value = val
-  editForm.value.endDate = val
-  editEndMenu.value = false
+function isChallengeOwner(owner) {
+  if (!owner) return false
+  if (!currentUserId.value) return false
+  const ownerId = owner._id || owner
+  return ownerId === currentUserId.value
 }
 
 async function fetchChallenges() {
-  const userId = getCurrentUserId()
+  const userId = currentUserId.value
   if (!userId) {
     isLoggedIn.value = false
     return
@@ -225,71 +164,26 @@ async function fetchChallenges() {
   }
 }
 
-function openEditDialog(challenge) {
-  activeChallengeId.value = challenge._id
-  editForm.value = {
-    title: challenge.title,
-    description: challenge.description,
-    startDate: challenge.startDate?.slice(0, 10) || '',
-    endDate: challenge.endDate?.slice(0, 10) || ''
-  }
-  editErrors.value = {}
-  editErrorMessage.value = ''
-  editDialog.value = true
+function openDetails(challenge) {
+  selectedChallenge.value = challenge
+  saveError.value = ''
+  detailsDialogOpen.value = true
 }
 
-function closeEditDialog() {
-  editDialog.value = false
-  activeChallengeId.value = null
-}
+async function handleDialogSave(formData) {
+  if (!selectedChallenge.value) return
 
-function validateEdit() {
-  const validationErrors = {}
-
-  if (!editForm.value.title) {
-    validationErrors.title = 'Title is required'
-  }
-
-  if (!editForm.value.description) {
-    validationErrors.description = 'Description is required'
-  }
-
-  if (!editForm.value.startDate) {
-    validationErrors.startDate = 'Start date is required'
-  }
-
-  if (!editForm.value.endDate) {
-    validationErrors.endDate = 'End date is required'
-  }
-
-  if (editForm.value.startDate && editForm.value.endDate) {
-    if (new Date(editForm.value.startDate) > new Date(editForm.value.endDate)) {
-      validationErrors.endDate = 'End date must be after start date'
-    }
-  }
-
-  editErrors.value = validationErrors
-  return Object.keys(validationErrors).length === 0
-}
-
-async function handleEditSubmit() {
-  if (!validateEdit()) return
-
-  if (!activeChallengeId.value) return
-
-  editLoading.value = true
-  editErrorMessage.value = ''
+  saveLoading.value = true
+  saveError.value = ''
 
   try {
-    await challengeService.updateChallenge(activeChallengeId.value, {
-      ...editForm.value
-    })
-    editDialog.value = false
+    await challengeService.updateChallenge(selectedChallenge.value._id, { ...formData })
     await fetchChallenges()
+    detailsDialogOpen.value = false
   } catch (error) {
-    editErrorMessage.value = error.response?.data?.message || 'Failed to update challenge'
+    saveError.value = error.response?.data?.message || 'Failed to update challenge'
   } finally {
-    editLoading.value = false
+    saveLoading.value = false
   }
 }
 
@@ -310,6 +204,21 @@ onMounted(() => {
 
 .challenge-item:last-child {
   border-bottom: none;
+}
+
+.item-header {
+  display: flex;
+  align-items: center;
+}
+
+.item-header .ml-2 {
+  margin-left: 8px;
+}
+
+.dialog-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .date-pickers {
