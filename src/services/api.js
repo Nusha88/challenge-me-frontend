@@ -64,6 +64,22 @@ export const userService = {
   }
 }
 
+// Challenge service
+export const challengeService = {
+  createChallenge: (payload) => {
+    return api.post('/challenges', payload)
+  },
+  updateChallenge: (id, payload) => {
+    return api.put(`/challenges/${id}`, payload)
+  },
+  getChallengesByUser: (userId) => {
+    return api.get(`/challenges/user/${userId}`)
+  },
+  getAllChallenges: () => {
+    return api.get('/challenges')
+  }
+}
+
 // Happiness tracking service
 export const happinessService = {
   // Energy tracking

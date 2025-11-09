@@ -1,20 +1,11 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 
 const router = useRouter()
 const route = useRoute()
 const currentRoute = computed(() => route.name)
 const isLoggedIn = ref(!!localStorage.getItem('token'))
-const username = ref(() => {
-  const user = localStorage.getItem('user')
-  if (!user) return ''
-  try {
-    return JSON.parse(user).name || ''
-  } catch {
-    return ''
-  }
-})
 
 function updateAuthState() {
   isLoggedIn.value = !!localStorage.getItem('token')
@@ -22,6 +13,11 @@ function updateAuthState() {
 
 onMounted(() => {
   window.addEventListener('auth-changed', updateAuthState)
+  updateAuthState()
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('auth-changed', updateAuthState)
 })
 
 function logout() {
@@ -35,23 +31,8 @@ function logout() {
 <template>
   <v-app>
     <v-app-bar color="primary">
-      <v-btn
-        to="/"
-        color="white"
-        variant="text"
-        class="text-h6 font-weight-bold"
-      >
-        XHappyDays
-      </v-btn>
+      <router-link to="/" class="brand-link">ChallengeMe</router-link>
       <v-spacer></v-spacer>
-      <v-btn
-        to="/users"
-        color="white"
-        variant="text"
-        class="mr-2"
-      >
-        Users
-      </v-btn>
       <v-btn
         v-if="!isLoggedIn"
         to="/register"
@@ -69,6 +50,17 @@ function logout() {
         class="mr-2"
       >
         Login
+      </v-btn>
+      <v-btn
+        v-if="isLoggedIn"
+        to="/challenges/add"
+        color="secondary"
+        variant="elevated"
+        size="large"
+        class="mr-2 cta-button"
+        prepend-icon="mdi-plus-circle"
+      >
+        Add Challenge
       </v-btn>
       <v-btn
         v-if="isLoggedIn"
@@ -90,47 +82,47 @@ function logout() {
     </v-app-bar>
 
     <v-row no-gutters>
-      <v-col cols="auto">
+      <v-col v-if="isLoggedIn" cols="auto">
         <v-navigation-drawer permanent>
           <v-list>
             <v-list-item
-              :active="currentRoute === 'energy'"
-              to="/energy"
+              :active="currentRoute === 'my-challenges'"
+              to="/challenges/my"
               color="primary"
             >
               <template v-slot:prepend>
-                <v-icon icon="mdi-bolt"></v-icon>
+                <v-icon icon="mdi-trophy"></v-icon>
               </template>
-              <v-list-item-title>Energy</v-list-item-title>
+              <v-list-item-title>My Challenges</v-list-item-title>
             </v-list-item>
 
             <v-list-item
-              :active="currentRoute === 'past'"
-              to="/past"
+              :active="currentRoute === 'users'"
+              to="/users"
               color="primary"
             >
               <template v-slot:prepend>
-                <v-icon icon="mdi-clock"></v-icon>
+                <v-icon icon="mdi-account-group"></v-icon>
               </template>
-              <v-list-item-title>Past</v-list-item-title>
+              <v-list-item-title>All Users</v-list-item-title>
             </v-list-item>
 
             <v-list-item
-              :active="currentRoute === 'future'"
-              to="/future"
+              :active="currentRoute === 'challenges'"
+              to="/challenges"
               color="primary"
             >
               <template v-slot:prepend>
-                <v-icon icon="mdi-calendar"></v-icon>
+                <v-icon icon="mdi-flag-checkered"></v-icon>
               </template>
-              <v-list-item-title>Future</v-list-item-title>
+              <v-list-item-title>All Challenges</v-list-item-title>
             </v-list-item>
           </v-list>
         </v-navigation-drawer>
       </v-col>
 
-      <v-col>
-        <v-main class="main-content mt-6">
+      <v-col :class="{ 'public-column': !isLoggedIn }">
+        <v-main :class="['main-content', { 'public-view': !isLoggedIn }]">
           <router-view></router-view>
         </v-main>
       </v-col>
@@ -141,12 +133,6 @@ function logout() {
 <style scoped>
 .v-navigation-drawer {
   width: 256px;
-}
-
-.brand-title {
-  padding: 16px;
-  margin-bottom: 8px;
-  cursor: pointer;
 }
 
 .v-list-item {
@@ -161,11 +147,49 @@ function logout() {
 
 .main-content {
   padding-top: 24px;
-  height: 100vh;
+  height: 95vh;
+  margin-top: 2em;
 }
 
-.v-main {
-  min-height: 100vh;
-  width: 100%;
+.main-content.public-view {
+  padding-top: 48px;
+}
+
+.public-column {
+  flex: 1;
+}
+
+.cta-button {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding-left: 24px;
+  padding-right: 24px;
+  box-shadow: 0 6px 18px rgba(98, 0, 238, 0.35);
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+.cta-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(98, 0, 238, 0.45);
+}
+
+.brand-link {
+  color: white;
+  font-weight: 600;
+  font-size: 1.25rem;
+  text-decoration: none;
+  letter-spacing: 0.04em;
+  padding-left: 16px;
+  display: inline-flex;
+  align-items: center;
+  background-color: transparent;
+}
+
+.brand-link:hover,
+.brand-link:focus,
+.brand-link:active {
+  text-decoration: none;
+  background-color: transparent;
 }
 </style> 

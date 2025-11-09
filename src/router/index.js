@@ -4,9 +4,9 @@ import RegisterComponent from '../components/RegisterComponent.vue'
 import UsersList from '../components/UsersList.vue'
 import LoginComponent from '../components/LoginComponent.vue'
 import ProfileComponent from '../components/ProfileComponent.vue'
-import EnergyComponent from '../components/EnergyComponent.vue'
-import FutureComponent from '../components/FutureComponent.vue'
-import PastComponent from '../components/PastComponent.vue'
+import AllChallengesComponent from '../components/AllChallengesComponent.vue'
+import AddChallengeComponent from '../components/AddChallengeComponent.vue'
+import MyChallengesComponent from '../components/MyChallengesComponent.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -37,19 +37,19 @@ const router = createRouter({
       component: ProfileComponent
     },
     {
-      path: '/energy',
-      name: 'energy',
-      component: EnergyComponent
+      path: '/challenges/my',
+      name: 'my-challenges',
+      component: MyChallengesComponent
     },
     {
-      path: '/future',
-      name: 'future',
-      component: FutureComponent
+      path: '/challenges',
+      name: 'challenges',
+      component: AllChallengesComponent
     },
     {
-      path: '/past',
-      name: 'past',
-      component: PastComponent
+      path: '/challenges/add',
+      name: 'add-challenge',
+      component: AddChallengeComponent
     }
   ]
 })
