@@ -1,8 +1,14 @@
 import axios from 'axios'
 
+const DEFAULT_API_BASE_URL = 'http://localhost:3000/api'
+const envBaseUrl = import.meta.env.VITE_API_BASE_URL
+const apiBaseUrl = (envBaseUrl || DEFAULT_API_BASE_URL).replace(/\/$/, '')
+const envHealthcheck = import.meta.env.VITE_API_HEALTHCHECK_URL
+const apiHealthcheckUrl = envHealthcheck ? envHealthcheck : apiBaseUrl.replace(/\/api$/i, '') || apiBaseUrl
+
 // Create axios instance with default config
 const api = axios.create({
-  baseURL: 'http://localhost:3000/api',
+  baseURL: apiBaseUrl,
   headers: {
     'Content-Type': 'application/json'
   },
@@ -28,10 +34,12 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   response => response,
   async error => {
-    if (error.code === 'ERR_NETWORK') {
+    if (error.code === 'ERR_NETWORK' && apiHealthcheckUrl) {
       try {
-        await axios.get('http://localhost:3000/')
-      } catch (pingError) {}
+        await axios.get(apiHealthcheckUrl, { timeout: 4000 })
+      } catch (pingError) {
+        console.warn('API healthcheck failed', pingError?.message)
+      }
     }
     return Promise.reject(error)
   }
@@ -78,7 +86,7 @@ export const challengeService = {
   getAllChallenges: () => {
     return api.get('/challenges')
   },
-  joinChallenge: (id, payload) => {
+  joinChallenge: (id, payload = {}) => {
     return api.post(`/challenges/${id}/join`, payload)
   }
 }
