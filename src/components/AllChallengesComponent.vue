@@ -1,6 +1,6 @@
 <template>
   <div class="all-challenges">
-    <h1 class="mb-6">All Challenges</h1>
+    <h1 class="mb-6">{{ t('challenges.listTitle') }}</h1>
 
     <v-card>
       <v-card-text>
@@ -11,7 +11,7 @@
         </v-alert>
 
         <v-alert v-else-if="!challenges.length && !loading" type="info">
-          No challenges have been created yet.
+          {{ t('challenges.noChallenges') }}
         </v-alert>
 
         <v-list v-else>
@@ -30,14 +30,14 @@
                   size="small"
                   class="ml-2"
                 >
-                  Created by me
+                  {{ t('challenges.mineBadge') }}
                 </v-chip>
               </div>
               <v-list-item-subtitle class="mb-1">
                 {{ formatDateRange(challenge.startDate, challenge.endDate) }}
               </v-list-item-subtitle>
               <v-list-item-subtitle v-if="challenge.owner" class="mb-2">
-                Created by {{ challenge.owner.name || 'Unknown user' }}
+                {{ t('challenges.createdBy', { name: challenge.owner.name || t('common.unknown') }) }}
               </v-list-item-subtitle>
               <p class="mb-2">{{ challenge.description }}</p>
               <v-chip-group column class="mb-2">
@@ -47,7 +47,7 @@
                   size="small"
                   class="mr-1"
                 >
-                  {{ participant.name || 'Unknown' }}
+                  {{ participant.name || t('common.unknown') }}
                 </v-chip>
               </v-chip-group>
             </v-list-item-content>
@@ -59,7 +59,7 @@
                 :loading="joiningId === challenge._id"
                 @click.stop="joinChallenge(challenge)"
               >
-                Join
+                {{ t('challenges.join') }}
               </v-btn>
             </v-list-item-action>
           </v-list-item>
@@ -86,6 +86,7 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { challengeService } from '../services/api'
 import ChallengeDetailsDialog from './ChallengeDetailsDialog.vue'
+import { useI18n } from 'vue-i18n'
 
 const challenges = ref([])
 const loading = ref(false)
@@ -97,6 +98,7 @@ const detailsDialogOpen = ref(false)
 const selectedChallenge = ref(null)
 const saveLoading = ref(false)
 const saveError = ref('')
+const { t, locale } = useI18n()
 
 const selectedIsOwner = computed(() => {
   if (!selectedChallenge.value) return false
@@ -145,18 +147,23 @@ function formatDate(dateString) {
   if (!dateString) return ''
   const date = new Date(dateString)
   if (Number.isNaN(date.getTime())) return dateString
-  return date.toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  })
+  try {
+    const formatter = new Intl.DateTimeFormat(locale.value, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+    return formatter.format(date)
+  } catch (err) {
+    return date.toLocaleDateString()
+  }
 }
 
 function formatDateRange(start, end) {
   const startFormatted = formatDate(start)
   const endFormatted = formatDate(end)
   return startFormatted && endFormatted
-    ? `From ${startFormatted} to ${endFormatted}`
+    ? t('challenges.dateRange', { start: startFormatted, end: endFormatted })
     : startFormatted || endFormatted || ''
 }
 
@@ -181,7 +188,7 @@ function canJoin(challenge) {
 
 async function joinChallenge(challenge) {
   if (!currentUserId.value) {
-    errorMessage.value = 'You must be logged in to join a challenge.'
+    errorMessage.value = t('notifications.mustLogin')
     return
   }
 
@@ -195,7 +202,7 @@ async function joinChallenge(challenge) {
       selectedChallenge.value = challenges.value.find(c => c._id === challenge._id) || null
     }
   } catch (error) {
-    errorMessage.value = error.response?.data?.message || 'Failed to join challenge'
+    errorMessage.value = error.response?.data?.message || t('notifications.joinError')
   } finally {
     joiningId.value = null
   }
@@ -209,7 +216,7 @@ async function fetchChallenges() {
     const { data } = await challengeService.getAllChallenges()
     challenges.value = data?.challenges || []
   } catch (error) {
-    errorMessage.value = error.response?.data?.message || 'Failed to load challenges'
+    errorMessage.value = error.response?.data?.message || t('notifications.apiError')
   } finally {
     loading.value = false
   }
@@ -232,7 +239,7 @@ async function handleDialogSave(formData) {
     await fetchChallenges()
     detailsDialogOpen.value = false
   } catch (error) {
-    saveError.value = error.response?.data?.message || 'Failed to update challenge'
+    saveError.value = error.response?.data?.message || t('notifications.updateError')
   } finally {
     saveLoading.value = false
   }

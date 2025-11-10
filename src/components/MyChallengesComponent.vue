@@ -1,6 +1,6 @@
 <template>
   <div class="my-challenges">
-    <h1 class="mb-6">My Challenges</h1>
+    <h1 class="mb-6">{{ t('challenges.myListTitle') }}</h1>
 
     <v-card>
       <v-card-text>
@@ -11,11 +11,11 @@
         </v-alert>
 
         <v-alert v-else-if="!isLoggedIn" type="info">
-          Please log in to view your challenges.
+          {{ t('challenges.loginPrompt') }}
         </v-alert>
 
         <v-alert v-else-if="!challenges.length && !loading" type="info">
-          You haven't created or joined any challenges yet.
+          {{ t('challenges.noMyChallenges') }}
         </v-alert>
 
         <v-list v-else>
@@ -34,7 +34,7 @@
                   size="small"
                   class="ml-2"
                 >
-                  Created by me
+                  {{ t('challenges.mineBadge') }}
                 </v-chip>
                 <v-chip
                   v-else
@@ -43,7 +43,7 @@
                   size="small"
                   class="ml-2"
                 >
-                  Joined
+                  {{ t('challenges.joinedBadge') }}
                 </v-chip>
               </div>
               <v-list-item-subtitle class="mb-1">
@@ -74,6 +74,7 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { challengeService } from '../services/api'
 import ChallengeDetailsDialog from './ChallengeDetailsDialog.vue'
+import { useI18n } from 'vue-i18n'
 
 const challenges = ref([])
 const loading = ref(false)
@@ -85,6 +86,7 @@ const detailsDialogOpen = ref(false)
 const selectedChallenge = ref(null)
 const saveLoading = ref(false)
 const saveError = ref('')
+const { t, locale } = useI18n()
 
 const selectedIsOwner = computed(() => {
   if (!selectedChallenge.value) return false
@@ -122,18 +124,23 @@ function formatDate(dateString) {
   if (!dateString) return ''
   const date = new Date(dateString)
   if (Number.isNaN(date.getTime())) return dateString
-  return date.toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  })
+  try {
+    const formatter = new Intl.DateTimeFormat(locale.value, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+    return formatter.format(date)
+  } catch (err) {
+    return date.toLocaleDateString()
+  }
 }
 
 function formatDateRange(start, end) {
   const startFormatted = formatDate(start)
   const endFormatted = formatDate(end)
   return startFormatted && endFormatted
-    ? `From ${startFormatted} to ${endFormatted}`
+    ? t('challenges.dateRange', { start: startFormatted, end: endFormatted })
     : startFormatted || endFormatted || ''
 }
 
@@ -158,7 +165,7 @@ async function fetchChallenges() {
     const { data } = await challengeService.getChallengesByUser(userId)
     challenges.value = data?.challenges || []
   } catch (error) {
-    errorMessage.value = error.response?.data?.message || 'Failed to load challenges'
+    errorMessage.value = error.response?.data?.message || t('notifications.apiError')
   } finally {
     loading.value = false
   }
@@ -181,7 +188,7 @@ async function handleDialogSave(formData) {
     await fetchChallenges()
     detailsDialogOpen.value = false
   } catch (error) {
-    saveError.value = error.response?.data?.message || 'Failed to update challenge'
+    saveError.value = error.response?.data?.message || t('notifications.updateError')
   } finally {
     saveLoading.value = false
   }

@@ -1,15 +1,23 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+import { SUPPORTED_LOCALES, setLocale } from '../i18n'
 
 const router = useRouter()
 const route = useRoute()
 const currentRoute = computed(() => route.name)
 const isLoggedIn = ref(!!localStorage.getItem('token'))
+const { t, locale } = useI18n()
+const availableLocales = SUPPORTED_LOCALES
 
 function updateAuthState() {
   isLoggedIn.value = !!localStorage.getItem('token')
 }
+
+const currentLocaleLabel = computed(() => {
+  return availableLocales.find(lang => lang.code === locale.value)?.label || locale.value
+})
 
 onMounted(() => {
   window.addEventListener('auth-changed', updateAuthState)
@@ -26,12 +34,16 @@ function logout() {
   window.dispatchEvent(new Event('auth-changed'))
   router.push('/login')
 }
+
+function changeLanguage(code) {
+  setLocale(code)
+}
 </script>
 
 <template>
   <v-app>
     <v-app-bar color="primary">
-      <router-link to="/" class="brand-link">ChallengeMe</router-link>
+      <router-link to="/" class="brand-link">{{ t('app.name') }}</router-link>
       <v-spacer></v-spacer>
       <v-btn
         v-if="!isLoggedIn"
@@ -40,7 +52,7 @@ function logout() {
         variant="text"
         class="mr-2"
       >
-        Register
+        {{ t('navigation.register') }}
       </v-btn>
       <v-btn
         v-if="!isLoggedIn"
@@ -49,7 +61,7 @@ function logout() {
         variant="text"
         class="mr-2"
       >
-        Login
+        {{ t('navigation.login') }}
       </v-btn>
       <v-btn
         v-if="isLoggedIn"
@@ -60,8 +72,31 @@ function logout() {
         class="mr-2 cta-button"
         prepend-icon="mdi-plus-circle"
       >
-        Add Challenge
+        {{ t('navigation.addChallenge') }}
       </v-btn>
+      <v-menu location="bottom" open-on-hover>
+        <template #activator="{ props }">
+          <v-btn
+            v-bind="props"
+            color="white"
+            variant="text"
+            class="mr-2 language-button"
+            prepend-icon="mdi-translate"
+          >
+            {{ currentLocaleLabel }}
+          </v-btn>
+        </template>
+        <v-list>
+          <v-list-item
+            v-for="language in availableLocales"
+            :key="language.code"
+            :active="language.code === locale.value"
+            @click="changeLanguage(language.code)"
+          >
+            <v-list-item-title>{{ language.label }}</v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
       <v-btn
         v-if="isLoggedIn"
         to="/profile"
@@ -69,7 +104,7 @@ function logout() {
         variant="text"
         class="mr-2"
       >
-        Profile
+        {{ t('navigation.profile') }}
       </v-btn>
       <v-btn
         v-if="isLoggedIn"
@@ -77,7 +112,7 @@ function logout() {
         variant="text"
         @click="logout"
       >
-        Logout
+        {{ t('navigation.logout') }}
       </v-btn>
     </v-app-bar>
 
@@ -93,7 +128,7 @@ function logout() {
               <template v-slot:prepend>
                 <v-icon icon="mdi-trophy"></v-icon>
               </template>
-              <v-list-item-title>My Challenges</v-list-item-title>
+              <v-list-item-title>{{ t('navigation.myChallenges') }}</v-list-item-title>
             </v-list-item>
 
             <v-list-item
@@ -104,7 +139,7 @@ function logout() {
               <template v-slot:prepend>
                 <v-icon icon="mdi-account-group"></v-icon>
               </template>
-              <v-list-item-title>All Users</v-list-item-title>
+              <v-list-item-title>{{ t('navigation.allUsers') }}</v-list-item-title>
             </v-list-item>
 
             <v-list-item
@@ -115,7 +150,7 @@ function logout() {
               <template v-slot:prepend>
                 <v-icon icon="mdi-flag-checkered"></v-icon>
               </template>
-              <v-list-item-title>All Challenges</v-list-item-title>
+              <v-list-item-title>{{ t('navigation.allChallenges') }}</v-list-item-title>
             </v-list-item>
           </v-list>
         </v-navigation-drawer>
@@ -191,5 +226,10 @@ function logout() {
 .brand-link:active {
   text-decoration: none;
   background-color: transparent;
+}
+
+.language-button {
+  text-transform: none;
+  font-weight: 500;
 }
 </style> 

@@ -9,7 +9,7 @@
             color="secondary"
             size="small"
           >
-            Created by me
+            {{ t('challenges.mineBadge') }}
           </v-chip>
           <v-chip
             v-else
@@ -17,7 +17,7 @@
             variant="outlined"
             size="small"
           >
-            {{ isParticipant ? 'Joined' : 'Discover' }}
+            {{ isParticipant ? t('challenges.joinedBadge') : t('challenges.discoverBadge') }}
           </v-chip>
         </div>
       </v-card-title>
@@ -27,7 +27,7 @@
           <v-form @submit.prevent="handleSubmit">
             <v-text-field
               v-model="editForm.title"
-              label="Title"
+              :label="t('challenges.title')"
               variant="outlined"
               required
               class="mb-4"
@@ -36,7 +36,7 @@
 
             <v-textarea
               v-model="editForm.description"
-              label="Description"
+              :label="t('challenges.description')"
               variant="outlined"
               rows="5"
               required
@@ -54,7 +54,7 @@
                 <template #activator="{ props }">
                   <v-text-field
                     :model-value="formatDisplayDate(editForm.startDate)"
-                    label="Start Date"
+                    :label="t('challenges.startDate')"
                     variant="outlined"
                     readonly
                     v-bind="props"
@@ -76,7 +76,7 @@
                 <template #activator="{ props }">
                   <v-text-field
                     :model-value="formatDisplayDate(editForm.endDate)"
-                    label="End Date"
+                    :label="t('challenges.endDate')"
                     variant="outlined"
                     readonly
                     v-bind="props"
@@ -91,7 +91,7 @@
             </div>
 
             <div class="mb-4">
-              <strong>Participants:</strong>
+              <strong>{{ t('challenges.participants') }}:</strong>
               <v-chip-group column class="mt-2">
                 <v-chip
                   v-for="participant in challenge.participants"
@@ -99,7 +99,7 @@
                   size="small"
                   class="mr-1"
                 >
-                  {{ participant.name || 'Unknown' }}
+                  {{ participant.name || t('common.unknown') }}
                 </v-chip>
               </v-chip-group>
             </div>
@@ -110,23 +110,25 @@
 
             <v-card-actions class="px-0">
               <v-btn variant="text" @click="handleCancel" :disabled="saveLoading">
-                Cancel
+                {{ t('challenges.cancel') }}
               </v-btn>
               <v-spacer></v-spacer>
               <v-btn type="submit" color="primary" :loading="saveLoading" :disabled="saveLoading">
-                Save
+                {{ t('challenges.update') }}
               </v-btn>
             </v-card-actions>
           </v-form>
         </template>
 
         <template v-else>
-          <p class="mb-2"><strong>Description:</strong> {{ challenge.description }}</p>
-          <p class="mb-2"><strong>Dates:</strong> {{ formatDateRange(challenge.startDate, challenge.endDate) }}</p>
-          <p class="mb-2" v-if="challenge.owner"><strong>Created by:</strong> {{ challenge.owner.name || 'Unknown user' }}</p>
+          <p class="mb-2"><strong>{{ t('challenges.description') }}:</strong> {{ challenge.description }}</p>
+          <p class="mb-2"><strong>{{ t('challenges.startDate') }} / {{ t('challenges.endDate') }}:</strong> {{ formatDateRange(challenge.startDate, challenge.endDate) }}</p>
+          <p class="mb-2" v-if="challenge.owner">
+            <strong>{{ t('challenges.createdBy', { name: challenge.owner.name || t('common.unknown') }) }}</strong>
+          </p>
 
           <div>
-            <strong>Participants:</strong>
+            <strong>{{ t('challenges.participants') }}:</strong>
             <v-chip-group column class="mt-2">
               <v-chip
                 v-for="participant in challenge.participants"
@@ -134,7 +136,7 @@
                 size="small"
                 class="mr-1"
               >
-                {{ participant.name || 'Unknown' }}
+                {{ participant.name || t('common.unknown') }}
               </v-chip>
             </v-chip-group>
           </div>
@@ -144,7 +146,7 @@
             type="success"
             class="mt-4"
           >
-            You are participating in this challenge.
+            {{ t('challenges.joinSuccess') }}
           </v-alert>
 
           <v-alert
@@ -152,13 +154,13 @@
             type="info"
             class="mt-4"
           >
-            You can join this challenge.
+            {{ t('challenges.joinInfo') }}
           </v-alert>
         </template>
       </v-card-text>
 
       <v-card-actions v-if="!isOwner">
-        <v-btn variant="text" @click="handleClose">Close</v-btn>
+        <v-btn variant="text" @click="handleClose">{{ t('common.close') }}</v-btn>
         <v-spacer></v-spacer>
         <v-btn
           v-if="showJoinButton"
@@ -166,7 +168,7 @@
           :loading="joinLoading"
           @click="emitJoin"
         >
-          Join
+          {{ t('challenges.join') }}
         </v-btn>
       </v-card-actions>
     </v-card>
@@ -175,6 +177,7 @@
 
 <script setup>
 import { reactive, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps({
   modelValue: {
@@ -231,6 +234,7 @@ const startMenu = ref(false)
 const endMenu = ref(false)
 const startTemp = ref('')
 const endTemp = ref('')
+const { t, locale } = useI18n()
 
 watch(
   () => props.challenge,
@@ -304,24 +308,24 @@ function validate() {
   clearErrors()
 
   if (!editForm.title) {
-    errors.title = 'Title is required'
+    errors.title = t('validation.titleRequired')
   }
 
   if (!editForm.description) {
-    errors.description = 'Description is required'
+    errors.description = t('validation.descriptionRequired')
   }
 
   if (!editForm.startDate) {
-    errors.startDate = 'Start date is required'
+    errors.startDate = t('validation.startDateRequired')
   }
 
   if (!editForm.endDate) {
-    errors.endDate = 'End date is required'
+    errors.endDate = t('validation.endDateRequired')
   }
 
   if (editForm.startDate && editForm.endDate) {
     if (new Date(editForm.startDate) > new Date(editForm.endDate)) {
-      errors.endDate = 'End date must be after start date'
+      errors.endDate = t('validation.endAfterStart')
     }
   }
 
@@ -344,18 +348,23 @@ function formatDisplayDate(value) {
   if (!value) return ''
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  })
+  try {
+    const formatter = new Intl.DateTimeFormat(locale.value, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+    return formatter.format(date)
+  } catch (err) {
+    return date.toLocaleDateString()
+  }
 }
 
 function formatDateRange(start, end) {
   const startFormatted = formatDisplayDate(start)
   const endFormatted = formatDisplayDate(end)
   if (startFormatted && endFormatted) {
-    return `From ${startFormatted} to ${endFormatted}`
+    return t('challenges.dateRange', { start: startFormatted, end: endFormatted })
   }
   return startFormatted || endFormatted || ''
 }

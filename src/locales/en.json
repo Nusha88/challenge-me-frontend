@@ -1,0 +1,117 @@
+{
+  "app": {
+    "name": "ChallengeMe"
+  },
+  "navigation": {
+    "home": "Home",
+    "register": "Register",
+    "login": "Login",
+    "logout": "Logout",
+    "profile": "Profile",
+    "addChallenge": "Add Challenge",
+    "allUsers": "All Users",
+    "myChallenges": "My Challenges",
+    "allChallenges": "All Challenges",
+    "language": "Language"
+  },
+  "home": {
+    "welcome": "Welcome to ChallengeMe",
+    "description": "Create, join, and conquer challenges together."
+  },
+  "common": {
+    "unknown": "Unknown",
+    "ok": "OK",
+    "close": "Close",
+    "cancel": "Cancel",
+    "save": "Save"
+  },
+  "auth": {
+    "registerTitle": "Create Account",
+    "loginTitle": "Sign In",
+    "name": "Name",
+    "age": "Age",
+    "country": "Country",
+    "plan": "Plan",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "confirmPasswordRequired": "Please confirm your password",
+    "passwordsDoNotMatch": "Passwords must match",
+    "planOptions": {
+      "energy": "Energy",
+      "present": "Present",
+      "future": "Future"
+    },
+    "submitRegister": "Register",
+    "submitLogin": "Login",
+    "successRegister": "Registration successful!",
+    "successRegisterBody": "Your account has been created! You are now logged in.",
+    "successLogin": "Login successful!",
+    "successLoginBody": "Welcome back! You are now logged in.",
+    "ageRange": "Age must be between 0 and 120",
+    "registrationFailed": "Registration failed. Please try again.",
+    "loginFailed": "Login failed. Please try again.",
+    "required": "This field is required",
+    "passwordMismatch": "Passwords must match",
+    "passwordLength": "Password must be at least 6 characters"
+  },
+  "profile": {
+    "title": "Profile",
+    "name": "Name",
+    "age": "Age",
+    "country": "Country",
+    "plan": "Plan",
+    "registered": "Registered",
+    "noData": "No profile data available"
+  },
+  "users": {
+    "title": "Registered Users",
+    "name": "Name",
+    "age": "Age",
+    "country": "Country",
+    "plan": "Plan",
+    "registered": "Registration Date",
+    "noUsers": "No users found"
+  },
+  "challenges": {
+    "addTitle": "Create a Challenge",
+    "title": "Title",
+    "description": "Description",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "create": "Create",
+    "update": "Save",
+    "cancel": "Cancel",
+    "mineBadge": "Created by me",
+    "joinedBadge": "Joined",
+    "discoverBadge": "Discover",
+    "participants": "Participants",
+    "createdBy": "Created by {name}",
+    "dateRange": "From {start} to {end}",
+    "noChallenges": "No challenges have been created yet.",
+    "noMyChallenges": "You haven't created or joined any challenges yet.",
+    "join": "Join",
+    "joinInfo": "You can join this challenge.",
+    "joinSuccess": "You are participating in this challenge.",
+    "listTitle": "All Challenges",
+    "myListTitle": "My Challenges",
+    "createdByMe": "Created by me",
+    "loginPrompt": "Please log in to view your challenges.",
+    "mustBeLoggedIn": "You must be logged in to create a challenge."
+  },
+  "validation": {
+    "titleRequired": "Title is required",
+    "descriptionRequired": "Description is required",
+    "startDateRequired": "Start date is required",
+    "endDateRequired": "End date is required",
+    "endAfterStart": "End date must be after start date"
+  },
+  "notifications": {
+    "apiError": "Failed to load data",
+    "joinError": "Failed to join challenge",
+    "updateError": "Failed to update challenge",
+    "createError": "Failed to create challenge",
+    "mustLogin": "You must be logged in to continue.",
+    "profileError": "Error fetching profile",
+    "usersError": "Error fetching users"
+  }
+}

@@ -1,0 +1,117 @@
+{
+  "app": {
+    "name": "ChallengeMe"
+  },
+  "navigation": {
+    "home": "Главная",
+    "register": "Регистрация",
+    "login": "Вход",
+    "logout": "Выйти",
+    "profile": "Профиль",
+    "addChallenge": "Создать челлендж",
+    "allUsers": "Все пользователи",
+    "myChallenges": "Мои челленджи",
+    "allChallenges": "Все челленджи",
+    "language": "Язык"
+  },
+  "home": {
+    "welcome": "Добро пожаловать в ChallengeMe",
+    "description": "Создавай, присоединяйся и побеждай челленджи вместе."
+  },
+  "common": {
+    "unknown": "Неизвестно",
+    "ok": "OK",
+    "close": "Закрыть",
+    "cancel": "Отмена",
+    "save": "Сохранить"
+  },
+  "auth": {
+    "registerTitle": "Создать аккаунт",
+    "loginTitle": "Войти",
+    "name": "Имя",
+    "age": "Возраст",
+    "country": "Страна",
+    "plan": "План",
+    "password": "Пароль",
+    "confirmPassword": "Подтвердите пароль",
+    "confirmPasswordRequired": "Подтвердите пароль",
+    "passwordsDoNotMatch": "Пароли должны совпадать",
+    "planOptions": {
+      "energy": "Энергия",
+      "present": "Настоящее",
+      "future": "Будущее"
+    },
+    "submitRegister": "Зарегистрироваться",
+    "submitLogin": "Войти",
+    "successRegister": "Регистрация прошла успешно!",
+    "successRegisterBody": "Аккаунт создан! Вы вошли в систему.",
+    "successLogin": "Вход выполнен успешно!",
+    "successLoginBody": "С возвращением! Вы вошли в систему.",
+    "ageRange": "Возраст должен быть от 0 до 120",
+    "registrationFailed": "Не удалось зарегистрироваться. Попробуйте ещё раз.",
+    "loginFailed": "Не удалось войти. Попробуйте ещё раз.",
+    "required": "Поле обязательно",
+    "passwordMismatch": "Пароли должны совпадать",
+    "passwordLength": "Пароль должен содержать не менее 6 символов"
+  },
+  "profile": {
+    "title": "Профиль",
+    "name": "Имя",
+    "age": "Возраст",
+    "country": "Страна",
+    "plan": "План",
+    "registered": "Дата регистрации",
+    "noData": "Данные профиля отсутствуют"
+  },
+  "users": {
+    "title": "Зарегистрированные пользователи",
+    "name": "Имя",
+    "age": "Возраст",
+    "country": "Страна",
+    "plan": "План",
+    "registered": "Дата регистрации",
+    "noUsers": "Пользователи не найдены"
+  },
+  "challenges": {
+    "addTitle": "Создать челлендж",
+    "title": "Название",
+    "description": "Описание",
+    "startDate": "Дата начала",
+    "endDate": "Дата окончания",
+    "create": "Создать",
+    "update": "Сохранить",
+    "cancel": "Отменить",
+    "mineBadge": "Создано мной",
+    "joinedBadge": "Участвую",
+    "discoverBadge": "Обзор",
+    "participants": "Участники",
+    "createdBy": "Создатель: {name}",
+    "dateRange": "С {start} по {end}",
+    "noChallenges": "Челленджи пока не созданы.",
+    "noMyChallenges": "Вы еще не создали и не присоединились к челленджам.",
+    "join": "Присоединиться",
+    "joinInfo": "Вы можете присоединиться к челленджу.",
+    "joinSuccess": "Вы участвуете в этом челлендже.",
+    "listTitle": "Все челленджи",
+    "myListTitle": "Мои челленджи",
+    "createdByMe": "Создано мной",
+    "loginPrompt": "Авторизуйтесь, чтобы увидеть свои челленджи.",
+    "mustBeLoggedIn": "Необходимо войти в систему, чтобы создать челлендж."
+  },
+  "validation": {
+    "titleRequired": "Название обязательно",
+    "descriptionRequired": "Описание обязательно",
+    "startDateRequired": "Дата начала обязательна",
+    "endDateRequired": "Дата окончания обязательна",
+    "endAfterStart": "Дата окончания должна быть позже даты начала"
+  },
+  "notifications": {
+    "apiError": "Не удалось загрузить данные",
+    "joinError": "Не удалось присоединиться к челленджу",
+    "updateError": "Не удалось сохранить челлендж",
+    "createError": "Не удалось создать челлендж",
+    "mustLogin": "Для продолжения необходимо войти в систему.",
+    "profileError": "Не удалось загрузить профиль",
+    "usersError": "Не удалось загрузить пользователей"
+  }
+}

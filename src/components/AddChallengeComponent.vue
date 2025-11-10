@@ -1,12 +1,12 @@
 <template>
   <div class="add-challenge">
-    <h1 class="mb-6">Add Challenge</h1>
+    <h1 class="mb-6">{{ t('challenges.addTitle') }}</h1>
     <v-card>
       <v-card-text>
         <v-form @submit.prevent="handleSubmit">
           <v-text-field
             v-model="form.title"
-            label="Title"
+            :label="t('challenges.title')"
             variant="outlined"
             required
             class="mb-4"
@@ -15,7 +15,7 @@
 
           <v-textarea
             v-model="form.description"
-            label="Description"
+            :label="t('challenges.description')"
             variant="outlined"
             rows="5"
             required
@@ -33,7 +33,7 @@
               <template #activator="{ props }">
                 <v-text-field
                   :model-value="formatDisplayDate(form.startDate)"
-                  label="Start Date"
+                  :label="t('challenges.startDate')"
                   variant="outlined"
                   readonly
                   v-bind="props"
@@ -55,7 +55,7 @@
               <template #activator="{ props }">
                 <v-text-field
                   :model-value="formatDisplayDate(form.endDate)"
-                  label="End Date"
+                  :label="t('challenges.endDate')"
                   variant="outlined"
                   readonly
                   v-bind="props"
@@ -84,7 +84,7 @@
             :loading="loading"
             :disabled="loading"
           >
-            Create
+            {{ t('challenges.create') }}
           </v-btn>
         </v-form>
       </v-card-text>
@@ -96,8 +96,10 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { challengeService } from '../services/api'
+import { useI18n } from 'vue-i18n'
 
 const router = useRouter()
+const { t, locale } = useI18n()
 
 const form = ref({
   title: '',
@@ -130,24 +132,24 @@ function validate() {
   const validationErrors = {}
 
   if (!form.value.title) {
-    validationErrors.title = 'Title is required'
+    validationErrors.title = t('validation.titleRequired')
   }
 
   if (!form.value.description) {
-    validationErrors.description = 'Description is required'
+    validationErrors.description = t('validation.descriptionRequired')
   }
 
   if (!form.value.startDate) {
-    validationErrors.startDate = 'Start date is required'
+    validationErrors.startDate = t('validation.startDateRequired')
   }
 
   if (!form.value.endDate) {
-    validationErrors.endDate = 'End date is required'
+    validationErrors.endDate = t('validation.endDateRequired')
   }
 
   if (form.value.startDate && form.value.endDate) {
     if (new Date(form.value.startDate) > new Date(form.value.endDate)) {
-      validationErrors.endDate = 'End date must be after start date'
+      validationErrors.endDate = t('validation.endAfterStart')
     }
   }
 
@@ -161,11 +163,16 @@ function formatDisplayDate(value) {
   if (Number.isNaN(date.getTime())) {
     return value
   }
-  return date.toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  })
+  try {
+    const formatter = new Intl.DateTimeFormat(locale.value, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+    return formatter.format(date)
+  } catch (err) {
+    return date.toLocaleDateString()
+  }
 }
 
 function onSelectStartDate(val) {
@@ -185,7 +192,7 @@ async function handleSubmit() {
 
   const userId = getCurrentUserId()
   if (!userId) {
-    errorMessage.value = 'You must be logged in to create a challenge.'
+    errorMessage.value = t('challenges.mustBeLoggedIn')
     return
   }
 
@@ -196,7 +203,7 @@ async function handleSubmit() {
     await challengeService.createChallenge({ ...form.value, owner: userId })
     router.push('/challenges/my')
   } catch (error) {
-    errorMessage.value = error.response?.data?.message || 'Failed to create challenge'
+    errorMessage.value = error.response?.data?.message || t('notifications.createError')
   } finally {
     loading.value = false
   }

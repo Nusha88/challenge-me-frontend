@@ -1,12 +1,12 @@
 <template>
   <div class="register-container">
     <v-card class="register-card">
-      <v-card-title class="text-h4 mb-4">Register</v-card-title>
+      <v-card-title class="text-h4 mb-4">{{ t('auth.registerTitle') }}</v-card-title>
       <v-card-text>
         <v-form @submit.prevent="handleSubmit">
           <v-text-field
             v-model="formData.name"
-            label="Name"
+            :label="t('auth.name')"
             required
             variant="outlined"
             class="mb-4"
@@ -15,7 +15,7 @@
 
           <v-text-field
             v-model="formData.age"
-            label="Age"
+            :label="t('auth.age')"
             type="number"
             required
             variant="outlined"
@@ -25,7 +25,7 @@
 
           <v-text-field
             v-model="formData.country"
-            label="Country"
+            :label="t('auth.country')"
             required
             variant="outlined"
             class="mb-4"
@@ -35,7 +35,9 @@
           <v-select
             v-model="formData.plan"
             :items="planOptions"
-            label="Plan"
+            :label="t('auth.plan')"
+            item-title="title"
+            item-value="value"
             variant="outlined"
             class="mb-4"
             :error-messages="errors.plan"
@@ -43,7 +45,7 @@
 
           <v-text-field
             v-model="formData.password"
-            label="Password"
+            :label="t('auth.password')"
             type="password"
             required
             variant="outlined"
@@ -53,7 +55,7 @@
 
           <v-text-field
             v-model="formData.confirmPassword"
-            label="Confirm Password"
+            :label="t('auth.confirmPassword')"
             type="password"
             required
             variant="outlined"
@@ -77,20 +79,20 @@
             :loading="loading"
             :disabled="loading"
           >
-            Register
+            {{ t('auth.submitRegister') }}
           </v-btn>
         </v-form>
       </v-card-text>
     </v-card>
     <v-dialog v-model="showSuccess" max-width="400">
       <v-card>
-        <v-card-title class="text-h5">Registration Successful</v-card-title>
+        <v-card-title class="text-h5">{{ t('auth.successRegister') }}</v-card-title>
         <v-card-text>
-          Your account has been created! You are now logged in.
+          {{ t('auth.successRegisterBody') }}
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn color="primary" @click="closeSuccessModal">OK</v-btn>
+          <v-btn color="primary" @click="closeSuccessModal">{{ t('auth.close') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -98,15 +100,17 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { authService } from '../services/api'
+import { useI18n } from 'vue-i18n'
 
 const router = useRouter()
 const loading = ref(false)
 const error = ref('')
 const errors = ref({})
 const showSuccess = ref(false)
+const { t } = useI18n()
 
 const formData = ref({
   name: '',
@@ -117,47 +121,47 @@ const formData = ref({
   confirmPassword: ''
 })
 
-const planOptions = [
-  'Energy',
-  'Present',
-  'Future'
-]
+const planOptions = computed(() => [
+  { title: t('auth.planOptions.energy'), value: 'Energy' },
+  { title: t('auth.planOptions.present'), value: 'Present' },
+  { title: t('auth.planOptions.future'), value: 'Future' }
+])
 
 const validateForm = () => {
   errors.value = {}
   let isValid = true
 
   if (!formData.value.name) {
-    errors.value.name = 'Name is required'
+    errors.value.name = t('auth.required')
     isValid = false
   }
 
   if (!formData.value.age) {
-    errors.value.age = 'Age is required'
+    errors.value.age = t('auth.required')
     isValid = false
   } else if (formData.value.age < 0 || formData.value.age > 120) {
-    errors.value.age = 'Age must be between 0 and 120'
+    errors.value.age = t('auth.ageRange')
     isValid = false
   }
 
   if (!formData.value.country) {
-    errors.value.country = 'Country is required'
+    errors.value.country = t('auth.required')
     isValid = false
   }
 
   if (!formData.value.password) {
-    errors.value.password = 'Password is required'
+    errors.value.password = t('auth.required')
     isValid = false
   } else if (formData.value.password.length < 6) {
-    errors.value.password = 'Password must be at least 6 characters'
+    errors.value.password = t('auth.passwordLength')
     isValid = false
   }
 
   if (!formData.value.confirmPassword) {
-    errors.value.confirmPassword = 'Please confirm your password'
+    errors.value.confirmPassword = t('auth.confirmPasswordRequired')
     isValid = false
   } else if (formData.value.password !== formData.value.confirmPassword) {
-    errors.value.confirmPassword = 'Passwords do not match'
+    errors.value.confirmPassword = t('auth.passwordsDoNotMatch')
     isValid = false
   }
 
@@ -187,7 +191,7 @@ const handleSubmit = async () => {
     if (err.response?.data?.message) {
       error.value = err.response.data.message
     } else {
-      error.value = 'Registration failed. Please try again.'
+      error.value = t('auth.registrationFailed')
     }
   } finally {
     loading.value = false
