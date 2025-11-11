@@ -23,25 +23,18 @@
             :error-messages="errors.age"
           ></v-text-field>
 
-          <v-text-field
+          <v-autocomplete
             v-model="formData.country"
+            :items="countryOptions"
             :label="t('auth.country')"
-            required
-            variant="outlined"
-            class="mb-4"
-            :error-messages="errors.country"
-          ></v-text-field>
-
-          <v-select
-            v-model="formData.plan"
-            :items="planOptions"
-            :label="t('auth.plan')"
             item-title="title"
             item-value="value"
             variant="outlined"
             class="mb-4"
-            :error-messages="errors.plan"
-          ></v-select>
+            :error-messages="errors.country"
+            hide-details="auto"
+            clearable
+          ></v-autocomplete>
 
           <v-text-field
             v-model="formData.password"
@@ -92,7 +85,7 @@
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn color="primary" @click="closeSuccessModal">{{ t('auth.close') }}</v-btn>
+          <v-btn color="primary" @click="closeSuccessModal">{{ t('common.ok') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -100,69 +93,231 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, watch, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { authService } from '../services/api'
 import { useI18n } from 'vue-i18n'
+import {
+  getCountryOptions,
+  detectUserCountry,
+  sanitizeCountryCode,
+  isValidCountryCode
+} from '../utils/countries'
 
 const router = useRouter()
 const loading = ref(false)
 const error = ref('')
 const errors = ref({})
 const showSuccess = ref(false)
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const formData = ref({
   name: '',
   age: '',
   country: '',
-  plan: 'Energy',
   password: '',
   confirmPassword: ''
 })
 
-const planOptions = computed(() => [
-  { title: t('auth.planOptions.energy'), value: 'Energy' },
-  { title: t('auth.planOptions.present'), value: 'Present' },
-  { title: t('auth.planOptions.future'), value: 'Future' }
-])
+const ageTouched = ref(false)
+const nameTouched = ref(false)
+const passwordTouched = ref(false)
+const confirmTouched = ref(false)
+const countryTouched = ref(false)
+
+const isEmpty = (value) => value === '' || value === null || value === undefined
+
+const getAgeError = (value, includeRequired = false) => {
+  if (isEmpty(value)) {
+    return includeRequired ? t('auth.required') : ''
+  }
+
+  const ageNumber = Number(value)
+  if (!Number.isInteger(ageNumber)) {
+    return t('auth.ageInteger')
+  }
+
+  if (ageNumber < 12 || ageNumber > 99) {
+    return t('auth.ageRange')
+  }
+
+  return ''
+}
+
+const getCountryError = (value, includeRequired = false) => {
+  if (isEmpty(value)) {
+    return includeRequired ? t('auth.required') : ''
+  }
+
+  const sanitized = sanitizeCountryCode(value)
+  if (!sanitized) {
+    return t('auth.countryInvalid')
+  }
+
+  if (!isValidCountryCode(sanitized)) {
+    return t('auth.countryInvalid')
+  }
+
+  return ''
+}
+
+const getPasswordError = (value, includeRequired = false) => {
+  if (isEmpty(value)) {
+    return includeRequired ? t('auth.required') : ''
+  }
+
+  if (String(value).length < 6) {
+    return t('auth.passwordLength')
+  }
+
+  return ''
+}
+
+const getConfirmPasswordError = (value, includeRequired = false) => {
+  if (isEmpty(value)) {
+    return includeRequired ? t('auth.confirmPasswordRequired') : ''
+  }
+
+  if (value !== formData.value.password) {
+    return t('auth.passwordsDoNotMatch')
+  }
+
+  return ''
+}
+
+const countryOptions = computed(() => getCountryOptions(locale.value))
+
+onMounted(() => {
+  const detectedCountry = detectUserCountry()
+  if (detectedCountry && !formData.value.country) {
+    formData.value.country = detectedCountry
+    countryTouched.value = false
+  }
+})
+
+watch(() => formData.value.name, (newValue) => {
+  if (!nameTouched.value && !isEmpty(newValue)) {
+    nameTouched.value = true
+  }
+
+  if (nameTouched.value) {
+    errors.value.name = isEmpty(newValue?.trim()) ? t('auth.required') : ''
+  }
+})
+
+watch(() => formData.value.age, (newValue) => {
+  if (!ageTouched.value && !isEmpty(newValue)) {
+    ageTouched.value = true
+  }
+
+  if (ageTouched.value) {
+    errors.value.age = getAgeError(newValue, false)
+  }
+})
+
+watch(() => formData.value.country, (newValue) => {
+  if (newValue && typeof newValue === 'object') {
+    const normalized = sanitizeCountryCode(newValue.value)
+    formData.value.country = normalized
+    return
+  }
+
+  if (typeof newValue === 'string' && newValue.length === 2) {
+    const normalizedCode = sanitizeCountryCode(newValue)
+    if (normalizedCode && normalizedCode !== newValue) {
+      formData.value.country = normalizedCode
+      return
+    }
+  }
+
+  if (!countryTouched.value && !isEmpty(newValue)) {
+    countryTouched.value = true
+  }
+
+  if (countryTouched.value) {
+    errors.value.country = getCountryError(newValue, false)
+  }
+})
+
+watch(() => formData.value.password, (newValue) => {
+  if (!passwordTouched.value && !isEmpty(newValue)) {
+    passwordTouched.value = true
+  }
+
+  if (passwordTouched.value) {
+    errors.value.password = getPasswordError(newValue, false)
+  }
+
+  if (confirmTouched.value) {
+    errors.value.confirmPassword = getConfirmPasswordError(formData.value.confirmPassword, false)
+  }
+})
+
+watch(() => formData.value.confirmPassword, (newValue) => {
+  if (!confirmTouched.value && !isEmpty(newValue)) {
+    confirmTouched.value = true
+  }
+
+  if (confirmTouched.value) {
+    errors.value.confirmPassword = getConfirmPasswordError(newValue, false)
+  }
+})
 
 const validateForm = () => {
   errors.value = {}
   let isValid = true
 
-  if (!formData.value.name) {
+  nameTouched.value = true
+  if (!formData.value.name || !formData.value.name.trim()) {
     errors.value.name = t('auth.required')
     isValid = false
+  } else {
+    errors.value.name = ''
   }
 
-  if (!formData.value.age) {
-    errors.value.age = t('auth.required')
+  ageTouched.value = true
+  const ageError = getAgeError(formData.value.age, true)
+  if (ageError) {
+    errors.value.age = ageError
     isValid = false
-  } else if (formData.value.age < 0 || formData.value.age > 120) {
-    errors.value.age = t('auth.ageRange')
-    isValid = false
+  } else {
+    errors.value.age = ''
   }
 
   if (!formData.value.country) {
     errors.value.country = t('auth.required')
     isValid = false
+  } else {
+    const countryError = getCountryError(formData.value.country, true)
+    if (countryError) {
+      errors.value.country = countryError
+      isValid = false
+    } else {
+      errors.value.country = ''
+      formData.value.country = sanitizeCountryCode(formData.value.country)
+    }
   }
 
+  passwordTouched.value = true
   if (!formData.value.password) {
     errors.value.password = t('auth.required')
     isValid = false
   } else if (formData.value.password.length < 6) {
     errors.value.password = t('auth.passwordLength')
     isValid = false
+  } else {
+    errors.value.password = ''
   }
 
+  confirmTouched.value = true
   if (!formData.value.confirmPassword) {
     errors.value.confirmPassword = t('auth.confirmPasswordRequired')
     isValid = false
   } else if (formData.value.password !== formData.value.confirmPassword) {
     errors.value.confirmPassword = t('auth.passwordsDoNotMatch')
     isValid = false
+  } else {
+    errors.value.confirmPassword = ''
   }
 
   return isValid
@@ -173,13 +328,15 @@ const handleSubmit = async () => {
 
   loading.value = true
   error.value = ''
+  const ageNumber = Number(formData.value.age)
+  const countryCode = sanitizeCountryCode(formData.value.country)
+  const trimmedName = formData.value.name.trim()
 
   try {
     const response = await authService.register({
-      name: formData.value.name,
-      age: formData.value.age,
-      country: formData.value.country,
-      plan: formData.value.plan,
+      name: trimmedName,
+      age: ageNumber,
+      country: countryCode,
       password: formData.value.password
     })
     // Store JWT token and user info

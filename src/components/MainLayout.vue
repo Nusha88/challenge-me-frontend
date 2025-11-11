@@ -8,12 +8,26 @@ const router = useRouter()
 const route = useRoute()
 const currentRoute = computed(() => route.name)
 const isLoggedIn = ref(!!localStorage.getItem('token'))
+
+function readStoredUser() {
+  try {
+    const stored = localStorage.getItem('user')
+    return stored ? JSON.parse(stored) : null
+  } catch (error) {
+    return null
+  }
+}
+
+const currentUser = ref(readStoredUser())
 const { t, locale } = useI18n()
 const availableLocales = SUPPORTED_LOCALES
 
 function updateAuthState() {
   isLoggedIn.value = !!localStorage.getItem('token')
+  currentUser.value = readStoredUser()
 }
+
+const userName = computed(() => currentUser.value?.name || null)
 
 const currentLocaleLabel = computed(() => {
   return availableLocales.find(lang => lang.code === locale.value)?.label || locale.value
@@ -103,8 +117,9 @@ function changeLanguage(code) {
         color="white"
         variant="text"
         class="mr-2"
+        prepend-icon="mdi-account"
       >
-        {{ t('navigation.profile') }}
+        {{ userName || t('navigation.profile') }}
       </v-btn>
       <v-btn
         v-if="isLoggedIn"

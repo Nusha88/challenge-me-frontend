@@ -85,7 +85,7 @@ export const userService = {
     return api.get('/auth/profile')
   },
   updateProfile: (userData) => {
-    return api.put('/users/profile', userData)
+    return api.put('/auth/profile', userData)
   },
   getAllUsers: () => {
     return api.get('/auth/users')

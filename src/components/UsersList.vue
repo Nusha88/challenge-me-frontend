@@ -9,6 +9,9 @@
           :loading="loading"
           class="elevation-1"
         >
+          <template v-slot:item.country="{ item }">
+            {{ formatCountry(item.country) }}
+          </template>
           <template v-slot:item.createdAt="{ item }">
             {{ formatDate(item.createdAt) }}
           </template>
@@ -33,17 +36,23 @@
 import { ref, onMounted, computed } from 'vue'
 import { userService } from '../services/api'
 import { useI18n } from 'vue-i18n'
+import { getCountryDisplayName } from '../utils/countries'
 
 const users = ref([])
 const loading = ref(false)
 const error = ref('')
 const { t, locale } = useI18n()
 
+const formatCountry = (value) => {
+  if (!value) return t('common.unknown')
+  const name = getCountryDisplayName(value, locale.value)
+  return name || t('common.unknown')
+}
+
 const headers = computed(() => [
   { title: t('users.name'), key: 'name' },
   { title: t('users.age'), key: 'age' },
   { title: t('users.country'), key: 'country' },
-  { title: t('users.plan'), key: 'plan' },
   { title: t('users.registered'), key: 'createdAt' }
 ])
 
