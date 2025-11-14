@@ -63,6 +63,8 @@
     "uploadError": "Failed to update avatar.",
     "uploadInvalidType": "Please choose an image file.",
     "uploadTooLarge": "File must be smaller than {size} MB.",
+    "uploading": "Uploading...",
+    "clickToUpload": "Click to upload",
     "missingApiKey": "Avatar upload is disabled. Set VITE_IMGBB_API_KEY to enable it.",
     "apiKeyTitle": "Configure ImgBB API Key",
     "apiKeyDescription": "Paste your ImgBB key to enable avatar uploads (stored only in this browser).",

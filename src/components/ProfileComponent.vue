@@ -8,70 +8,41 @@
         <v-alert v-if="uploadSuccess" type="success" class="mb-4">{{ uploadSuccess }}</v-alert>
         <v-skeleton-loader v-if="loading" type="card"></v-skeleton-loader>
         <div v-else-if="user">
-          <v-card
-            v-if="isApiKeyConfigurable"
-            class="mb-4"
-            variant="tonal"
-          >
-            <v-card-title class="text-subtitle-1">
-              {{ t('profile.apiKeyTitle') }}
-            </v-card-title>
-            <v-card-text>
-              <p class="mb-2">{{ t('profile.apiKeyDescription') }}</p>
-              <v-text-field
-                v-model="apiKeyInput"
-                :label="t('profile.apiKeyLabel')"
-                prepend-icon="mdi-key"
-                variant="outlined"
-                density="comfortable"
-                autocomplete="off"
-              ></v-text-field>
-              <div class="d-flex" style="gap: 8px;">
-                <v-btn
-                  color="primary"
-                  :loading="apiKeySaving"
-                  :disabled="apiKeySaving"
-                  @click="saveApiKey"
-                >
-                  {{ t('profile.apiKeySave') }}
-                </v-btn>
-                <v-btn
-                  color="secondary"
-                  variant="text"
-                  @click="clearApiKey"
-                >
-                  {{ t('profile.apiKeyClear') }}
-                </v-btn>
-              </div>
-            </v-card-text>
-          </v-card>
           <div class="avatar-wrapper mb-4">
-            <v-avatar size="128">
-              <template v-if="user.avatarUrl">
-                <v-img :src="user.avatarUrl" :alt="user.name" cover></v-img>
-              </template>
-              <template v-else>
-                <span class="avatar-initials">{{ userInitials }}</span>
-              </template>
-            </v-avatar>
+            <input
+              ref="fileInputRef"
+              type="file"
+              accept="image/*"
+              class="hidden-file-input"
+              :disabled="uploading"
+              @change="handleFileInputChange"
+            />
+            <div
+              class="avatar-clickable"
+              :class="{ 'uploading': uploading }"
+              @click="triggerFileInput"
+            >
+              <v-avatar size="128" class="avatar-display" :class="{ 'avatar-no-image': !user.avatarUrl }">
+                <template v-if="user.avatarUrl">
+                  <v-img :src="user.avatarUrl" :alt="user.name" cover></v-img>
+                </template>
+                <template v-else>
+                  <span class="avatar-initials">{{ userInitials }}</span>
+                </template>
+              </v-avatar>
+              <div class="avatar-overlay">
+                <v-progress-circular
+                  v-if="uploading"
+                  indeterminate
+                  color="white"
+                  size="32"
+                  width="3"
+                ></v-progress-circular>
+                <v-icon v-else size="32" color="white">mdi-camera</v-icon>
+                <span class="avatar-overlay-text">{{ uploading ? t('profile.uploading') : t('profile.clickToUpload') }}</span>
+              </div>
+            </div>
           </div>
-          <v-file-input
-            v-if="effectiveApiKey"
-            accept="image/*"
-            :label="t('profile.uploadLabel')"
-            show-size
-            prepend-icon="mdi-camera"
-            :loading="uploading"
-            :disabled="uploading"
-            @update:model-value="handleAvatarSelection"
-            clearable
-            density="comfortable"
-            :hint="t('profile.uploadHint')"
-            persistent-hint
-          ></v-file-input>
-          <v-alert v-else type="info" class="mb-4">
-            {{ t('profile.missingApiKey') }}
-          </v-alert>
           <v-list>
             <v-list-item>
               <v-list-item-title><strong>{{ t('profile.name') }}:</strong> {{ user.name }}</v-list-item-title>
@@ -106,13 +77,10 @@ const uploading = ref(false)
 const uploadError = ref('')
 const uploadSuccess = ref('')
 const { t, locale } = useI18n()
-const envApiKey = import.meta.env.VITE_IMGBB_API_KEY || ''
-const storedApiKey = ref('')
-const apiKeyInput = ref('')
-const apiKeySaving = ref(false)
+const fileInputRef = ref(null)
 
-const effectiveApiKey = computed(() => envApiKey || storedApiKey.value)
-const isApiKeyConfigurable = computed(() => !envApiKey)
+// Hardcoded ImgBB API key for all users
+const IMGBB_API_KEY = 'd8a4925b372143b44469009f92023386'
 
 const formatDate = (dateString) => {
   if (!dateString) return ''
@@ -151,13 +119,6 @@ const fetchProfile = async () => {
 
 onMounted(() => {
   fetchProfile()
-  try {
-    const cachedKey = localStorage.getItem('imgbbApiKey') || ''
-    storedApiKey.value = cachedKey
-    apiKeyInput.value = cachedKey
-  } catch (storageError) {
-    storedApiKey.value = ''
-  }
 })
 
 const userInitials = computed(() => {
@@ -208,28 +169,29 @@ const handleAvatarSelection = async (files) => {
     return
   }
 
-  const apiKey = effectiveApiKey.value
-  if (!apiKey) {
-    uploadError.value = t('profile.missingApiKey')
-    return
-  }
-
   uploading.value = true
 
   try {
     const base64 = await readFileAsBase64(file)
-    const formData = new FormData()
+    
+    // ImgBB API expects form-encoded data, not FormData
+    const formData = new URLSearchParams()
     formData.append('image', base64)
 
-    const response = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
+    const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
       body: formData
     })
 
     const payload = await response.json()
 
     if (!response.ok || !payload.success) {
-      throw new Error(payload?.data?.error?.message || 'Upload failed')
+      const errorMsg = payload?.error?.message || payload?.data?.error?.message || 'Upload failed'
+      console.error('ImgBB API error:', payload)
+      throw new Error(errorMsg)
     }
 
     const imageUrl = payload?.data?.url || payload?.data?.display_url
@@ -261,45 +223,20 @@ const handleAvatarSelection = async (files) => {
   }
 }
 
-const saveApiKey = () => {
-  uploadError.value = ''
-  uploadSuccess.value = ''
-  const trimmed = apiKeyInput.value.trim()
-
-  if (!trimmed) {
-    apiKeySaving.value = true
-    try {
-      storedApiKey.value = ''
-      localStorage.removeItem('imgbbApiKey')
-      uploadSuccess.value = t('profile.apiKeyCleared')
-    } catch (storageError) {
-      uploadError.value = t('profile.apiKeySaveFailed')
-    } finally {
-      apiKeySaving.value = false
-    }
-    return
-  }
-
-  if (!/^[A-Za-z0-9]+$/.test(trimmed)) {
-    uploadError.value = t('profile.apiKeyInvalid')
-    return
-  }
-
-  apiKeySaving.value = true
-  try {
-    localStorage.setItem('imgbbApiKey', trimmed)
-    storedApiKey.value = trimmed
-    uploadSuccess.value = t('profile.apiKeySaved')
-  } catch (storageError) {
-    uploadError.value = t('profile.apiKeySaveFailed')
-  } finally {
-    apiKeySaving.value = false
-  }
+const triggerFileInput = () => {
+  if (uploading.value || !fileInputRef.value) return
+  fileInputRef.value.click()
 }
 
-const clearApiKey = () => {
-  apiKeyInput.value = ''
-  saveApiKey()
+const handleFileInputChange = (event) => {
+  const files = event.target.files
+  if (files && files.length > 0) {
+    handleAvatarSelection(files[0])
+  }
+  // Reset input so same file can be selected again
+  if (event.target) {
+    event.target.value = ''
+  }
 }
 </script>
 
@@ -326,6 +263,62 @@ const clearApiKey = () => {
 .avatar-wrapper {
   display: flex;
   justify-content: center;
+  flex-direction: column;
+  align-items: center;
+}
+
+.avatar-clickable {
+  position: relative;
+  cursor: pointer;
+  display: inline-block;
+}
+
+.avatar-clickable:hover .avatar-overlay {
+  opacity: 1;
+}
+
+.avatar-clickable.uploading .avatar-overlay {
+  opacity: 1;
+}
+
+.avatar-display {
+  transition: opacity 0.2s;
+}
+
+.avatar-clickable:hover .avatar-display {
+  opacity: 0.8;
+}
+
+.avatar-no-image {
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+}
+
+.avatar-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+
+.avatar-overlay-text {
+  color: white;
+  font-size: 12px;
+  margin-top: 4px;
+  text-align: center;
+}
+
+.hidden-file-input {
+  display: none;
 }
 
 .avatar-initials {
@@ -337,5 +330,6 @@ const clearApiKey = () => {
   justify-content: center;
   width: 100%;
   height: 100%;
+  color: white;
 }
 </style> 
