@@ -127,6 +127,9 @@
       "everyOtherDay": "Через день",
       "weekdays": "По будням"
     },
+    "actions": "Действия",
+    "actionPlaceholder": "Введите действие",
+    "addAction": "Добавить действие",
     "challengeImage": "Изображение челленджа",
     "clickToUpload": "Нажмите для загрузки изображения",
     "clickToChange": "Нажмите для изменения изображения",

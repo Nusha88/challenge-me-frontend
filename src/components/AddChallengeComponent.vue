@@ -159,6 +159,71 @@
             :error-messages="errors.frequency"
           ></v-select>
 
+          <v-card
+            v-if="form.challengeType === 'result'"
+            class="mb-4"
+            variant="outlined"
+          >
+            <v-card-title class="text-h6">
+              {{ t('challenges.actions') }}
+            </v-card-title>
+            <v-card-text>
+              <div
+                v-for="(action, index) in form.actions"
+                :key="index"
+                class="d-flex align-center mb-2"
+              >
+                <v-checkbox
+                  v-model="action.checked"
+                  hide-details
+                  class="mr-2"
+                  :disabled="!action.text || action.text.trim() === ''"
+                ></v-checkbox>
+                <v-text-field
+                  v-model="action.text"
+                  variant="outlined"
+                  density="compact"
+                  hide-details
+                  class="flex-grow-1"
+                  :class="{ 'text-strikethrough': action.checked }"
+                  :placeholder="t('challenges.actionPlaceholder')"
+                  :disabled="action.checked"
+                ></v-text-field>
+                <v-btn
+                  v-if="form.actions.length > 1"
+                  icon="mdi-delete"
+                  variant="text"
+                  size="small"
+                  class="ml-2"
+                  @click="removeAction(index)"
+                ></v-btn>
+              </div>
+              <div class="d-flex align-center justify-space-between">
+                <v-btn
+                  prepend-icon="mdi-plus"
+                  variant="outlined"
+                  color="primary"
+                  @click="addAction"
+                >
+                  {{ t('challenges.addAction') }}
+                </v-btn>
+                <span class="text-body-2 text-medium-emphasis actions-counter">
+                  {{ actionsDoneCount }}/{{ form.actions.length }}
+                </span>
+              </div>
+            </v-card-text>
+          </v-card>
+
+          <v-select
+            v-model="form.privacy"
+            :items="privacyOptions"
+            :label="t('challenges.privacy')"
+            item-title="title"
+            item-value="value"
+            variant="outlined"
+            class="mb-4"
+          ></v-select>
+
           <v-alert
             v-if="errorMessage"
             type="error"
@@ -204,7 +269,8 @@ const form = ref({
   privacy: 'public',
   challengeType: 'habit',
   frequency: 'daily',
-  startOption: 'today'
+  startOption: 'today',
+  actions: [{ text: '', checked: false }]
 })
 
 const durationOptions = computed(() => [
@@ -226,6 +292,15 @@ const frequencyOptions = computed(() => [
 const startOptions = computed(() => [
   { title: t('challenges.startOptions.today'), value: 'today' },
   { title: t('challenges.startOptions.tomorrow'), value: 'tomorrow' }
+])
+
+const actionsDoneCount = computed(() => {
+  return form.value.actions?.filter(action => action.checked).length || 0
+})
+
+const privacyOptions = computed(() => [
+  { title: t('challenges.privacyOptions.public'), value: 'public' },
+  { title: t('challenges.privacyOptions.private'), value: 'private' }
 ])
 
 // Watch for startOption changes and update startDate
@@ -270,15 +345,31 @@ function selectChallengeType(type) {
   if (type === 'habit') {
     form.value.duration = '21'
     form.value.startOption = 'today'
+    form.value.frequency = 'daily' // Set default frequency for habit
     // startDate will be set automatically by the watcher
   } else if (type === 'result') {
     form.value.duration = '30'
     form.value.startOption = 'today'
+    form.value.frequency = '' // Clear frequency for result challenges
     // startDate will be set automatically by the watcher
+    // Initialize actions with default item if empty
+    if (!form.value.actions || form.value.actions.length === 0) {
+      form.value.actions = [{ text: '', checked: false }]
+    }
   }
   // Clear custom duration if it was set
   if (form.value.duration !== 'custom') {
     form.value.customDuration = ''
+  }
+}
+
+function addAction() {
+  form.value.actions.push({ text: '', checked: false })
+}
+
+function removeAction(index) {
+  if (form.value.actions.length > 1) {
+    form.value.actions.splice(index, 1)
   }
 }
 
@@ -489,8 +580,17 @@ async function handleSubmit() {
       challengeData.imageUrl = form.value.imageUrl
     }
     
-    if (form.value.challengeType === 'habit' && form.value.frequency) {
-      challengeData.frequency = form.value.frequency
+    // Only include frequency for habit challenges
+    if (form.value.challengeType === 'habit') {
+      if (form.value.frequency) {
+        challengeData.frequency = form.value.frequency
+      }
+    }
+    // Don't send frequency for result challenges (it will be null/undefined)
+    
+    // Only include actions for result challenges
+    if (form.value.challengeType === 'result' && form.value.actions) {
+      challengeData.actions = form.value.actions
     }
 
     await challengeService.createChallenge(challengeData)
@@ -507,6 +607,16 @@ async function handleSubmit() {
 .add-challenge {
   max-width: 640px;
   margin: 0 auto;
+}
+
+.text-strikethrough :deep(.v-field__input) {
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+.actions-counter {
+  font-weight: 500;
+  margin-left: auto;
 }
 
 .date-pickers {

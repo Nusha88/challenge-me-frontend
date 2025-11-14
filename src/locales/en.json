@@ -127,6 +127,9 @@
       "everyOtherDay": "Every other day",
       "weekdays": "Weekdays"
     },
+    "actions": "Actions",
+    "actionPlaceholder": "Enter action",
+    "addAction": "Add Action",
     "challengeImage": "Challenge Image",
     "clickToUpload": "Click to upload image",
     "clickToChange": "Click to change image",
