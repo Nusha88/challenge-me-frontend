@@ -29,6 +29,8 @@
     "registerTitle": "Create Account",
     "loginTitle": "Sign In",
     "name": "Name",
+    "email": "Email",
+    "emailInvalid": "Please enter a valid email address",
     "age": "Age",
     "country": "Country",
     "countryInvalid": "Select a country from the list",
@@ -38,6 +40,8 @@
     "passwordsDoNotMatch": "Passwords must match",
     "submitRegister": "Register",
     "submitLogin": "Login",
+    "forgotPassword": "Forgot password?",
+    "forgotPasswordNotImplemented": "Forgot password functionality is not yet implemented.",
     "successRegister": "Registration successful!",
     "successRegisterBody": "Your account has been created! You are now logged in.",
     "successLogin": "Login successful!",
@@ -90,6 +94,46 @@
     "description": "Description",
     "startDate": "Start Date",
     "endDate": "End Date",
+    "duration": "Challenge Duration",
+    "customDuration": "Number of days",
+    "customDurationHint": "Enter the number of days for your challenge",
+    "durationOptions": {
+      "7days": "7 days",
+      "14days": "14 days",
+      "21days": "21 days",
+      "30days": "30 days",
+      "60days": "60 days",
+      "90days": "90 days",
+      "custom": "Your option"
+    },
+    "privacy": "Privacy",
+    "privacyOptions": {
+      "public": "Public",
+      "private": "Private"
+    },
+    "challengeType": "Challenge Type",
+    "typeHabit": "Challenge-Habit",
+    "typeHabitDescription": "Build a consistent habit by repeating an action daily or regularly over time.",
+    "typeResult": "Challenge-Result",
+    "typeResultDescription": "Achieve a specific goal or outcome by the end of the challenge period.",
+    "start": "Start",
+    "startOptions": {
+      "today": "Today",
+      "tomorrow": "Tomorrow"
+    },
+    "frequency": "Frequency",
+    "frequencyOptions": {
+      "daily": "Daily",
+      "everyOtherDay": "Every other day",
+      "weekdays": "Weekdays"
+    },
+    "challengeImage": "Challenge Image",
+    "clickToUpload": "Click to upload image",
+    "clickToChange": "Click to change image",
+    "uploading": "Uploading...",
+    "uploadInvalidType": "Please choose an image file.",
+    "uploadTooLarge": "File must be smaller than {size} MB.",
+    "uploadError": "Failed to upload image.",
     "create": "Create",
     "update": "Save",
     "cancel": "Cancel",
@@ -113,9 +157,11 @@
   "validation": {
     "titleRequired": "Title is required",
     "descriptionRequired": "Description is required",
-    "startDateRequired": "Start date is required",
+    "startOptionRequired": "Start option is required",
     "endDateRequired": "End date is required",
-    "endAfterStart": "End date must be after start date"
+    "endAfterStart": "End date must be after start date",
+    "customDurationRequired": "Please enter the number of days",
+    "frequencyRequired": "Frequency is required"
   },
   "notifications": {
     "apiError": "Failed to load data",

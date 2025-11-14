@@ -29,6 +29,8 @@
     "registerTitle": "Создать аккаунт",
     "loginTitle": "Войти",
     "name": "Имя",
+    "email": "Email",
+    "emailInvalid": "Пожалуйста, введите корректный email адрес",
     "age": "Возраст",
     "country": "Страна",
     "countryInvalid": "Выберите страну из списка",
@@ -38,6 +40,8 @@
     "passwordsDoNotMatch": "Пароли должны совпадать",
     "submitRegister": "Зарегистрироваться",
     "submitLogin": "Войти",
+    "forgotPassword": "Забыли пароль?",
+    "forgotPasswordNotImplemented": "Функция восстановления пароля пока не реализована.",
     "successRegister": "Регистрация прошла успешно!",
     "successRegisterBody": "Аккаунт создан! Вы вошли в систему.",
     "successLogin": "Вход выполнен успешно!",
@@ -90,6 +94,46 @@
     "description": "Описание",
     "startDate": "Дата начала",
     "endDate": "Дата окончания",
+    "duration": "Длительность челленджа",
+    "customDuration": "Количество дней",
+    "customDurationHint": "Введите количество дней для вашего челленджа",
+    "durationOptions": {
+      "7days": "7 дней",
+      "14days": "14 дней",
+      "21days": "21 день",
+      "30days": "30 дней",
+      "60days": "60 дней",
+      "90days": "90 дней",
+      "custom": "Свой вариант"
+    },
+    "privacy": "Приватность",
+    "privacyOptions": {
+      "public": "Публичный",
+      "private": "Приватный"
+    },
+    "challengeType": "Тип челленджа",
+    "typeHabit": "Челлендж-Привычка",
+    "typeHabitDescription": "Сформируйте постоянную привычку, повторяя действие ежедневно или регулярно в течение времени.",
+    "typeResult": "Челлендж-Результат",
+    "typeResultDescription": "Достигните конкретной цели или результата к концу периода челленджа.",
+    "start": "Начало",
+    "startOptions": {
+      "today": "Сегодня",
+      "tomorrow": "Завтра"
+    },
+    "frequency": "Частота",
+    "frequencyOptions": {
+      "daily": "Ежедневно",
+      "everyOtherDay": "Через день",
+      "weekdays": "По будням"
+    },
+    "challengeImage": "Изображение челленджа",
+    "clickToUpload": "Нажмите для загрузки изображения",
+    "clickToChange": "Нажмите для изменения изображения",
+    "uploading": "Загрузка...",
+    "uploadInvalidType": "Пожалуйста, выберите файл изображения.",
+    "uploadTooLarge": "Файл должен быть меньше {size} МБ.",
+    "uploadError": "Не удалось загрузить изображение.",
     "create": "Создать",
     "update": "Сохранить",
     "cancel": "Отменить",
@@ -113,9 +157,11 @@
   "validation": {
     "titleRequired": "Название обязательно",
     "descriptionRequired": "Описание обязательно",
-    "startDateRequired": "Дата начала обязательна",
+    "startOptionRequired": "Вариант начала обязателен",
     "endDateRequired": "Дата окончания обязательна",
-    "endAfterStart": "Дата окончания должна быть позже даты начала"
+    "endAfterStart": "Дата окончания должна быть позже даты начала",
+    "customDurationRequired": "Пожалуйста, введите количество дней",
+    "frequencyRequired": "Частота обязательна"
   },
   "notifications": {
     "apiError": "Не удалось загрузить данные",

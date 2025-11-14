@@ -14,6 +14,16 @@
           ></v-text-field>
 
           <v-text-field
+            v-model="formData.email"
+            :label="t('auth.email')"
+            type="email"
+            required
+            variant="outlined"
+            class="mb-4"
+            :error-messages="errors.email"
+          ></v-text-field>
+
+          <v-text-field
             v-model="formData.age"
             :label="t('auth.age')"
             type="number"
@@ -113,6 +123,7 @@ const { t, locale } = useI18n()
 
 const formData = ref({
   name: '',
+  email: '',
   age: '',
   country: '',
   password: '',
@@ -121,6 +132,7 @@ const formData = ref({
 
 const ageTouched = ref(false)
 const nameTouched = ref(false)
+const emailTouched = ref(false)
 const passwordTouched = ref(false)
 const confirmTouched = ref(false)
 const countryTouched = ref(false)
@@ -139,6 +151,19 @@ const getAgeError = (value, includeRequired = false) => {
 
   if (ageNumber < 12 || ageNumber > 99) {
     return t('auth.ageRange')
+  }
+
+  return ''
+}
+
+const getEmailError = (value, includeRequired = false) => {
+  if (isEmpty(value)) {
+    return includeRequired ? t('auth.required') : ''
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(value.trim())) {
+    return t('auth.emailInvalid')
   }
 
   return ''
@@ -202,6 +227,16 @@ watch(() => formData.value.name, (newValue) => {
 
   if (nameTouched.value) {
     errors.value.name = isEmpty(newValue?.trim()) ? t('auth.required') : ''
+  }
+})
+
+watch(() => formData.value.email, (newValue) => {
+  if (!emailTouched.value && !isEmpty(newValue)) {
+    emailTouched.value = true
+  }
+
+  if (emailTouched.value) {
+    errors.value.email = getEmailError(newValue, false)
   }
 })
 
@@ -275,6 +310,15 @@ const validateForm = () => {
     errors.value.name = ''
   }
 
+  emailTouched.value = true
+  const emailError = getEmailError(formData.value.email, true)
+  if (emailError) {
+    errors.value.email = emailError
+    isValid = false
+  } else {
+    errors.value.email = ''
+  }
+
   ageTouched.value = true
   const ageError = getAgeError(formData.value.age, true)
   if (ageError) {
@@ -331,10 +375,12 @@ const handleSubmit = async () => {
   const ageNumber = Number(formData.value.age)
   const countryCode = sanitizeCountryCode(formData.value.country)
   const trimmedName = formData.value.name.trim()
+  const trimmedEmail = formData.value.email.trim().toLowerCase()
 
   try {
     const response = await authService.register({
       name: trimmedName,
+      email: trimmedEmail,
       age: ageNumber,
       country: countryCode,
       password: formData.value.password

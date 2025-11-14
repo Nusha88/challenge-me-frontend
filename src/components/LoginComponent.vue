@@ -5,12 +5,13 @@
       <v-card-text>
         <v-form @submit.prevent="handleLogin">
           <v-text-field
-            v-model="formData.name"
-            :label="t('auth.name')"
+            v-model="formData.email"
+            :label="t('auth.email')"
+            type="email"
             required
             variant="outlined"
             class="mb-4"
-            :error-messages="errors.name"
+            :error-messages="errors.email"
           ></v-text-field>
 
           <v-text-field
@@ -22,6 +23,12 @@
             class="mb-4"
             :error-messages="errors.password"
           ></v-text-field>
+
+          <div class="mb-4">
+            <a href="#" class="forgot-link" @click.prevent="handleForgotPassword">
+              {{ t('auth.forgotPassword') }}
+            </a>
+          </div>
 
           <v-alert
             v-if="error"
@@ -52,7 +59,7 @@
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn color="primary" @click="closeSuccessModal">{{ t('auth.close') }}</v-btn>
+          <v-btn color="primary" @click="closeSuccessModal">{{ t('common.ok') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -73,22 +80,36 @@ const showSuccess = ref(false)
 const { t } = useI18n()
 
 const formData = ref({
-  name: '',
+  email: '',
   password: ''
 })
 
 const validateForm = () => {
   errors.value = {}
   let isValid = true
-  if (!formData.value.name) {
-    errors.value.name = t('auth.required')
+  
+  if (!formData.value.email) {
+    errors.value.email = t('auth.required')
     isValid = false
+  } else {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(formData.value.email.trim())) {
+      errors.value.email = t('auth.emailInvalid')
+      isValid = false
+    }
   }
+  
   if (!formData.value.password) {
     errors.value.password = t('auth.required')
     isValid = false
   }
+  
   return isValid
+}
+
+const handleForgotPassword = () => {
+  // TODO: Implement forgot password functionality
+  alert(t('auth.forgotPasswordNotImplemented'))
 }
 
 const handleLogin = async () => {
@@ -97,7 +118,7 @@ const handleLogin = async () => {
   error.value = ''
   try {
     const response = await authService.login({
-      name: formData.value.name,
+      email: formData.value.email.trim().toLowerCase(),
       password: formData.value.password
     })
     // Store JWT token in localStorage
@@ -141,5 +162,16 @@ function closeSuccessModal() {
 
 .v-card-title {
   text-align: center;
+}
+
+.forgot-link {
+  color: #1976d2;
+  text-decoration: none;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.forgot-link:hover {
+  text-decoration: underline;
 }
 </style> 

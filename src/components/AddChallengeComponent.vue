@@ -23,51 +23,141 @@
             :error-messages="errors.description"
           ></v-textarea>
 
-          <div class="date-pickers mb-6">
-            <v-menu
-              v-model="startMenu"
-              :close-on-content-click="false"
-              max-width="290px"
-              min-width="auto"
-            >
-              <template #activator="{ props }">
-                <v-text-field
-                  :model-value="formatDisplayDate(form.startDate)"
-                  :label="t('challenges.startDate')"
-                  variant="outlined"
-                  readonly
-                  v-bind="props"
-                  :error-messages="errors.startDate"
-                ></v-text-field>
-              </template>
-              <v-date-picker
-                v-model="startTemp"
-                @update:modelValue="val => onSelectStartDate(val)"
-              ></v-date-picker>
-            </v-menu>
-
-            <v-menu
-              v-model="endMenu"
-              :close-on-content-click="false"
-              max-width="290px"
-              min-width="auto"
-            >
-              <template #activator="{ props }">
-                <v-text-field
-                  :model-value="formatDisplayDate(form.endDate)"
-                  :label="t('challenges.endDate')"
-                  variant="outlined"
-                  readonly
-                  v-bind="props"
-                  :error-messages="errors.endDate"
-                ></v-text-field>
-              </template>
-              <v-date-picker
-                v-model="endTemp"
-                @update:modelValue="val => onSelectEndDate(val)"
-              ></v-date-picker>
-            </v-menu>
+          <div class="image-upload-section mb-4">
+            <label class="text-body-2 mb-2 d-block">{{ t('challenges.challengeImage') }}</label>
+            <input
+              ref="fileInputRef"
+              type="file"
+              accept="image/*"
+              class="hidden-file-input"
+              :disabled="uploadingImage"
+              @change="handleImageSelection"
+            />
+            <div class="image-upload-wrapper">
+              <div
+                class="image-upload-area"
+                :class="{ 'uploading': uploadingImage, 'has-image': form.imageUrl }"
+                @click="triggerFileInput"
+              >
+                <div v-if="form.imageUrl" class="image-preview">
+                  <v-img :src="form.imageUrl" cover class="preview-img"></v-img>
+                  <div class="image-overlay">
+                    <v-icon color="white" size="24">mdi-camera</v-icon>
+                    <span class="overlay-text">{{ uploadingImage ? t('challenges.uploading') : t('challenges.clickToChange') }}</span>
+                  </div>
+                </div>
+                <div v-else class="image-placeholder">
+                  <v-icon size="48" color="grey">mdi-image-plus</v-icon>
+                  <p class="mt-2 text-body-2">{{ uploadingImage ? t('challenges.uploading') : t('challenges.clickToUpload') }}</p>
+                </div>
+              </div>
+              <v-btn
+                v-if="form.imageUrl && !uploadingImage"
+                icon
+                color="error"
+                size="small"
+                class="delete-image-btn"
+                @click.stop="deleteImage"
+              >
+                <v-icon>mdi-delete</v-icon>
+              </v-btn>
+            </div>
+            <v-alert v-if="imageError" type="error" class="mt-2" density="compact">
+              {{ imageError }}
+            </v-alert>
           </div>
+
+          <div class="challenge-type-section mb-4">
+            <label class="text-body-2 mb-2 d-block">{{ t('challenges.challengeType') }}</label>
+            <div class="challenge-type-cards">
+              <v-card
+                class="challenge-type-card"
+                :class="{ 'selected': form.challengeType === 'habit' }"
+                @click="selectChallengeType('habit')"
+              >
+                <v-card-title class="text-h6">
+                  <v-icon class="mr-2">mdi-repeat</v-icon>
+                  {{ t('challenges.typeHabit') }}
+                </v-card-title>
+                <v-card-text>
+                  <p class="text-body-2">{{ t('challenges.typeHabitDescription') }}</p>
+                </v-card-text>
+                <v-card-actions>
+                  <v-radio
+                    :model-value="form.challengeType === 'habit'"
+                    @click.stop="selectChallengeType('habit')"
+                  ></v-radio>
+                </v-card-actions>
+              </v-card>
+
+              <v-card
+                class="challenge-type-card"
+                :class="{ 'selected': form.challengeType === 'result' }"
+                @click="selectChallengeType('result')"
+              >
+                <v-card-title class="text-h6">
+                  <v-icon class="mr-2">mdi-target</v-icon>
+                  {{ t('challenges.typeResult') }}
+                </v-card-title>
+                <v-card-text>
+                  <p class="text-body-2">{{ t('challenges.typeResultDescription') }}</p>
+                </v-card-text>
+                <v-card-actions>
+                  <v-radio
+                    :model-value="form.challengeType === 'result'"
+                    @click.stop="selectChallengeType('result')"
+                  ></v-radio>
+                </v-card-actions>
+              </v-card>
+            </div>
+          </div>
+
+          <v-select
+            v-model="form.duration"
+            :items="durationOptions"
+            :label="t('challenges.duration')"
+            item-title="title"
+            item-value="value"
+            variant="outlined"
+            class="mb-4"
+            :error-messages="errors.duration"
+          ></v-select>
+
+          <v-text-field
+            v-if="form.duration === 'custom'"
+            v-model="form.customDuration"
+            :label="t('challenges.customDuration')"
+            type="number"
+            variant="outlined"
+            class="mb-4"
+            :error-messages="errors.customDuration"
+            :hint="t('challenges.customDurationHint')"
+            persistent-hint
+            min="1"
+          ></v-text-field>
+
+          <v-select
+            v-model="form.startOption"
+            :items="startOptions"
+            :label="t('challenges.start')"
+            item-title="title"
+            item-value="value"
+            variant="outlined"
+            class="mb-4"
+            :error-messages="errors.startOption"
+          ></v-select>
+
+          <v-select
+            v-if="form.challengeType === 'habit'"
+            v-model="form.frequency"
+            :items="frequencyOptions"
+            :label="t('challenges.frequency')"
+            item-title="title"
+            item-value="value"
+            variant="outlined"
+            class="mb-4"
+            :error-messages="errors.frequency"
+          ></v-select>
 
           <v-alert
             v-if="errorMessage"
@@ -93,7 +183,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { challengeService } from '../services/api'
 import { useI18n } from 'vue-i18n'
@@ -101,20 +191,66 @@ import { useI18n } from 'vue-i18n'
 const router = useRouter()
 const { t, locale } = useI18n()
 
+// Hardcoded ImgBB API key
+const IMGBB_API_KEY = 'd8a4925b372143b44469009f92023386'
+
 const form = ref({
   title: '',
   description: '',
   startDate: '',
-  endDate: ''
+  imageUrl: '',
+  duration: '21',
+  customDuration: '',
+  privacy: 'public',
+  challengeType: 'habit',
+  frequency: 'daily',
+  startOption: 'today'
 })
 
-const startMenu = ref(false)
-const endMenu = ref(false)
-const startTemp = ref('')
-const endTemp = ref('')
+const durationOptions = computed(() => [
+  { title: t('challenges.durationOptions.7days'), value: '7' },
+  { title: t('challenges.durationOptions.14days'), value: '14' },
+  { title: t('challenges.durationOptions.21days'), value: '21' },
+  { title: t('challenges.durationOptions.30days'), value: '30' },
+  { title: t('challenges.durationOptions.60days'), value: '60' },
+  { title: t('challenges.durationOptions.90days'), value: '90' },
+  { title: t('challenges.durationOptions.custom'), value: 'custom' }
+])
+
+const frequencyOptions = computed(() => [
+  { title: t('challenges.frequencyOptions.daily'), value: 'daily' },
+  { title: t('challenges.frequencyOptions.everyOtherDay'), value: 'everyOtherDay' },
+  { title: t('challenges.frequencyOptions.weekdays'), value: 'weekdays' }
+])
+
+const startOptions = computed(() => [
+  { title: t('challenges.startOptions.today'), value: 'today' },
+  { title: t('challenges.startOptions.tomorrow'), value: 'tomorrow' }
+])
+
+// Watch for startOption changes and update startDate
+watch(() => form.value.startOption, (newValue) => {
+  if (newValue) {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    if (newValue === 'tomorrow') {
+      today.setDate(today.getDate() + 1)
+    }
+    
+    // Format date as YYYY-MM-DD without timezone conversion
+    const year = today.getFullYear()
+    const month = String(today.getMonth() + 1).padStart(2, '0')
+    const day = String(today.getDate()).padStart(2, '0')
+    form.value.startDate = `${year}-${month}-${day}`
+  }
+}, { immediate: true })
 const loading = ref(false)
 const errorMessage = ref('')
 const errors = ref({})
+const fileInputRef = ref(null)
+const uploadingImage = ref(false)
+const imageError = ref('')
 
 function getCurrentUserId() {
   const storedUser = localStorage.getItem('user')
@@ -125,6 +261,24 @@ function getCurrentUserId() {
     return parsed?.id || null
   } catch (error) {
     return null
+  }
+}
+
+function selectChallengeType(type) {
+  form.value.challengeType = type
+  // Preselect duration based on type: habit -> 21 days, result -> 30 days
+  if (type === 'habit') {
+    form.value.duration = '21'
+    form.value.startOption = 'today'
+    // startDate will be set automatically by the watcher
+  } else if (type === 'result') {
+    form.value.duration = '30'
+    form.value.startOption = 'today'
+    // startDate will be set automatically by the watcher
+  }
+  // Clear custom duration if it was set
+  if (form.value.duration !== 'custom') {
+    form.value.customDuration = ''
   }
 }
 
@@ -139,18 +293,18 @@ function validate() {
     validationErrors.description = t('validation.descriptionRequired')
   }
 
-  if (!form.value.startDate) {
-    validationErrors.startDate = t('validation.startDateRequired')
+  if (!form.value.startOption) {
+    validationErrors.startOption = t('validation.startOptionRequired')
   }
 
-  if (!form.value.endDate) {
-    validationErrors.endDate = t('validation.endDateRequired')
-  }
-
-  if (form.value.startDate && form.value.endDate) {
-    if (new Date(form.value.startDate) > new Date(form.value.endDate)) {
-      validationErrors.endDate = t('validation.endAfterStart')
+  if (form.value.duration === 'custom') {
+    if (!form.value.customDuration || form.value.customDuration < 1) {
+      validationErrors.customDuration = t('validation.customDurationRequired')
     }
+  }
+
+  if (form.value.challengeType === 'habit' && !form.value.frequency) {
+    validationErrors.frequency = t('validation.frequencyRequired')
   }
 
   errors.value = validationErrors
@@ -175,16 +329,134 @@ function formatDisplayDate(value) {
   }
 }
 
-function onSelectStartDate(val) {
-  startTemp.value = val
-  form.value.startDate = val
-  startMenu.value = false
+function calculateStartDate() {
+  // Use the startDate from form if it's already set (set by watcher)
+  if (form.value.startDate) {
+    return form.value.startDate
+  }
+  // Fallback calculation if startDate is not set
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  
+  if (form.value.startOption === 'tomorrow') {
+    today.setDate(today.getDate() + 1)
+  }
+  
+  // Format date as YYYY-MM-DD without timezone conversion
+  const year = today.getFullYear()
+  const month = String(today.getMonth() + 1).padStart(2, '0')
+  const day = String(today.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
-function onSelectEndDate(val) {
-  endTemp.value = val
-  form.value.endDate = val
-  endMenu.value = false
+function calculateEndDate() {
+  // For both types, calculate end date from start date and duration
+  const startDate = calculateStartDate()
+  if (!startDate) return ''
+  
+  const start = new Date(startDate)
+  const duration = form.value.duration === 'custom' 
+    ? parseInt(form.value.customDuration) 
+    : parseInt(form.value.duration)
+  
+  const endDate = new Date(start)
+  endDate.setDate(endDate.getDate() + duration - 1)
+  endDate.setHours(0, 0, 0, 0)
+  
+  // Format date as YYYY-MM-DD without timezone conversion
+  const year = endDate.getFullYear()
+  const month = String(endDate.getMonth() + 1).padStart(2, '0')
+  const day = String(endDate.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const triggerFileInput = () => {
+  if (uploadingImage.value || !fileInputRef.value) return
+  fileInputRef.value.click()
+}
+
+const readFileAsBase64 = (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result
+      if (typeof result === 'string') {
+        const base64 = result.includes(',') ? result.split(',')[1] : result
+        resolve(base64)
+      } else {
+        reject(new Error('Unable to read file'))
+      }
+    }
+    reader.onerror = () => reject(reader.error || new Error('Unable to read file'))
+    reader.readAsDataURL(file)
+  })
+}
+
+const deleteImage = () => {
+  form.value.imageUrl = ''
+  imageError.value = ''
+}
+
+const handleImageSelection = async (event) => {
+  imageError.value = ''
+  const files = event.target.files
+  if (!files || files.length === 0) {
+    return
+  }
+
+  const file = files[0]
+  if (!file) return
+
+  if (!file.type.startsWith('image/')) {
+    imageError.value = t('challenges.uploadInvalidType')
+    return
+  }
+
+  const maxSizeMb = 5
+  if (file.size > maxSizeMb * 1024 * 1024) {
+    imageError.value = t('challenges.uploadTooLarge', { size: maxSizeMb })
+    return
+  }
+
+  uploadingImage.value = true
+
+  try {
+    const base64 = await readFileAsBase64(file)
+    
+    const formData = new URLSearchParams()
+    formData.append('image', base64)
+
+    const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: formData
+    })
+
+    const payload = await response.json()
+
+    if (!response.ok || !payload.success) {
+      const errorMsg = payload?.error?.message || payload?.data?.error?.message || 'Upload failed'
+      throw new Error(errorMsg)
+    }
+
+    const imageUrl = payload?.data?.url || payload?.data?.display_url
+    if (!imageUrl) {
+      throw new Error('Upload did not return an image URL')
+    }
+
+    form.value.imageUrl = imageUrl
+  } catch (err) {
+    console.error('Image upload failed:', err)
+    imageError.value = err.message || t('challenges.uploadError')
+  } finally {
+    uploadingImage.value = false
+    // Reset input so same file can be selected again
+    if (event.target) {
+      event.target.value = ''
+    }
+  }
 }
 
 async function handleSubmit() {
@@ -200,7 +472,28 @@ async function handleSubmit() {
   errorMessage.value = ''
 
   try {
-    await challengeService.createChallenge({ ...form.value, owner: userId })
+    const startDate = calculateStartDate()
+    const endDate = calculateEndDate()
+    
+    const challengeData = {
+      title: form.value.title,
+      description: form.value.description,
+      startDate: startDate,
+      endDate: endDate,
+      owner: userId,
+      privacy: form.value.privacy || 'public',
+      challengeType: form.value.challengeType || 'habit'
+    }
+    
+    if (form.value.imageUrl) {
+      challengeData.imageUrl = form.value.imageUrl
+    }
+    
+    if (form.value.challengeType === 'habit' && form.value.frequency) {
+      challengeData.frequency = form.value.frequency
+    }
+
+    await challengeService.createChallenge(challengeData)
     router.push('/challenges/my')
   } catch (error) {
     errorMessage.value = error.response?.data?.message || t('notifications.createError')
@@ -225,5 +518,136 @@ async function handleSubmit() {
   .date-pickers {
     grid-template-columns: repeat(2, 1fr);
   }
+}
+
+.image-upload-section {
+  width: 100%;
+}
+
+.image-upload-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.hidden-file-input {
+  display: none;
+}
+
+.delete-image-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+  background-color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.image-upload-area {
+  width: 100%;
+  min-height: 200px;
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  background-color: #fafafa;
+}
+
+.image-upload-area:hover {
+  border-color: #1976d2;
+  background-color: #f5f5f5;
+}
+
+.image-upload-area.uploading {
+  border-color: #1976d2;
+  pointer-events: none;
+}
+
+.image-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: #666;
+}
+
+.image-preview {
+  position: relative;
+  width: 100%;
+  height: 200px;
+}
+
+.preview-img {
+  width: 100%;
+  height: 100%;
+}
+
+.image-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.image-upload-area.has-image:hover .image-overlay {
+  opacity: 1;
+}
+
+.image-upload-area.uploading .image-overlay {
+  opacity: 1;
+}
+
+.overlay-text {
+  color: white;
+  font-size: 12px;
+  margin-top: 8px;
+  text-align: center;
+}
+
+.challenge-type-section {
+  width: 100%;
+}
+
+.challenge-type-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+}
+
+.challenge-type-card {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.challenge-type-card:hover {
+  border-color: #1976d2;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.challenge-type-card.selected {
+  border-color: #1976d2;
+  background-color: rgba(25, 118, 210, 0.05);
+}
+
+.challenge-type-card .v-card-title {
+  display: flex;
+  align-items: center;
+}
+
+.challenge-type-card .v-card-actions {
+  justify-content: flex-end;
+  padding-top: 0;
 }
 </style>
