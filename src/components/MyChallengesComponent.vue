@@ -65,7 +65,9 @@
       :join-loading="false"
       :save-loading="saveLoading"
       :save-error="saveError"
+      :delete-loading="deleteLoading"
       @save="handleDialogSave"
+      @delete="handleDialogDelete"
     />
   </div>
 </template>
@@ -86,6 +88,7 @@ const detailsDialogOpen = ref(false)
 const selectedChallenge = ref(null)
 const saveLoading = ref(false)
 const saveError = ref('')
+const deleteLoading = ref(false)
 const { t, locale } = useI18n()
 
 const selectedIsOwner = computed(() => {
@@ -191,6 +194,23 @@ async function handleDialogSave(formData) {
     saveError.value = error.response?.data?.message || t('notifications.updateError')
   } finally {
     saveLoading.value = false
+  }
+}
+
+async function handleDialogDelete(challengeId) {
+  if (!challengeId) return
+
+  deleteLoading.value = true
+  saveError.value = ''
+
+  try {
+    await challengeService.deleteChallenge(challengeId)
+    await fetchChallenges()
+    detailsDialogOpen.value = false
+  } catch (error) {
+    saveError.value = error.response?.data?.message || t('notifications.deleteError')
+  } finally {
+    deleteLoading.value = false
   }
 }
 

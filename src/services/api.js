@@ -100,6 +100,9 @@ export const challengeService = {
   updateChallenge: (id, payload) => {
     return api.put(`/challenges/${id}`, payload)
   },
+  deleteChallenge: (id) => {
+    return api.delete(`/challenges/${id}`)
+  },
   getChallengesByUser: (userId) => {
     return api.get(`/challenges/user/${userId}`)
   },

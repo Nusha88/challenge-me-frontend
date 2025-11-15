@@ -34,6 +34,27 @@
               </p>
             </div>
 
+            <!-- Progress Bar -->
+            <div v-if="challenge.challengeType" class="mb-4">
+              <div class="d-flex justify-space-between mb-2">
+                <span class="text-body-2">
+                  <template v-if="challenge.challengeType === 'result'">
+                    {{ t('challenges.progressActions', { done: progressDone, total: progressTotal }) }}
+                  </template>
+                  <template v-else>
+                    {{ t('challenges.progressDays', { passed: progressDone, total: progressTotal }) }}
+                  </template>
+                </span>
+                <span class="text-body-2 font-weight-medium">{{ progressPercentage }}%</span>
+              </div>
+              <v-progress-linear
+                :model-value="progressPercentage"
+                color="primary"
+                height="8"
+                rounded
+              ></v-progress-linear>
+            </div>
+
             <ChallengeImageUpload
               v-model="editForm.imageUrl"
               :editable="true"
@@ -91,18 +112,6 @@
                   class="duration-select"
                 ></v-select>
 
-                <v-text-field
-                  v-if="editForm.duration === 'custom'"
-                  v-model="editForm.customDuration"
-                  :label="t('challenges.customDuration')"
-                  type="number"
-                  variant="outlined"
-                  :error-messages="errors.customDuration"
-                  :hint="t('challenges.customDurationHint')"
-                  persistent-hint
-                  min="1"
-                  class="custom-duration-field"
-                ></v-text-field>
               </div>
             </template>
 
@@ -128,19 +137,6 @@
                   :error-messages="errors.duration"
                   class="duration-select"
                 ></v-select>
-
-                <v-text-field
-                  v-if="editForm.duration === 'custom'"
-                  v-model="editForm.customDuration"
-                  :label="t('challenges.customDuration')"
-                  type="number"
-                  variant="outlined"
-                  :error-messages="errors.customDuration"
-                  :hint="t('challenges.customDurationHint')"
-                  persistent-hint
-                  min="1"
-                  class="custom-duration-field"
-                ></v-text-field>
               </div>
 
               <ChallengeActions
@@ -166,12 +162,34 @@
               {{ saveError }}
             </v-alert>
 
-            <v-card-actions class="px-0">
-              <v-btn variant="text" @click="handleCancel" :disabled="saveLoading">
-                {{ t('challenges.cancel') }}
+            <v-card-actions class="buttons-area">
+              <v-btn 
+                variant="elevated" 
+                color="error" 
+                @click="handleDelete" 
+                :disabled="saveLoading || deleteLoading"
+                :loading="deleteLoading"
+                class="action-button delete-button"
+              >
+                {{ t('challenges.delete') }}
               </v-btn>
               <v-spacer></v-spacer>
-              <v-btn type="submit" color="primary" :loading="saveLoading" :disabled="saveLoading">
+              <v-btn 
+                variant="outlined" 
+                @click="handleCancel" 
+                :disabled="saveLoading || deleteLoading"
+                class="action-button cancel-button"
+              >
+                {{ t('challenges.cancel') }}
+              </v-btn>
+              <v-btn 
+                type="submit" 
+                variant="flat"
+                color="primary" 
+                :loading="saveLoading" 
+                :disabled="saveLoading || deleteLoading"
+                class="action-button save-button"
+              >
                 {{ t('challenges.update') }}
               </v-btn>
             </v-card-actions>
@@ -179,6 +197,27 @@
         </template>
 
         <template v-else>
+          <!-- Progress Bar -->
+          <div v-if="challenge.challengeType" class="mb-4">
+            <div class="d-flex justify-space-between mb-2">
+              <span class="text-body-2">
+                <template v-if="challenge.challengeType === 'result'">
+                  {{ t('challenges.progressActions', { done: progressDone, total: progressTotal }) }}
+                </template>
+                <template v-else>
+                  {{ t('challenges.progressDays', { passed: progressDone, total: progressTotal }) }}
+                </template>
+              </span>
+              <span class="text-body-2 font-weight-medium">{{ progressPercentage }}%</span>
+            </div>
+            <v-progress-linear
+              :model-value="progressPercentage"
+              color="primary"
+              height="8"
+              rounded
+            ></v-progress-linear>
+          </div>
+
           <ChallengeImageUpload
             :model-value="challenge.imageUrl"
             :editable="false"
@@ -221,19 +260,58 @@
         </template>
       </v-card-text>
 
-      <v-card-actions v-if="!isOwner">
-        <v-btn variant="text" @click="handleClose">{{ t('common.close') }}</v-btn>
+      <v-card-actions v-if="!isOwner" class="buttons-area">
+        <v-btn 
+          variant="outlined" 
+          @click="handleClose"
+          class="action-button cancel-button"
+        >
+          {{ t('common.close') }}
+        </v-btn>
         <v-spacer></v-spacer>
         <v-btn
           v-if="showJoinButton"
+          variant="flat"
           color="primary"
           :loading="joinLoading"
           @click="emitJoin"
+          class="action-button save-button"
         >
           {{ t('challenges.join') }}
         </v-btn>
       </v-card-actions>
     </v-card>
+
+    <!-- Delete Confirmation Dialog -->
+    <v-dialog v-model="deleteConfirmDialog" max-width="500" persistent>
+      <v-card>
+        <v-card-title class="text-h6">
+          {{ t('challenges.deleteConfirmTitle') }}
+        </v-card-title>
+        <v-card-text>
+          {{ t('challenges.deleteConfirmMessage') }}
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn
+            variant="text"
+            @click="deleteConfirmDialog = false"
+            :disabled="deleteLoading"
+          >
+            {{ t('common.cancel') }}
+          </v-btn>
+          <v-btn
+            variant="flat"
+            color="error"
+            @click="confirmDelete"
+            :loading="deleteLoading"
+            :disabled="deleteLoading"
+          >
+            {{ t('challenges.delete') }}
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-dialog>
 </template>
 
@@ -275,10 +353,16 @@ const props = defineProps({
   saveError: {
     type: String,
     default: ''
+  },
+  deleteLoading: {
+    type: Boolean,
+    default: false
   }
 })
 
-const emit = defineEmits(['update:modelValue', 'save', 'join'])
+const emit = defineEmits(['update:modelValue', 'save', 'join', 'delete'])
+
+const deleteConfirmDialog = ref(false)
 
 const editForm = reactive({
   title: '',
@@ -315,6 +399,63 @@ const challengeTypeColor = computed(() => {
   return props.challenge.challengeType === 'habit' ? 'success' : 'warning'
 })
 
+// Progress calculations
+const progressDone = computed(() => {
+  if (!props.challenge) return 0
+  
+  if (props.challenge.challengeType === 'result') {
+    // For result challenges: count checked actions
+    const actions = props.isOwner ? editForm.actions : (props.challenge.actions || [])
+    return actions.filter(a => a.checked).length
+  } else {
+    // For habit challenges: calculate days passed from start to today
+    const startDate = props.isOwner ? editForm.startDate : props.challenge.startDate
+    if (!startDate) return 0
+    
+    const start = new Date(startDate)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    start.setHours(0, 0, 0, 0)
+    
+    if (today < start) return 0
+    
+    const diffTime = today - start
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1
+    return Math.max(0, diffDays)
+  }
+})
+
+const progressTotal = computed(() => {
+  if (!props.challenge) return 0
+  
+  if (props.challenge.challengeType === 'result') {
+    // For result challenges: total actions count
+    const actions = props.isOwner ? editForm.actions : (props.challenge.actions || [])
+    return Math.max(1, actions.length) // At least 1 to avoid division by zero
+  } else {
+    // For habit challenges: total days from start to end
+    const startDate = props.isOwner ? editForm.startDate : props.challenge.startDate
+    const endDate = props.isOwner ? editForm.endDate : props.challenge.endDate
+    
+    if (!startDate || !endDate) return 0
+    
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    start.setHours(0, 0, 0, 0)
+    end.setHours(0, 0, 0, 0)
+    
+    const diffTime = end - start
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1
+    return Math.max(1, diffDays) // At least 1 to avoid division by zero
+  }
+})
+
+const progressPercentage = computed(() => {
+  if (progressTotal.value === 0) return 0
+  const percentage = Math.round((progressDone.value / progressTotal.value) * 100)
+  return Math.min(100, Math.max(0, percentage)) // Clamp between 0 and 100
+})
+
 const frequencyOptions = computed(() => [
   { title: t('challenges.frequencyOptions.daily'), value: 'daily' },
   { title: t('challenges.frequencyOptions.everyOtherDay'), value: 'everyOtherDay' },
@@ -326,15 +467,34 @@ const privacyOptions = computed(() => [
   { title: t('challenges.privacyOptions.private'), value: 'private' }
 ])
 
-const durationOptions = computed(() => [
-  { title: t('challenges.durationOptions.7days'), value: '7' },
-  { title: t('challenges.durationOptions.14days'), value: '14' },
-  { title: t('challenges.durationOptions.21days'), value: '21' },
-  { title: t('challenges.durationOptions.30days'), value: '30' },
-  { title: t('challenges.durationOptions.60days'), value: '60' },
-  { title: t('challenges.durationOptions.90days'), value: '90' },
-  { title: t('challenges.durationOptions.custom'), value: 'custom' }
-])
+const durationOptions = computed(() => {
+  const standardOptions = [
+    { title: t('challenges.durationOptions.7days'), value: '7' },
+    { title: t('challenges.durationOptions.14days'), value: '14' },
+    { title: t('challenges.durationOptions.21days'), value: '21' },
+    { title: t('challenges.durationOptions.30days'), value: '30' },
+    { title: t('challenges.durationOptions.60days'), value: '60' },
+    { title: t('challenges.durationOptions.90days'), value: '90' }
+  ]
+  
+  // If current duration is not in standard list, add it as last option
+  const currentDuration = editForm.duration
+  if (currentDuration && currentDuration !== 'custom') {
+    const standardValues = standardOptions.map(opt => opt.value)
+    if (!standardValues.includes(currentDuration)) {
+      // Calculate days from duration value
+      const days = parseInt(currentDuration)
+      if (!isNaN(days) && days > 0) {
+        return [
+          ...standardOptions,
+          { title: `${days} ${days === 1 ? t('challenges.day') : t('challenges.days')}`, value: currentDuration }
+        ]
+      }
+    }
+  }
+  
+  return standardOptions
+})
 
 function calculateDuration(startDate, endDate) {
   if (!startDate || !endDate) return ''
@@ -343,22 +503,15 @@ function calculateDuration(startDate, endDate) {
   const diffTime = Math.abs(end - start)
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1 // +1 to include both start and end days
   
-  // Check if it matches a standard duration
-  const standardDurations = ['7', '14', '21', '30', '60', '90']
-  if (standardDurations.includes(String(diffDays))) {
-    return String(diffDays)
-  }
-  // Otherwise return 'custom'
-  return 'custom'
+  // Return the actual number of days (not 'custom')
+  return String(diffDays)
 }
 
-function calculateEndDateFromDuration(startDate, duration, customDuration) {
+function calculateEndDateFromDuration(startDate, duration) {
   if (!startDate || !duration) return ''
   
   const start = new Date(startDate)
-  const days = duration === 'custom' 
-    ? parseInt(customDuration) 
-    : parseInt(duration)
+  const days = parseInt(duration)
   
   if (isNaN(days) || days < 1) return ''
   
@@ -400,15 +553,6 @@ watch(
     // Calculate duration from start and end dates
     const calculatedDuration = calculateDuration(editForm.startDate, editForm.endDate)
     editForm.duration = calculatedDuration
-    if (calculatedDuration === 'custom') {
-      const start = new Date(editForm.startDate)
-      const end = new Date(editForm.endDate)
-      const diffTime = Math.abs(end - start)
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
-      editForm.customDuration = String(diffDays)
-    } else {
-      editForm.customDuration = ''
-    }
     
     clearErrors()
   },
@@ -420,18 +564,28 @@ watch(
   value => {
     if (!value) {
       resetForm()
+      deleteConfirmDialog.value = false
     }
   }
 )
 
 watch(
-  () => [editForm.duration, editForm.customDuration, editForm.startDate],
+  () => props.deleteLoading,
+  (newValue, oldValue) => {
+    // Close confirmation dialog when delete completes (loading goes from true to false)
+    if (oldValue === true && newValue === false) {
+      deleteConfirmDialog.value = false
+    }
+  }
+)
+
+watch(
+  () => [editForm.duration, editForm.startDate],
   () => {
     if (editForm.duration && editForm.startDate) {
       const newEndDate = calculateEndDateFromDuration(
         editForm.startDate,
-        editForm.duration,
-        editForm.customDuration
+        editForm.duration
       )
       if (newEndDate) {
         editForm.endDate = newEndDate
@@ -458,7 +612,6 @@ function clearErrors() {
   errors.title = ''
   errors.description = ''
   errors.duration = ''
-  errors.customDuration = ''
   errors.frequency = ''
 }
 
@@ -476,6 +629,17 @@ function handleClose() {
 
 function emitJoin() {
   emit('join')
+}
+
+function handleDelete() {
+  deleteConfirmDialog.value = true
+}
+
+function confirmDelete() {
+  if (props.challenge?._id) {
+    emit('delete', props.challenge._id)
+    // Dialog will close automatically when deleteLoading becomes false (handled by watcher)
+  }
 }
 
 function handleSubmit() {
@@ -507,17 +671,11 @@ function validate() {
     errors.duration = t('validation.startOptionRequired') // Reuse existing validation message
   }
 
-  if (editForm.duration === 'custom') {
-    if (!editForm.customDuration || editForm.customDuration < 1) {
-      errors.customDuration = t('validation.customDurationRequired')
-    }
-  }
-
   if (props.challenge?.challengeType === 'habit' && !editForm.frequency) {
     errors.frequency = t('validation.frequencyRequired')
   }
 
-  return !errors.title && !errors.description && !errors.duration && !errors.customDuration && !errors.frequency
+  return !errors.title && !errors.description && !errors.duration && !errors.frequency
 }
 
 function formatDisplayDate(value) {
@@ -671,5 +829,54 @@ function formatDateRange(start, end) {
     grid-column: 2;
     grid-row: 2;
   }
+}
+
+.buttons-area {
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
+  padding: 16px 24px !important;
+  margin-top: 24px;
+  border-radius: 0 0 4px 4px;
+}
+
+.action-button {
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0.5px;
+  min-width: 100px;
+  height: 40px;
+  padding: 0 24px;
+}
+
+.delete-button {
+  box-shadow: 0 2px 4px rgba(211, 47, 47, 0.2);
+}
+
+.delete-button:hover:not(:disabled) {
+  box-shadow: 0 4px 8px rgba(211, 47, 47, 0.3);
+  transform: translateY(-1px);
+  transition: all 0.2s ease;
+}
+
+.save-button {
+  background-color: rgb(25, 118, 210) !important;
+  color: white !important;
+  box-shadow: 0 2px 4px rgba(25, 118, 210, 0.2);
+}
+
+.save-button:hover:not(:disabled) {
+  background-color: rgb(21, 101, 192) !important;
+  box-shadow: 0 4px 8px rgba(25, 118, 210, 0.3);
+  transform: translateY(-1px);
+  transition: all 0.2s ease;
+}
+
+.cancel-button {
+  border-width: 2px;
+}
+
+.cancel-button:hover:not(:disabled) {
+  background-color: rgba(0, 0, 0, 0.04);
+  transform: translateY(-1px);
+  transition: all 0.2s ease;
 }
 </style>
