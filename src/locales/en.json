@@ -155,7 +155,8 @@
     "myListTitle": "My Challenges",
     "createdByMe": "Created by me",
     "loginPrompt": "Please log in to view your challenges.",
-    "mustBeLoggedIn": "You must be logged in to create a challenge."
+    "mustBeLoggedIn": "You must be logged in to create a challenge.",
+    "detailsTitle": "Challenge Details"
   },
   "validation": {
     "titleRequired": "Title is required",
