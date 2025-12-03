@@ -163,7 +163,8 @@
     "deleteConfirmTitle": "Удалить челлендж",
     "deleteConfirmMessage": "Вы уверены, что хотите удалить этот челлендж? Это действие нельзя отменить.",
     "progressActions": "{done} из {total} действий выполнено",
-    "progressDays": "{passed} из {total} дней прошло"
+    "progressDays": "{passed} из {total} дней прошло",
+    "challengeCalendar": "Календарь челленджа"
   },
   "validation": {
     "titleRequired": "Название обязательно",

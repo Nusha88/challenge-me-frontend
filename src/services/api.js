@@ -111,6 +111,9 @@ export const challengeService = {
   },
   joinChallenge: (id, payload = {}) => {
     return api.post(`/challenges/${id}/join`, payload)
+  },
+  updateParticipantCompletedDays: (challengeId, userId, completedDays) => {
+    return api.put(`/challenges/${challengeId}/participant/${userId}/completedDays`, { completedDays })
   }
 }
 

@@ -14,56 +14,84 @@
           {{ t('challenges.noChallenges') }}
         </v-alert>
 
-        <v-list v-else>
-          <v-list-item
+        <div v-else class="challenges-grid">
+          <v-card
             v-for="challenge in challenges"
             :key="challenge._id"
-            class="challenge-item"
+            class="challenge-card"
             @click="openDetails(challenge)"
           >
-            <v-list-item-content>
-              <div class="item-header">
-                <v-list-item-title class="text-h6">{{ challenge.title }}</v-list-item-title>
-                <v-chip
-                  v-if="isChallengeOwner(challenge.owner)"
-                  color="secondary"
-                  size="small"
-                  class="ml-2"
-                >
-                  {{ t('challenges.mineBadge') }}
-                </v-chip>
-              </div>
-              <v-list-item-subtitle class="mb-1">
-                {{ formatDateRange(challenge.startDate, challenge.endDate) }}
-              </v-list-item-subtitle>
-              <v-list-item-subtitle v-if="challenge.owner" class="mb-2">
-                {{ t('challenges.createdBy', { name: challenge.owner.name || t('common.unknown') }) }}
-              </v-list-item-subtitle>
-              <p class="mb-2">{{ challenge.description }}</p>
+            <v-card-title class="d-flex align-center justify-space-between">
+              <span class="text-h6">{{ challenge.title }}</span>
+              <v-chip
+                v-if="isChallengeOwner(challenge.owner)"
+                color="secondary"
+                size="small"
+              >
+                {{ t('challenges.mineBadge') }}
+              </v-chip>
+            </v-card-title>
+            
+            <v-card-subtitle class="mb-2">
+              {{ formatDateRange(challenge.startDate, challenge.endDate) }}
+            </v-card-subtitle>
+            
+            <v-card-subtitle v-if="challenge.owner" class="mb-2">
+              {{ t('challenges.createdBy', { name: challenge.owner.name || t('common.unknown') }) }}
+            </v-card-subtitle>
+            
+            <v-card-text class="flex-grow-1">
+              <p class="mb-3 text-body-2">{{ challenge.description }}</p>
+              
               <v-chip-group column class="mb-2">
                 <v-chip
                   v-for="participant in challenge.participants"
-                  :key="participant._id || participant"
+                  :key="participant.userId?._id || participant.userId || participant._id || participant"
                   size="small"
                   class="mr-1"
                 >
-                  {{ participant.name || t('common.unknown') }}
+                  {{ (participant.userId?.name || participant.name) || t('common.unknown') }}
                 </v-chip>
               </v-chip-group>
-            </v-list-item-content>
-            <v-list-item-action>
+            </v-card-text>
+            
+            <v-card-actions>
               <v-btn
                 v-if="canJoin(challenge)"
                 color="primary"
                 size="small"
+                variant="flat"
                 :loading="joiningId === challenge._id"
                 @click.stop="joinChallenge(challenge)"
               >
                 {{ t('challenges.join') }}
               </v-btn>
-            </v-list-item-action>
-          </v-list-item>
-        </v-list>
+              <v-spacer></v-spacer>
+            </v-card-actions>
+            
+            <!-- Progress Bar - Stuck to bottom -->
+            <div v-if="challenge.challengeType" class="progress-bar-container">
+              <div class="d-flex justify-space-between mb-1 px-4">
+                <span class="text-caption">
+                  <template v-if="challenge.challengeType === 'result'">
+                    {{ t('challenges.progressActions', { done: calculateProgressDone(challenge), total: calculateProgressTotal(challenge) }) }}
+                  </template>
+                  <template v-else>
+                    {{ t('challenges.progressDays', { passed: calculateProgressDone(challenge), total: calculateProgressTotal(challenge) }) }}
+                  </template>
+                </span>
+                <span class="text-caption font-weight-medium">{{ calculateProgressPercentage(challenge) }}%</span>
+              </div>
+              <v-progress-linear
+                :model-value="calculateProgressPercentage(challenge)"
+                color="primary"
+                height="6"
+                rounded
+                class="mx-0"
+              ></v-progress-linear>
+            </div>
+          </v-card>
+        </div>
       </v-card-text>
     </v-card>
 
@@ -80,6 +108,7 @@
       @save="handleDialogSave"
       @join="handleDialogJoin"
       @delete="handleDialogDelete"
+      @update="handleDialogUpdate"
     />
   </div>
 </template>
@@ -180,8 +209,8 @@ function isChallengeOwner(owner) {
 function isParticipant(challenge) {
   if (!currentUserId.value) return false
   return (challenge.participants || []).some(participant => {
-    const id = participant._id || participant
-    return id === currentUserId.value
+    const userId = participant.userId?._id || participant.userId || participant._id || participant
+    return userId && userId.toString() === currentUserId.value.toString()
   })
 }
 
@@ -270,6 +299,66 @@ async function handleDialogDelete(challengeId) {
   }
 }
 
+function calculateProgressDone(challenge) {
+  if (!challenge) return 0
+  
+  if (challenge.challengeType === 'result') {
+    // For result challenges, count checked actions
+    if (!challenge.actions || !Array.isArray(challenge.actions)) return 0
+    return challenge.actions.filter(action => action.checked).length
+  } else {
+    // For habit challenges, get current user's completed days from their participant entry
+    if (!currentUserId.value || !challenge.participants) return 0
+    
+    const participant = challenge.participants.find(p => {
+      const userId = p.userId?._id || p.userId || p._id
+      return userId && userId.toString() === currentUserId.value.toString()
+    })
+    
+    if (!participant || !participant.completedDays || !Array.isArray(participant.completedDays)) return 0
+    return participant.completedDays.length
+  }
+}
+
+function calculateProgressTotal(challenge) {
+  if (!challenge) return 0
+  
+  if (challenge.challengeType === 'result') {
+    // For result challenges, total number of actions
+    if (!challenge.actions || !Array.isArray(challenge.actions)) return 0
+    return challenge.actions.length
+  } else {
+    // For habit challenges, calculate days between start and end date
+    if (!challenge.startDate || !challenge.endDate) return 0
+    
+    try {
+      const start = new Date(challenge.startDate)
+      const end = new Date(challenge.endDate)
+      
+      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 0
+      
+      start.setHours(0, 0, 0, 0)
+      end.setHours(0, 0, 0, 0)
+      
+      const diffTime = end - start
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1 // +1 to include both start and end days
+      
+      return diffDays
+    } catch {
+      return 0
+    }
+  }
+}
+
+function calculateProgressPercentage(challenge) {
+  const done = calculateProgressDone(challenge)
+  const total = calculateProgressTotal(challenge)
+  
+  if (total === 0) return 0
+  const percentage = Math.round((done / total) * 100)
+  return Math.min(100, Math.max(0, percentage)) // Clamp between 0 and 100
+}
+
 onMounted(() => {
   fetchChallenges()
 })
@@ -277,25 +366,47 @@ onMounted(() => {
 
 <style scoped>
 .all-challenges {
-  max-width: 800px;
+  max-width: 1400px;
   margin: 0 auto;
+  padding: 0 16px;
 }
 
-.challenge-item {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+.challenges-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  padding: 16px 0;
 }
 
-.challenge-item:last-child {
-  border-bottom: none;
-}
-
-.item-header {
+.challenge-card {
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  height: 100%;
 }
 
-.item-header .ml-2 {
-  margin-left: 8px;
+.challenge-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.progress-bar-container {
+  margin-top: auto;
+  padding-bottom: 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+@media (min-width: 600px) {
+  .challenges-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 960px) {
+  .challenges-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 .dialog-title {

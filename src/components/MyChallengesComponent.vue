@@ -68,6 +68,7 @@
       :delete-loading="deleteLoading"
       @save="handleDialogSave"
       @delete="handleDialogDelete"
+      @update="handleDialogUpdate"
     />
   </div>
 </template>
@@ -211,6 +212,18 @@ async function handleDialogDelete(challengeId) {
     saveError.value = error.response?.data?.message || t('notifications.deleteError')
   } finally {
     deleteLoading.value = false
+  }
+}
+
+async function handleDialogUpdate() {
+  // Refresh challenges when participant updates their completedDays
+  await fetchChallenges()
+  // Also refresh the selected challenge if dialog is open
+  if (selectedChallenge.value) {
+    const updatedChallenge = challenges.value.find(c => c._id === selectedChallenge.value._id)
+    if (updatedChallenge) {
+      selectedChallenge.value = updatedChallenge
+    }
   }
 }
 

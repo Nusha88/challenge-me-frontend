@@ -34,25 +34,22 @@
               </p>
             </div>
 
-            <!-- Progress Bar -->
-            <div v-if="challenge.challengeType" class="mb-4">
-              <div class="d-flex justify-space-between mb-2">
-                <span class="text-body-2">
-                  <template v-if="challenge.challengeType === 'result'">
-                    {{ t('challenges.progressActions', { done: progressDone, total: progressTotal }) }}
-                  </template>
-                  <template v-else>
-                    {{ t('challenges.progressDays', { passed: progressDone, total: progressTotal }) }}
-                  </template>
-                </span>
-                <span class="text-body-2 font-weight-medium">{{ progressPercentage }}%</span>
-              </div>
-              <v-progress-linear
-                :model-value="progressPercentage"
-                color="primary"
-                height="8"
-                rounded
-              ></v-progress-linear>
+            <!-- Calendar for habit challenges -->
+            <div v-if="challenge.challengeType === 'habit' && editForm.startDate && editForm.endDate" class="habit-calendar mb-4">
+              <v-card variant="outlined">
+                <v-card-title class="text-h6">
+                  {{ t('challenges.challengeCalendar') }}
+                </v-card-title>
+                <v-card-text>
+                  <ChallengeCalendar
+                    :start-date="editForm.startDate"
+                    :end-date="editForm.endDate"
+                    v-model="editForm.completedDays"
+                    :editable="true"
+                    @update:model-value="handleOwnerCompletedDaysUpdate"
+                  />
+                </v-card-text>
+              </v-card>
             </div>
 
             <ChallengeImageUpload
@@ -146,16 +143,17 @@
 
             <div class="mb-4">
               <strong>{{ t('challenges.participants') }}:</strong>
-              <v-chip-group column class="mt-2">
-                <v-chip
+              <div class="participants-container mt-2">
+                <div
                   v-for="participant in challenge.participants"
-                  :key="participant._id || participant"
-                  size="small"
-                  class="mr-1"
+                  :key="participant.userId?._id || participant.userId || participant._id || participant"
+                  class="participant-avatar"
+                  :style="{ backgroundColor: getParticipantColor(participant) }"
+                  :title="(participant.userId?.name || participant.name) || t('common.unknown')"
                 >
-                  {{ participant.name || t('common.unknown') }}
-                </v-chip>
-              </v-chip-group>
+                  {{ getParticipantInitial(participant) }}
+                </div>
+              </div>
             </div>
 
             <v-alert v-if="saveError" type="error" class="mb-4">
@@ -197,31 +195,29 @@
         </template>
 
         <template v-else>
-          <!-- Progress Bar -->
-          <div v-if="challenge.challengeType" class="mb-4">
-            <div class="d-flex justify-space-between mb-2">
-              <span class="text-body-2">
-                <template v-if="challenge.challengeType === 'result'">
-                  {{ t('challenges.progressActions', { done: progressDone, total: progressTotal }) }}
-                </template>
-                <template v-else>
-                  {{ t('challenges.progressDays', { passed: progressDone, total: progressTotal }) }}
-                </template>
-              </span>
-              <span class="text-body-2 font-weight-medium">{{ progressPercentage }}%</span>
-            </div>
-            <v-progress-linear
-              :model-value="progressPercentage"
-              color="primary"
-              height="8"
-              rounded
-            ></v-progress-linear>
+          <!-- Calendar for habit challenges -->
+          <div v-if="challenge.challengeType === 'habit' && challenge.startDate && challenge.endDate" class="habit-calendar mb-4">
+            <v-card variant="outlined">
+              <v-card-title class="text-h6">
+                {{ t('challenges.challengeCalendar') }}
+              </v-card-title>
+              <v-card-text>
+                <ChallengeCalendar
+                  :start-date="challenge.startDate"
+                  :end-date="challenge.endDate"
+                  :model-value="currentUserCompletedDays"
+                  :editable="isCurrentUserParticipant"
+                  @update:model-value="handleParticipantCompletedDaysUpdate"
+                />
+              </v-card-text>
+            </v-card>
           </div>
 
           <ChallengeImageUpload
             :model-value="challenge.imageUrl"
             :editable="false"
           />
+          
           <p class="mb-2"><strong>{{ t('challenges.description') }}:</strong> {{ challenge.description }}</p>
           <p class="mb-2"><strong>{{ t('challenges.startDate') }} / {{ t('challenges.endDate') }}:</strong> {{ formatDateRange(challenge.startDate, challenge.endDate) }}</p>
           <p class="mb-2" v-if="challenge.owner">
@@ -230,16 +226,17 @@
 
           <div>
             <strong>{{ t('challenges.participants') }}:</strong>
-            <v-chip-group column class="mt-2">
-              <v-chip
+            <div class="participants-container mt-2">
+              <div
                 v-for="participant in challenge.participants"
-                :key="participant._id || participant"
-                size="small"
-                class="mr-1"
+                :key="participant.userId?._id || participant.userId || participant._id || participant"
+                class="participant-avatar"
+                :style="{ backgroundColor: getParticipantColor(participant) }"
+                :title="(participant.userId?.name || participant.name) || t('common.unknown')"
               >
-                {{ participant.name || t('common.unknown') }}
-              </v-chip>
-            </v-chip-group>
+                {{ getParticipantInitial(participant) }}
+              </div>
+            </div>
           </div>
 
           <v-alert
@@ -316,10 +313,12 @@
 </template>
 
 <script setup>
-import { reactive, ref, watch, computed } from 'vue'
+import { reactive, ref, watch, computed, nextTick, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChallengeImageUpload from './ChallengeImageUpload.vue'
 import ChallengeActions from './ChallengeActions.vue'
+import ChallengeCalendar from './ChallengeCalendar.vue'
+import { challengeService } from '../services/api'
 
 const props = defineProps({
   modelValue: {
@@ -363,6 +362,25 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'save', 'join', 'delete'])
 
 const deleteConfirmDialog = ref(false)
+const isInitializing = ref(true)
+let dateRangeObserver = null
+
+// Get current user ID
+function getCurrentUserId() {
+  const storedUser = localStorage.getItem('user')
+  if (!storedUser) return null
+  try {
+    const parsed = JSON.parse(storedUser)
+    return parsed?.id || parsed?._id || null
+  } catch {
+    return null
+  }
+}
+
+const currentUserId = ref(getCurrentUserId())
+
+// Local reactive copy of current user's completedDays for optimistic updates
+const localCurrentUserCompletedDays = ref([])
 
 const editForm = reactive({
   title: '',
@@ -374,7 +392,8 @@ const editForm = reactive({
   customDuration: '',
   frequency: '',
   privacy: 'public',
-  actions: []
+  actions: [],
+  completedDays: []
 })
 
 const errors = reactive({
@@ -456,6 +475,254 @@ const progressPercentage = computed(() => {
   return Math.min(100, Math.max(0, percentage)) // Clamp between 0 and 100
 })
 
+// Get current user's completedDays from their participant entry
+// Use local ref for optimistic updates, fallback to prop when local is empty
+const currentUserCompletedDays = computed(() => {
+  // If we have local updates, use them for instant UI feedback
+  if (localCurrentUserCompletedDays.value.length > 0) {
+    return localCurrentUserCompletedDays.value
+  }
+  
+  if (!props.challenge || !props.challenge.participants || !currentUserId.value) return []
+  
+  // Find current user's participant entry
+  const participant = props.challenge.participants.find(p => {
+    const userId = p.userId?._id || p.userId || p._id
+    return userId && userId.toString() === currentUserId.value.toString()
+  })
+  
+  if (!participant || !participant.completedDays || !Array.isArray(participant.completedDays)) return []
+  
+  const days = participant.completedDays
+    .filter(d => {
+      if (!d) return false
+      try {
+        const dateStr = String(d).slice(0, 10)
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false
+        const date = new Date(dateStr)
+        return !Number.isNaN(date.getTime())
+      } catch {
+        return false
+      }
+    })
+    .map(d => String(d).slice(0, 10))
+    .filter(Boolean)
+    .sort()
+  
+  // Update local ref when prop changes (but only if local is empty)
+  if (localCurrentUserCompletedDays.value.length === 0) {
+    localCurrentUserCompletedDays.value = days
+  }
+  
+  return days
+})
+
+// Check if current user is a participant
+const isCurrentUserParticipant = computed(() => {
+  if (!props.challenge || !props.challenge.participants || !currentUserId.value) return false
+  
+  return props.challenge.participants.some(p => {
+    const userId = p.userId?._id || p.userId || p._id
+    return userId && userId.toString() === currentUserId.value.toString()
+  })
+})
+
+// Allowed dates function - only allow dates from today onwards (up to end date)
+// Dates between startDate and today are disabled
+function allowedDates(date) {
+  if (!date || !editForm.startDate || !editForm.endDate) return false
+  
+  try {
+    const checkDate = new Date(date)
+    const start = new Date(editForm.startDate)
+    const end = new Date(editForm.endDate)
+    const today = new Date()
+    
+    if (Number.isNaN(checkDate.getTime()) || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      return false
+    }
+    
+    // Set all dates to midnight for accurate comparison
+    start.setHours(0, 0, 0, 0)
+    end.setHours(0, 0, 0, 0)
+    checkDate.setHours(0, 0, 0, 0)
+    today.setHours(0, 0, 0, 0)
+    
+    // Only allow dates from today onwards, but within the challenge date range
+    // Disable dates between startDate and today (exclusive)
+    return checkDate >= today && checkDate >= start && checkDate <= end
+  } catch {
+    return false
+  }
+}
+
+// Generate array of all dates in range for styling
+const datesInRange = computed(() => {
+  if (!editForm.startDate || !editForm.endDate) return []
+  
+  try {
+    const start = new Date(editForm.startDate)
+    const end = new Date(editForm.endDate)
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return []
+    
+    const dates = []
+    const current = new Date(start)
+    current.setHours(0, 0, 0, 0)
+    end.setHours(0, 0, 0, 0)
+    
+    while (current <= end) {
+      const year = current.getFullYear()
+      const month = String(current.getMonth() + 1).padStart(2, '0')
+      const day = String(current.getDate()).padStart(2, '0')
+      dates.push(`${year}-${month}-${day}`)
+      current.setDate(current.getDate() + 1)
+    }
+    
+    return dates
+  } catch {
+    return []
+  }
+})
+
+// Function to check if a date is within the challenge date range
+function isDateInRange(date) {
+  if (!date) return false
+  return datesInRange.value.includes(String(date).slice(0, 10))
+}
+
+// Function to style dates in the challenge range with orange background
+function styleDateRange() {
+  if (!editForm.startDate || !editForm.endDate || datesInRange.value.length === 0) return
+  
+  // Use multiple timeouts to catch calendar at different render stages
+  const attemptStyle = () => {
+    const datePickers = document.querySelectorAll('.habit-date-picker')
+    if (datePickers.length === 0) return false
+    
+    let foundAny = false
+    
+    datePickers.forEach(picker => {
+      // Find all day cells - try multiple selectors
+      let dayCells = picker.querySelectorAll('.v-date-picker-month__day')
+      if (dayCells.length === 0) {
+        dayCells = picker.querySelectorAll('[role="gridcell"]')
+      }
+      if (dayCells.length === 0) {
+        dayCells = picker.querySelectorAll('td')
+      }
+      
+      dayCells.forEach(dayCell => {
+        const button = dayCell.querySelector('button')
+        if (!button) return
+        
+        // Skip disabled buttons
+        if (button.disabled || button.hasAttribute('disabled') || button.classList.contains('v-btn--disabled')) {
+          return
+        }
+        
+        // Try to get date from various sources
+        let dateStr = null
+        
+        // Method 1: aria-label on button
+        const buttonAria = button.getAttribute('aria-label')
+        if (buttonAria) {
+          const match = buttonAria.match(/\d{4}-\d{2}-\d{2}/)
+          if (match) dateStr = match[0]
+        }
+        
+        // Method 2: aria-label on day cell
+        if (!dateStr) {
+          const cellAria = dayCell.getAttribute('aria-label')
+          if (cellAria) {
+            const match = cellAria.match(/\d{4}-\d{2}-\d{2}/)
+            if (match) dateStr = match[0]
+          }
+        }
+        
+        // Method 3: data-date on day cell
+        if (!dateStr) {
+          dateStr = dayCell.getAttribute('data-date')
+        }
+        
+        // Method 4: data-date on button
+        if (!dateStr) {
+          dateStr = button.getAttribute('data-date')
+        }
+        
+        // Method 5: Check all data attributes
+        if (!dateStr) {
+          Array.from(dayCell.attributes).forEach(attr => {
+            if (attr.name.startsWith('data-') && /^\d{4}-\d{2}-\d{2}$/.test(attr.value)) {
+              dateStr = attr.value
+            }
+          })
+        }
+        
+        if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return
+        
+        // Check if date is in our range array
+        if (datesInRange.value.includes(dateStr)) {
+          foundAny = true
+          dayCell.setAttribute('data-in-range', 'true')
+          button.setAttribute('data-in-range', 'true')
+          button.classList.add('date-in-range')
+          // Force orange background using multiple methods
+          button.style.setProperty('background-color', 'rgba(255, 152, 0, 0.4)', 'important')
+          // Also add inline style as backup
+          if (!button.style.cssText.includes('background-color')) {
+            button.style.cssText += 'background-color: rgba(255, 152, 0, 0.4) !important;'
+          }
+        } else {
+          dayCell.removeAttribute('data-in-range')
+          button.removeAttribute('data-in-range')
+          button.classList.remove('date-in-range')
+          // Only remove if not selected
+          if (!dayCell.classList.contains('v-date-picker-month__day--selected')) {
+            button.style.removeProperty('background-color')
+          }
+        }
+      })
+    })
+    
+    return foundAny
+  }
+  
+  // Try multiple times with delays
+  setTimeout(() => attemptStyle(), 100)
+  setTimeout(() => attemptStyle(), 300)
+  setTimeout(() => attemptStyle(), 600)
+  setTimeout(() => attemptStyle(), 1000)
+}
+
+// Handler for calendar updates
+function onCalendarUpdate() {
+  nextTick(() => {
+    setTimeout(() => styleDateRange(), 100)
+  })
+}
+
+// Watch for date range changes to update styling
+watch(
+  () => [editForm.startDate, editForm.endDate, props.modelValue, datesInRange.value],
+  () => {
+    if (props.modelValue && editForm.startDate && editForm.endDate && datesInRange.value.length > 0) {
+      styleDateRange()
+    }
+  }
+)
+
+// Watch for calendar month changes to update styling
+watch(
+  () => editForm.completedDays,
+  () => {
+    if (props.modelValue && editForm.startDate && editForm.endDate) {
+      nextTick(() => {
+        styleDateRange()
+      })
+    }
+  }
+)
+
 const frequencyOptions = computed(() => [
   { title: t('challenges.frequencyOptions.daily'), value: 'daily' },
   { title: t('challenges.frequencyOptions.everyOtherDay'), value: 'everyOtherDay' },
@@ -529,6 +796,9 @@ function calculateEndDateFromDuration(startDate, duration) {
 watch(
   () => props.challenge,
   value => {
+    // Reset local completedDays when challenge changes
+    localCurrentUserCompletedDays.value = []
+    
     if (!value) {
       resetForm()
       return
@@ -549,6 +819,52 @@ watch(
     } else {
       editForm.actions = []
     }
+    // Initialize completedDays for habit challenges (only for owner)
+    // Get from owner's participant entry if available, otherwise from challenge level (backward compatibility)
+    if (value.challengeType === 'habit' && props.isOwner) {
+      // Only initialize if isInitializing is true (prevents overwriting user selections)
+      if (isInitializing.value) {
+        let ownerCompletedDays = []
+        
+        // Try to get from owner's participant entry first
+        if (value.participants && currentUserId.value) {
+          const ownerParticipant = value.participants.find(p => {
+            const userId = p.userId?._id || p.userId || p._id
+            return userId && userId.toString() === currentUserId.value.toString()
+          })
+          
+          if (ownerParticipant && ownerParticipant.completedDays && Array.isArray(ownerParticipant.completedDays)) {
+            ownerCompletedDays = ownerParticipant.completedDays
+          }
+        }
+        
+        // Fallback to challenge level completedDays (backward compatibility)
+        if (ownerCompletedDays.length === 0 && value.completedDays && Array.isArray(value.completedDays)) {
+          ownerCompletedDays = value.completedDays
+        }
+        
+        editForm.completedDays = ownerCompletedDays
+          .filter(d => {
+            if (!d) return false
+            try {
+              const dateStr = String(d).slice(0, 10)
+              if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false
+              const date = new Date(dateStr)
+              return !Number.isNaN(date.getTime())
+            } catch {
+              return false
+            }
+          })
+          .map(d => String(d).slice(0, 10))
+          .filter(Boolean)
+          .sort()
+        
+        isInitializing.value = false
+      }
+    } else {
+      editForm.completedDays = []
+      isInitializing.value = false
+    }
     
     // Calculate duration from start and end dates
     const calculatedDuration = calculateDuration(editForm.startDate, editForm.endDate)
@@ -565,6 +881,98 @@ watch(
     if (!value) {
       resetForm()
       deleteConfirmDialog.value = false
+      isInitializing.value = true
+    } else {
+      // Reset initialization flag when dialog opens so completedDays can be loaded
+      isInitializing.value = true
+      // Force re-initialization of completedDays when dialog opens
+      if (props.challenge?.challengeType === 'habit' && props.challenge?.completedDays) {
+        nextTick(() => {
+          // Always load completedDays when dialog opens
+          editForm.completedDays = Array.isArray(props.challenge.completedDays)
+            ? props.challenge.completedDays
+                .filter(d => {
+                  if (!d) return false
+                  try {
+                    const dateStr = String(d).slice(0, 10)
+                    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false
+                    const date = new Date(dateStr)
+                    return !Number.isNaN(date.getTime())
+                  } catch {
+                    return false
+                  }
+                })
+                .map(d => String(d).slice(0, 10))
+                .filter(Boolean)
+                .sort()
+            : []
+          isInitializing.value = false
+        })
+      }
+    }
+  }
+)
+
+// Also watch for challenge changes when dialog is open
+watch(
+  () => [props.modelValue, props.challenge],
+  ([dialogOpen, challenge]) => {
+    // When dialog opens and challenge is set, ensure completedDays are loaded
+    if (dialogOpen && challenge?.challengeType === 'habit' && isInitializing.value) {
+      if (challenge.completedDays && Array.isArray(challenge.completedDays)) {
+        editForm.completedDays = challenge.completedDays
+          .filter(d => {
+            if (!d) return false
+            try {
+              const dateStr = String(d).slice(0, 10)
+              if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false
+              const date = new Date(dateStr)
+              return !Number.isNaN(date.getTime())
+            } catch {
+              return false
+            }
+          })
+          .map(d => String(d).slice(0, 10))
+          .filter(Boolean)
+          .sort()
+        isInitializing.value = false
+      }
+    }
+    // Style date range when dialog opens
+    if (dialogOpen && challenge?.challengeType === 'habit' && editForm.startDate && editForm.endDate) {
+      // Set up MutationObserver to watch for calendar DOM changes
+      nextTick(() => {
+        setTimeout(() => {
+          const datePickers = document.querySelectorAll('.habit-date-picker')
+          datePickers.forEach(picker => {
+            // Clean up existing observer
+            if (dateRangeObserver) {
+              dateRangeObserver.disconnect()
+            }
+            
+            // Create new observer
+            dateRangeObserver = new MutationObserver(() => {
+              styleDateRange()
+            })
+            
+            // Observe the calendar for changes
+            dateRangeObserver.observe(picker, {
+              childList: true,
+              subtree: true,
+              attributes: true
+            })
+            
+            // Initial styling attempts
+            styleDateRange()
+          })
+        }, 100)
+      })
+    } else {
+      // Clean up observer when dialog closes
+      if (dateRangeObserver) {
+        dateRangeObserver.disconnect()
+        dateRangeObserver = null
+      }
     }
   }
 )
@@ -605,6 +1013,7 @@ function resetForm() {
   editForm.frequency = ''
   editForm.privacy = 'public'
   editForm.actions = []
+  editForm.completedDays = []
   clearErrors()
 }
 
@@ -651,6 +1060,57 @@ function handleSubmit() {
   // Include challengeType from the challenge prop (it's not editable)
   if (props.challenge?.challengeType) {
     formData.challengeType = props.challenge.challengeType
+  }
+  
+  // Only include completedDays for owner (participants use separate endpoint)
+  if (formData.challengeType === 'habit' && props.isOwner) {
+    // Ensure completedDays exists and is an array
+    if (!Array.isArray(formData.completedDays)) {
+      formData.completedDays = []
+    }
+    
+    // Format and validate dates - be more lenient with date formats
+    formData.completedDays = formData.completedDays
+      .map(d => {
+        if (!d) return null
+        try {
+          // Handle different date formats
+          let dateStr = String(d)
+          
+          // If it's already in YYYY-MM-DD format, use it
+          if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+            return dateStr
+          }
+          
+          // Try to parse as Date and format
+          const date = new Date(dateStr)
+          if (Number.isNaN(date.getTime())) {
+            return null
+          }
+          
+          // Format as YYYY-MM-DD
+          const year = date.getFullYear()
+          const month = String(date.getMonth() + 1).padStart(2, '0')
+          const day = String(date.getDate()).padStart(2, '0')
+          return `${year}-${month}-${day}`
+        } catch {
+          return null
+        }
+      })
+      .filter(d => {
+        if (!d) return false
+        // Final validation
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return false
+        const date = new Date(d)
+        return !Number.isNaN(date.getTime())
+      })
+      .sort()
+  } else if (formData.challengeType === 'habit' && !props.isOwner) {
+    // For participants, don't send completedDays (they use separate endpoint)
+    delete formData.completedDays
+  } else if (formData.challengeType === 'result') {
+    // Clear completedDays for result challenges
+    formData.completedDays = []
   }
   
   emit('save', formData)
@@ -701,6 +1161,97 @@ function formatDateRange(start, end) {
     return t('challenges.dateRange', { start: startFormatted, end: endFormatted })
   }
   return startFormatted || endFormatted || ''
+}
+
+// Generate a consistent color for a participant based on their ID or name
+function getParticipantColor(participant) {
+  // Handle new structure: participant.userId or old structure: participant directly
+  const userId = participant.userId?._id || participant.userId || participant._id || participant
+  const name = participant.userId?.name || participant.name || ''
+  const seed = userId?.toString() || name
+  
+  // Generate a hash from the seed
+  let hash = 0
+  for (let i = 0; i < seed.length; i++) {
+    hash = seed.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  
+  // Generate a color from the hash
+  const hue = Math.abs(hash % 360)
+  const saturation = 60 + (Math.abs(hash) % 20) // 60-80%
+  const lightness = 50 + (Math.abs(hash) % 15) // 50-65%
+  
+  return `hsl(${hue}, ${saturation}%, ${lightness}%)`
+}
+
+// Get the first letter of participant's name
+function getParticipantInitial(participant) {
+  // Handle new structure: participant.userId or old structure: participant directly
+  const name = participant.userId?.name || participant.name || t('common.unknown')
+  return name.charAt(0).toUpperCase()
+}
+
+// Handle owner completedDays update
+async function handleOwnerCompletedDaysUpdate(completedDays) {
+  if (!props.challenge || !currentUserId.value || !props.isOwner) {
+    console.log('Skipping owner update:', { challenge: !!props.challenge, userId: !!currentUserId.value, isOwner: props.isOwner })
+    return
+  }
+  
+  console.log('Updating owner completedDays:', completedDays)
+  
+  // Update local form data
+  editForm.completedDays = completedDays
+  
+  // Optimistically update local ref immediately for instant UI feedback
+  localCurrentUserCompletedDays.value = [...completedDays]
+  
+  // Save to owner's participant entry
+  try {
+    const response = await challengeService.updateParticipantCompletedDays(
+      props.challenge._id,
+      currentUserId.value,
+      completedDays
+    )
+    console.log('Successfully updated owner completedDays:', response)
+    // Emit update event to refresh challenge data from server
+    emit('update')
+  } catch (error) {
+    console.error('Error updating owner completed days:', error)
+    console.error('Error details:', error.response?.data || error.message)
+    // Revert optimistic update on error
+    emit('update')
+  }
+}
+
+// Handle participant completedDays update
+async function handleParticipantCompletedDaysUpdate(completedDays) {
+  if (!props.challenge || !currentUserId.value || !isCurrentUserParticipant.value) {
+    console.log('Skipping participant update:', { challenge: !!props.challenge, userId: !!currentUserId.value, isParticipant: isCurrentUserParticipant.value })
+    return
+  }
+  
+  console.log('Updating participant completedDays:', completedDays)
+  
+  // Optimistically update local ref immediately for instant UI feedback
+  localCurrentUserCompletedDays.value = [...completedDays]
+  
+  try {
+    const response = await challengeService.updateParticipantCompletedDays(
+      props.challenge._id,
+      currentUserId.value,
+      completedDays
+    )
+    console.log('Successfully updated participant completedDays:', response)
+    // Emit update event to refresh challenge data from server
+    emit('update')
+  } catch (error) {
+    console.error('Error updating participant completed days:', error)
+    console.error('Error details:', error.response?.data || error.message)
+    // Revert optimistic update on error - clear local ref to use prop value
+    localCurrentUserCompletedDays.value = []
+    emit('update')
+  }
 }
 </script>
 
@@ -787,6 +1338,40 @@ function formatDateRange(start, end) {
   .duration-row .custom-duration-field {
     grid-column: 2;
   }
+}
+
+.habit-calendar {
+  display: flex;
+  justify-content: center;
+}
+
+.habit-date-picker {
+  max-width: 100%;
+  width: 100%;
+}
+
+/* Style dates within challenge date range with orange background */
+.habit-date-picker :deep(.v-date-picker-month__day button[data-in-range]),
+.habit-date-picker :deep(.v-date-picker-month__day button.date-in-range) {
+  background-color: rgba(255, 152, 0, 0.2) !important;
+}
+
+/* Ensure selected dates maintain their selection style over orange background */
+.habit-date-picker :deep(.v-date-picker-month__day--selected button[data-in-range]),
+.habit-date-picker :deep(.v-date-picker-month__day--selected button.date-in-range) {
+  background-color: rgba(25, 118, 210, 0.6) !important;
+  color: white !important;
+}
+
+/* Style date buttons */
+.habit-date-picker :deep(.v-date-picker-month__day button) {
+  transition: background-color 0.2s ease;
+  position: relative;
+}
+
+/* Ensure orange background is visible */
+.habit-date-picker :deep(.v-date-picker-month__day button.date-in-range:not(.v-date-picker-month__day--selected)) {
+  background-color: rgba(255, 152, 0, 0.3) !important;
 }
 
 .duration-privacy-row {
@@ -878,5 +1463,30 @@ function formatDateRange(start, end) {
   background-color: rgba(0, 0, 0, 0.04);
   transform: translateY(-1px);
   transition: all 0.2s ease;
+}
+
+.participants-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.participant-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: default;
+  transition: transform 0.2s ease;
+}
+
+.participant-avatar:hover {
+  transform: scale(1.1);
 }
 </style>
