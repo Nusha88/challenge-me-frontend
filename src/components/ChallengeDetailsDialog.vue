@@ -1,5 +1,10 @@
 <template>
-  <v-dialog :model-value="modelValue" max-width="700" @update:modelValue="handleVisibility">
+  <v-dialog 
+    :model-value="modelValue" 
+    :max-width="mobile ? '100%' : (mdAndUp ? '700' : '95%')"
+    :fullscreen="mobile"
+    @update:modelValue="handleVisibility"
+  >
     <v-card v-if="challenge">
       <v-card-title class="dialog-header">
         <div class="dialog-title">
@@ -357,6 +362,7 @@
 <script setup>
 import { reactive, ref, watch, computed, nextTick, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useDisplay } from 'vuetify'
 import ChallengeImageUpload from './ChallengeImageUpload.vue'
 import ChallengeActions from './ChallengeActions.vue'
 import ChallengeCalendar from './ChallengeCalendar.vue'
@@ -449,6 +455,7 @@ const errors = reactive({
 })
 
 const { t, locale } = useI18n()
+const { mobile, mdAndUp } = useDisplay()
 
 const challengeTypeLabel = computed(() => {
   if (!props.challenge?.challengeType) return ''
@@ -1366,10 +1373,18 @@ async function handleParticipantCompletedDaysUpdate(completedDays) {
 
 .dates-row {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
+  flex-direction: column;
+  gap: 8px;
   margin-bottom: 16px;
+}
+
+@media (min-width: 600px) {
+  .dates-row {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+  }
 }
 
 .start-date-text,
@@ -1381,7 +1396,13 @@ async function handleParticipantCompletedDaysUpdate(completedDays) {
 }
 
 .end-date-text {
-  text-align: right;
+  text-align: left;
+}
+
+@media (min-width: 600px) {
+  .end-date-text {
+    text-align: right;
+  }
 }
 
 .duration-row {
@@ -1401,8 +1422,14 @@ async function handleParticipantCompletedDaysUpdate(completedDays) {
 }
 
 .habit-calendar :deep(.v-card-text) {
-  padding: 16px;
+  padding: 12px;
   width: 100%;
+}
+
+@media (min-width: 600px) {
+  .habit-calendar :deep(.v-card-text) {
+    padding: 16px;
+  }
 }
 
 .habit-calendar :deep(.calendar-wrapper) {

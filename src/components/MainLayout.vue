@@ -2,6 +2,7 @@
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { useDisplay } from 'vuetify'
 import { SUPPORTED_LOCALES, setLocale } from '../i18n'
 
 const router = useRouter()
@@ -20,6 +21,7 @@ function readStoredUser() {
 
 const currentUser = ref(readStoredUser())
 const { t, locale } = useI18n()
+const { mobile, mdAndUp } = useDisplay()
 const availableLocales = SUPPORTED_LOCALES
 
 function updateAuthState() {
@@ -32,6 +34,11 @@ const userName = computed(() => currentUser.value?.name || null)
 const currentLocaleLabel = computed(() => {
   return availableLocales.find(lang => lang.code === locale.value)?.label || locale.value
 })
+
+const drawerOpen = ref(false)
+const toggleDrawer = () => {
+  drawerOpen.value = !drawerOpen.value
+}
 
 onMounted(() => {
   window.addEventListener('auth-changed', updateAuthState)
@@ -57,6 +64,11 @@ function changeLanguage(code) {
 <template>
   <v-app>
     <v-app-bar color="primary">
+      <v-app-bar-nav-icon
+        v-if="isLoggedIn"
+        @click="toggleDrawer"
+        class="d-md-none"
+      ></v-app-bar-nav-icon>
       <router-link to="/" class="brand-link">{{ t('app.name') }}</router-link>
       <v-spacer></v-spacer>
       <v-btn
@@ -82,11 +94,12 @@ function changeLanguage(code) {
         to="/challenges/add"
         color="secondary"
         variant="elevated"
-        size="large"
+        :size="mobile ? 'small' : 'large'"
         class="mr-2 cta-button"
-        prepend-icon="mdi-plus-circle"
+        :prepend-icon="mobile ? undefined : 'mdi-plus-circle'"
+        :icon="mobile ? 'mdi-plus-circle' : undefined"
       >
-        {{ t('navigation.addChallenge') }}
+        <span v-if="!mobile">{{ t('navigation.addChallenge') }}</span>
       </v-btn>
       <v-menu location="bottom" open-on-hover>
         <template #activator="{ props }">
@@ -117,72 +130,128 @@ function changeLanguage(code) {
         color="white"
         variant="text"
         class="mr-2"
-        prepend-icon="mdi-account"
+        :prepend-icon="mobile ? undefined : 'mdi-account'"
+        :icon="mobile ? 'mdi-account' : undefined"
       >
-        {{ userName || t('navigation.profile') }}
+        <span v-if="!mobile">{{ userName || t('navigation.profile') }}</span>
       </v-btn>
       <v-btn
         v-if="isLoggedIn"
         color="white"
         variant="text"
+        :icon="mobile"
         @click="logout"
       >
-        {{ t('navigation.logout') }}
+        <span v-if="!mobile">{{ t('navigation.logout') }}</span>
+        <v-icon v-else>mdi-logout</v-icon>
       </v-btn>
     </v-app-bar>
 
-    <v-row no-gutters>
-      <v-col v-if="isLoggedIn" cols="auto">
-        <v-navigation-drawer permanent>
-          <v-list>
-            <v-list-item
-              :active="currentRoute === 'my-challenges'"
-              to="/challenges/my"
-              color="primary"
-            >
-              <template v-slot:prepend>
-                <v-icon icon="mdi-trophy"></v-icon>
-              </template>
-              <v-list-item-title>{{ t('navigation.myChallenges') }}</v-list-item-title>
-            </v-list-item>
+    <!-- Desktop Permanent Sidebar -->
+    <v-navigation-drawer
+      v-if="isLoggedIn"
+      permanent
+      class="d-none d-md-block desktop-sidebar"
+    >
+      <v-list>
+        <v-list-item
+          :active="currentRoute === 'my-challenges'"
+          to="/challenges/my"
+          color="primary"
+        >
+          <template v-slot:prepend>
+            <v-icon icon="mdi-trophy"></v-icon>
+          </template>
+          <v-list-item-title>{{ t('navigation.myChallenges') }}</v-list-item-title>
+        </v-list-item>
 
-            <v-list-item
-              :active="currentRoute === 'users'"
-              to="/users"
-              color="primary"
-            >
-              <template v-slot:prepend>
-                <v-icon icon="mdi-account-group"></v-icon>
-              </template>
-              <v-list-item-title>{{ t('navigation.allUsers') }}</v-list-item-title>
-            </v-list-item>
+        <v-list-item
+          :active="currentRoute === 'users'"
+          to="/users"
+          color="primary"
+        >
+          <template v-slot:prepend>
+            <v-icon icon="mdi-account-group"></v-icon>
+          </template>
+          <v-list-item-title>{{ t('navigation.allUsers') }}</v-list-item-title>
+        </v-list-item>
 
-            <v-list-item
-              :active="currentRoute === 'challenges'"
-              to="/challenges"
-              color="primary"
-            >
-              <template v-slot:prepend>
-                <v-icon icon="mdi-flag-checkered"></v-icon>
-              </template>
-              <v-list-item-title>{{ t('navigation.allChallenges') }}</v-list-item-title>
-            </v-list-item>
-          </v-list>
-        </v-navigation-drawer>
-      </v-col>
+        <v-list-item
+          :active="currentRoute === 'challenges'"
+          to="/challenges"
+          color="primary"
+        >
+          <template v-slot:prepend>
+            <v-icon icon="mdi-flag-checkered"></v-icon>
+          </template>
+          <v-list-item-title>{{ t('navigation.allChallenges') }}</v-list-item-title>
+        </v-list-item>
+      </v-list>
+    </v-navigation-drawer>
 
-      <v-col :class="{ 'public-column': !isLoggedIn, 'main-column': isLoggedIn }">
-        <v-main :class="['main-content', { 'public-view': !isLoggedIn }]">
-          <router-view></router-view>
-        </v-main>
-      </v-col>
-    </v-row>
+    <v-main :class="['main-content', { 'public-view': !isLoggedIn, 'with-sidebar': isLoggedIn }]">
+      <router-view></router-view>
+    </v-main>
+
+    <!-- Mobile Navigation Drawer -->
+    <v-navigation-drawer
+      v-if="isLoggedIn"
+      v-model="drawerOpen"
+      temporary
+      class="d-md-none"
+    >
+      <v-list>
+        <v-list-item
+          :active="currentRoute === 'my-challenges'"
+          to="/challenges/my"
+          color="primary"
+          @click="drawerOpen = false"
+        >
+          <template v-slot:prepend>
+            <v-icon icon="mdi-trophy"></v-icon>
+          </template>
+          <v-list-item-title>{{ t('navigation.myChallenges') }}</v-list-item-title>
+        </v-list-item>
+
+        <v-list-item
+          :active="currentRoute === 'users'"
+          to="/users"
+          color="primary"
+          @click="drawerOpen = false"
+        >
+          <template v-slot:prepend>
+            <v-icon icon="mdi-account-group"></v-icon>
+          </template>
+          <v-list-item-title>{{ t('navigation.allUsers') }}</v-list-item-title>
+        </v-list-item>
+
+        <v-list-item
+          :active="currentRoute === 'challenges'"
+          to="/challenges"
+          color="primary"
+          @click="drawerOpen = false"
+        >
+          <template v-slot:prepend>
+            <v-icon icon="mdi-flag-checkered"></v-icon>
+          </template>
+          <v-list-item-title>{{ t('navigation.allChallenges') }}</v-list-item-title>
+        </v-list-item>
+      </v-list>
+    </v-navigation-drawer>
   </v-app>
 </template>
 
 <style scoped>
 .v-navigation-drawer {
   width: 256px;
+}
+
+.desktop-sidebar {
+  position: fixed;
+  left: 0;
+  top: 64px;
+  height: calc(100vh - 64px);
+  z-index: 1;
 }
 
 .v-list-item {
@@ -196,27 +265,39 @@ function changeLanguage(code) {
 }
 
 .main-content {
-  padding-top: 24px;
-  height: 95vh;
-  margin-top: 2em;
+  padding-top: 32px;
+  padding-left: 8px;
+  padding-right: 8px;
+  min-height: calc(100vh - 64px);
+  width: 100%;
+  margin-left: 0;
+}
+
+.main-content.with-sidebar {
+  margin-left: 256px;
 }
 
 .main-content.public-view {
-  padding-top: 48px;
+  padding-top: 40px;
+  margin-left: 0;
 }
 
-.public-column {
-  flex: 1;
+@media (min-width: 600px) {
+  .main-content {
+    padding-top: 40px;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  
+  .main-content.public-view {
+    padding-top: 56px;
+  }
 }
 
-.main-column {
-  flex: 1;
-  min-width: 0;
-}
-
-.main-content {
-  width: 100%;
-  max-width: 100%;
+@media (max-width: 959px) {
+  .main-content.with-sidebar {
+    margin-left: 0;
+  }
 }
 
 .cta-button {
@@ -237,13 +318,20 @@ function changeLanguage(code) {
 .brand-link {
   color: white;
   font-weight: 600;
-  font-size: 1.25rem;
+  font-size: 1rem;
   text-decoration: none;
   letter-spacing: 0.04em;
-  padding-left: 16px;
+  padding-left: 8px;
   display: inline-flex;
   align-items: center;
   background-color: transparent;
+}
+
+@media (min-width: 600px) {
+  .brand-link {
+    font-size: 1.25rem;
+    padding-left: 16px;
+  }
 }
 
 .brand-link:hover,

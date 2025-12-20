@@ -195,21 +195,34 @@ function toggleDay(day) {
 .challenge-calendar {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 12px;
-  padding: 16px 0;
+  gap: 8px;
+  padding: 12px 0;
   flex: 1;
   width: 100%;
 }
 
+@media (min-width: 600px) {
+  .challenge-calendar {
+    gap: 12px;
+    padding: 16px 0;
+  }
+}
+
 .challenge-calendar.has-scroll {
-  max-height: calc(4 * 44px + 3 * 12px); /* 4 rows: 4 circles + 3 gaps */
+  max-height: calc(4 * 44px + 3 * 8px); /* 4 rows: 4 circles + 3 gaps */
   overflow-y: auto;
+}
+
+@media (min-width: 600px) {
+  .challenge-calendar.has-scroll {
+    max-height: calc(4 * 44px + 3 * 12px);
+  }
 }
 
 .day-circle {
   width: 100%;
   aspect-ratio: 1;
-  max-width: 60px;
+  max-width: 44px;
   border-radius: 50%;
   background-color: rgba(255, 152, 0, 0.2);
   display: flex;
@@ -221,6 +234,12 @@ function toggleDay(day) {
   position: relative;
   animation: fadeIn 0.3s ease-in;
   margin: 0 auto;
+}
+
+@media (min-width: 600px) {
+  .day-circle {
+    max-width: 60px;
+  }
 }
 
 .day-circle:hover {
@@ -295,9 +314,17 @@ function toggleDay(day) {
 }
 .calendar-wrapper {
   display: flex;
-  gap: 24px;
+  flex-direction: column;
+  gap: 16px;
   align-items: flex-start;
   width: 100%;
+}
+
+@media (min-width: 768px) {
+  .calendar-wrapper {
+    flex-direction: row;
+    gap: 24px;
+  }
 }
 
 .calendar-legend {
@@ -306,6 +333,13 @@ function toggleDay(day) {
   gap: 12px;
   padding-top: 10px;
   min-width: 140px;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .calendar-legend {
+    width: auto;
+  }
 }
 
 .legend-item {

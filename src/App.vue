@@ -19,8 +19,6 @@ html, body {
   height: 100%;
   margin-left: 0;
   margin-right: 0;
-  min-width: 1500px;
-  max-width: 1500px;
 }
 
 /* Global styles can go here */

@@ -1,6 +1,6 @@
 <template>
   <div class="all-challenges">
-    <h1 class="mb-6">{{ t('challenges.listTitle') }}</h1>
+    <h1 class="mb-4 mb-md-6 page-title">{{ t('challenges.listTitle') }}</h1>
 
     <v-card>
       <v-card-text>
@@ -420,15 +420,28 @@ onMounted(() => {
 <style scoped>
 .all-challenges {
   width: 100%;
-  padding: 0 16px;
+  padding: 0 8px;
+}
+
+@media (min-width: 600px) {
+  .all-challenges {
+    padding: 0 16px;
+  }
 }
 
 .challenges-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 24px;
-  padding: 16px 0;
+  gap: 16px;
+  padding: 8px 0;
   width: 100%;
+}
+
+@media (min-width: 600px) {
+  .challenges-grid {
+    gap: 24px;
+    padding: 16px 0;
+  }
 }
 
 .challenge-card {
@@ -456,22 +469,36 @@ onMounted(() => {
 
 .challenge-header {
   display: flex;
-  gap: 16px;
-  padding: 16px;
+  gap: 12px;
+  padding: 12px;
   padding-bottom: 12px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
+@media (min-width: 600px) {
+  .challenge-header {
+    gap: 16px;
+    padding: 16px;
+  }
+}
+
 .challenge-image-container {
   flex-shrink: 0;
-  width: 80px;
-  height: 80px;
+  width: 60px;
+  height: 60px;
   border-radius: 8px;
   overflow: hidden;
   background-color: #f5f5f5;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+@media (min-width: 600px) {
+  .challenge-image-container {
+    width: 80px;
+    height: 80px;
+  }
 }
 
 .challenge-image {
@@ -502,13 +529,13 @@ onMounted(() => {
   border-top: 1px solid rgba(0, 0, 0, 0.08);
 }
 
-@media (min-width: 900px) {
+@media (min-width: 768px) {
   .challenges-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
-@media (min-width: 1400px) {
+@media (min-width: 1200px) {
   .challenges-grid {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -526,6 +553,16 @@ onMounted(() => {
 
 .challenge-type-chip {
   width: fit-content;
+}
+
+.page-title {
+  font-size: 1.5rem;
+}
+
+@media (min-width: 600px) {
+  .page-title {
+    font-size: 2rem;
+  }
 }
 
 .date-pickers {
