@@ -1,19 +1,23 @@
 import axios from 'axios'
 
 function resolveDefaultBaseUrl() {
+  // Default to Render backend API
+  const defaultUrl = 'https://challenge-me-backend-frh7.onrender.com/api'
+  
   if (typeof window === 'undefined') {
-    return 'http://localhost:3000/api'
+    return defaultUrl
   }
 
   const hostname = window.location.hostname
   const isLocal = ['localhost', '127.0.0.1'].includes(hostname) || hostname.endsWith('.local')
 
+  // Use localhost only for local development
   if (isLocal) {
     return 'http://localhost:3000/api'
   }
 
-  // Hosted fallback (Render backend)
-  return 'https://challenge-me-backend-frh7.onrender.com/api'
+  // Use Render backend for all other cases
+  return defaultUrl
 }
 
 const DEFAULT_API_BASE_URL = resolveDefaultBaseUrl()
@@ -22,7 +26,7 @@ const apiBaseUrl = (envBaseUrl || DEFAULT_API_BASE_URL).replace(/\/$/, '')
 const envHealthcheck = import.meta.env.VITE_API_HEALTHCHECK_URL
 const apiHealthcheckUrl = envHealthcheck
   ? envHealthcheck
-  : (DEFAULT_API_BASE_URL === 'https://challenge-me-backend-frh7.onrender.com/api'
+  : (DEFAULT_API_BASE_URL.includes('challenge-me-backend-frh7.onrender.com')
       ? 'https://challenge-me-backend-frh7.onrender.com'
       : apiBaseUrl.replace(/\/api$/i, '') || apiBaseUrl)
 

@@ -164,7 +164,15 @@
     "deleteConfirmMessage": "Are you sure you want to delete this challenge? This action cannot be undone.",
     "progressActions": "{done} of {total} actions done",
     "progressDays": "{passed} of {total} days passed",
-    "challengeCalendar": "Challenge Calendar"
+    "challengeCalendar": "Challenge Calendar",
+    "myProgress": "My Progress",
+    "teamProgress": "Team Progress",
+    "calendarLegend": {
+      "completed": "Completed",
+      "missed": "Missed",
+      "today": "Today",
+      "unavailable": "Unavailable"
+    }
   },
   "validation": {
     "titleRequired": "Title is required",

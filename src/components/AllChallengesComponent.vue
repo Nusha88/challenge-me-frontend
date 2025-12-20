@@ -10,38 +10,63 @@
           {{ errorMessage }}
         </v-alert>
 
-        <v-alert v-else-if="!challenges.length && !loading" type="info">
+        <v-alert v-else-if="!publicChallenges.length && !loading" type="info">
           {{ t('challenges.noChallenges') }}
         </v-alert>
 
         <div v-else class="challenges-grid">
           <v-card
-            v-for="challenge in challenges"
+            v-for="challenge in publicChallenges"
             :key="challenge._id"
             class="challenge-card"
+            :class="{ 'owner-challenge': isChallengeOwner(challenge.owner) }"
             @click="openDetails(challenge)"
           >
-            <v-card-title class="d-flex align-center justify-space-between">
-              <span class="text-h6">{{ challenge.title }}</span>
-              <v-chip
-                v-if="isChallengeOwner(challenge.owner)"
-                color="secondary"
-                size="small"
-              >
-                {{ t('challenges.mineBadge') }}
-              </v-chip>
-            </v-card-title>
+            <!-- Header with image and title -->
+            <div class="challenge-header">
+              <div class="challenge-image-container">
+                <img
+                  v-if="challenge.imageUrl"
+                  :src="challenge.imageUrl"
+                  :alt="challenge.title"
+                  class="challenge-image"
+                />
+                <v-icon
+                  v-else
+                  size="48"
+                  color="grey-lighten-1"
+                  class="challenge-image-placeholder"
+                >
+                  mdi-image-outline
+                </v-icon>
+              </div>
+              <div class="challenge-header-content">
+                <span class="text-h6 mb-1">{{ challenge.title }}</span>
+                <div class="challenge-duration text-caption text-medium-emphasis mb-1">
+                  {{ formatDateRange(challenge.startDate, challenge.endDate) }}
+                </div>
+                <v-chip
+                  v-if="challenge.challengeType"
+                  :color="challenge.challengeType === 'habit' ? 'success' : 'warning'"
+                  size="small"
+                  class="challenge-type-chip"
+                >
+                  {{ challenge.challengeType === 'habit' ? t('challenges.typeHabit') : t('challenges.typeResult') }}
+                </v-chip>
+              </div>
+            </div>
             
-            <v-card-subtitle class="mb-2">
-              {{ formatDateRange(challenge.startDate, challenge.endDate) }}
-            </v-card-subtitle>
-            
-            <v-card-subtitle v-if="challenge.owner" class="mb-2">
-              {{ t('challenges.createdBy', { name: challenge.owner.name || t('common.unknown') }) }}
-            </v-card-subtitle>
-            
-            <v-card-text class="flex-grow-1">
+            <v-card-text class="flex-grow-1 pt-3">
               <p class="mb-3 text-body-2">{{ challenge.description }}</p>
+              
+              <v-card-subtitle v-if="challenge.owner" class="mb-2 pa-0">
+                <template v-if="isChallengeOwner(challenge.owner)">
+                  {{ t('challenges.createdByMe') }}
+                </template>
+                <template v-else>
+                  {{ t('challenges.createdBy', { name: challenge.owner.name || t('common.unknown') }) }}
+                </template>
+              </v-card-subtitle>
               
               <v-chip-group column class="mb-2">
                 <v-chip
@@ -125,6 +150,11 @@ const errorMessage = ref('')
 const currentUserId = ref(getCurrentUserId())
 const joiningId = ref(null)
 
+// Filter out private challenges from the display
+const publicChallenges = computed(() => {
+  return challenges.value.filter(challenge => challenge.privacy !== 'private')
+})
+
 const detailsDialogOpen = ref(false)
 const selectedChallenge = ref(null)
 const saveLoading = ref(false)
@@ -148,8 +178,14 @@ const selectedJoinLoading = computed(() => {
 })
 
 const showDialogJoinButton = computed(() => {
+  if (!selectedChallenge.value) return false
+  
+  // Cannot join if challenge has ended
+  if (isChallengeEnded(selectedChallenge.value)) {
+    return false
+  }
+  
   return (
-    !!selectedChallenge.value &&
     !!currentUserId.value &&
     !selectedIsOwner.value &&
     !selectedIsParticipant.value
@@ -195,7 +231,7 @@ function formatDateRange(start, end) {
   const startFormatted = formatDate(start)
   const endFormatted = formatDate(end)
   return startFormatted && endFormatted
-    ? t('challenges.dateRange', { start: startFormatted, end: endFormatted })
+    ? `${startFormatted} - ${endFormatted}`
     : startFormatted || endFormatted || ''
 }
 
@@ -214,7 +250,24 @@ function isParticipant(challenge) {
   })
 }
 
+function isChallengeEnded(challenge) {
+  if (!challenge.endDate) return false
+  try {
+    const endDate = new Date(challenge.endDate)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    endDate.setHours(0, 0, 0, 0)
+    return endDate < today
+  } catch {
+    return false
+  }
+}
+
 function canJoin(challenge) {
+  // Cannot join if challenge has ended
+  if (isChallengeEnded(challenge)) {
+    return false
+  }
   return currentUserId.value && !isChallengeOwner(challenge.owner) && !isParticipant(challenge)
 }
 
@@ -366,8 +419,7 @@ onMounted(() => {
 
 <style scoped>
 .all-challenges {
-  max-width: 1400px;
-  margin: 0 auto;
+  width: 100%;
   padding: 0 16px;
 }
 
@@ -376,6 +428,7 @@ onMounted(() => {
   grid-template-columns: 1fr;
   gap: 24px;
   padding: 16px 0;
+  width: 100%;
 }
 
 .challenge-card {
@@ -384,11 +437,63 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
+  width: 100%;
+}
+
+.challenge-card.owner-challenge {
+  background-color: rgba(33, 150, 243, 0.08);
+  border-left: 4px solid #2196f3;
 }
 
 .challenge-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.challenge-card.owner-challenge:hover {
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.25);
+}
+
+.challenge-header {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.challenge-image-container {
+  flex-shrink: 0;
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.challenge-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.challenge-image-placeholder {
+  opacity: 0.5;
+}
+
+.challenge-header-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-width: 0;
+}
+
+.challenge-duration {
+  margin-top: 4px;
 }
 
 .progress-bar-container {
@@ -397,13 +502,13 @@ onMounted(() => {
   border-top: 1px solid rgba(0, 0, 0, 0.08);
 }
 
-@media (min-width: 600px) {
+@media (min-width: 900px) {
   .challenges-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
-@media (min-width: 960px) {
+@media (min-width: 1400px) {
   .challenges-grid {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -413,6 +518,14 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.privacy-icon {
+  flex-shrink: 0;
+}
+
+.challenge-type-chip {
+  width: fit-content;
 }
 
 .date-pickers {

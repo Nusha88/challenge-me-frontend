@@ -36,18 +36,39 @@
 
             <!-- Calendar for habit challenges -->
             <div v-if="challenge.challengeType === 'habit' && editForm.startDate && editForm.endDate" class="habit-calendar mb-4">
+              <div v-if="challenge.privacy !== 'private' && canViewPersonalProgress" class="calendar-mode-toggle mb-3">
+                <v-btn-toggle
+                  v-model="calendarViewMode"
+                  mandatory
+                  class="calendar-toggle-group"
+                  color="primary"
+                  variant="outlined"
+                >
+                  <v-btn value="personal">{{ t('challenges.myProgress') }}</v-btn>
+                  <v-btn value="team">{{ t('challenges.teamProgress') }}</v-btn>
+                </v-btn-toggle>
+              </div>
               <v-card variant="outlined">
                 <v-card-title class="text-h6">
                   {{ t('challenges.challengeCalendar') }}
                 </v-card-title>
                 <v-card-text>
-                  <ChallengeCalendar
-                    :start-date="editForm.startDate"
-                    :end-date="editForm.endDate"
-                    v-model="editForm.completedDays"
-                    :editable="true"
-                    @update:model-value="handleOwnerCompletedDaysUpdate"
-                  />
+                  <template v-if="challenge.privacy === 'private' || (canViewPersonalProgress && calendarViewMode === 'personal')">
+                    <ChallengeCalendar
+                      :start-date="editForm.startDate"
+                      :end-date="editForm.endDate"
+                      v-model="editForm.completedDays"
+                      :editable="true"
+                      @update:model-value="handleOwnerCompletedDaysUpdate"
+                    />
+                  </template>
+                  <template v-else>
+                    <TeamCalendarView
+                      :start-date="editForm.startDate"
+                      :end-date="editForm.endDate"
+                      :participants="challenge.participants || []"
+                    />
+                  </template>
                 </v-card-text>
               </v-card>
             </div>
@@ -141,7 +162,7 @@
               />
             </template>
 
-            <div class="mb-4">
+            <div v-if="challenge.privacy !== 'private'" class="mb-4">
               <strong>{{ t('challenges.participants') }}:</strong>
               <div class="participants-container mt-2">
                 <div
@@ -197,18 +218,39 @@
         <template v-else>
           <!-- Calendar for habit challenges -->
           <div v-if="challenge.challengeType === 'habit' && challenge.startDate && challenge.endDate" class="habit-calendar mb-4">
+            <div v-if="challenge.privacy !== 'private' && canViewPersonalProgress" class="calendar-mode-toggle mb-3">
+              <v-btn-toggle
+                v-model="calendarViewMode"
+                mandatory
+                class="calendar-toggle-group"
+                color="primary"
+                variant="outlined"
+              >
+                <v-btn value="personal">{{ t('challenges.myProgress') }}</v-btn>
+                <v-btn value="team">{{ t('challenges.teamProgress') }}</v-btn>
+              </v-btn-toggle>
+            </div>
             <v-card variant="outlined">
               <v-card-title class="text-h6">
                 {{ t('challenges.challengeCalendar') }}
               </v-card-title>
               <v-card-text>
-                <ChallengeCalendar
-                  :start-date="challenge.startDate"
-                  :end-date="challenge.endDate"
-                  :model-value="currentUserCompletedDays"
-                  :editable="isCurrentUserParticipant"
-                  @update:model-value="handleParticipantCompletedDaysUpdate"
-                />
+                <template v-if="challenge.privacy === 'private' || (canViewPersonalProgress && calendarViewMode === 'personal')">
+                  <ChallengeCalendar
+                    :start-date="challenge.startDate"
+                    :end-date="challenge.endDate"
+                    :model-value="currentUserCompletedDays"
+                    :editable="isCurrentUserParticipant"
+                    @update:model-value="handleParticipantCompletedDaysUpdate"
+                  />
+                </template>
+                <template v-else>
+                  <TeamCalendarView
+                    :start-date="challenge.startDate"
+                    :end-date="challenge.endDate"
+                    :participants="challenge.participants || []"
+                  />
+                </template>
               </v-card-text>
             </v-card>
           </div>
@@ -224,7 +266,7 @@
             <strong>{{ t('challenges.createdBy', { name: challenge.owner.name || t('common.unknown') }) }}</strong>
           </p>
 
-          <div>
+          <div v-if="challenge.privacy !== 'private'">
             <strong>{{ t('challenges.participants') }}:</strong>
             <div class="participants-container mt-2">
               <div
@@ -318,6 +360,7 @@ import { useI18n } from 'vue-i18n'
 import ChallengeImageUpload from './ChallengeImageUpload.vue'
 import ChallengeActions from './ChallengeActions.vue'
 import ChallengeCalendar from './ChallengeCalendar.vue'
+import TeamCalendarView from './TeamCalendarView.vue'
 import { challengeService } from '../services/api'
 
 const props = defineProps({
@@ -364,6 +407,7 @@ const emit = defineEmits(['update:modelValue', 'save', 'join', 'delete'])
 const deleteConfirmDialog = ref(false)
 const isInitializing = ref(true)
 let dateRangeObserver = null
+const calendarViewMode = ref('personal') // 'personal' или 'team'
 
 // Get current user ID
 function getCurrentUserId() {
@@ -517,6 +561,32 @@ const currentUserCompletedDays = computed(() => {
   return days
 })
 
+// Get all team completed days (aggregate from all participants)
+const teamCompletedDays = computed(() => {
+  if (!props.challenge || !props.challenge.participants) return []
+  
+  const allDays = new Set()
+  
+  props.challenge.participants.forEach(participant => {
+    if (participant.completedDays && Array.isArray(participant.completedDays)) {
+      participant.completedDays.forEach(day => {
+        if (day) {
+          try {
+            const dateStr = String(day).slice(0, 10)
+            if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+              allDays.add(dateStr)
+            }
+          } catch {
+            // Skip invalid dates
+          }
+        }
+      })
+    }
+  })
+  
+  return Array.from(allDays).sort()
+})
+
 // Check if current user is a participant
 const isCurrentUserParticipant = computed(() => {
   if (!props.challenge || !props.challenge.participants || !currentUserId.value) return false
@@ -525,6 +595,11 @@ const isCurrentUserParticipant = computed(() => {
     const userId = p.userId?._id || p.userId || p._id
     return userId && userId.toString() === currentUserId.value.toString()
   })
+})
+
+// Check if user can view personal progress (must be owner or participant)
+const canViewPersonalProgress = computed(() => {
+  return props.isOwner || isCurrentUserParticipant.value
 })
 
 // Allowed dates function - only allow dates from today onwards (up to end date)
@@ -1273,17 +1348,6 @@ async function handleParticipantCompletedDaysUpdate(completedDays) {
   flex-shrink: 0;
 }
 
-.date-pickers {
-  display: grid;
-  gap: 16px;
-}
-
-@media (min-width: 600px) {
-  .date-pickers {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
 .frequency-privacy-row {
   display: grid;
   grid-template-columns: 1fr;
@@ -1326,52 +1390,23 @@ async function handleParticipantCompletedDaysUpdate(completedDays) {
   gap: 16px;
 }
 
-.duration-row .custom-duration-field {
-  grid-column: 1;
-}
-
 @media (min-width: 600px) {
   .duration-row {
     grid-template-columns: 1fr 1fr;
   }
-  
-  .duration-row .custom-duration-field {
-    grid-column: 2;
-  }
 }
 
 .habit-calendar {
-  display: flex;
-  justify-content: center;
-}
-
-.habit-date-picker {
-  max-width: 100%;
   width: 100%;
 }
 
-/* Style dates within challenge date range with orange background */
-.habit-date-picker :deep(.v-date-picker-month__day button[data-in-range]),
-.habit-date-picker :deep(.v-date-picker-month__day button.date-in-range) {
-  background-color: rgba(255, 152, 0, 0.2) !important;
+.habit-calendar :deep(.v-card-text) {
+  padding: 16px;
+  width: 100%;
 }
 
-/* Ensure selected dates maintain their selection style over orange background */
-.habit-date-picker :deep(.v-date-picker-month__day--selected button[data-in-range]),
-.habit-date-picker :deep(.v-date-picker-month__day--selected button.date-in-range) {
-  background-color: rgba(25, 118, 210, 0.6) !important;
-  color: white !important;
-}
-
-/* Style date buttons */
-.habit-date-picker :deep(.v-date-picker-month__day button) {
-  transition: background-color 0.2s ease;
-  position: relative;
-}
-
-/* Ensure orange background is visible */
-.habit-date-picker :deep(.v-date-picker-month__day button.date-in-range:not(.v-date-picker-month__day--selected)) {
-  background-color: rgba(255, 152, 0, 0.3) !important;
+.habit-calendar :deep(.calendar-wrapper) {
+  width: 100%;
 }
 
 .duration-privacy-row {
@@ -1390,11 +1425,6 @@ async function handleParticipantCompletedDaysUpdate(completedDays) {
   grid-row: 2;
 }
 
-.duration-privacy-row .custom-duration-field {
-  grid-column: 1;
-  grid-row: 3;
-}
-
 @media (min-width: 600px) {
   .duration-privacy-row {
     grid-template-columns: 1fr 1fr;
@@ -1408,11 +1438,6 @@ async function handleParticipantCompletedDaysUpdate(completedDays) {
   .duration-privacy-row .duration-select {
     grid-column: 2;
     grid-row: 1;
-  }
-  
-  .duration-privacy-row .custom-duration-field {
-    grid-column: 2;
-    grid-row: 2;
   }
 }
 
@@ -1489,4 +1514,16 @@ async function handleParticipantCompletedDaysUpdate(completedDays) {
 .participant-avatar:hover {
   transform: scale(1.1);
 }
+.calendar-mode-toggle {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.calendar-toggle-group {
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  padding: 4px;
+}
+
 </style>

@@ -171,7 +171,7 @@ function changeLanguage(code) {
         </v-navigation-drawer>
       </v-col>
 
-      <v-col :class="{ 'public-column': !isLoggedIn }">
+      <v-col :class="{ 'public-column': !isLoggedIn, 'main-column': isLoggedIn }">
         <v-main :class="['main-content', { 'public-view': !isLoggedIn }]">
           <router-view></router-view>
         </v-main>
@@ -207,6 +207,16 @@ function changeLanguage(code) {
 
 .public-column {
   flex: 1;
+}
+
+.main-column {
+  flex: 1;
+  min-width: 0;
+}
+
+.main-content {
+  width: 100%;
+  max-width: 100%;
 }
 
 .cta-button {

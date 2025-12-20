@@ -32,7 +32,7 @@ const { t } = useI18n()
 
 .content-wrapper {
   width: 100%;
-  max-width: 1200px;
+  max-width: 1900px;
 }
 
 .welcome-card {

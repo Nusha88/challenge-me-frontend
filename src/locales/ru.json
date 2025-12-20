@@ -164,7 +164,15 @@
     "deleteConfirmMessage": "Вы уверены, что хотите удалить этот челлендж? Это действие нельзя отменить.",
     "progressActions": "{done} из {total} действий выполнено",
     "progressDays": "{passed} из {total} дней прошло",
-    "challengeCalendar": "Календарь челленджа"
+    "challengeCalendar": "Календарь челленджа",
+    "myProgress": "Мой прогресс",
+    "teamProgress": "Прогресс команды",
+    "calendarLegend": {
+      "completed": "Выполнено",
+      "missed": "Пропущено",
+      "today": "Сегодня",
+      "unavailable": "Недоступно"
+    }
   },
   "validation": {
     "titleRequired": "Название обязательно",
