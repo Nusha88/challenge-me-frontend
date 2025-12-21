@@ -4,7 +4,7 @@
   },
   "navigation": {
     "home": "Home",
-    "register": "Register",
+    "register": "Sign Up",
     "login": "Login",
     "logout": "Logout",
     "profile": "Profile",
@@ -16,7 +16,10 @@
   },
   "home": {
     "welcome": "Welcome to ChallengeMe",
-    "description": "Create, join, and conquer challenges together."
+    "description": "Create, join, and conquer challenges together.",
+    "title": "Achieve goals together with friends",
+    "subtitle": "Turn routine into a game. Create personal challenges, compete with your team and track progress.",
+    "createFirstChallenge": "Create first challenge"
   },
   "common": {
     "unknown": "Unknown",
@@ -153,6 +156,8 @@
     "join": "Join",
     "joinInfo": "You can join this challenge.",
     "joinSuccess": "You are participating in this challenge.",
+    "moreParticipants": "+{count} more",
+    "upcoming": "Starting soon",
     "listTitle": "All Challenges",
     "myListTitle": "My Challenges",
     "createdByMe": "Created by me",

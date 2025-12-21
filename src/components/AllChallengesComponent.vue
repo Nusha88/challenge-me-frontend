@@ -19,9 +19,15 @@
             v-for="challenge in publicChallenges"
             :key="challenge._id"
             class="challenge-card"
-            :class="{ 'owner-challenge': isChallengeOwner(challenge.owner) }"
+            :class="{ 
+              'owner-challenge': isChallengeOwner(challenge.owner),
+              'finished-challenge': isChallengeEnded(challenge)
+            }"
             @click="openDetails(challenge)"
           >
+            <div v-if="isChallengeUpcoming(challenge)" class="upcoming-badge">
+              {{ t('challenges.upcoming') }}
+            </div>
             <!-- Header with image and title -->
             <div class="challenge-header">
               <div class="challenge-image-container">
@@ -68,16 +74,24 @@
                 </template>
               </v-card-subtitle>
               
-              <v-chip-group column class="mb-2">
-                <v-chip
-                  v-for="participant in challenge.participants"
+              <div v-if="challenge.participants && challenge.participants.length > 0" class="participants-container mb-2">
+                <div
+                  v-for="participant in displayedParticipants(challenge.participants)"
                   :key="participant.userId?._id || participant.userId || participant._id || participant"
-                  size="small"
-                  class="mr-1"
+                  class="participant-avatar"
+                  :style="{ backgroundColor: getParticipantColor(participant) }"
+                  :title="(participant.userId?.name || participant.name) || t('common.unknown')"
                 >
-                  {{ (participant.userId?.name || participant.name) || t('common.unknown') }}
-                </v-chip>
-              </v-chip-group>
+                  {{ getParticipantInitial(participant) }}
+                </div>
+                <div
+                  v-if="challenge.participants.length > 6"
+                  class="participant-avatar participant-more"
+                  :title="t('challenges.moreParticipants', { count: challenge.participants.length - 6 })"
+                >
+                  +{{ challenge.participants.length - 6 }}
+                </div>
+              </div>
             </v-card-text>
             
             <v-card-actions>
@@ -185,6 +199,11 @@ const showDialogJoinButton = computed(() => {
     return false
   }
   
+  // Can only join habit challenges
+  if (selectedChallenge.value.challengeType !== 'habit') {
+    return false
+  }
+  
   return (
     !!currentUserId.value &&
     !selectedIsOwner.value &&
@@ -263,12 +282,60 @@ function isChallengeEnded(challenge) {
   }
 }
 
+function isChallengeUpcoming(challenge) {
+  if (!challenge.startDate) return false
+  try {
+    const startDate = new Date(challenge.startDate)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    startDate.setHours(0, 0, 0, 0)
+    return startDate > today
+  } catch {
+    return false
+  }
+}
+
 function canJoin(challenge) {
   // Cannot join if challenge has ended
   if (isChallengeEnded(challenge)) {
     return false
   }
+  // Can only join habit challenges
+  if (challenge.challengeType !== 'habit') {
+    return false
+  }
   return currentUserId.value && !isChallengeOwner(challenge.owner) && !isParticipant(challenge)
+}
+
+function displayedParticipants(participants) {
+  if (!participants || !Array.isArray(participants)) return []
+  return participants.slice(0, 6)
+}
+
+function getParticipantColor(participant) {
+  // Handle new structure: participant.userId or old structure: participant directly
+  const userId = participant.userId?._id || participant.userId || participant._id || participant
+  const name = participant.userId?.name || participant.name || ''
+  const seed = userId?.toString() || name
+  
+  // Generate a hash from the seed
+  let hash = 0
+  for (let i = 0; i < seed.length; i++) {
+    hash = seed.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  
+  // Generate a color from the hash
+  const hue = Math.abs(hash % 360)
+  const saturation = 60 + (Math.abs(hash) % 20) // 60-80%
+  const lightness = 50 + (Math.abs(hash) % 15) // 50-65%
+  
+  return `hsl(${hue}, ${saturation}%, ${lightness}%)`
+}
+
+function getParticipantInitial(participant) {
+  // Handle new structure: participant.userId or old structure: participant directly
+  const name = participant.userId?.name || participant.name || t('common.unknown')
+  return name.charAt(0).toUpperCase()
 }
 
 async function joinChallenge(challenge) {
@@ -322,11 +389,30 @@ async function handleDialogSave(formData) {
   try {
     await challengeService.updateChallenge(selectedChallenge.value._id, { ...formData })
     await fetchChallenges()
+    // Update selected challenge if dialog is still open
+    if (selectedChallenge.value) {
+      const updatedChallenge = challenges.value.find(c => c._id === selectedChallenge.value._id)
+      if (updatedChallenge) {
+        selectedChallenge.value = updatedChallenge
+      }
+    }
     detailsDialogOpen.value = false
   } catch (error) {
     saveError.value = error.response?.data?.message || t('notifications.updateError')
   } finally {
     saveLoading.value = false
+  }
+}
+
+async function handleDialogUpdate() {
+  // Refresh challenges when participant updates their completedDays
+  await fetchChallenges()
+  // Also refresh the selected challenge if dialog is open
+  if (selectedChallenge.value) {
+    const updatedChallenge = challenges.value.find(c => c._id === selectedChallenge.value._id)
+    if (updatedChallenge) {
+      selectedChallenge.value = updatedChallenge
+    }
   }
 }
 
@@ -451,11 +537,38 @@ onMounted(() => {
   flex-direction: column;
   height: 100%;
   width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.upcoming-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: linear-gradient(135deg, #1FA0F6 0%, #A62EE8 100%);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 0 0 0 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(31, 160, 246, 0.3);
+  white-space: nowrap;
 }
 
 .challenge-card.owner-challenge {
-  background-color: rgba(33, 150, 243, 0.08);
-  border-left: 4px solid #2196f3;
+  background: linear-gradient(135deg, rgba(31, 160, 246, 0.12) 0%, rgba(166, 46, 232, 0.12) 100%);
+}
+
+.challenge-card.finished-challenge {
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.03) 0%, rgba(0, 0, 0, 0.06) 100%);
+}
+
+.challenge-card.finished-challenge.owner-challenge {
+  background: linear-gradient(135deg, 
+    rgba(31, 160, 246, 0.06) 0%, 
+    rgba(166, 46, 232, 0.06) 50%,
+    rgba(0, 0, 0, 0.04) 100%);
 }
 
 .challenge-card:hover {
@@ -464,7 +577,7 @@ onMounted(() => {
 }
 
 .challenge-card.owner-challenge:hover {
-  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.25);
+  box-shadow: 0 4px 12px rgba(31, 160, 246, 0.3);
 }
 
 .challenge-header {
@@ -529,6 +642,10 @@ onMounted(() => {
   border-top: 1px solid rgba(0, 0, 0, 0.08);
 }
 
+.progress-bar-container :deep(.v-progress-linear__determinate) {
+  background: linear-gradient(135deg, #1FA0F6 0%, #A62EE8 100%) !important;
+}
+
 @media (min-width: 768px) {
   .challenges-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -574,5 +691,36 @@ onMounted(() => {
   .date-pickers {
     grid-template-columns: repeat(2, 1fr);
   }
+}
+
+.participants-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.participant-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 12px;
+  cursor: default;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.participant-avatar:hover {
+  transform: scale(1.1);
+}
+
+.participant-more {
+  background-color: rgba(0, 0, 0, 0.2) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 </style>

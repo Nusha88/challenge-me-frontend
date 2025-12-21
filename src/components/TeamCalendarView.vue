@@ -48,7 +48,9 @@
     </div>
 
     <div v-if="participantsWithStats.length > 0" class="participants-progress">
-      <h4 class="participants-title">{{ t('challenges.participants') }}</h4>
+      <h4 class="participants-title">
+        {{ t('challenges.participants') }} ({{ participantsWithStats.length }})
+      </h4>
       <div class="participants-list">
         <div
           v-for="participant in participantsWithStats"
@@ -485,6 +487,27 @@ function getParticipantInitial(participant) {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.participants-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.participants-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.participants-list::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+.participants-list::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
 
 .participant-item {

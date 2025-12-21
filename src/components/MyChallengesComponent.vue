@@ -23,9 +23,15 @@
             v-for="challenge in challenges"
             :key="challenge._id"
             class="challenge-card"
-            :class="{ 'owner-challenge': isChallengeOwner(challenge.owner) }"
+            :class="{ 
+              'owner-challenge': isChallengeOwner(challenge.owner),
+              'finished-challenge': isChallengeEnded(challenge)
+            }"
             @click="openDetails(challenge)"
           >
+            <div v-if="isChallengeUpcoming(challenge)" class="upcoming-badge">
+              {{ t('challenges.upcoming') }}
+            </div>
             <!-- Header with image and title -->
             <div class="challenge-header">
               <div class="challenge-image-container">
@@ -209,6 +215,32 @@ function isChallengeOwner(owner) {
   return ownerId === currentUserId.value
 }
 
+function isChallengeEnded(challenge) {
+  if (!challenge.endDate) return false
+  try {
+    const endDate = new Date(challenge.endDate)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    endDate.setHours(0, 0, 0, 0)
+    return endDate < today
+  } catch {
+    return false
+  }
+}
+
+function isChallengeUpcoming(challenge) {
+  if (!challenge.startDate) return false
+  try {
+    const startDate = new Date(challenge.startDate)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    startDate.setHours(0, 0, 0, 0)
+    return startDate > today
+  } catch {
+    return false
+  }
+}
+
 async function fetchChallenges() {
   const userId = currentUserId.value
   if (!userId) {
@@ -244,6 +276,13 @@ async function handleDialogSave(formData) {
   try {
     await challengeService.updateChallenge(selectedChallenge.value._id, { ...formData })
     await fetchChallenges()
+    // Update selected challenge if dialog is still open
+    if (selectedChallenge.value) {
+      const updatedChallenge = challenges.value.find(c => c._id === selectedChallenge.value._id)
+      if (updatedChallenge) {
+        selectedChallenge.value = updatedChallenge
+      }
+    }
     detailsDialogOpen.value = false
   } catch (error) {
     saveError.value = error.response?.data?.message || t('notifications.updateError')
@@ -380,11 +419,38 @@ onMounted(() => {
   flex-direction: column;
   height: 100%;
   width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.upcoming-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: linear-gradient(135deg, #1FA0F6 0%, #A62EE8 100%);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 0 0 0 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(31, 160, 246, 0.3);
+  white-space: nowrap;
 }
 
 .challenge-card.owner-challenge {
-  background-color: rgba(33, 150, 243, 0.08);
-  border-left: 4px solid #2196f3;
+  background: linear-gradient(135deg, rgba(31, 160, 246, 0.12) 0%, rgba(166, 46, 232, 0.12) 100%);
+}
+
+.challenge-card.finished-challenge {
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.03) 0%, rgba(0, 0, 0, 0.06) 100%);
+}
+
+.challenge-card.finished-challenge.owner-challenge {
+  background: linear-gradient(135deg, 
+    rgba(31, 160, 246, 0.06) 0%, 
+    rgba(166, 46, 232, 0.06) 50%,
+    rgba(0, 0, 0, 0.04) 100%);
 }
 
 .challenge-card:hover {
@@ -393,7 +459,7 @@ onMounted(() => {
 }
 
 .challenge-card.owner-challenge:hover {
-  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.25);
+  box-shadow: 0 4px 12px rgba(31, 160, 246, 0.3);
 }
 
 .challenge-header {
@@ -470,6 +536,10 @@ onMounted(() => {
   margin-top: auto;
   padding-bottom: 0;
   border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.progress-bar-container :deep(.v-progress-linear__determinate) {
+  background: linear-gradient(135deg, #1FA0F6 0%, #A62EE8 100%) !important;
 }
 
 @media (min-width: 768px) {

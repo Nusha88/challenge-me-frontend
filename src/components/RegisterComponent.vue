@@ -74,16 +74,14 @@
             {{ error }}
           </v-alert>
 
-          <v-btn
-            color="primary"
+          <GradientButton
             type="submit"
             block
-            size="large"
             :loading="loading"
             :disabled="loading"
           >
             {{ t('auth.submitRegister') }}
-          </v-btn>
+          </GradientButton>
         </v-form>
       </v-card-text>
     </v-card>
@@ -107,6 +105,7 @@ import { ref, watch, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { authService } from '../services/api'
 import { useI18n } from 'vue-i18n'
+import GradientButton from './GradientButton.vue'
 import {
   getCountryOptions,
   detectUserCountry,
@@ -425,5 +424,31 @@ function closeSuccessModal() {
 
 .v-card-title {
   text-align: center;
+}
+
+:deep(.v-field) {
+  border-radius: 12px !important;
+}
+
+:deep(.v-field__outline) {
+  border-radius: 12px !important;
+}
+
+:deep(.v-field__input) {
+  border-radius: 12px !important;
+}
+
+:deep(.v-text-field .v-field),
+:deep(.v-autocomplete .v-field),
+:deep(.v-select .v-field),
+:deep(.v-textarea .v-field) {
+  border-radius: 12px !important;
+}
+
+:deep(.v-text-field .v-field__outline),
+:deep(.v-autocomplete .v-field__outline),
+:deep(.v-select .v-field__outline),
+:deep(.v-textarea .v-field__outline) {
+  border-radius: 12px !important;
 }
 </style> 

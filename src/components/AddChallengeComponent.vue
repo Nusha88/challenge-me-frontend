@@ -73,67 +73,65 @@
             :editable="true"
           />
 
-          <v-select
-            v-model="form.duration"
-            :items="durationOptions"
-            :label="t('challenges.duration')"
-            item-title="title"
-            item-value="value"
-            variant="outlined"
-            class="mb-4"
-            :error-messages="errors.duration"
-          ></v-select>
+          <div class="selects-grid mb-4">
+            <v-select
+              v-model="form.duration"
+              :items="durationOptions"
+              :label="t('challenges.duration')"
+              item-title="title"
+              item-value="value"
+              variant="outlined"
+              :error-messages="errors.duration"
+            ></v-select>
 
-          <v-text-field
-            v-if="form.duration === 'custom'"
-            v-model="form.customDuration"
-            :label="t('challenges.customDuration')"
-            type="number"
-            variant="outlined"
-            class="mb-4"
-            :error-messages="errors.customDuration"
-            :hint="t('challenges.customDurationHint')"
-            persistent-hint
-            min="1"
-          ></v-text-field>
+            <v-text-field
+              v-if="form.duration === 'custom'"
+              v-model="form.customDuration"
+              :label="t('challenges.customDuration')"
+              type="number"
+              variant="outlined"
+              :error-messages="errors.customDuration"
+              :hint="t('challenges.customDurationHint')"
+              persistent-hint
+              min="1"
+            ></v-text-field>
 
-          <v-select
-            v-model="form.startOption"
-            :items="startOptions"
-            :label="t('challenges.start')"
-            item-title="title"
-            item-value="value"
-            variant="outlined"
-            class="mb-4"
-            :error-messages="errors.startOption"
-          ></v-select>
+            <v-select
+              v-model="form.startOption"
+              :items="startOptions"
+              :label="t('challenges.start')"
+              item-title="title"
+              item-value="value"
+              variant="outlined"
+              :error-messages="errors.startOption"
+            ></v-select>
 
-          <v-select
-            v-if="form.challengeType === 'habit'"
-            v-model="form.frequency"
-            :items="frequencyOptions"
-            :label="t('challenges.frequency')"
-            item-title="title"
-            item-value="value"
-            variant="outlined"
-            class="mb-4"
-            :error-messages="errors.frequency"
-          ></v-select>
+            <v-select
+              v-if="form.challengeType === 'habit'"
+              v-model="form.frequency"
+              :items="frequencyOptions"
+              :label="t('challenges.frequency')"
+              item-title="title"
+              item-value="value"
+              variant="outlined"
+              :error-messages="errors.frequency"
+            ></v-select>
 
-          <ChallengeActions
-            v-if="form.challengeType === 'result'"
-            v-model="form.actions"
-          />
+            <v-select
+              v-model="form.privacy"
+              :items="privacyOptions"
+              :label="t('challenges.privacy')"
+              item-title="title"
+              item-value="value"
+              variant="outlined"
+            ></v-select>
+          </div>
 
-          <v-select
-            v-model="form.privacy"
-            :items="privacyOptions"
-            :label="t('challenges.privacy')"
-            item-title="title"
-            item-value="value"
-            variant="outlined"
-            class="mb-4"
-          ></v-select>
+          <div class="actions-container" v-if="form.challengeType === 'result'">
+            <ChallengeActions
+              v-model="form.actions"
+            />
+          </div>
 
           <v-alert
             v-if="errorMessage"
@@ -143,15 +141,18 @@
             {{ errorMessage }}
           </v-alert>
 
-          <v-btn
-            type="submit"
-            color="primary"
-            size="large"
-            :loading="loading"
-            :disabled="loading"
-          >
-            {{ t('challenges.create') }}
-          </v-btn>
+          <div class="create-button-wrapper">
+            <v-btn
+              type="submit"
+              color="primary"
+              size="large"
+              :loading="loading"
+              :disabled="loading"
+              class="create-button"
+            >
+              {{ t('challenges.create') }}
+            </v-btn>
+          </div>
         </v-form>
       </v-card-text>
     </v-card>
@@ -409,8 +410,7 @@ async function handleSubmit() {
 
 <style scoped>
 .add-challenge {
-  max-width: 640px;
-  margin: 0 auto;
+  width: 100%;
 }
 
 .date-pickers {
@@ -438,17 +438,47 @@ async function handleSubmit() {
   cursor: pointer;
   transition: all 0.3s ease;
   border: 2px solid transparent;
+  border-radius: 16px !important;
+  background: linear-gradient(135deg, rgba(31, 160, 246, 0.08) 0%, rgba(166, 46, 232, 0.08) 100%);
 }
 
 .challenge-type-card:hover {
-  border-color: #1976d2;
+  border-color: #1FA0F6;
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 8px rgba(31, 160, 246, 0.2);
+  background: linear-gradient(135deg, rgba(31, 160, 246, 0.15) 0%, rgba(166, 46, 232, 0.15) 100%);
 }
 
 .challenge-type-card.selected {
-  border-color: #1976d2;
-  background-color: rgba(25, 118, 210, 0.05);
+  position: relative;
+  background: linear-gradient(135deg, rgba(31, 160, 246, 0.15) 0%, rgba(166, 46, 232, 0.15) 100%);
+  border: none;
+}
+
+.challenge-type-card.selected::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  padding: 2px;
+  background: linear-gradient(135deg, #1FA0F6 0%, #A62EE8 100%);
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.challenge-type-card.selected :deep(.v-card-title),
+.challenge-type-card.selected :deep(.v-card-text),
+.challenge-type-card.selected :deep(.v-card-actions) {
+  position: relative;
+  z-index: 1;
 }
 
 .challenge-type-card .v-card-title {
@@ -459,5 +489,114 @@ async function handleSubmit() {
 .challenge-type-card .v-card-actions {
   justify-content: flex-end;
   padding-top: 0;
+}
+
+.selects-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 960px) {
+  .selects-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .selects-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.actions-container {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 16px;
+}
+
+.actions-container > * {
+  grid-column: 1 / 10; /* spans columns 1-9 (9 columns) */
+}
+
+@media (max-width: 960px) {
+  .actions-container > * {
+    grid-column: 1 / -1; /* full width on smaller screens */
+  }
+}
+
+/* Rounder borders for input fields */
+:deep(.v-field),
+:deep(.v-field__outline),
+:deep(.v-field__input) {
+  border-radius: 16px !important;
+}
+
+:deep(.v-textarea .v-field),
+:deep(.v-textarea .v-field__outline) {
+  border-radius: 16px !important;
+}
+
+/* Rounder borders for actions block */
+.actions-container :deep(.v-card) {
+  border-radius: 16px !important;
+}
+
+/* Create button wrapper */
+.create-button-wrapper {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 1em;
+}
+
+/* Create button gradient styling */
+.create-button {
+  border-radius: 24px !important;
+  background: linear-gradient(135deg, #1FA0F6 0%, #2196F3 100%) !important;
+  color: white !important;
+  font-weight: 600;
+  padding: 16px 32px;
+  padding-top: 16px;
+  padding-bottom: 16px;
+  height: auto;
+  width: 50%;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.create-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s;
+}
+
+.create-button:hover::before {
+  left: 100%;
+}
+
+.create-button :deep(.v-btn__overlay) {
+  background: linear-gradient(135deg, #1FA0F6 0%, #2196F3 100%) !important;
+}
+
+.create-button:hover {
+  background: linear-gradient(135deg, #2196F3 0%, #1FA0F6 100%) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(31, 160, 246, 0.4);
+}
+
+.create-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(31, 160, 246, 0.3);
+}
+
+.create-button:disabled {
+  opacity: 0.6;
 }
 </style>

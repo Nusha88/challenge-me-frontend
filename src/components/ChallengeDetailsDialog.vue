@@ -221,6 +221,15 @@
         </template>
 
         <template v-else>
+          <div class="dates-row mb-4">
+            <p class="start-date-text">
+              <strong>{{ t('challenges.startDate') }}:</strong> {{ formatDisplayDate(challenge.startDate) }}
+            </p>
+            <p class="end-date-text">
+              <strong>{{ t('challenges.endDate') }}:</strong> {{ formatDisplayDate(challenge.endDate) }}
+            </p>
+          </div>
+
           <!-- Calendar for habit challenges -->
           <div v-if="challenge.challengeType === 'habit' && challenge.startDate && challenge.endDate" class="habit-calendar mb-4">
             <div v-if="challenge.privacy !== 'private' && canViewPersonalProgress" class="calendar-mode-toggle mb-3">
@@ -244,9 +253,9 @@
                   <ChallengeCalendar
                     :start-date="challenge.startDate"
                     :end-date="challenge.endDate"
-                    :model-value="currentUserCompletedDays"
+                    :model-value="localCurrentUserCompletedDays.length > 0 ? localCurrentUserCompletedDays : currentUserCompletedDays"
                     :editable="isCurrentUserParticipant"
-                    @update:model-value="handleParticipantCompletedDaysUpdate"
+                    @update:model-value="handleParticipantCalendarChange"
                   />
                 </template>
                 <template v-else>
@@ -266,25 +275,6 @@
           />
           
           <p class="mb-2"><strong>{{ t('challenges.description') }}:</strong> {{ challenge.description }}</p>
-          <p class="mb-2"><strong>{{ t('challenges.startDate') }} / {{ t('challenges.endDate') }}:</strong> {{ formatDateRange(challenge.startDate, challenge.endDate) }}</p>
-          <p class="mb-2" v-if="challenge.owner">
-            <strong>{{ t('challenges.createdBy', { name: challenge.owner.name || t('common.unknown') }) }}</strong>
-          </p>
-
-          <div v-if="challenge.privacy !== 'private'">
-            <strong>{{ t('challenges.participants') }}:</strong>
-            <div class="participants-container mt-2">
-              <div
-                v-for="participant in challenge.participants"
-                :key="participant.userId?._id || participant.userId || participant._id || participant"
-                class="participant-avatar"
-                :style="{ backgroundColor: getParticipantColor(participant) }"
-                :title="(participant.userId?.name || participant.name) || t('common.unknown')"
-              >
-                {{ getParticipantInitial(participant) }}
-              </div>
-            </div>
-          </div>
 
           <v-alert
             v-if="isParticipant"
@@ -304,6 +294,12 @@
         </template>
       </v-card-text>
 
+      <div v-if="!isOwner && challenge.owner" class="created-by-section">
+        <p class="created-by-text">
+          {{ t('challenges.createdBy', { name: challenge.owner.name || t('common.unknown') }) }}
+        </p>
+      </div>
+
       <v-card-actions v-if="!isOwner" class="buttons-area">
         <v-btn 
           variant="outlined" 
@@ -322,6 +318,16 @@
           class="action-button save-button"
         >
           {{ t('challenges.join') }}
+        </v-btn>
+        <v-btn
+          v-if="isCurrentUserParticipant && challenge.challengeType === 'habit'"
+          variant="flat"
+          color="primary"
+          :loading="participantSaveLoading"
+          @click="handleParticipantSave"
+          class="action-button save-button"
+        >
+          {{ t('common.save') }}
         </v-btn>
       </v-card-actions>
     </v-card>
@@ -412,6 +418,7 @@ const emit = defineEmits(['update:modelValue', 'save', 'join', 'delete'])
 
 const deleteConfirmDialog = ref(false)
 const isInitializing = ref(true)
+const participantSaveLoading = ref(false)
 let dateRangeObserver = null
 const calendarViewMode = ref('personal') // 'personal' или 'team'
 
@@ -1306,34 +1313,49 @@ async function handleOwnerCompletedDaysUpdate(completedDays) {
   }
 }
 
-// Handle participant completedDays update
-async function handleParticipantCompletedDaysUpdate(completedDays) {
+// Handle participant calendar changes (store locally, don't auto-save)
+function handleParticipantCalendarChange(completedDays) {
   if (!props.challenge || !currentUserId.value || !isCurrentUserParticipant.value) {
-    console.log('Skipping participant update:', { challenge: !!props.challenge, userId: !!currentUserId.value, isParticipant: isCurrentUserParticipant.value })
+    return
+  }
+  // Store changes locally
+  localCurrentUserCompletedDays.value = [...completedDays]
+}
+
+// Handle participant save
+async function handleParticipantSave() {
+  if (!props.challenge || !currentUserId.value || !isCurrentUserParticipant.value) {
     return
   }
   
-  console.log('Updating participant completedDays:', completedDays)
-  
-  // Optimistically update local ref immediately for instant UI feedback
-  localCurrentUserCompletedDays.value = [...completedDays]
+  participantSaveLoading.value = true
   
   try {
+    const completedDays = localCurrentUserCompletedDays.value.length > 0 
+      ? localCurrentUserCompletedDays.value 
+      : currentUserCompletedDays.value
+    
     const response = await challengeService.updateParticipantCompletedDays(
       props.challenge._id,
       currentUserId.value,
       completedDays
     )
-    console.log('Successfully updated participant completedDays:', response)
+    console.log('Successfully saved participant completedDays:', response)
     // Emit update event to refresh challenge data from server
     emit('update')
+    // Close the modal after successful save
+    emit('update:modelValue', false)
   } catch (error) {
-    console.error('Error updating participant completed days:', error)
+    console.error('Error saving participant completed days:', error)
     console.error('Error details:', error.response?.data || error.message)
-    // Revert optimistic update on error - clear local ref to use prop value
-    localCurrentUserCompletedDays.value = []
-    emit('update')
+  } finally {
+    participantSaveLoading.value = false
   }
+}
+
+// Handle participant completedDays update (kept for backward compatibility)
+async function handleParticipantCompletedDaysUpdate(completedDays) {
+  await handleParticipantSave()
 }
 </script>
 
@@ -1468,10 +1490,22 @@ async function handleParticipantCompletedDaysUpdate(completedDays) {
   }
 }
 
+.created-by-section {
+  padding: 12px 24px;
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.created-by-text {
+  margin: 0;
+  font-size: 0.875rem;
+  color: rgba(0, 0, 0, 0.6);
+  text-align: center;
+}
+
 .buttons-area {
   border-top: 1px solid rgba(0, 0, 0, 0.12);
   padding: 16px 24px !important;
-  margin-top: 24px;
+  margin-top: 0;
   border-radius: 0 0 4px 4px;
 }
 
@@ -1482,6 +1516,8 @@ async function handleParticipantCompletedDaysUpdate(completedDays) {
   min-width: 100px;
   height: 40px;
   padding: 0 24px;
+  border-radius: 24px !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .delete-button {
@@ -1490,31 +1526,61 @@ async function handleParticipantCompletedDaysUpdate(completedDays) {
 
 .delete-button:hover:not(:disabled) {
   box-shadow: 0 4px 8px rgba(211, 47, 47, 0.3);
-  transform: translateY(-1px);
-  transition: all 0.2s ease;
+  transform: translateY(-2px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .save-button {
-  background-color: rgb(25, 118, 210) !important;
+  background: linear-gradient(135deg, #1FA0F6 0%, #2196F3 100%) !important;
   color: white !important;
-  box-shadow: 0 2px 4px rgba(25, 118, 210, 0.2);
+  box-shadow: 0 2px 4px rgba(31, 160, 246, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.save-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s;
+}
+
+.save-button:hover:not(:disabled)::before {
+  left: 100%;
 }
 
 .save-button:hover:not(:disabled) {
-  background-color: rgb(21, 101, 192) !important;
-  box-shadow: 0 4px 8px rgba(25, 118, 210, 0.3);
-  transform: translateY(-1px);
-  transition: all 0.2s ease;
+  background: linear-gradient(135deg, #2196F3 0%, #1FA0F6 100%) !important;
+  box-shadow: 0 4px 12px rgba(31, 160, 246, 0.4);
+  transform: translateY(-2px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.save-button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(31, 160, 246, 0.3);
+}
+
+.save-button :deep(.v-btn__overlay) {
+  background: linear-gradient(135deg, #1FA0F6 0%, #2196F3 100%) !important;
 }
 
 .cancel-button {
   border-width: 2px;
+  border-color: rgba(31, 160, 246, 0.5) !important;
+  color: #1FA0F6 !important;
 }
 
 .cancel-button:hover:not(:disabled) {
-  background-color: rgba(0, 0, 0, 0.04);
-  transform: translateY(-1px);
-  transition: all 0.2s ease;
+  background-color: rgba(31, 160, 246, 0.08) !important;
+  border-color: #1FA0F6 !important;
+  transform: translateY(-2px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(31, 160, 246, 0.2);
 }
 
 .participants-container {
