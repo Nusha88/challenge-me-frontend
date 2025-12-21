@@ -179,6 +179,23 @@
       "unavailable": "Недоступно"
     }
   },
+  "filters": {
+    "type": "Тип",
+    "activity": "Активность",
+    "participants": "Участники",
+    "creationDate": "Дата создания",
+    "clear": "Очистить фильтры",
+    "activityActive": "Активные",
+    "activityFinished": "Завершенные",
+    "activityUpcoming": "Скоро начнутся",
+    "participantsNone": "Нет",
+    "participantsFew": "1-5",
+    "participantsMany": "6+",
+    "creationDateToday": "Сегодня",
+    "creationDateWeek": "На этой неделе",
+    "creationDateMonth": "В этом месяце",
+    "creationDateOlder": "Ранее"
+  },
   "validation": {
     "titleRequired": "Название обязательно",
     "descriptionRequired": "Описание обязательно",

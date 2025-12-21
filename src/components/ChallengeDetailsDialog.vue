@@ -167,21 +167,6 @@
               />
             </template>
 
-            <div v-if="challenge.privacy !== 'private'" class="mb-4">
-              <strong>{{ t('challenges.participants') }}:</strong>
-              <div class="participants-container mt-2">
-                <div
-                  v-for="participant in challenge.participants"
-                  :key="participant.userId?._id || participant.userId || participant._id || participant"
-                  class="participant-avatar"
-                  :style="{ backgroundColor: getParticipantColor(participant) }"
-                  :title="(participant.userId?.name || participant.name) || t('common.unknown')"
-                >
-                  {{ getParticipantInitial(participant) }}
-                </div>
-              </div>
-            </div>
-
             <v-alert v-if="saveError" type="error" class="mb-4">
               {{ saveError }}
             </v-alert>

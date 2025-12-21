@@ -179,6 +179,23 @@
       "unavailable": "Unavailable"
     }
   },
+  "filters": {
+    "type": "Type",
+    "activity": "Activity",
+    "participants": "Participants",
+    "creationDate": "Creation Date",
+    "clear": "Clear Filters",
+    "activityActive": "Active",
+    "activityFinished": "Finished",
+    "activityUpcoming": "Upcoming",
+    "participantsNone": "None",
+    "participantsFew": "1-5",
+    "participantsMany": "6+",
+    "creationDateToday": "Today",
+    "creationDateWeek": "This Week",
+    "creationDateMonth": "This Month",
+    "creationDateOlder": "Older"
+  },
   "validation": {
     "titleRequired": "Title is required",
     "descriptionRequired": "Description is required",

@@ -2,6 +2,9 @@
   <div class="all-challenges">
     <h1 class="mb-4 mb-md-6 page-title">{{ t('challenges.listTitle') }}</h1>
 
+    <!-- Filter Panel -->
+    <FilterPanel v-model="filters" />
+
     <v-card>
       <v-card-text>
         <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4"></v-progress-linear>
@@ -10,126 +13,21 @@
           {{ errorMessage }}
         </v-alert>
 
-        <v-alert v-else-if="!publicChallenges.length && !loading" type="info">
+        <v-alert v-else-if="!filteredChallenges.length && !loading" type="info">
           {{ t('challenges.noChallenges') }}
         </v-alert>
 
         <div v-else class="challenges-grid">
-          <v-card
-            v-for="challenge in publicChallenges"
+          <ChallengeCard
+            v-for="challenge in filteredChallenges"
             :key="challenge._id"
-            class="challenge-card"
-            :class="{ 
-              'owner-challenge': isChallengeOwner(challenge.owner),
-              'finished-challenge': isChallengeEnded(challenge)
-            }"
-            @click="openDetails(challenge)"
-          >
-            <div v-if="isChallengeUpcoming(challenge)" class="upcoming-badge">
-              {{ t('challenges.upcoming') }}
-            </div>
-            <!-- Header with image and title -->
-            <div class="challenge-header">
-              <div class="challenge-image-container">
-                <img
-                  v-if="challenge.imageUrl"
-                  :src="challenge.imageUrl"
-                  :alt="challenge.title"
-                  class="challenge-image"
-                />
-                <v-icon
-                  v-else
-                  size="48"
-                  color="grey-lighten-1"
-                  class="challenge-image-placeholder"
-                >
-                  mdi-image-outline
-                </v-icon>
-              </div>
-              <div class="challenge-header-content">
-                <span class="text-h6 mb-1">{{ challenge.title }}</span>
-                <div class="challenge-duration text-caption text-medium-emphasis mb-1">
-                  {{ formatDateRange(challenge.startDate, challenge.endDate) }}
-                </div>
-                <v-chip
-                  v-if="challenge.challengeType"
-                  :color="challenge.challengeType === 'habit' ? 'success' : 'warning'"
-                  size="small"
-                  class="challenge-type-chip"
-                >
-                  {{ challenge.challengeType === 'habit' ? t('challenges.typeHabit') : t('challenges.typeResult') }}
-                </v-chip>
-              </div>
-            </div>
-            
-            <v-card-text class="flex-grow-1 pt-3">
-              <p class="mb-3 text-body-2">{{ challenge.description }}</p>
-              
-              <v-card-subtitle v-if="challenge.owner" class="mb-2 pa-0">
-                <template v-if="isChallengeOwner(challenge.owner)">
-                  {{ t('challenges.createdByMe') }}
-                </template>
-                <template v-else>
-                  {{ t('challenges.createdBy', { name: challenge.owner.name || t('common.unknown') }) }}
-                </template>
-              </v-card-subtitle>
-              
-              <div v-if="challenge.participants && challenge.participants.length > 0" class="participants-container mb-2">
-                <div
-                  v-for="participant in displayedParticipants(challenge.participants)"
-                  :key="participant.userId?._id || participant.userId || participant._id || participant"
-                  class="participant-avatar"
-                  :style="{ backgroundColor: getParticipantColor(participant) }"
-                  :title="(participant.userId?.name || participant.name) || t('common.unknown')"
-                >
-                  {{ getParticipantInitial(participant) }}
-                </div>
-                <div
-                  v-if="challenge.participants.length > 6"
-                  class="participant-avatar participant-more"
-                  :title="t('challenges.moreParticipants', { count: challenge.participants.length - 6 })"
-                >
-                  +{{ challenge.participants.length - 6 }}
-                </div>
-              </div>
-            </v-card-text>
-            
-            <v-card-actions>
-              <v-btn
-                v-if="canJoin(challenge)"
-                color="primary"
-                size="small"
-                variant="flat"
-                :loading="joiningId === challenge._id"
-                @click.stop="joinChallenge(challenge)"
-              >
-                {{ t('challenges.join') }}
-              </v-btn>
-              <v-spacer></v-spacer>
-            </v-card-actions>
-            
-            <!-- Progress Bar - Stuck to bottom -->
-            <div v-if="challenge.challengeType" class="progress-bar-container">
-              <div class="d-flex justify-space-between mb-1 px-4">
-                <span class="text-caption">
-                  <template v-if="challenge.challengeType === 'result'">
-                    {{ t('challenges.progressActions', { done: calculateProgressDone(challenge), total: calculateProgressTotal(challenge) }) }}
-                  </template>
-                  <template v-else>
-                    {{ t('challenges.progressDays', { passed: calculateProgressDone(challenge), total: calculateProgressTotal(challenge) }) }}
-                  </template>
-                </span>
-                <span class="text-caption font-weight-medium">{{ calculateProgressPercentage(challenge) }}%</span>
-              </div>
-              <v-progress-linear
-                :model-value="calculateProgressPercentage(challenge)"
-                color="primary"
-                height="6"
-                rounded
-                class="mx-0"
-              ></v-progress-linear>
-            </div>
-          </v-card>
+            :challenge="challenge"
+            :current-user-id="currentUserId"
+            :show-join-button="true"
+            :joining-id="joiningId"
+            @click="openDetails"
+            @join="joinChallenge"
+          />
         </div>
       </v-card-text>
     </v-card>
@@ -156,6 +54,8 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { challengeService } from '../services/api'
 import ChallengeDetailsDialog from './ChallengeDetailsDialog.vue'
+import FilterPanel from './FilterPanel.vue'
+import ChallengeCard from './ChallengeCard.vue'
 import { useI18n } from 'vue-i18n'
 
 const challenges = ref([])
@@ -164,9 +64,96 @@ const errorMessage = ref('')
 const currentUserId = ref(getCurrentUserId())
 const joiningId = ref(null)
 
+// Filter state
+const filters = ref({
+  type: null,
+  activity: null,
+  participants: null,
+  creationDate: null
+})
+
 // Filter out private challenges from the display
 const publicChallenges = computed(() => {
   return challenges.value.filter(challenge => challenge.privacy !== 'private')
+})
+
+// Filtered challenges
+const filteredChallenges = computed(() => {
+  let result = [...publicChallenges.value]
+
+  // Filter by type
+  if (filters.value.type) {
+    result = result.filter(challenge => challenge.challengeType === filters.value.type)
+  }
+
+  // Filter by activity
+  if (filters.value.activity) {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    result = result.filter(challenge => {
+      if (!challenge.startDate || !challenge.endDate) return false
+      
+      const startDate = new Date(challenge.startDate)
+      startDate.setHours(0, 0, 0, 0)
+      const endDate = new Date(challenge.endDate)
+      endDate.setHours(0, 0, 0, 0)
+      
+      if (filters.value.activity === 'active') {
+        return startDate <= today && endDate >= today
+      } else if (filters.value.activity === 'finished') {
+        return endDate < today
+      } else if (filters.value.activity === 'upcoming') {
+        return startDate > today
+      }
+      return true
+    })
+  }
+
+  // Filter by participants
+  if (filters.value.participants) {
+    result = result.filter(challenge => {
+      const participantCount = (challenge.participants || []).length
+      
+      if (filters.value.participants === '0') {
+        return participantCount === 0
+      } else if (filters.value.participants === '1-5') {
+        return participantCount >= 1 && participantCount <= 5
+      } else if (filters.value.participants === '6+') {
+        return participantCount >= 6
+      }
+      return true
+    })
+  }
+
+  // Filter by creation date
+  if (filters.value.creationDate) {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    result = result.filter(challenge => {
+      // Use createdAt if available, otherwise use startDate as fallback
+      const creationDate = challenge.createdAt || challenge.startDate
+      if (!creationDate) return false
+      
+      const created = new Date(creationDate)
+      created.setHours(0, 0, 0, 0)
+      const daysDiff = Math.floor((today - created) / (1000 * 60 * 60 * 24))
+      
+      if (filters.value.creationDate === 'today') {
+        return daysDiff === 0
+      } else if (filters.value.creationDate === 'week') {
+        return daysDiff >= 0 && daysDiff <= 7
+      } else if (filters.value.creationDate === 'month') {
+        return daysDiff >= 0 && daysDiff <= 30
+      } else if (filters.value.creationDate === 'older') {
+        return daysDiff > 30
+      }
+      return true
+    })
+  }
+
+  return result
 })
 
 const detailsDialogOpen = ref(false)
@@ -307,36 +294,6 @@ function canJoin(challenge) {
   return currentUserId.value && !isChallengeOwner(challenge.owner) && !isParticipant(challenge)
 }
 
-function displayedParticipants(participants) {
-  if (!participants || !Array.isArray(participants)) return []
-  return participants.slice(0, 6)
-}
-
-function getParticipantColor(participant) {
-  // Handle new structure: participant.userId or old structure: participant directly
-  const userId = participant.userId?._id || participant.userId || participant._id || participant
-  const name = participant.userId?.name || participant.name || ''
-  const seed = userId?.toString() || name
-  
-  // Generate a hash from the seed
-  let hash = 0
-  for (let i = 0; i < seed.length; i++) {
-    hash = seed.charCodeAt(i) + ((hash << 5) - hash)
-  }
-  
-  // Generate a color from the hash
-  const hue = Math.abs(hash % 360)
-  const saturation = 60 + (Math.abs(hash) % 20) // 60-80%
-  const lightness = 50 + (Math.abs(hash) % 15) // 50-65%
-  
-  return `hsl(${hue}, ${saturation}%, ${lightness}%)`
-}
-
-function getParticipantInitial(participant) {
-  // Handle new structure: participant.userId or old structure: participant directly
-  const name = participant.userId?.name || participant.name || t('common.unknown')
-  return name.charAt(0).toUpperCase()
-}
 
 async function joinChallenge(challenge) {
   if (!currentUserId.value) {
@@ -438,65 +395,6 @@ async function handleDialogDelete(challengeId) {
   }
 }
 
-function calculateProgressDone(challenge) {
-  if (!challenge) return 0
-  
-  if (challenge.challengeType === 'result') {
-    // For result challenges, count checked actions
-    if (!challenge.actions || !Array.isArray(challenge.actions)) return 0
-    return challenge.actions.filter(action => action.checked).length
-  } else {
-    // For habit challenges, get current user's completed days from their participant entry
-    if (!currentUserId.value || !challenge.participants) return 0
-    
-    const participant = challenge.participants.find(p => {
-      const userId = p.userId?._id || p.userId || p._id
-      return userId && userId.toString() === currentUserId.value.toString()
-    })
-    
-    if (!participant || !participant.completedDays || !Array.isArray(participant.completedDays)) return 0
-    return participant.completedDays.length
-  }
-}
-
-function calculateProgressTotal(challenge) {
-  if (!challenge) return 0
-  
-  if (challenge.challengeType === 'result') {
-    // For result challenges, total number of actions
-    if (!challenge.actions || !Array.isArray(challenge.actions)) return 0
-    return challenge.actions.length
-  } else {
-    // For habit challenges, calculate days between start and end date
-    if (!challenge.startDate || !challenge.endDate) return 0
-    
-    try {
-      const start = new Date(challenge.startDate)
-      const end = new Date(challenge.endDate)
-      
-      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 0
-      
-      start.setHours(0, 0, 0, 0)
-      end.setHours(0, 0, 0, 0)
-      
-      const diffTime = end - start
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1 // +1 to include both start and end days
-      
-      return diffDays
-    } catch {
-      return 0
-    }
-  }
-}
-
-function calculateProgressPercentage(challenge) {
-  const done = calculateProgressDone(challenge)
-  const total = calculateProgressTotal(challenge)
-  
-  if (total === 0) return 0
-  const percentage = Math.round((done / total) * 100)
-  return Math.min(100, Math.max(0, percentage)) // Clamp between 0 and 100
-}
 
 onMounted(() => {
   fetchChallenges()
@@ -530,121 +428,7 @@ onMounted(() => {
   }
 }
 
-.challenge-card {
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  width: 100%;
-  position: relative;
-  overflow: hidden;
-}
 
-.upcoming-badge {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  background: linear-gradient(135deg, #1FA0F6 0%, #A62EE8 100%);
-  color: white;
-  padding: 6px 12px;
-  border-radius: 0 0 0 4px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  z-index: 10;
-  box-shadow: 0 2px 8px rgba(31, 160, 246, 0.3);
-  white-space: nowrap;
-}
-
-.challenge-card.owner-challenge {
-  background: linear-gradient(135deg, rgba(31, 160, 246, 0.12) 0%, rgba(166, 46, 232, 0.12) 100%);
-}
-
-.challenge-card.finished-challenge {
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.03) 0%, rgba(0, 0, 0, 0.06) 100%);
-}
-
-.challenge-card.finished-challenge.owner-challenge {
-  background: linear-gradient(135deg, 
-    rgba(31, 160, 246, 0.06) 0%, 
-    rgba(166, 46, 232, 0.06) 50%,
-    rgba(0, 0, 0, 0.04) 100%);
-}
-
-.challenge-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.challenge-card.owner-challenge:hover {
-  box-shadow: 0 4px 12px rgba(31, 160, 246, 0.3);
-}
-
-.challenge-header {
-  display: flex;
-  gap: 12px;
-  padding: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-}
-
-@media (min-width: 600px) {
-  .challenge-header {
-    gap: 16px;
-    padding: 16px;
-  }
-}
-
-.challenge-image-container {
-  flex-shrink: 0;
-  width: 60px;
-  height: 60px;
-  border-radius: 8px;
-  overflow: hidden;
-  background-color: #f5f5f5;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-@media (min-width: 600px) {
-  .challenge-image-container {
-    width: 80px;
-    height: 80px;
-  }
-}
-
-.challenge-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.challenge-image-placeholder {
-  opacity: 0.5;
-}
-
-.challenge-header-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  min-width: 0;
-}
-
-.challenge-duration {
-  margin-top: 4px;
-}
-
-.progress-bar-container {
-  margin-top: auto;
-  padding-bottom: 0;
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
-}
-
-.progress-bar-container :deep(.v-progress-linear__determinate) {
-  background: linear-gradient(135deg, #1FA0F6 0%, #A62EE8 100%) !important;
-}
 
 @media (min-width: 768px) {
   .challenges-grid {
@@ -693,34 +477,5 @@ onMounted(() => {
   }
 }
 
-.participants-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-}
 
-.participant-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-weight: 600;
-  font-size: 12px;
-  cursor: default;
-  transition: transform 0.2s ease;
-  flex-shrink: 0;
-}
-
-.participant-avatar:hover {
-  transform: scale(1.1);
-}
-
-.participant-more {
-  background-color: rgba(0, 0, 0, 0.2) !important;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
 </style>
