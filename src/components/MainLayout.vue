@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useDisplay } from 'vuetify'
@@ -36,9 +36,17 @@ const currentLocaleLabel = computed(() => {
 })
 
 const drawerOpen = ref(false)
+
 const toggleDrawer = () => {
   drawerOpen.value = !drawerOpen.value
 }
+
+// Ensure drawer is closed when route changes on mobile
+watch(currentRoute, () => {
+  if (mobile.value) {
+    drawerOpen.value = false
+  }
+})
 
 onMounted(() => {
   window.addEventListener('auth-changed', updateAuthState)
@@ -63,20 +71,33 @@ function changeLanguage(code) {
 
 <template>
   <v-app>
-    <v-app-bar color="primary">
+    <v-app-bar color="primary" class="app-bar-custom">
       <v-app-bar-nav-icon
         v-if="isLoggedIn"
         @click="toggleDrawer"
         class="d-md-none"
       ></v-app-bar-nav-icon>
-      <router-link to="/" class="brand-link">{{ t('app.name') }}</router-link>
+      <router-link to="/" class="brand-link d-none d-md-inline-flex">{{ t('app.name') }}</router-link>
+      <div class="add-button-mobile-wrapper d-md-none">
+        <v-btn
+          v-if="isLoggedIn"
+          to="/challenges/add"
+          color="secondary"
+          variant="elevated"
+          size="large"
+          class="cta-button"
+          prepend-icon="mdi-plus-circle"
+        >
+          {{ t('navigation.addChallenge') }}
+        </v-btn>
+      </div>
       <v-spacer></v-spacer>
       <v-btn
         v-if="!isLoggedIn"
         to="/register"
         color="white"
         variant="text"
-        class="mr-2"
+        class="mr-2 d-none d-md-inline-flex"
       >
         {{ t('navigation.register') }}
       </v-btn>
@@ -85,7 +106,7 @@ function changeLanguage(code) {
         to="/login"
         color="white"
         variant="text"
-        class="mr-2"
+        class="mr-2 d-none d-md-inline-flex"
       >
         {{ t('navigation.login') }}
       </v-btn>
@@ -94,20 +115,19 @@ function changeLanguage(code) {
         to="/challenges/add"
         color="secondary"
         variant="elevated"
-        :size="mobile ? 'small' : 'large'"
-        class="mr-2 cta-button"
-        :prepend-icon="mobile ? undefined : 'mdi-plus-circle'"
-        :icon="mobile ? 'mdi-plus-circle' : undefined"
+        size="large"
+        class="mr-2 cta-button d-none d-md-inline-flex"
+        prepend-icon="mdi-plus-circle"
       >
-        <span v-if="!mobile">{{ t('navigation.addChallenge') }}</span>
+        {{ t('navigation.addChallenge') }}
       </v-btn>
-      <v-menu location="bottom" open-on-hover>
+      <v-menu location="bottom" open-on-hover class="d-none d-md-block">
         <template #activator="{ props }">
           <v-btn
             v-bind="props"
             color="white"
             variant="text"
-            class="mr-2 language-button"
+            class="mr-2 language-button d-none d-md-inline-flex"
             prepend-icon="mdi-translate"
           >
             {{ currentLocaleLabel }}
@@ -129,21 +149,19 @@ function changeLanguage(code) {
         to="/profile"
         color="white"
         variant="text"
-        class="mr-2"
-        :prepend-icon="mobile ? undefined : 'mdi-account'"
-        :icon="mobile ? 'mdi-account' : undefined"
+        class="mr-2 d-none d-md-inline-flex"
+        prepend-icon="mdi-account"
       >
-        <span v-if="!mobile">{{ userName || t('navigation.profile') }}</span>
+        {{ userName || t('navigation.profile') }}
       </v-btn>
       <v-btn
         v-if="isLoggedIn"
         color="white"
         variant="text"
-        :icon="mobile"
+        class="d-none d-md-inline-flex"
         @click="logout"
       >
-        <span v-if="!mobile">{{ t('navigation.logout') }}</span>
-        <v-icon v-else>mdi-logout</v-icon>
+        {{ t('navigation.logout') }}
       </v-btn>
     </v-app-bar>
 
@@ -154,6 +172,14 @@ function changeLanguage(code) {
       class="d-none d-md-block desktop-sidebar"
     >
       <v-list>
+        <v-list-item class="sidebar-logo">
+          <v-list-item-title class="text-h6 font-weight-bold">
+            {{ t('app.name') }}
+          </v-list-item-title>
+        </v-list-item>
+
+        <v-divider class="my-2"></v-divider>
+
         <v-list-item
           :active="currentRoute === 'my-challenges'"
           to="/challenges/my"
@@ -196,11 +222,34 @@ function changeLanguage(code) {
     <!-- Mobile Navigation Drawer -->
     <v-navigation-drawer
       v-if="isLoggedIn"
-      v-model="drawerOpen"
+      :model-value="drawerOpen"
+      @update:model-value="drawerOpen = $event"
       temporary
-      class="d-md-none"
+      location="start"
+      class="d-md-none mobile-drawer"
     >
       <v-list>
+        <v-list-item class="sidebar-logo" @click="drawerOpen = false">
+          <v-list-item-title class="text-h6 font-weight-bold">
+            {{ t('app.name') }}
+          </v-list-item-title>
+        </v-list-item>
+
+        <v-divider class="my-2"></v-divider>
+
+        <v-list-item
+          to="/profile"
+          color="primary"
+          @click="drawerOpen = false"
+        >
+          <template v-slot:prepend>
+            <v-icon icon="mdi-account"></v-icon>
+          </template>
+          <v-list-item-title>{{ userName || t('navigation.profile') }}</v-list-item-title>
+        </v-list-item>
+
+        <v-divider class="my-2"></v-divider>
+
         <v-list-item
           :active="currentRoute === 'my-challenges'"
           to="/challenges/my"
@@ -236,6 +285,32 @@ function changeLanguage(code) {
           </template>
           <v-list-item-title>{{ t('navigation.allChallenges') }}</v-list-item-title>
         </v-list-item>
+
+        <v-divider class="my-2"></v-divider>
+
+        <v-list-subheader>{{ t('navigation.language') }}</v-list-subheader>
+        <v-list-item
+          v-for="language in availableLocales"
+          :key="language.code"
+          :active="language.code === locale.value"
+          @click="changeLanguage(language.code); drawerOpen = false"
+        >
+          <template v-slot:prepend>
+            <v-icon icon="mdi-translate"></v-icon>
+          </template>
+          <v-list-item-title>{{ language.label }}</v-list-item-title>
+        </v-list-item>
+
+        <v-divider class="my-2"></v-divider>
+
+        <v-list-item
+          @click="logout(); drawerOpen = false"
+        >
+          <template v-slot:prepend>
+            <v-icon icon="mdi-logout"></v-icon>
+          </template>
+          <v-list-item-title>{{ t('navigation.logout') }}</v-list-item-title>
+        </v-list-item>
       </v-list>
     </v-navigation-drawer>
   </v-app>
@@ -254,9 +329,50 @@ function changeLanguage(code) {
   z-index: 1;
 }
 
+.mobile-drawer {
+  z-index: 2000;
+}
+
+@media (max-width: 959px) {
+  .desktop-sidebar {
+    display: none !important;
+    visibility: hidden !important;
+  }
+  
+  .main-content.with-sidebar {
+    margin-left: 0 !important;
+  }
+  
+  /* Control mobile drawer position */
+  .mobile-drawer:not(.v-navigation-drawer--active) {
+    left: -256px !important;
+    transform: translateX(0) !important;
+  }
+  
+  .mobile-drawer.v-navigation-drawer--active {
+    left: 0 !important;
+  }
+  
+  /* Control scrim position on mobile */
+  .mobile-drawer ~ .v-navigation-drawer__scrim,
+  .v-navigation-drawer__scrim {
+    left: 2em !important;
+  }
+}
+
 .v-list-item {
   margin: 4px 8px;
   border-radius: 8px;
+}
+
+.sidebar-logo {
+  padding: 16px;
+  margin: 0;
+  cursor: default;
+}
+
+.sidebar-logo:hover {
+  background-color: transparent !important;
 }
 
 .v-list-item.active {
@@ -274,12 +390,18 @@ function changeLanguage(code) {
 }
 
 .main-content.with-sidebar {
-  margin-left: 256px;
+  margin-left: 0;
 }
 
 .main-content.public-view {
   padding-top: 40px;
   margin-left: 0;
+}
+
+@media (min-width: 960px) {
+  .main-content.with-sidebar {
+    margin-left: 256px;
+  }
 }
 
 @media (min-width: 600px) {
@@ -294,12 +416,6 @@ function changeLanguage(code) {
   }
 }
 
-@media (max-width: 959px) {
-  .main-content.with-sidebar {
-    margin-left: 0;
-  }
-}
-
 .cta-button {
   font-weight: 700;
   text-transform: uppercase;
@@ -308,6 +424,15 @@ function changeLanguage(code) {
   padding-right: 24px;
   box-shadow: 0 6px 18px rgba(98, 0, 238, 0.35);
   transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+@media (max-width: 959px) {
+  .cta-button {
+    padding: 12px 28px;
+    font-size: 1rem;
+    height: 48px;
+    min-width: 180px;
+  }
 }
 
 .cta-button:hover {
@@ -344,5 +469,22 @@ function changeLanguage(code) {
 .language-button {
   text-transform: none;
   font-weight: 500;
+}
+
+.app-bar-custom {
+  position: relative;
+}
+
+.add-button-mobile-wrapper {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+}
+
+@media (min-width: 960px) {
+  .add-button-mobile-wrapper {
+    display: none !important;
+  }
 }
 </style> 

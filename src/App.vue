@@ -21,5 +21,12 @@ html, body {
   margin-right: 0;
 }
 
+@media (max-width: 959px) {
+  #app {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+}
+
 /* Global styles can go here */
 </style>
