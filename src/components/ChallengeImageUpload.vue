@@ -2,7 +2,6 @@
   <div class="challenge-image-upload">
     <template v-if="editable">
       <div class="image-upload-section mb-4">
-        <label class="text-body-2 mb-2 d-block">{{ t('challenges.challengeImage') }}</label>
         <input
           ref="fileInputRef"
           type="file"

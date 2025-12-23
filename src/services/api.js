@@ -113,6 +113,9 @@ export const challengeService = {
   getAllChallenges: () => {
     return api.get('/challenges')
   },
+  getChallenge: (id) => {
+    return api.get(`/challenges/${id}`)
+  },
   joinChallenge: (id, payload = {}) => {
     return api.post(`/challenges/${id}/join`, payload)
   },

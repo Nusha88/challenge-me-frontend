@@ -45,7 +45,7 @@
     </div>
     
     <v-card-text class="flex-grow-1 pt-3">
-      <p class="mb-3 text-body-2">{{ challenge.description }}</p>
+      <p class="mb-3 text-body-2 challenge-description">{{ challenge.description }}</p>
       
       <v-card-subtitle v-if="challenge.owner" class="mb-2 pa-0">
         <template v-if="isOwner">
@@ -61,10 +61,16 @@
           v-for="participant in displayedParticipants(challenge.participants)"
           :key="participant.userId?._id || participant.userId || participant._id || participant"
           class="participant-avatar"
-          :style="{ backgroundColor: getParticipantColor(participant) }"
+          :style="getParticipantAvatarStyle(participant)"
           :title="(participant.userId?.name || participant.name) || t('common.unknown')"
         >
-          {{ getParticipantInitial(participant) }}
+          <img
+            v-if="getParticipantAvatarUrl(participant)"
+            :src="getParticipantAvatarUrl(participant)"
+            :alt="(participant.userId?.name || participant.name) || t('common.unknown')"
+            class="participant-avatar-img"
+          />
+          <span v-else>{{ getParticipantInitial(participant) }}</span>
         </div>
         <div
           v-if="challenge.participants.length > 6"
@@ -194,7 +200,16 @@ const progressDone = computed(() => {
   
   if (props.challenge.challengeType === 'result') {
     if (!props.challenge.actions || !Array.isArray(props.challenge.actions)) return 0
-    return props.challenge.actions.filter(action => action.checked).length
+    let count = 0
+    props.challenge.actions.forEach(action => {
+      if (action.checked) count++
+      if (action.children && Array.isArray(action.children)) {
+        action.children.forEach(child => {
+          if (child.checked) count++
+        })
+      }
+    })
+    return count
   } else {
     if (!props.currentUserId || !props.challenge.participants) return 0
     
@@ -213,7 +228,14 @@ const progressTotal = computed(() => {
   
   if (props.challenge.challengeType === 'result') {
     if (!props.challenge.actions || !Array.isArray(props.challenge.actions)) return 0
-    return props.challenge.actions.length
+    let count = 0
+    props.challenge.actions.forEach(action => {
+      count++ // Count parent action
+      if (action.children && Array.isArray(action.children)) {
+        count += action.children.length // Count child actions
+      }
+    })
+    return count
   } else {
     if (!props.challenge.startDate || !props.challenge.endDate) return 0
     
@@ -295,6 +317,18 @@ function getParticipantColor(participant) {
 function getParticipantInitial(participant) {
   const name = participant.userId?.name || participant.name || t('common.unknown')
   return name.charAt(0).toUpperCase()
+}
+
+function getParticipantAvatarUrl(participant) {
+  return participant.userId?.avatarUrl || participant.avatarUrl || null
+}
+
+function getParticipantAvatarStyle(participant) {
+  const avatarUrl = getParticipantAvatarUrl(participant)
+  if (avatarUrl) {
+    return {}
+  }
+  return { backgroundColor: getParticipantColor(participant) }
 }
 </script>
 
@@ -435,6 +469,14 @@ function getParticipantInitial(participant) {
   cursor: default;
   transition: transform 0.2s ease;
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.participant-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 .participant-avatar:hover {
@@ -449,4 +491,17 @@ function getParticipantInitial(participant) {
 .challenge-type-chip {
   width: fit-content;
 }
+
+.challenge-description {
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.5;
+  max-height: calc(1.5em * 5);
+}
 </style>
+
+
+

@@ -181,7 +181,7 @@ const form = ref({
   challengeType: 'habit',
   frequency: 'daily',
   startOption: 'today',
-  actions: [{ text: '', checked: false }]
+  actions: [{ text: '', checked: false, children: [] }]
 })
 
 const durationOptions = computed(() => [
@@ -258,7 +258,7 @@ function selectChallengeType(type) {
     // startDate will be set automatically by the watcher
     // Initialize actions with default item if empty
     if (!form.value.actions || form.value.actions.length === 0) {
-      form.value.actions = [{ text: '', checked: false }]
+      form.value.actions = [{ text: '', checked: false, children: [] }]
     }
   }
   // Clear custom duration if it was set

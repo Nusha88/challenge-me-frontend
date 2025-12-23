@@ -7,6 +7,7 @@ import ProfileComponent from '../components/ProfileComponent.vue'
 import AllChallengesComponent from '../components/AllChallengesComponent.vue'
 import AddChallengeComponent from '../components/AddChallengeComponent.vue'
 import MyChallengesComponent from '../components/MyChallengesComponent.vue'
+import ChallengeEditPage from '../components/ChallengeEditPage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -50,6 +51,11 @@ const router = createRouter({
       path: '/challenges/add',
       name: 'add-challenge',
       component: AddChallengeComponent
+    },
+    {
+      path: '/challenges/edit/:id',
+      name: 'edit-challenge',
+      component: ChallengeEditPage
     }
   ]
 })

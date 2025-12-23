@@ -89,7 +89,9 @@
               variant="outlined"
               required
               class="mb-4"
-              :error-messages="errors.title"
+              :error-messages="titleErrorMessages"
+              :counter="20"
+              maxlength="20"
             ></v-text-field>
 
             <v-textarea
@@ -196,7 +198,7 @@
                 variant="flat"
                 color="primary" 
                 :loading="saveLoading" 
-                :disabled="saveLoading || deleteLoading"
+                :disabled="saveLoading || deleteLoading || !isFormValid"
                 class="action-button save-button"
               >
                 {{ t('challenges.update') }}
@@ -459,6 +461,16 @@ const challengeTypeLabel = computed(() => {
 const challengeTypeColor = computed(() => {
   if (!props.challenge?.challengeType) return 'secondary'
   return props.challenge.challengeType === 'habit' ? 'success' : 'warning'
+})
+
+const titleErrorMessages = computed(() => {
+  return errors.title || ''
+})
+
+const isFormValid = computed(() => {
+  // Check for validation errors
+  return !errors.title && !errors.description && !errors.duration && !errors.frequency &&
+    editForm.title && editForm.description && editForm.duration
 })
 
 // Progress calculations
@@ -888,8 +900,14 @@ watch(
     // Initialize actions for result challenges
     if (value.challengeType === 'result') {
       editForm.actions = value.actions && value.actions.length > 0
-        ? value.actions.map(a => ({ text: a.text || '', checked: Boolean(a.checked) }))
-        : [{ text: '', checked: false }]
+        ? value.actions.map(a => ({ 
+            text: a.text || '', 
+            checked: Boolean(a.checked),
+            children: (a.children && Array.isArray(a.children))
+              ? a.children.map(c => ({ text: c.text || '', checked: Boolean(c.checked) }))
+              : []
+          }))
+        : [{ text: '', checked: false, children: [] }]
     } else {
       editForm.actions = []
     }
@@ -1057,6 +1075,16 @@ watch(
     // Close confirmation dialog when delete completes (loading goes from true to false)
     if (oldValue === true && newValue === false) {
       deleteConfirmDialog.value = false
+    }
+  }
+)
+
+watch(
+  () => editForm.title,
+  (newValue) => {
+    // Truncate if somehow exceeds 20 characters (e.g., from paste)
+    if (newValue && newValue.length > 20) {
+      editForm.title = newValue.substring(0, 20)
     }
   }
 )
@@ -1263,6 +1291,18 @@ function getParticipantInitial(participant) {
   // Handle new structure: participant.userId or old structure: participant directly
   const name = participant.userId?.name || participant.name || t('common.unknown')
   return name.charAt(0).toUpperCase()
+}
+
+function getParticipantAvatarUrl(participant) {
+  return participant.userId?.avatarUrl || participant.avatarUrl || null
+}
+
+function getParticipantAvatarStyle(participant) {
+  const avatarUrl = getParticipantAvatarUrl(participant)
+  if (avatarUrl) {
+    return {}
+  }
+  return { backgroundColor: getParticipantColor(participant) }
 }
 
 // Handle owner completedDays update
@@ -1587,6 +1627,14 @@ async function handleParticipantCompletedDaysUpdate(completedDays) {
   font-size: 16px;
   cursor: default;
   transition: transform 0.2s ease;
+  overflow: hidden;
+}
+
+.participant-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 .participant-avatar:hover {

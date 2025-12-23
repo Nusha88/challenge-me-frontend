@@ -60,9 +60,15 @@
           <div class="participant-info">
             <div
               class="participant-avatar"
-              :style="{ backgroundColor: getParticipantColor(participant) }"
+              :style="getParticipantAvatarStyle(participant)"
             >
-              {{ getParticipantInitial(participant) }}
+              <img
+                v-if="getParticipantAvatarUrl(participant)"
+                :src="getParticipantAvatarUrl(participant)"
+                :alt="participant.name || t('common.unknown')"
+                class="participant-avatar-img"
+              />
+              <span v-else>{{ getParticipantInitial(participant) }}</span>
             </div>
             <span class="participant-name">{{ participant.name || t('common.unknown') }}</span>
           </div>
@@ -264,6 +270,18 @@ function getParticipantInitial(participant) {
   const name = participant.name || participant.userId?.name || ''
   if (!name) return '?'
   return name.charAt(0).toUpperCase()
+}
+
+function getParticipantAvatarUrl(participant) {
+  return participant.userId?.avatarUrl || participant.avatarUrl || null
+}
+
+function getParticipantAvatarStyle(participant) {
+  const avatarUrl = getParticipantAvatarUrl(participant)
+  if (avatarUrl) {
+    return {}
+  }
+  return { backgroundColor: getParticipantColor(participant) }
 }
 </script>
 
@@ -535,6 +553,14 @@ function getParticipantInitial(participant) {
   color: white;
   font-weight: 600;
   font-size: 16px;
+  overflow: hidden;
+}
+
+.participant-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 .participant-name {

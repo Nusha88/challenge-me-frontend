@@ -52,11 +52,14 @@
 
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { challengeService } from '../services/api'
 import ChallengeDetailsDialog from './ChallengeDetailsDialog.vue'
 import FilterPanel from './FilterPanel.vue'
 import ChallengeCard from './ChallengeCard.vue'
 import { useI18n } from 'vue-i18n'
+
+const router = useRouter()
 
 const challenges = ref([])
 const loading = ref(false)
@@ -332,6 +335,13 @@ async function fetchChallenges() {
 }
 
 function openDetails(challenge) {
+  // Check if user is owner - navigate to edit page
+  if (isChallengeOwner(challenge.owner)) {
+    router.push(`/challenges/edit/${challenge._id}`)
+    return
+  }
+  
+  // Otherwise open modal for non-owners
   selectedChallenge.value = challenge
   saveError.value = ''
   detailsDialogOpen.value = true
