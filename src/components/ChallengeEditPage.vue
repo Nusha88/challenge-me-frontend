@@ -25,6 +25,27 @@
         >
           mdi-lock
         </v-icon>
+        <v-spacer></v-spacer>
+        <v-btn
+          v-if="isWatched"
+          variant="outlined"
+          color="primary"
+          :loading="watchingId === challenge?._id"
+          @click="handleUnwatch"
+          class="ml-4"
+        >
+          {{ t('challenges.unwatch') }}
+        </v-btn>
+        <v-btn
+          v-else-if="currentUserId && !isWatched && challenge"
+          variant="outlined"
+          color="primary"
+          :loading="watchingId === challenge._id"
+          @click="handleWatch"
+          class="ml-4"
+        >
+          {{ t('challenges.watch') }}
+        </v-btn>
       </div>
 
       <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4"></v-progress-linear>
@@ -265,6 +286,28 @@
               />
             </template>
 
+            <!-- Allow Comments Switcher -->
+            <div class="mb-4">
+              <v-switch
+                v-model="editForm.allowComments"
+                :label="t('challenges.allowComments')"
+                color="primary"
+                hide-details
+              ></v-switch>
+            </div>
+
+            <!-- Comments Component -->
+            <div class="mb-4">
+              <CommentsComponent
+                :challenge-id="challenge._id"
+                :allow-comments="editForm.allowComments"
+                :current-user-id="currentUserId"
+                :is-owner="true"
+                @comment-added="handleCommentAdded"
+                @comment-deleted="handleCommentDeleted"
+              />
+            </div>
+
             <v-alert v-if="saveError" type="error" class="mb-4">
               {{ saveError }}
             </v-alert>
@@ -346,6 +389,7 @@ import { useRouter, useRoute } from 'vue-router'
 import ChallengeImageUpload from './ChallengeImageUpload.vue'
 import ChallengeActions from './ChallengeActions.vue'
 import ChallengeCalendar from './ChallengeCalendar.vue'
+import CommentsComponent from './CommentsComponent.vue'
 import TeamCalendarView from './TeamCalendarView.vue'
 import { challengeService } from '../services/api'
 
@@ -385,6 +429,10 @@ function getCurrentUserId() {
 
 const currentUserId = ref(getCurrentUserId())
 
+// Watched challenges
+const watchedChallenges = ref([])
+const watchingId = ref(null)
+
 // Local reactive copy of current user's completedDays for optimistic updates
 const localCurrentUserCompletedDays = ref([])
 
@@ -402,7 +450,8 @@ const editForm = reactive({
   frequency: '',
   privacy: 'public',
   actions: [],
-  completedDays: []
+  completedDays: [],
+  allowComments: true
 })
 
 const errors = reactive({
@@ -477,6 +526,7 @@ async function loadChallenge() {
     editForm.imageUrl = challenge.value.imageUrl || ''
     editForm.frequency = challenge.value.frequency || ''
     editForm.privacy = challenge.value.privacy || 'public'
+    editForm.allowComments = challenge.value.allowComments !== undefined ? challenge.value.allowComments : true
     
     if (challenge.value.challengeType === 'result') {
       editForm.actions = challenge.value.actions && challenge.value.actions.length > 0
@@ -657,7 +707,10 @@ function clearErrors() {
 }
 
 function goBack() {
-  router.back()
+  // Navigate to challenges list instead of using router.back()
+  // to avoid the issue where going back to /challenges/:id triggers
+  // the watcher that re-opens the edit page
+  router.push('/challenges')
 }
 
 function handleDelete() {
@@ -832,6 +885,70 @@ function handleOwnerCompletedDaysUpdate(completedDays) {
   localCurrentUserCompletedDays.value = [...completedDays]
 }
 
+function handleCommentAdded() {
+  // Refresh challenge data if needed
+  if (challenge.value) {
+    loadChallenge()
+  }
+}
+
+// Load watched challenges
+async function loadWatchedChallenges() {
+  if (!currentUserId.value) return
+  
+  try {
+    const { data } = await challengeService.getWatchedChallenges(currentUserId.value)
+    watchedChallenges.value = (data.challenges || []).map(c => c._id)
+  } catch (error) {
+    console.error('Error loading watched challenges:', error)
+  }
+}
+
+// Check if challenge is watched
+const isWatched = computed(() => {
+  if (!challenge.value || !currentUserId.value) return false
+  return watchedChallenges.value.some(id => id.toString() === challenge.value._id.toString())
+})
+
+// Handle watch challenge
+async function handleWatch() {
+  if (!currentUserId.value || !challenge.value) return
+  
+  watchingId.value = challenge.value._id
+  try {
+    await challengeService.watchChallenge(challenge.value._id, currentUserId.value)
+    await loadWatchedChallenges()
+  } catch (error) {
+    console.error('Error watching challenge:', error)
+    alert(error.response?.data?.message || t('challenges.watchError'))
+  } finally {
+    watchingId.value = null
+  }
+}
+
+// Handle unwatch challenge
+async function handleUnwatch() {
+  if (!currentUserId.value || !challenge.value) return
+  
+  watchingId.value = challenge.value._id
+  try {
+    await challengeService.unwatchChallenge(challenge.value._id, currentUserId.value)
+    await loadWatchedChallenges()
+  } catch (error) {
+    console.error('Error unwatching challenge:', error)
+    alert(error.response?.data?.message || t('challenges.unwatchError'))
+  } finally {
+    watchingId.value = null
+  }
+}
+
+function handleCommentDeleted() {
+  // Refresh challenge data if needed
+  if (challenge.value) {
+    loadChallenge()
+  }
+}
+
 function startEditingDescription() {
   // Measure the description height before switching to edit mode
   let targetHeight = 80 // default minimum height
@@ -861,7 +978,8 @@ function startEditingDescription() {
   })
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await loadWatchedChallenges()
   loadChallenge()
 })
 </script>

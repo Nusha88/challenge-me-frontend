@@ -8,6 +8,7 @@ import AllChallengesComponent from '../components/AllChallengesComponent.vue'
 import AddChallengeComponent from '../components/AddChallengeComponent.vue'
 import MyChallengesComponent from '../components/MyChallengesComponent.vue'
 import ChallengeEditPage from '../components/ChallengeEditPage.vue'
+import WatchedChallengesComponent from '../components/WatchedChallengesComponent.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -56,6 +57,16 @@ const router = createRouter({
       path: '/challenges/edit/:id',
       name: 'edit-challenge',
       component: ChallengeEditPage
+    },
+    {
+      path: '/challenges/watched',
+      name: 'watched-challenges',
+      component: WatchedChallengesComponent
+    },
+    {
+      path: '/challenges/:id',
+      name: 'view-challenge',
+      component: AllChallengesComponent
     },
     {
       path: '/auth/google/callback',

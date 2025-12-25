@@ -121,6 +121,58 @@ export const challengeService = {
   },
   updateParticipantCompletedDays: (challengeId, userId, completedDays) => {
     return api.put(`/challenges/${challengeId}/participant/${userId}/completedDays`, { completedDays })
+  },
+  watchChallenge: (challengeId, userId) => {
+    return api.post(`/challenges/${challengeId}/watch`, { userId })
+  },
+  unwatchChallenge: (challengeId, userId) => {
+    return api.post(`/challenges/${challengeId}/unwatch`, { userId })
+  },
+  getWatchedChallenges: (userId) => {
+    return api.get(`/challenges/watched/${userId}`)
+  },
+  addComment: (challengeId, userId, text) => {
+    return api.post(`/challenges/${challengeId}/comments`, { userId, text })
+  },
+  getComments: (challengeId) => {
+    return api.get(`/challenges/${challengeId}/comments`)
+  },
+  deleteComment: (challengeId, commentId, userId) => {
+    return api.delete(`/challenges/${challengeId}/comments/${commentId}`, { data: { userId } })
+  },
+  replyToComment: (challengeId, commentId, userId, text, mentionedUserId) => {
+    return api.post(`/challenges/${challengeId}/comments/${commentId}/reply`, { userId, text, mentionedUserId })
+  },
+  deleteReply: (challengeId, commentId, replyId, userId) => {
+    return api.delete(`/challenges/${challengeId}/comments/${commentId}/replies/${replyId}`, { data: { userId } })
+  },
+  replyToReply: (challengeId, commentId, replyId, userId, text, mentionedUserId) => {
+    return api.post(`/challenges/${challengeId}/comments/${commentId}/replies/${replyId}/reply`, { userId, text, mentionedUserId })
+  },
+  deleteNestedReply: (challengeId, commentId, replyId, nestedReplyId, userId) => {
+    return api.delete(`/challenges/${challengeId}/comments/${commentId}/replies/${replyId}/replies/${nestedReplyId}`, { data: { userId } })
+  }
+}
+
+// Notification service
+export const notificationService = {
+  getNotifications: (userId, options = {}) => {
+    const params = new URLSearchParams()
+    if (options.limit) params.append('limit', options.limit)
+    if (options.unreadOnly) params.append('unreadOnly', 'true')
+    return api.get(`/notifications/${userId}?${params.toString()}`)
+  },
+  getUnreadCount: (userId) => {
+    return api.get(`/notifications/${userId}/unread-count`)
+  },
+  markAsRead: (notificationId) => {
+    return api.put(`/notifications/${notificationId}/read`)
+  },
+  markAllAsRead: (userId) => {
+    return api.put(`/notifications/${userId}/read-all`)
+  },
+  deleteNotification: (notificationId) => {
+    return api.delete(`/notifications/${notificationId}`)
   }
 }
 

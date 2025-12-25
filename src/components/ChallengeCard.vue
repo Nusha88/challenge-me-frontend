@@ -48,7 +48,7 @@
       <p class="mb-0 text-body-2 challenge-description">{{ challenge.description }}</p>
     </v-card-text>
     
-    <v-card-actions v-if="showJoinButton" class="py-2 px-4">
+    <v-card-actions v-if="showJoinButton || currentUserId" class="py-2 px-4">
       <v-btn
         v-if="canJoin"
         color="primary"
@@ -65,6 +65,18 @@
         </span>
       </v-btn>
       <v-spacer></v-spacer>
+      <v-btn
+        v-if="currentUserId && !isOwner"
+        size="small"
+        variant="outlined"
+        :class="['watch-button', { 'watch-button--watched': isWatched }]"
+        :loading="watchingId === challenge._id"
+        @click.stop="handleWatchClick"
+      >
+        <v-icon v-if="isWatched" size="small" class="mr-1">mdi-eye</v-icon>
+        <v-icon v-else size="small" class="mr-1">mdi-eye-outline</v-icon>
+        {{ isWatched ? t('challenges.unwatch') : t('challenges.watch') }}
+      </v-btn>
     </v-card-actions>
     
     <!-- Created by and Participants - Above progress bar -->
@@ -148,10 +160,18 @@ const props = defineProps({
   joiningId: {
     type: String,
     default: null
+  },
+  watchingId: {
+    type: String,
+    default: null
+  },
+  isWatched: {
+    type: Boolean,
+    default: false
   }
 })
 
-const emit = defineEmits(['click', 'join'])
+const emit = defineEmits(['click', 'join', 'watch', 'unwatch'])
 
 const { t, locale } = useI18n()
 
@@ -206,6 +226,14 @@ const canJoin = computed(() => {
 const participantCount = computed(() => {
   return props.challenge.participants ? props.challenge.participants.length : 0
 })
+
+function handleWatchClick() {
+  if (props.isWatched) {
+    emit('unwatch', props.challenge)
+  } else {
+    emit('watch', props.challenge)
+  }
+}
 
 const progressDone = computed(() => {
   if (!props.challenge) return 0
@@ -569,6 +597,29 @@ function getParticipantAvatarStyle(participant) {
 .separator {
   opacity: 0.6;
   font-weight: 400;
+}
+
+.watch-button {
+  border-color: rgba(0, 0, 0, 0.12);
+  color: rgba(0, 0, 0, 0.87);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0.5px;
+}
+
+.watch-button:hover {
+  border-color: #1FA0F6;
+  background-color: rgba(31, 160, 246, 0.08);
+}
+
+.watch-button--watched {
+  background-color: rgba(31, 160, 246, 0.12) !important;
+  border-color: #1FA0F6 !important;
+  color: #1FA0F6 !important;
+}
+
+.watch-button--watched:hover {
+  background-color: rgba(31, 160, 246, 0.2) !important;
 }
 </style>
 

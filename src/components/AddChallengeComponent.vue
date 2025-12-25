@@ -127,6 +127,16 @@
             ></v-select>
           </div>
 
+          <!-- Allow Comments Switcher -->
+          <div class="mb-4">
+            <v-switch
+              v-model="form.allowComments"
+              :label="t('challenges.allowComments')"
+              color="primary"
+              hide-details
+            ></v-switch>
+          </div>
+
           <div class="actions-container" v-if="form.challengeType === 'result'">
             <ChallengeActions
               v-model="form.actions"
@@ -181,7 +191,8 @@ const form = ref({
   challengeType: 'habit',
   frequency: 'daily',
   startOption: 'today',
-  actions: [{ text: '', checked: false, children: [] }]
+  actions: [{ text: '', checked: false, children: [] }],
+  allowComments: true
 })
 
 const durationOptions = computed(() => [
@@ -377,7 +388,8 @@ async function handleSubmit() {
       endDate: endDate,
       owner: userId,
       privacy: form.value.privacy || 'public',
-      challengeType: form.value.challengeType || 'habit'
+      challengeType: form.value.challengeType || 'habit',
+      allowComments: form.value.allowComments !== undefined ? form.value.allowComments : true
     }
     
     if (form.value.imageUrl) {

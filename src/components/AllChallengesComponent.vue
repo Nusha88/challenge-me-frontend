@@ -25,8 +25,12 @@
             :current-user-id="currentUserId"
             :show-join-button="true"
             :joining-id="joiningId"
+            :watching-id="watchingId"
+            :is-watched="isWatched(challenge)"
             @click="openDetails"
             @join="joinChallenge"
+            @watch="watchChallenge"
+            @unwatch="unwatchChallenge"
           />
         </div>
       </v-card-text>
@@ -52,7 +56,7 @@
 
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { challengeService } from '../services/api'
 import ChallengeDetailsDialog from './ChallengeDetailsDialog.vue'
 import FilterPanel from './FilterPanel.vue'
@@ -60,12 +64,15 @@ import ChallengeCard from './ChallengeCard.vue'
 import { useI18n } from 'vue-i18n'
 
 const router = useRouter()
+const route = useRoute()
 
 const challenges = ref([])
 const loading = ref(false)
 const errorMessage = ref('')
 const currentUserId = ref(getCurrentUserId())
 const joiningId = ref(null)
+const watchingId = ref(null)
+const watchedChallenges = ref([])
 
 // Filter state
 const filters = ref({
@@ -205,6 +212,10 @@ watch(detailsDialogOpen, value => {
   if (!value) {
     selectedChallenge.value = null
     saveError.value = ''
+    // Update route when dialog closes if we're on a challenge view route
+    if (route.params.id) {
+      router.push('/challenges')
+    }
   }
 })
 
@@ -298,6 +309,57 @@ function canJoin(challenge) {
 }
 
 
+function isWatched(challenge) {
+  if (!challenge || !currentUserId.value) return false
+  return watchedChallenges.value.some(id => id.toString() === challenge._id.toString())
+}
+
+async function watchChallenge(challenge) {
+  if (!currentUserId.value) {
+    errorMessage.value = t('notifications.mustLogin')
+    return
+  }
+
+  watchingId.value = challenge._id
+  errorMessage.value = ''
+
+  try {
+    await challengeService.watchChallenge(challenge._id, currentUserId.value)
+    await loadWatchedChallenges()
+  } catch (error) {
+    errorMessage.value = error.response?.data?.message || t('challenges.watchError')
+  } finally {
+    watchingId.value = null
+  }
+}
+
+async function unwatchChallenge(challenge) {
+  if (!currentUserId.value) return
+
+  watchingId.value = challenge._id
+  errorMessage.value = ''
+
+  try {
+    await challengeService.unwatchChallenge(challenge._id, currentUserId.value)
+    await loadWatchedChallenges()
+  } catch (error) {
+    errorMessage.value = error.response?.data?.message || t('challenges.unwatchError')
+  } finally {
+    watchingId.value = null
+  }
+}
+
+async function loadWatchedChallenges() {
+  if (!currentUserId.value) return
+  
+  try {
+    const { data } = await challengeService.getWatchedChallenges(currentUserId.value)
+    watchedChallenges.value = (data.challenges || []).map(c => c._id)
+  } catch (error) {
+    console.error('Error loading watched challenges:', error)
+  }
+}
+
 async function joinChallenge(challenge) {
   if (!currentUserId.value) {
     errorMessage.value = t('notifications.mustLogin')
@@ -372,8 +434,9 @@ async function handleDialogSave(formData) {
 }
 
 async function handleDialogUpdate() {
-  // Refresh challenges when participant updates their completedDays
+  // Refresh challenges when participant updates their completedDays or watch/unwatch
   await fetchChallenges()
+  await loadWatchedChallenges()
   // Also refresh the selected challenge if dialog is open
   if (selectedChallenge.value) {
     const updatedChallenge = challenges.value.find(c => c._id === selectedChallenge.value._id)
@@ -406,8 +469,54 @@ async function handleDialogDelete(challengeId) {
 }
 
 
-onMounted(() => {
-  fetchChallenges()
+async function openChallengeById(challengeId) {
+  if (!challengeId) return
+  
+  // Check if challenge is already in the list
+  let challenge = challenges.value.find(c => c._id === challengeId)
+  
+  if (!challenge) {
+    // Fetch the challenge if not in list
+    try {
+      const { data } = await challengeService.getChallenge(challengeId)
+      challenge = data
+      // Add to challenges list if it's public or user has access
+      if (challenge && challenge.privacy !== 'private') {
+        challenges.value.push(challenge)
+      }
+    } catch (error) {
+      console.error('Error fetching challenge:', error)
+      errorMessage.value = error.response?.data?.message || t('challenges.notFound')
+      return
+    }
+  }
+  
+  if (challenge) {
+    openDetails(challenge)
+  }
+}
+
+onMounted(async () => {
+  await fetchChallenges()
+  loadWatchedChallenges()
+  
+  // Check if route has challenge ID parameter
+  if (route.params.id) {
+    // Small delay to ensure challenges are loaded
+    setTimeout(() => {
+      openChallengeById(route.params.id)
+    }, 100)
+  }
+})
+
+// Watch for route changes
+watch(() => route.params.id, (newId) => {
+  if (newId) {
+    openChallengeById(newId)
+  } else {
+    // Close dialog if navigating away from challenge view
+    detailsDialogOpen.value = false
+  }
 })
 </script>
 

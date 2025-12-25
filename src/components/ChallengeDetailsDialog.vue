@@ -1,11 +1,11 @@
 <template>
   <v-dialog 
     :model-value="modelValue" 
-    :max-width="mobile ? '100%' : (mdAndUp ? '700' : '95%')"
+    :max-width="mobile ? '100%' : (mdAndUp ? '1200' : '95%')"
     :fullscreen="mobile"
     @update:modelValue="handleVisibility"
   >
-    <v-card v-if="challenge">
+    <v-card v-if="challenge" class="dialog-card">
       <v-card-title class="dialog-header">
         <div class="dialog-title">
           <span>{{ t('challenges.detailsTitle') }}</span>
@@ -17,17 +17,26 @@
             {{ challengeTypeLabel }}
           </v-chip>
         </div>
-        <v-icon
-          v-if="challenge.privacy === 'private'"
-          color="grey-darken-1"
-          size="24"
-          class="privacy-icon"
-        >
-          mdi-lock
-        </v-icon>
+        <div class="d-flex align-center gap-2">
+          <v-icon
+            v-if="challenge.privacy === 'private'"
+            color="grey-darken-1"
+            size="24"
+            class="privacy-icon"
+          >
+            mdi-lock
+          </v-icon>
+          <v-btn
+            icon="mdi-close"
+            variant="text"
+            size="small"
+            @click="handleVisibility(false)"
+            class="close-btn"
+          ></v-btn>
+        </div>
       </v-card-title>
 
-      <v-card-text>
+      <v-card-text class="dialog-content">
         <template v-if="isOwner">
           <v-form @submit.prevent="handleSubmit">
             <div class="dates-row mb-4">
@@ -171,6 +180,28 @@
               />
             </template>
 
+            <!-- Allow Comments Switcher -->
+            <div class="mb-4">
+              <v-switch
+                v-model="editForm.allowComments"
+                :label="t('challenges.allowComments')"
+                color="primary"
+                hide-details
+              ></v-switch>
+            </div>
+
+            <!-- Comments Component -->
+            <div class="mb-4">
+              <CommentsComponent
+                :challenge-id="challenge._id"
+                :allow-comments="editForm.allowComments"
+                :current-user-id="currentUserId"
+                :is-owner="true"
+                @comment-added="handleCommentAdded"
+                @comment-deleted="handleCommentDeleted"
+              />
+            </div>
+
             <v-alert v-if="saveError" type="error" class="mb-4">
               {{ saveError }}
             </v-alert>
@@ -287,6 +318,18 @@
             :readonly="true"
           />
 
+          <!-- Comments Component -->
+          <div class="mb-4">
+            <CommentsComponent
+              :challenge-id="challenge._id"
+              :allow-comments="challenge.allowComments !== undefined ? challenge.allowComments : true"
+              :current-user-id="currentUserId"
+              :is-owner="isOwner"
+              @comment-added="handleCommentAdded"
+              @comment-deleted="handleCommentDeleted"
+            />
+          </div>
+
           <v-alert
             v-if="isParticipant"
             type="success"
@@ -320,6 +363,26 @@
           {{ t('common.close') }}
         </v-btn>
         <v-spacer></v-spacer>
+        <v-btn
+          v-if="isWatched"
+          variant="outlined"
+          color="primary"
+          :loading="watchingId === challenge._id"
+          @click="handleUnwatch"
+          class="action-button"
+        >
+          {{ t('challenges.unwatch') }}
+        </v-btn>
+        <v-btn
+          v-else-if="currentUserId && !isWatched"
+          variant="outlined"
+          color="primary"
+          :loading="watchingId === challenge._id"
+          @click="handleWatch"
+          class="action-button"
+        >
+          {{ t('challenges.watch') }}
+        </v-btn>
         <v-btn
           v-if="showJoinButton"
           variant="flat"
@@ -383,6 +446,7 @@ import { useDisplay } from 'vuetify'
 import ChallengeImageUpload from './ChallengeImageUpload.vue'
 import ChallengeActions from './ChallengeActions.vue'
 import ChallengeCalendar from './ChallengeCalendar.vue'
+import CommentsComponent from './CommentsComponent.vue'
 import TeamCalendarView from './TeamCalendarView.vue'
 import { challengeService } from '../services/api'
 
@@ -425,7 +489,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:modelValue', 'save', 'join', 'delete'])
+const emit = defineEmits(['update:modelValue', 'save', 'join', 'delete', 'update'])
 
 const deleteConfirmDialog = ref(false)
 const isInitializing = ref(true)
@@ -447,6 +511,10 @@ function getCurrentUserId() {
 
 const currentUserId = ref(getCurrentUserId())
 
+// Watched challenges
+const watchedChallenges = ref([])
+const watchingId = ref(null)
+
 // Local reactive copy of current user's completedDays for optimistic updates
 const localCurrentUserCompletedDays = ref([])
 
@@ -461,7 +529,8 @@ const editForm = reactive({
   frequency: '',
   privacy: 'public',
   actions: [],
-  completedDays: []
+  completedDays: [],
+  allowComments: true
 })
 
 const errors = reactive({
@@ -922,11 +991,20 @@ function calculateEndDateFromDuration(startDate, duration) {
   return `${year}-${month}-${day}`
 }
 
+// Load watched challenges on mount
+onMounted(() => {
+  loadWatchedChallenges()
+})
+
 watch(
   () => props.challenge,
   value => {
     // Reset local completedDays when challenge changes
     localCurrentUserCompletedDays.value = []
+    
+    if (value) {
+      loadWatchedChallenges()
+    }
     
     if (!value) {
       resetForm()
@@ -940,6 +1018,7 @@ watch(
     editForm.imageUrl = value.imageUrl || ''
     editForm.frequency = value.frequency || ''
     editForm.privacy = value.privacy || 'public'
+    editForm.allowComments = value.allowComments !== undefined ? value.allowComments : true
     // Initialize actions for result challenges
     if (value.challengeType === 'result') {
       editForm.actions = value.actions && value.actions.length > 0
@@ -1159,6 +1238,7 @@ function resetForm() {
   editForm.privacy = 'public'
   editForm.actions = []
   editForm.completedDays = []
+  editForm.allowComments = true
   clearErrors()
 }
 
@@ -1377,6 +1457,16 @@ function getParticipantAvatarStyle(participant) {
   return { backgroundColor: getParticipantColor(participant) }
 }
 
+function handleCommentAdded() {
+  // Refresh challenge data if needed
+  emit('update')
+}
+
+function handleCommentDeleted() {
+  // Refresh challenge data if needed
+  emit('update')
+}
+
 // Handle owner completedDays update
 async function handleOwnerCompletedDaysUpdate(completedDays) {
   if (!props.challenge || !currentUserId.value || !props.isOwner) {
@@ -1454,14 +1544,92 @@ async function handleParticipantSave() {
 async function handleParticipantCompletedDaysUpdate(completedDays) {
   await handleParticipantSave()
 }
+
+// Load watched challenges
+async function loadWatchedChallenges() {
+  if (!currentUserId.value) return
+  
+  try {
+    const { data } = await challengeService.getWatchedChallenges(currentUserId.value)
+    watchedChallenges.value = (data.challenges || []).map(c => c._id)
+  } catch (error) {
+    console.error('Error loading watched challenges:', error)
+  }
+}
+
+// Check if challenge is watched
+const isWatched = computed(() => {
+  if (!props.challenge || !currentUserId.value) return false
+  return watchedChallenges.value.some(id => id.toString() === props.challenge._id.toString())
+})
+
+// Handle watch challenge
+async function handleWatch() {
+  if (!currentUserId.value || !props.challenge) return
+  
+  watchingId.value = props.challenge._id
+  try {
+    await challengeService.watchChallenge(props.challenge._id, currentUserId.value)
+    await loadWatchedChallenges()
+    // Close dialog and reload challenges
+    emit('update:modelValue', false)
+    emit('update')
+  } catch (error) {
+    console.error('Error watching challenge:', error)
+    alert(error.response?.data?.message || t('challenges.watchError'))
+  } finally {
+    watchingId.value = null
+  }
+}
+
+// Handle unwatch challenge
+async function handleUnwatch() {
+  if (!currentUserId.value || !props.challenge) return
+  
+  watchingId.value = props.challenge._id
+  try {
+    await challengeService.unwatchChallenge(props.challenge._id, currentUserId.value)
+    await loadWatchedChallenges()
+    // Close dialog and reload challenges
+    emit('update:modelValue', false)
+    emit('update')
+  } catch (error) {
+    console.error('Error unwatching challenge:', error)
+    alert(error.response?.data?.message || t('challenges.unwatchError'))
+  } finally {
+    watchingId.value = null
+  }
+}
 </script>
 
 <style scoped>
+.dialog-content {
+  padding: 28px !important;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.dialog-card {
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  overflow: hidden;
+}
+
 .dialog-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  position: relative;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: rgb(var(--v-theme-surface));
+  padding: 20px 24px !important;
+  border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+}
+
+.close-btn {
+  margin-left: 8px;
 }
 
 .dialog-title {

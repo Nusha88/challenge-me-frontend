@@ -4,11 +4,15 @@ import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useDisplay } from 'vuetify'
 import { SUPPORTED_LOCALES, setLocale } from '../i18n'
+import NotificationsComponent from './NotificationsComponent.vue'
+import { notificationService } from '../services/api'
 
 const router = useRouter()
 const route = useRoute()
 const currentRoute = computed(() => route.name)
 const isLoggedIn = ref(!!localStorage.getItem('token'))
+const notificationsDrawerOpen = ref(false)
+const unreadNotificationCount = ref(0)
 
 function readStoredUser() {
   try {
@@ -51,6 +55,9 @@ watch(currentRoute, () => {
 onMounted(() => {
   window.addEventListener('auth-changed', updateAuthState)
   updateAuthState()
+  if (isLoggedIn.value) {
+    loadUnreadNotificationCount()
+  }
 })
 
 onBeforeUnmount(() => {
@@ -67,6 +74,53 @@ function logout() {
 function changeLanguage(code) {
   setLocale(code)
 }
+
+function getCurrentUserId() {
+  const storedUser = localStorage.getItem('user')
+  if (!storedUser) return null
+  try {
+    const parsed = JSON.parse(storedUser)
+    return parsed?.id || parsed?._id || null
+  } catch {
+    return null
+  }
+}
+
+async function loadUnreadNotificationCount() {
+  const userId = getCurrentUserId()
+  if (!userId || !isLoggedIn.value) return
+
+  try {
+    const { data } = await notificationService.getUnreadCount(userId)
+    unreadNotificationCount.value = data.count || 0
+  } catch (error) {
+    console.error('Error loading unread notification count:', error)
+  }
+}
+
+function openNotifications() {
+  notificationsDrawerOpen.value = true
+}
+
+function handleUnreadCountChanged(newCount) {
+  unreadNotificationCount.value = newCount
+}
+
+watch(() => isLoggedIn.value, (loggedIn) => {
+  if (loggedIn) {
+    loadUnreadNotificationCount()
+    // Poll for new notifications every 30 seconds
+    const pollInterval = setInterval(() => {
+      if (isLoggedIn.value) {
+        loadUnreadNotificationCount()
+      } else {
+        clearInterval(pollInterval)
+      }
+    }, 30000)
+  } else {
+    unreadNotificationCount.value = 0
+  }
+})
 </script>
 
 <template>
@@ -148,6 +202,23 @@ function changeLanguage(code) {
       </v-btn>
       <v-btn
         v-if="isLoggedIn"
+        variant="text"
+        class="mr-2 d-none d-md-inline-flex notification-button"
+        style="color: rgba(0, 0, 0, 0.87); position: relative;"
+        @click="openNotifications"
+      >
+        <v-icon>mdi-bell</v-icon>
+        <v-badge
+          v-if="unreadNotificationCount > 0"
+          :content="unreadNotificationCount > 99 ? '99+' : unreadNotificationCount"
+          color="error"
+          overlap
+          class="notification-badge"
+        >
+        </v-badge>
+      </v-btn>
+      <v-btn
+        v-if="isLoggedIn"
         to="/profile"
         variant="text"
         class="mr-2 d-none d-md-inline-flex"
@@ -207,6 +278,17 @@ function changeLanguage(code) {
                 <v-icon icon="mdi-flag-checkered"></v-icon>
               </template>
               <v-list-item-title>{{ t('navigation.allChallenges') }}</v-list-item-title>
+            </v-list-item>
+
+            <v-list-item
+              :active="currentRoute === 'watched-challenges'"
+              to="/challenges/watched"
+              color="primary"
+            >
+              <template v-slot:prepend>
+                <v-icon icon="mdi-eye"></v-icon>
+              </template>
+              <v-list-item-title>{{ t('navigation.watchedChallenges') }}</v-list-item-title>
             </v-list-item>
           </v-list>
         </v-navigation-drawer>
@@ -288,6 +370,37 @@ function changeLanguage(code) {
           <v-list-item-title>{{ t('navigation.allChallenges') }}</v-list-item-title>
         </v-list-item>
 
+        <v-list-item
+          :active="currentRoute === 'watched-challenges'"
+          to="/challenges/watched"
+          color="primary"
+          @click="drawerOpen = false"
+        >
+          <template v-slot:prepend>
+            <v-icon icon="mdi-eye"></v-icon>
+          </template>
+          <v-list-item-title>{{ t('navigation.watchedChallenges') }}</v-list-item-title>
+        </v-list-item>
+
+        <v-list-item
+          color="primary"
+          @click="openNotifications(); drawerOpen = false"
+        >
+          <template v-slot:prepend>
+            <v-icon icon="mdi-bell"></v-icon>
+          </template>
+          <v-list-item-title>{{ t('notifications.title') }}</v-list-item-title>
+          <template v-slot:append>
+            <v-chip
+              v-if="unreadNotificationCount > 0"
+              color="error"
+              size="small"
+            >
+              {{ unreadNotificationCount > 99 ? '99+' : unreadNotificationCount }}
+            </v-chip>
+          </template>
+        </v-list-item>
+
         <v-divider class="my-2"></v-divider>
 
         <v-list-subheader>{{ t('navigation.language') }}</v-list-subheader>
@@ -315,6 +428,13 @@ function changeLanguage(code) {
         </v-list-item>
       </v-list>
     </v-navigation-drawer>
+
+    <!-- Notifications Sidebar -->
+    <NotificationsComponent
+      v-model="notificationsDrawerOpen"
+      :current-user-id="getCurrentUserId()"
+      @unread-count-changed="handleUnreadCountChanged"
+    />
   </v-app>
 </template>
 
