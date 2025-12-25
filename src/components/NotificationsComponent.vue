@@ -1,10 +1,12 @@
 <template>
   <v-navigation-drawer
+    ref="drawerRef"
     :model-value="modelValue"
-    @update:model-value="emit('update:modelValue', $event)"
+    @update:model-value="handleDrawerUpdate"
     location="right"
     temporary
     :width="mobile ? '100%' : '400'"
+    :class="{ 'drawer-closed': !modelValue }"
   >
     <v-card-title class="d-flex align-center justify-space-between pa-4">
       <div class="d-flex align-center">
@@ -33,7 +35,8 @@
           icon="mdi-close"
           size="small"
           variant="text"
-          @click="closeDrawer"
+          @click.stop="closeDrawer"
+          style="z-index: 1000; position: relative;"
         ></v-btn>
       </div>
     </v-card-title>
@@ -113,7 +116,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { notificationService } from '../services/api'
 import { useI18n } from 'vue-i18n'
@@ -130,11 +133,20 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:modelValue', 'unread-count-changed'])
+const emit = defineEmits(['update:modelValue', 'unread-count-changed', 'close'])
 
 const router = useRouter()
 const { t, locale } = useI18n()
 const { mobile } = useDisplay()
+
+const internalDrawerOpen = computed({
+  get: () => props.modelValue,
+  set: (value) => {
+    emit('update:modelValue', value)
+  }
+})
+
+const drawerRef = ref(null)
 
 const notifications = ref([])
 const loading = ref(false)
@@ -142,6 +154,10 @@ const errorMessage = ref('')
 const unreadCount = ref(0)
 const markingAllAsRead = ref(false)
 let pollInterval = null
+
+function handleDrawerUpdate(value) {
+  emit('update:modelValue', value)
+}
 
 function getCurrentUserId() {
   const storedUser = localStorage.getItem('user')
@@ -292,8 +308,56 @@ function getInitial(name) {
   return name.charAt(0).toUpperCase()
 }
 
-function closeDrawer() {
+function closeDrawer(event) {
+  if (event) {
+    event.stopPropagation()
+    event.preventDefault()
+  }
+  
+  // Emit first to update parent state
   emit('update:modelValue', false)
+  emit('close')
+  
+  // Force hide the drawer immediately using DOM manipulation
+  // Since modelValue is already false, the drawer state is out of sync
+  // Try using the ref first
+  if (drawerRef.value) {
+    try {
+      // Access Vuetify component's internal state
+      if (drawerRef.value.modelValue !== undefined) {
+        drawerRef.value.modelValue = false
+      }
+      // Also manipulate DOM directly
+      const drawerEl = drawerRef.value.$el || drawerRef.value
+      if (drawerEl) {
+        drawerEl.style.transform = 'translateX(100%)'
+        drawerEl.style.visibility = 'hidden'
+        drawerEl.classList.remove('v-navigation-drawer--active')
+      }
+    } catch (e) {
+      // Silently handle error
+    }
+  }
+  
+  // Also find by selector as backup
+  setTimeout(() => {
+    const drawers = document.querySelectorAll('.v-navigation-drawer[location="right"]')
+    drawers.forEach(drawer => {
+      drawer.style.transform = 'translateX(100%)'
+      drawer.style.visibility = 'hidden'
+      drawer.style.display = 'none'
+      drawer.classList.remove('v-navigation-drawer--active')
+      drawer.setAttribute('aria-hidden', 'true')
+    })
+    
+    // Hide all scrims
+    const scrims = document.querySelectorAll('.v-navigation-drawer__scrim')
+    scrims.forEach(scrim => {
+      scrim.style.display = 'none'
+      scrim.style.opacity = '0'
+      scrim.style.visibility = 'hidden'
+    })
+  }, 10)
 }
 
 // Poll for new notifications every 30 seconds
@@ -325,9 +389,53 @@ watch(() => props.modelValue, (isOpen) => {
     loadNotifications()
     loadUnreadCount()
   }
+  
+  // Force close drawer if modelValue is false but drawer is still visible
+  if (!isOpen) {
+    nextTick(() => {
+      const drawers = document.querySelectorAll('.v-navigation-drawer[location="right"]')
+      drawers.forEach(drawer => {
+        drawer.style.transform = 'translateX(100%)'
+        drawer.style.visibility = 'hidden'
+        drawer.style.display = 'none'
+        drawer.classList.remove('v-navigation-drawer--active')
+      })
+      
+      const scrims = document.querySelectorAll('.v-navigation-drawer__scrim')
+      scrims.forEach(scrim => {
+        scrim.style.display = 'none'
+      })
+    })
+  }
 })
 
 onMounted(() => {
+  // Force close drawer on mount to prevent it from opening on page reload
+  if (props.modelValue) {
+    emit('update:modelValue', false)
+  }
+  
+  // Also force close via DOM manipulation with !important to override any conflicting styles
+  nextTick(() => {
+    const drawers = document.querySelectorAll('.v-navigation-drawer[location="right"]')
+    drawers.forEach(drawer => {
+      drawer.style.setProperty('transform', 'translateX(100%)', 'important')
+      drawer.style.setProperty('visibility', 'hidden', 'important')
+      drawer.style.setProperty('display', 'none', 'important')
+      drawer.style.setProperty('right', '-100%', 'important')
+      drawer.style.setProperty('opacity', '0', 'important')
+      drawer.classList.remove('v-navigation-drawer--active')
+      drawer.setAttribute('aria-hidden', 'true')
+    })
+    
+    const scrims = document.querySelectorAll('.v-navigation-drawer__scrim')
+    scrims.forEach(scrim => {
+      scrim.style.setProperty('display', 'none', 'important')
+      scrim.style.setProperty('opacity', '0', 'important')
+      scrim.style.setProperty('visibility', 'hidden', 'important')
+    })
+  })
+  
   if (getCurrentUserId()) {
     loadNotifications()
     loadUnreadCount()
@@ -400,6 +508,21 @@ onBeforeUnmount(() => {
   height: 8px !important;
   padding: 0 !important;
   border-radius: 50% !important;
+}
+</style>
+
+<style>
+/* Global style to force hide notifications drawer when closed */
+.drawer-closed,
+.v-navigation-drawer.drawer-closed {
+  transform: translateX(100%) !important;
+  visibility: hidden !important;
+  display: none !important;
+  right: -100% !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  position: fixed !important;
+  z-index: -1 !important;
 }
 </style>
 

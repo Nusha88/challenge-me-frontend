@@ -102,6 +102,10 @@ function openNotifications() {
   notificationsDrawerOpen.value = true
 }
 
+function closeNotifications() {
+  notificationsDrawerOpen.value = false
+}
+
 function handleUnreadCountChanged(newCount) {
   unreadNotificationCount.value = newCount
 }
@@ -434,6 +438,7 @@ watch(() => isLoggedIn.value, (loggedIn) => {
       v-model="notificationsDrawerOpen"
       :current-user-id="getCurrentUserId()"
       @unread-count-changed="handleUnreadCountChanged"
+      @close="closeNotifications"
     />
   </v-app>
 </template>
