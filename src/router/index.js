@@ -56,6 +56,11 @@ const router = createRouter({
       path: '/challenges/edit/:id',
       name: 'edit-challenge',
       component: ChallengeEditPage
+    },
+    {
+      path: '/auth/google/callback',
+      name: 'google-callback',
+      component: () => import('../components/GoogleCallback.vue')
     }
   ]
 })

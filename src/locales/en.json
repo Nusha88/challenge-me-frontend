@@ -29,7 +29,11 @@
     "save": "Save"
   },
   "auth": {
+    "registerPageTitle": "Create your account",
+    "registerDescription": "Join ChallengeMe and achieve goals together with friends",
     "registerTitle": "Create Account",
+    "loginPageTitle": "Log in",
+    "loginDescription": "Welcome back! Log in to your account",
     "loginTitle": "Sign In",
     "name": "Name",
     "email": "Email",
@@ -55,7 +59,12 @@
     "loginFailed": "Login failed. Please try again.",
     "required": "This field is required",
     "passwordMismatch": "Passwords must match",
-    "passwordLength": "Password must be at least 6 characters"
+    "passwordLength": "Password must be at least 6 characters",
+    "signInWithGoogle": "Sign in with Google",
+    "continueWithGoogle": "Continue with Google",
+    "or": "or",
+    "processing": "Processing...",
+    "oauthFailed": "Google sign-in failed. Please try again."
   },
   "profile": {
     "title": "Profile",

@@ -29,7 +29,11 @@
     "save": "Сохранить"
   },
   "auth": {
+    "registerPageTitle": "Create your account",
+    "registerDescription": "Присоединяйся к ChallengeMe и достигай целей вместе с друзьями",
     "registerTitle": "Создать аккаунт",
+    "loginPageTitle": "Log in",
+    "loginDescription": "Welcome back! Log in to your account",
     "loginTitle": "Войти",
     "name": "Имя",
     "email": "Email",
@@ -55,7 +59,12 @@
     "loginFailed": "Не удалось войти. Попробуйте ещё раз.",
     "required": "Поле обязательно",
     "passwordMismatch": "Пароли должны совпадать",
-    "passwordLength": "Пароль должен содержать не менее 6 символов"
+    "passwordLength": "Пароль должен содержать не менее 6 символов",
+    "signInWithGoogle": "Войти через Google",
+    "continueWithGoogle": "Продолжить с Google",
+    "or": "или",
+    "processing": "Обработка...",
+    "oauthFailed": "Вход через Google не удался. Попробуйте еще раз."
   },
   "profile": {
     "title": "Профиль",

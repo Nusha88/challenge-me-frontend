@@ -1,7 +1,10 @@
 <template>
   <div class="register-container">
+    <div class="register-header mb-6">
+      <h1 class="register-title">{{ t('auth.registerPageTitle') }}</h1>
+      <p class="register-description">{{ t('auth.registerDescription') }}</p>
+    </div>
     <v-card class="register-card">
-      <v-card-title class="text-h4 mb-4">{{ t('auth.registerTitle') }}</v-card-title>
       <v-card-text>
         <v-form @submit.prevent="handleSubmit">
           <v-text-field
@@ -22,29 +25,6 @@
             class="mb-4"
             :error-messages="errors.email"
           ></v-text-field>
-
-          <v-text-field
-            v-model="formData.age"
-            :label="t('auth.age')"
-            type="number"
-            required
-            variant="outlined"
-            class="mb-4"
-            :error-messages="errors.age"
-          ></v-text-field>
-
-          <v-autocomplete
-            v-model="formData.country"
-            :items="countryOptions"
-            :label="t('auth.country')"
-            item-title="title"
-            item-value="value"
-            variant="outlined"
-            class="mb-4"
-            :error-messages="errors.country"
-            hide-details="auto"
-            clearable
-          ></v-autocomplete>
 
           <v-text-field
             v-model="formData.password"
@@ -79,39 +59,45 @@
             block
             :loading="loading"
             :disabled="loading"
+            class="mb-4"
           >
             {{ t('auth.submitRegister') }}
           </GradientButton>
+
+          <div class="divider mb-4">
+            <span>{{ t('auth.or') }}</span>
+          </div>
+
+          <v-btn
+            block
+            size="x-large"
+            variant="outlined"
+            class="google-button"
+            @click="handleGoogleSignIn"
+          >
+            <v-icon start>mdi-google</v-icon>
+            {{ t('auth.continueWithGoogle') }}
+          </v-btn>
         </v-form>
       </v-card-text>
     </v-card>
-    <v-dialog v-model="showSuccess" max-width="400">
-      <v-card>
-        <v-card-title class="text-h5">{{ t('auth.successRegister') }}</v-card-title>
-        <v-card-text>
-          {{ t('auth.successRegisterBody') }}
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn color="primary" @click="closeSuccessModal">{{ t('common.ok') }}</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <SuccessDialog
+      v-model="showSuccess"
+      :title="t('auth.successRegister')"
+      :message="t('auth.successRegisterBody')"
+      :button-text="t('common.ok')"
+      @close="closeSuccessModal"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, watch, computed, onMounted } from 'vue'
+import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { authService } from '../services/api'
 import { useI18n } from 'vue-i18n'
 import GradientButton from './GradientButton.vue'
-import {
-  getCountryOptions,
-  detectUserCountry,
-  sanitizeCountryCode,
-  isValidCountryCode
-} from '../utils/countries'
+import SuccessDialog from './SuccessDialog.vue'
 
 const router = useRouter()
 const loading = ref(false)
@@ -123,37 +109,16 @@ const { t, locale } = useI18n()
 const formData = ref({
   name: '',
   email: '',
-  age: '',
-  country: '',
   password: '',
   confirmPassword: ''
 })
 
-const ageTouched = ref(false)
 const nameTouched = ref(false)
 const emailTouched = ref(false)
 const passwordTouched = ref(false)
 const confirmTouched = ref(false)
-const countryTouched = ref(false)
 
 const isEmpty = (value) => value === '' || value === null || value === undefined
-
-const getAgeError = (value, includeRequired = false) => {
-  if (isEmpty(value)) {
-    return includeRequired ? t('auth.required') : ''
-  }
-
-  const ageNumber = Number(value)
-  if (!Number.isInteger(ageNumber)) {
-    return t('auth.ageInteger')
-  }
-
-  if (ageNumber < 12 || ageNumber > 99) {
-    return t('auth.ageRange')
-  }
-
-  return ''
-}
 
 const getEmailError = (value, includeRequired = false) => {
   if (isEmpty(value)) {
@@ -163,23 +128,6 @@ const getEmailError = (value, includeRequired = false) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   if (!emailRegex.test(value.trim())) {
     return t('auth.emailInvalid')
-  }
-
-  return ''
-}
-
-const getCountryError = (value, includeRequired = false) => {
-  if (isEmpty(value)) {
-    return includeRequired ? t('auth.required') : ''
-  }
-
-  const sanitized = sanitizeCountryCode(value)
-  if (!sanitized) {
-    return t('auth.countryInvalid')
-  }
-
-  if (!isValidCountryCode(sanitized)) {
-    return t('auth.countryInvalid')
   }
 
   return ''
@@ -209,16 +157,6 @@ const getConfirmPasswordError = (value, includeRequired = false) => {
   return ''
 }
 
-const countryOptions = computed(() => getCountryOptions(locale.value))
-
-onMounted(() => {
-  const detectedCountry = detectUserCountry()
-  if (detectedCountry && !formData.value.country) {
-    formData.value.country = detectedCountry
-    countryTouched.value = false
-  }
-})
-
 watch(() => formData.value.name, (newValue) => {
   if (!nameTouched.value && !isEmpty(newValue)) {
     nameTouched.value = true
@@ -236,40 +174,6 @@ watch(() => formData.value.email, (newValue) => {
 
   if (emailTouched.value) {
     errors.value.email = getEmailError(newValue, false)
-  }
-})
-
-watch(() => formData.value.age, (newValue) => {
-  if (!ageTouched.value && !isEmpty(newValue)) {
-    ageTouched.value = true
-  }
-
-  if (ageTouched.value) {
-    errors.value.age = getAgeError(newValue, false)
-  }
-})
-
-watch(() => formData.value.country, (newValue) => {
-  if (newValue && typeof newValue === 'object') {
-    const normalized = sanitizeCountryCode(newValue.value)
-    formData.value.country = normalized
-    return
-  }
-
-  if (typeof newValue === 'string' && newValue.length === 2) {
-    const normalizedCode = sanitizeCountryCode(newValue)
-    if (normalizedCode && normalizedCode !== newValue) {
-      formData.value.country = normalizedCode
-      return
-    }
-  }
-
-  if (!countryTouched.value && !isEmpty(newValue)) {
-    countryTouched.value = true
-  }
-
-  if (countryTouched.value) {
-    errors.value.country = getCountryError(newValue, false)
   }
 })
 
@@ -318,29 +222,6 @@ const validateForm = () => {
     errors.value.email = ''
   }
 
-  ageTouched.value = true
-  const ageError = getAgeError(formData.value.age, true)
-  if (ageError) {
-    errors.value.age = ageError
-    isValid = false
-  } else {
-    errors.value.age = ''
-  }
-
-  if (!formData.value.country) {
-    errors.value.country = t('auth.required')
-    isValid = false
-  } else {
-    const countryError = getCountryError(formData.value.country, true)
-    if (countryError) {
-      errors.value.country = countryError
-      isValid = false
-    } else {
-      errors.value.country = ''
-      formData.value.country = sanitizeCountryCode(formData.value.country)
-    }
-  }
-
   passwordTouched.value = true
   if (!formData.value.password) {
     errors.value.password = t('auth.required')
@@ -371,8 +252,6 @@ const handleSubmit = async () => {
 
   loading.value = true
   error.value = ''
-  const ageNumber = Number(formData.value.age)
-  const countryCode = sanitizeCountryCode(formData.value.country)
   const trimmedName = formData.value.name.trim()
   const trimmedEmail = formData.value.email.trim().toLowerCase()
 
@@ -380,8 +259,6 @@ const handleSubmit = async () => {
     const response = await authService.register({
       name: trimmedName,
       email: trimmedEmail,
-      age: ageNumber,
-      country: countryCode,
       password: formData.value.password
     })
     // Store JWT token and user info
@@ -404,6 +281,23 @@ function closeSuccessModal() {
   showSuccess.value = false
   router.push('/')
 }
+
+const handleGoogleSignIn = () => {
+  // Determine backend URL - same logic as api.js
+  const hostname = window.location.hostname
+  const isLocal = ['localhost', '127.0.0.1'].includes(hostname) || hostname.endsWith('.local')
+  
+  let backendUrl = import.meta.env.VITE_API_BASE_URL
+  if (!backendUrl) {
+    backendUrl = isLocal ? 'http://localhost:3000' : 'https://challenge-me-backend-frh7.onrender.com'
+  } else {
+    // Remove /api suffix if present
+    backendUrl = backendUrl.replace(/\/api\/?$/, '')
+  }
+  
+  const googleAuthUrl = `${backendUrl}/api/auth/google`
+  window.location.href = googleAuthUrl
+}
 </script>
 
 <style scoped>
@@ -411,15 +305,48 @@ function closeSuccessModal() {
   min-height: calc(100vh - 24px);
   width: 100%;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 24px;
+}
+
+.register-header {
+  text-align: center;
+  max-width: 500px;
+  width: 100%;
+}
+
+.register-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0 0 12px 0;
+  color: rgba(0, 0, 0, 0.87);
+}
+
+.register-description {
+  font-size: 1rem;
+  line-height: 1.5;
+  color: rgba(0, 0, 0, 0.6);
+  margin: 0;
+}
+
+@media (min-width: 600px) {
+  .register-title {
+    font-size: 2.5rem;
+  }
+  
+  .register-description {
+    font-size: 1.125rem;
+  }
 }
 
 .register-card {
   width: 100%;
   max-width: 500px;
   padding: 24px;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 .v-card-title {
@@ -450,5 +377,38 @@ function closeSuccessModal() {
 :deep(.v-select .v-field__outline),
 :deep(.v-textarea .v-field__outline) {
   border-radius: 12px !important;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 16px 0;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 14px;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.divider span {
+  padding: 0 16px;
+}
+
+.google-button {
+  border-radius: 12px !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+  text-transform: none !important;
+  font-size: 1rem !important;
+  font-weight: 500 !important;
+  color: rgba(0, 0, 0, 0.87) !important;
+}
+
+.google-button:hover {
+  background-color: rgba(0, 0, 0, 0.04) !important;
 }
 </style> 

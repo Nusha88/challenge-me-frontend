@@ -12,6 +12,7 @@
         <!-- Parent Action -->
         <div class="d-flex align-center mb-1">
           <v-checkbox
+            v-if="!readonly"
             :model-value="action.checked"
             @update:model-value="(val) => updateActionChecked(index, val)"
             hide-details
@@ -21,10 +22,10 @@
           ></v-checkbox>
           <div class="flex-grow-1 editable-action-text">
             <span
-              v-if="!editingActions[index]"
+              v-if="readonly || !editingActions[index]"
               class="action-text"
-              :class="{ 'text-strikethrough': action.checked }"
-              @click="startEditingAction(index)"
+              :class="{ 'text-strikethrough': action.checked, 'readonly-text': readonly }"
+              @click="!readonly && startEditingAction(index)"
             >
               {{ action.text || t('challenges.actionPlaceholder') }}
             </span>
@@ -42,22 +43,24 @@
               @keyup.esc="stopEditingAction(index)"
             ></v-text-field>
           </div>
-          <v-btn
-            icon="mdi-plus"
-            variant="text"
-            size="small"
-            class="ml-2"
-            :title="t('challenges.addChildAction')"
-            @click="addChildAction(index)"
-          ></v-btn>
-          <v-btn
-            v-if="localActions.length > 1"
-            icon="mdi-delete"
-            variant="text"
-            size="small"
-            class="ml-1"
-            @click="removeAction(index)"
-          ></v-btn>
+          <template v-if="!readonly">
+            <v-btn
+              icon="mdi-plus"
+              variant="text"
+              size="small"
+              class="ml-2"
+              :title="t('challenges.addChildAction')"
+              @click="addChildAction(index)"
+            ></v-btn>
+            <v-btn
+              v-if="localActions.length > 1"
+              icon="mdi-delete"
+              variant="text"
+              size="small"
+              class="ml-1"
+              @click="removeAction(index)"
+            ></v-btn>
+          </template>
         </div>
         
         <!-- Child Actions -->
@@ -68,6 +71,7 @@
             class="d-flex align-center mb-1"
           >
             <v-checkbox
+              v-if="!readonly"
               :model-value="child.checked"
               @update:model-value="(val) => updateChildActionChecked(index, childIndex, val)"
               hide-details
@@ -77,10 +81,10 @@
             ></v-checkbox>
             <div class="flex-grow-1 editable-action-text">
               <span
-                v-if="!editingChildActions[`${index}-${childIndex}`]"
+                v-if="readonly || !editingChildActions[`${index}-${childIndex}`]"
                 class="action-text"
-                :class="{ 'text-strikethrough': child.checked }"
-                @click="startEditingChildAction(index, childIndex)"
+                :class="{ 'text-strikethrough': child.checked, 'readonly-text': readonly }"
+                @click="!readonly && startEditingChildAction(index, childIndex)"
               >
                 {{ child.text || t('challenges.childActionPlaceholder') }}
               </span>
@@ -99,6 +103,7 @@
               ></v-text-field>
             </div>
             <v-btn
+              v-if="!readonly"
               icon="mdi-delete"
               variant="text"
               size="small"
@@ -110,6 +115,7 @@
       </div>
       <div class="d-flex align-center justify-space-between">
         <v-btn
+          v-if="!readonly"
           prepend-icon="mdi-plus"
           variant="outlined"
           color="primary"
@@ -134,6 +140,10 @@ const props = defineProps({
   modelValue: {
     type: Array,
     default: () => []
+  },
+  readonly: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -351,5 +361,13 @@ function stopEditingChildAction(parentIndex, childIndex) {
 .action-text:empty::before {
   content: attr(data-placeholder);
   color: rgba(0, 0, 0, 0.38);
+}
+
+.readonly-text {
+  cursor: default;
+}
+
+.readonly-text:hover {
+  background-color: transparent;
 }
 </style>

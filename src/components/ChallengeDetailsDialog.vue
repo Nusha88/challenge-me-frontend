@@ -263,6 +263,26 @@
           
           <p class="mb-2"><strong>{{ t('challenges.description') }}:</strong> {{ challenge.description }}</p>
 
+          <!-- Privacy and Duration -->
+          <div class="mb-4">
+            <p class="mb-2">
+              <strong>{{ t('challenges.privacy') }}:</strong> {{ getPrivacyLabel(challenge.privacy) }}
+            </p>
+            <p class="mb-2">
+              <strong>{{ t('challenges.duration') }}:</strong> {{ getDurationLabel(challenge) }}
+            </p>
+            <p v-if="challenge.challengeType === 'habit' && challenge.frequency" class="mb-2">
+              <strong>{{ t('challenges.frequency') }}:</strong> {{ getFrequencyLabel(challenge.frequency) }}
+            </p>
+          </div>
+
+          <!-- Actions for result challenges (read-only for non-owners) -->
+          <ChallengeActions
+            v-if="challenge.challengeType === 'result'"
+            :model-value="challenge.actions || []"
+            :readonly="true"
+          />
+
           <v-alert
             v-if="isParticipant"
             type="success"
@@ -1291,6 +1311,36 @@ function getParticipantInitial(participant) {
   // Handle new structure: participant.userId or old structure: participant directly
   const name = participant.userId?.name || participant.name || t('common.unknown')
   return name.charAt(0).toUpperCase()
+}
+
+function getPrivacyLabel(value) {
+  if (!value) return t('challenges.privacyOptions.public')
+  return value === 'private' 
+    ? t('challenges.privacyOptions.private') 
+    : t('challenges.privacyOptions.public')
+}
+
+function getDurationLabel(challenge) {
+  if (!challenge.startDate || !challenge.endDate) return ''
+  try {
+    const start = new Date(challenge.startDate)
+    const end = new Date(challenge.endDate)
+    const diffTime = Math.abs(end - start)
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
+    return `${diffDays} ${diffDays === 1 ? t('challenges.day') : t('challenges.days')}`
+  } catch {
+    return ''
+  }
+}
+
+function getFrequencyLabel(value) {
+  if (!value) return ''
+  const frequencyMap = {
+    'daily': t('challenges.frequencyOptions.daily'),
+    'everyOtherDay': t('challenges.frequencyOptions.everyOtherDay'),
+    'weekdays': t('challenges.frequencyOptions.weekdays')
+  }
+  return frequencyMap[value] || value
 }
 
 function getParticipantAvatarUrl(participant) {

@@ -52,7 +52,7 @@ defineEmits(['click'])
 <style scoped>
 .gradient-button {
   border-radius: 24px !important;
-  background: linear-gradient(135deg, #1FA0F6 0%, #A62EE8 100%) !important;
+  background: linear-gradient(135deg, #1FA0F6 0%, #2196F3 100%) !important;
   color: white !important;
   font-size: 1.1rem;
   font-weight: 600;
@@ -79,11 +79,11 @@ defineEmits(['click'])
 }
 
 .gradient-button :deep(.v-btn__overlay) {
-  background: linear-gradient(135deg, #1FA0F6 0%, #A62EE8 100%) !important;
+  background: linear-gradient(135deg, #1FA0F6 0%, #2196F3 100%) !important;
 }
 
 .gradient-button:hover {
-  background: linear-gradient(135deg, #A62EE8 0%, #1FA0F6 100%) !important;
+  background: linear-gradient(135deg, #2196F3 0%, #1FA0F6 100%) !important;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(31, 160, 246, 0.4);
 }
@@ -97,6 +97,9 @@ defineEmits(['click'])
   opacity: 0.6;
 }
 </style>
+
+
+
 
 
 
