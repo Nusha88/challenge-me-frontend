@@ -1,6 +1,7 @@
 <template>
   <v-navigation-drawer
-    v-model="drawerOpen"
+    :model-value="modelValue"
+    @update:model-value="emit('update:modelValue', $event)"
     location="right"
     temporary
     :width="mobile ? '100%' : '400'"
@@ -134,11 +135,6 @@ const emit = defineEmits(['update:modelValue', 'unread-count-changed'])
 const router = useRouter()
 const { t, locale } = useI18n()
 const { mobile } = useDisplay()
-
-const drawerOpen = computed({
-  get: () => props.modelValue,
-  set: (value) => emit('update:modelValue', value)
-})
 
 const notifications = ref([])
 const loading = ref(false)
@@ -297,7 +293,7 @@ function getInitial(name) {
 }
 
 function closeDrawer() {
-  drawerOpen.value = false
+  emit('update:modelValue', false)
 }
 
 // Poll for new notifications every 30 seconds
@@ -324,7 +320,7 @@ watch(() => props.currentUserId, () => {
   }
 })
 
-watch(() => drawerOpen.value, (isOpen) => {
+watch(() => props.modelValue, (isOpen) => {
   if (isOpen && getCurrentUserId()) {
     loadNotifications()
     loadUnreadCount()
