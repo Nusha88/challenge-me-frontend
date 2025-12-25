@@ -64,6 +64,7 @@
                       :end-date="editForm.endDate"
                       v-model="editForm.completedDays"
                       :editable="true"
+                      :frequency="editForm.frequency"
                       @update:model-value="handleOwnerCompletedDaysUpdate"
                     />
                   </template>
@@ -72,6 +73,7 @@
                       :start-date="editForm.startDate"
                       :end-date="editForm.endDate"
                       :participants="challenge.participants || []"
+                      :frequency="editForm.frequency"
                     />
                   </template>
                 </v-card-text>
@@ -242,6 +244,7 @@
                     :end-date="challenge.endDate"
                     :model-value="localCurrentUserCompletedDays.length > 0 ? localCurrentUserCompletedDays : currentUserCompletedDays"
                     :editable="isCurrentUserParticipant"
+                    :frequency="challenge.frequency"
                     @update:model-value="handleParticipantCalendarChange"
                   />
                 </template>
@@ -250,6 +253,7 @@
                     :start-date="challenge.startDate"
                     :end-date="challenge.endDate"
                     :participants="challenge.participants || []"
+                    :frequency="challenge.frequency"
                   />
                 </template>
               </v-card-text>
@@ -530,6 +534,7 @@ const progressTotal = computed(() => {
     // For habit challenges: total days from start to end
     const startDate = props.isOwner ? editForm.startDate : props.challenge.startDate
     const endDate = props.isOwner ? editForm.endDate : props.challenge.endDate
+    const frequency = props.isOwner ? editForm.frequency : props.challenge.frequency
     
     if (!startDate || !endDate) return 0
     
@@ -538,6 +543,25 @@ const progressTotal = computed(() => {
     start.setHours(0, 0, 0, 0)
     end.setHours(0, 0, 0, 0)
     
+    // For "every other day" frequency, only count every other day
+    if (frequency === 'everyOtherDay') {
+      let count = 0
+      const current = new Date(start)
+      let dayIndex = 0
+      
+      while (current <= end) {
+        // Only count enabled days (day 0, 2, 4, 6, etc.)
+        if (dayIndex % 2 === 0) {
+          count++
+        }
+        current.setDate(current.getDate() + 1)
+        dayIndex++
+      }
+      
+      return Math.max(1, count) // At least 1 to avoid division by zero
+    }
+    
+    // For other frequencies, count all days
     const diffTime = end - start
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1
     return Math.max(1, diffDays) // At least 1 to avoid division by zero
@@ -831,8 +855,7 @@ watch(
 
 const frequencyOptions = computed(() => [
   { title: t('challenges.frequencyOptions.daily'), value: 'daily' },
-  { title: t('challenges.frequencyOptions.everyOtherDay'), value: 'everyOtherDay' },
-  { title: t('challenges.frequencyOptions.weekdays'), value: 'weekdays' }
+  { title: t('challenges.frequencyOptions.everyOtherDay'), value: 'everyOtherDay' }
 ])
 
 const privacyOptions = computed(() => [
@@ -1337,8 +1360,7 @@ function getFrequencyLabel(value) {
   if (!value) return ''
   const frequencyMap = {
     'daily': t('challenges.frequencyOptions.daily'),
-    'everyOtherDay': t('challenges.frequencyOptions.everyOtherDay'),
-    'weekdays': t('challenges.frequencyOptions.weekdays')
+    'everyOtherDay': t('challenges.frequencyOptions.everyOtherDay')
   }
   return frequencyMap[value] || value
 }

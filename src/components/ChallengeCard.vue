@@ -44,10 +44,32 @@
       </div>
     </div>
     
-    <v-card-text class="flex-grow-1 pt-3">
-      <p class="mb-3 text-body-2 challenge-description">{{ challenge.description }}</p>
-      
-      <v-card-subtitle v-if="challenge.owner" class="mb-2 pa-0">
+    <v-card-text class="flex-grow-1 pt-3 pb-0">
+      <p class="mb-0 text-body-2 challenge-description">{{ challenge.description }}</p>
+    </v-card-text>
+    
+    <v-card-actions v-if="showJoinButton" class="py-2 px-4">
+      <v-btn
+        v-if="canJoin"
+        color="primary"
+        size="small"
+        variant="flat"
+        class="join-button"
+        :loading="joiningId === challenge._id"
+        @click.stop="$emit('join', challenge)"
+      >
+        <span class="join-button-content">
+          <span v-if="participantCount > 0" class="participant-count">{{ participantCount }}</span>
+          <span v-if="participantCount > 0" class="separator">|</span>
+          <span>{{ t('challenges.join') }}</span>
+        </span>
+      </v-btn>
+      <v-spacer></v-spacer>
+    </v-card-actions>
+    
+    <!-- Created by and Participants - Above progress bar -->
+    <div class="challenge-meta-container">
+      <v-card-subtitle v-if="challenge.owner" class="mb-2 pa-0 px-4">
         <template v-if="isOwner">
           {{ t('challenges.createdByMe') }}
         </template>
@@ -56,7 +78,7 @@
         </template>
       </v-card-subtitle>
       
-      <div v-if="challenge.participants && challenge.participants.length > 0" class="participants-container mb-2">
+      <div v-if="challenge.participants && challenge.participants.length > 0" class="participants-container mb-2 px-4">
         <div
           v-for="participant in displayedParticipants(challenge.participants)"
           :key="participant.userId?._id || participant.userId || participant._id || participant"
@@ -80,21 +102,7 @@
           +{{ challenge.participants.length - 6 }}
         </div>
       </div>
-    </v-card-text>
-    
-    <v-card-actions v-if="showJoinButton">
-      <v-btn
-        v-if="canJoin"
-        color="primary"
-        size="small"
-        variant="flat"
-        :loading="joiningId === challenge._id"
-        @click.stop="$emit('join', challenge)"
-      >
-        {{ t('challenges.join') }}
-      </v-btn>
-      <v-spacer></v-spacer>
-    </v-card-actions>
+    </div>
     
     <!-- Progress Bar - Stuck to bottom -->
     <div v-if="challenge.challengeType" class="progress-bar-container">
@@ -195,6 +203,10 @@ const canJoin = computed(() => {
   return !isParticipant
 })
 
+const participantCount = computed(() => {
+  return props.challenge.participants ? props.challenge.participants.length : 0
+})
+
 const progressDone = computed(() => {
   if (!props.challenge) return 0
   
@@ -248,6 +260,25 @@ const progressTotal = computed(() => {
       start.setHours(0, 0, 0, 0)
       end.setHours(0, 0, 0, 0)
       
+      // For "every other day" frequency, only count every other day
+      if (props.challenge.frequency === 'everyOtherDay') {
+        let count = 0
+        const current = new Date(start)
+        let dayIndex = 0
+        
+        while (current <= end) {
+          // Only count enabled days (day 0, 2, 4, 6, etc.)
+          if (dayIndex % 2 === 0) {
+            count++
+          }
+          current.setDate(current.getDate() + 1)
+          dayIndex++
+        }
+        
+        return count
+      }
+      
+      // For other frequencies, count all days
       const diffTime = end - start
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
       
@@ -424,6 +455,12 @@ function getParticipantAvatarStyle(participant) {
   margin-top: 4px;
 }
 
+.challenge-meta-container {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
 .progress-bar-container {
   margin-top: auto;
   padding-bottom: 0;
@@ -500,6 +537,38 @@ function getParticipantAvatarStyle(participant) {
   text-overflow: ellipsis;
   line-height: 1.5;
   max-height: calc(1.5em * 5);
+}
+
+.join-button {
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  background: linear-gradient(135deg, #1FA0F6 0%, #A62EE8 100%) !important;
+  color: white !important;
+}
+
+.join-button:hover {
+  box-shadow: 0 4px 8px rgba(31, 160, 246, 0.3);
+  transform: translateY(-1px);
+  background: linear-gradient(135deg, #1FA0F6 0%, #A62EE8 100%) !important;
+}
+
+.join-button-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.participant-count {
+  font-weight: 700;
+  font-size: 0.9em;
+}
+
+.separator {
+  opacity: 0.6;
+  font-weight: 400;
 }
 </style>
 

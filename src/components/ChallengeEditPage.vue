@@ -92,6 +92,7 @@
                       :end-date="editForm.endDate"
                       v-model="editForm.completedDays"
                       :editable="true"
+                      :frequency="editForm.frequency"
                       @update:model-value="handleOwnerCompletedDaysUpdate"
                     />
                   </template>
@@ -100,6 +101,7 @@
                       :start-date="editForm.startDate"
                       :end-date="editForm.endDate"
                       :participants="challenge.participants || []"
+                      :frequency="editForm.frequency"
                     />
                   </template>
                 </v-card-text>
@@ -386,6 +388,9 @@ const currentUserId = ref(getCurrentUserId())
 // Local reactive copy of current user's completedDays for optimistic updates
 const localCurrentUserCompletedDays = ref([])
 
+// Store original completedDays to detect changes
+const originalCompletedDays = ref([])
+
 const editForm = reactive({
   title: '',
   description: '',
@@ -521,8 +526,12 @@ async function loadChallenge() {
         .map(d => String(d).slice(0, 10))
         .filter(Boolean)
         .sort()
+      
+      // Store original completedDays for comparison
+      originalCompletedDays.value = [...editForm.completedDays]
     } else {
       editForm.completedDays = []
+      originalCompletedDays.value = []
     }
     
     // Calculate duration from start and end dates
@@ -582,8 +591,7 @@ watch(
 
 const frequencyOptions = computed(() => [
   { title: t('challenges.frequencyOptions.daily'), value: 'daily' },
-  { title: t('challenges.frequencyOptions.everyOtherDay'), value: 'everyOtherDay' },
-  { title: t('challenges.frequencyOptions.weekdays'), value: 'weekdays' }
+  { title: t('challenges.frequencyOptions.everyOtherDay'), value: 'everyOtherDay' }
 ])
 
 const privacyOptions = computed(() => [
@@ -673,9 +681,48 @@ async function confirmDelete() {
   }
 }
 
-async function handleSubmit() {
-  if (!validate()) return
+// Normalize completedDays dates to YYYY-MM-DD format
+function normalizeCompletedDays(completedDays) {
+  if (!Array.isArray(completedDays)) {
+    return []
+  }
   
+  return completedDays
+    .map(d => {
+      if (!d) return null
+      try {
+        let dateStr = String(d)
+        
+        // Already in correct format
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+          return dateStr
+        }
+        
+        // Parse and format date
+        const date = new Date(dateStr)
+        if (Number.isNaN(date.getTime())) {
+          return null
+        }
+        
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        return `${year}-${month}-${day}`
+      } catch {
+        return null
+      }
+    })
+    .filter(d => {
+      if (!d) return false
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return false
+      const date = new Date(d)
+      return !Number.isNaN(date.getTime())
+    })
+    .sort()
+}
+
+// Prepare form data for submission
+function prepareFormData() {
   const { duration, customDuration, ...formData } = editForm
   
   if (challenge.value?.challengeType) {
@@ -683,49 +730,54 @@ async function handleSubmit() {
   }
   
   if (formData.challengeType === 'habit') {
-    if (!Array.isArray(formData.completedDays)) {
-      formData.completedDays = []
-    }
-    
-    formData.completedDays = formData.completedDays
-      .map(d => {
-        if (!d) return null
-        try {
-          let dateStr = String(d)
-          
-          if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-            return dateStr
-          }
-          
-          const date = new Date(dateStr)
-          if (Number.isNaN(date.getTime())) {
-            return null
-          }
-          
-          const year = date.getFullYear()
-          const month = String(date.getMonth() + 1).padStart(2, '0')
-          const day = String(date.getDate()).padStart(2, '0')
-          return `${year}-${month}-${day}`
-        } catch {
-          return null
-        }
-      })
-      .filter(d => {
-        if (!d) return false
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return false
-        const date = new Date(d)
-        return !Number.isNaN(date.getTime())
-      })
-      .sort()
+    formData.completedDays = normalizeCompletedDays(formData.completedDays)
   } else if (formData.challengeType === 'result') {
     formData.completedDays = []
   }
+  
+  return formData
+}
+
+// Check if completedDays changed and update participant entry if needed
+async function updateParticipantCompletedDaysIfChanged(challengeId, challengeType, currentCompletedDays) {
+  if (challengeType !== 'habit' || !currentUserId.value) {
+    return
+  }
+  
+  const currentCompletedDaysSorted = [...currentCompletedDays].sort()
+  const originalCompletedDaysSorted = [...originalCompletedDays.value].sort()
+  
+  const hasChanged = JSON.stringify(currentCompletedDaysSorted) !== JSON.stringify(originalCompletedDaysSorted)
+  
+  if (hasChanged) {
+    try {
+      await challengeService.updateParticipantCompletedDays(
+        challengeId,
+        currentUserId.value,
+        currentCompletedDaysSorted
+      )
+    } catch (error) {
+      console.error('Error updating participant completed days:', error)
+      // Don't fail the whole save if this fails
+    }
+  }
+}
+
+async function handleSubmit() {
+  if (!validate()) return
+  
+  const formData = prepareFormData()
   
   saveLoading.value = true
   saveError.value = ''
 
   try {
     await challengeService.updateChallenge(challenge.value._id, { ...formData })
+    await updateParticipantCompletedDaysIfChanged(
+      challenge.value._id,
+      formData.challengeType,
+      formData.completedDays
+    )
     router.push('/challenges/my')
   } catch (error) {
     saveError.value = error.response?.data?.message || t('notifications.updateError')
@@ -772,23 +824,12 @@ function formatDisplayDate(value) {
   }
 }
 
-async function handleOwnerCompletedDaysUpdate(completedDays) {
+function handleOwnerCompletedDaysUpdate(completedDays) {
   if (!challenge.value || !currentUserId.value) return
   
+  // Only update local state, don't call API
   editForm.completedDays = completedDays
   localCurrentUserCompletedDays.value = [...completedDays]
-  
-  try {
-    await challengeService.updateParticipantCompletedDays(
-      challenge.value._id,
-      currentUserId.value,
-      completedDays
-    )
-    await loadChallenge()
-  } catch (error) {
-    console.error('Error updating owner completed days:', error)
-    await loadChallenge()
-  }
 }
 
 function startEditingDescription() {
@@ -1124,6 +1165,7 @@ onMounted(() => {
   }
 }
 </style>
+
 
 
 

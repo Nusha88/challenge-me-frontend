@@ -73,6 +73,10 @@ const props = defineProps({
   editable: {
     type: Boolean,
     default: true
+  },
+  frequency: {
+    type: String,
+    default: null
   }
 })
 
@@ -107,18 +111,31 @@ const days = computed(() => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     
+    // Calculate days from start date for "every other day" frequency
+    let dayIndex = 0
+    
     while (current <= end) {
       const dateStr = formatDateString(current)
       const isToday = current.getTime() === today.getTime()
       const isPast = current < today
       const isFuture = current > today
       const isMarked = localCompletedDays.value.includes(dateStr)
-      // A date is "missed" if it's before today and not marked as completed
-      const missed = isPast && !isMarked
-      // Disable all dates except today (past and future dates are always disabled)
-      // Also disable today if the user is not allowed to edit (not a participant)
-      // Completed dates stay green but are disabled
-      const disabled = !isToday || (isToday && !props.editable)
+      
+      // For "every other day" frequency, disable every other day starting from start date
+      // Day 0 (start date) is enabled, day 1 is disabled, day 2 is enabled, etc.
+      const isFrequencyDisabled = props.frequency === 'everyOtherDay' && dayIndex % 2 === 1
+      
+      // A date is "missed" only if:
+      // 1. It's before today
+      // 2. It's not marked as completed
+      // 3. It's NOT disabled due to frequency (every other day)
+      const missed = isPast && !isMarked && !isFrequencyDisabled
+      
+      // Disable dates if:
+      // - It's not today (past/future dates)
+      // - Today but user can't edit
+      // - OR it's disabled due to frequency (every other day)
+      const disabled = isFrequencyDisabled || !isToday || (isToday && !props.editable)
       
       daysArray.push({
         date: new Date(current),
@@ -131,6 +148,7 @@ const days = computed(() => {
       })
       
       current.setDate(current.getDate() + 1)
+      dayIndex++
     }
     
     return daysArray

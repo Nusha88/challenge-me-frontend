@@ -196,8 +196,7 @@ const durationOptions = computed(() => [
 
 const frequencyOptions = computed(() => [
   { title: t('challenges.frequencyOptions.daily'), value: 'daily' },
-  { title: t('challenges.frequencyOptions.everyOtherDay'), value: 'everyOtherDay' },
-  { title: t('challenges.frequencyOptions.weekdays'), value: 'weekdays' }
+  { title: t('challenges.frequencyOptions.everyOtherDay'), value: 'everyOtherDay' }
 ])
 
 const startOptions = computed(() => [

@@ -299,6 +299,25 @@ function calculateProgressTotal(challenge) {
       start.setHours(0, 0, 0, 0)
       end.setHours(0, 0, 0, 0)
       
+      // For "every other day" frequency, only count every other day
+      if (challenge.frequency === 'everyOtherDay') {
+        let count = 0
+        const current = new Date(start)
+        let dayIndex = 0
+        
+        while (current <= end) {
+          // Only count enabled days (day 0, 2, 4, 6, etc.)
+          if (dayIndex % 2 === 0) {
+            count++
+          }
+          current.setDate(current.getDate() + 1)
+          dayIndex++
+        }
+        
+        return count
+      }
+      
+      // For other frequencies, count all days
       const diffTime = end - start
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1 // +1 to include both start and end days
       

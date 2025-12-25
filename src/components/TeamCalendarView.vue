@@ -98,6 +98,10 @@ const props = defineProps({
   participants: {
     type: Array,
     default: () => []
+  },
+  frequency: {
+    type: String,
+    default: null
   }
 })
 
@@ -123,11 +127,18 @@ const days = computed(() => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     
+    // Calculate days from start date for "every other day" frequency
+    let dayIndex = 0
+    
     while (current <= end) {
       const dateStr = formatDateString(current)
       const isToday = current.getTime() === today.getTime()
       const isPast = current < today
       const isFuture = current > today
+      
+      // For "every other day" frequency, disable every other day starting from start date
+      // Day 0 (start date) is enabled, day 1 is disabled, day 2 is enabled, etc.
+      const isFrequencyDisabled = props.frequency === 'everyOtherDay' && dayIndex % 2 === 1
       
       // Count how many participants completed this day
       let participantCount = 0
@@ -151,7 +162,11 @@ const days = computed(() => {
         }
       })
       
-      const missed = isPast && !isMarked
+      // A date is "missed" only if:
+      // 1. It's before today
+      // 2. It's not marked as completed
+      // 3. It's NOT disabled due to frequency (every other day)
+      const missed = isPast && !isMarked && !isFrequencyDisabled
       const disabled = true // Team calendar is read-only
       
       daysArray.push({
@@ -166,6 +181,7 @@ const days = computed(() => {
       })
       
       current.setDate(current.getDate() + 1)
+      dayIndex++
     }
     
     return daysArray
@@ -200,6 +216,25 @@ const totalDuration = computed(() => {
     start.setHours(0, 0, 0, 0)
     end.setHours(0, 0, 0, 0)
     
+    // For "every other day" frequency, only count every other day
+    if (props.frequency === 'everyOtherDay') {
+      let count = 0
+      const current = new Date(start)
+      let dayIndex = 0
+      
+      while (current <= end) {
+        // Only count enabled days (day 0, 2, 4, 6, etc.)
+        if (dayIndex % 2 === 0) {
+          count++
+        }
+        current.setDate(current.getDate() + 1)
+        dayIndex++
+      }
+      
+      return Math.max(1, count) // At least 1 day
+    }
+    
+    // For other frequencies, count all days
     const diffTime = end - start
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1 // +1 to include both start and end days
     
