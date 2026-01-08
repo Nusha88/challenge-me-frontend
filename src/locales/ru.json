@@ -12,6 +12,7 @@
     "allUsers": "Все пользователи",
     "myChallenges": "Мои челленджи",
     "allChallenges": "Все челленджи",
+    "watchedChallenges": "Отслеживаемые челленджи",
     "language": "Язык"
   },
   "home": {
@@ -26,7 +27,8 @@
     "ok": "OK",
     "close": "Закрыть",
     "cancel": "Отмена",
-    "save": "Сохранить"
+    "save": "Сохранить",
+    "back": "Назад"
   },
   "auth": {
     "registerPageTitle": "Create your account",
@@ -175,15 +177,20 @@
     "unwatchError": "Не удалось убрать челлендж из отслеживаемых",
     "moreParticipants": "+{count} еще",
     "upcoming": "Скоро начнется",
+    "successful": "Успешно",
+    "failed": "Не выполнено",
     "listTitle": "Все челленджи",
     "myListTitle": "Мои челленджи",
     "createdByMe": "Создано мной",
+    "activityActive": "Активные",
+    "activityFinished": "Завершенные",
     "loginPrompt": "Авторизуйтесь, чтобы увидеть свои челленджи.",
     "mustBeLoggedIn": "Необходимо войти в систему, чтобы создать челлендж.",
     "detailsTitle": "Детали челленджа",
     "editTitle": "Редактировать челлендж",
     "notFound": "Челлендж не найден",
     "notAuthorized": "У вас нет прав на редактирование этого челленджа",
+    "challengeFinished": "Этот челлендж завершен и не может быть отредактирован",
     "delete": "Удалить",
     "deleteConfirmTitle": "Удалить челлендж",
     "deleteConfirmMessage": "Вы уверены, что хотите удалить этот челлендж? Это действие нельзя отменить.",

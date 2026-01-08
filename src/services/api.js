@@ -110,8 +110,10 @@ export const challengeService = {
   getChallengesByUser: (userId) => {
     return api.get(`/challenges/user/${userId}`)
   },
-  getAllChallenges: () => {
-    return api.get('/challenges')
+  getAllChallenges: (excludeFinished = true) => {
+    return api.get('/challenges', {
+      params: { excludeFinished: excludeFinished }
+    })
   },
   getChallenge: (id) => {
     return api.get(`/challenges/${id}`)

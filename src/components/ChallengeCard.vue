@@ -10,6 +10,14 @@
     <div v-if="isUpcoming" class="upcoming-badge">
       {{ t('challenges.upcoming') }}
     </div>
+    <div v-else-if="isFinished && isSuccessful" class="finished-badge success-badge">
+      <v-icon size="small" class="mr-1">mdi-check-circle</v-icon>
+      {{ t('challenges.successful') }}
+    </div>
+    <div v-else-if="isFinished && !isSuccessful" class="finished-badge failed-badge">
+      <v-icon size="small" class="mr-1">mdi-close-circle</v-icon>
+      {{ t('challenges.failed') }}
+    </div>
     <!-- Header with image and title -->
     <div class="challenge-header">
       <div class="challenge-image-container">
@@ -183,16 +191,77 @@ const isOwner = computed(() => {
 })
 
 const isFinished = computed(() => {
-  if (!props.challenge.endDate) return false
-  try {
-    const endDate = new Date(props.challenge.endDate)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    endDate.setHours(0, 0, 0, 0)
-    return endDate < today
-  } catch {
-    return false
+  // Check if endDate is in the past
+  if (props.challenge.endDate) {
+    try {
+      const endDate = new Date(props.challenge.endDate)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      endDate.setHours(0, 0, 0, 0)
+      if (endDate < today) {
+        return true
+      }
+    } catch {
+      // Continue to check other conditions
+    }
   }
+  
+  // For result challenges, check if all actions are done
+  if (props.challenge.challengeType === 'result') {
+    if (!props.challenge.actions || !Array.isArray(props.challenge.actions) || props.challenge.actions.length === 0) {
+      return false
+    }
+    
+    // Check if all actions and their children are checked
+    const allActionsDone = props.challenge.actions.every(action => {
+      // Parent action must be checked
+      if (!action.checked) return false
+      
+      // All children must be checked (if any exist)
+      if (action.children && Array.isArray(action.children) && action.children.length > 0) {
+        return action.children.every(child => child.checked)
+      }
+      
+      return true
+    })
+    
+    if (allActionsDone) {
+      return true
+    }
+  }
+  
+  return false
+})
+
+const isSuccessful = computed(() => {
+  if (!isFinished.value) return false
+  
+  // For result challenges, check if all actions are done
+  if (props.challenge.challengeType === 'result') {
+    if (!props.challenge.actions || !Array.isArray(props.challenge.actions) || props.challenge.actions.length === 0) {
+      return false
+    }
+    
+    // Check if all actions and their children are checked
+    return props.challenge.actions.every(action => {
+      // Parent action must be checked
+      if (!action.checked) return false
+      
+      // All children must be checked (if any exist)
+      if (action.children && Array.isArray(action.children) && action.children.length > 0) {
+        return action.children.every(child => child.checked)
+      }
+      
+      return true
+    })
+  }
+  
+  // For habit challenges, check if user completed all required days (100%)
+  if (props.challenge.challengeType === 'habit') {
+    return progressPercentage.value === 100
+  }
+  
+  return false
 })
 
 const isUpcoming = computed(() => {
@@ -512,6 +581,33 @@ function getParticipantAvatarStyle(participant) {
   z-index: 10;
   box-shadow: 0 2px 8px rgba(31, 160, 246, 0.3);
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+}
+
+.finished-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 0 0 0 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  z-index: 10;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+}
+
+.success-badge {
+  background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+}
+
+.failed-badge {
+  background: linear-gradient(135deg, #F44336 0%, #C62828 100%);
+  box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
 }
 
 .participants-container {

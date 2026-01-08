@@ -21,15 +21,36 @@
           {{ t('challenges.noMyChallenges') }}
         </v-alert>
 
-        <div v-else class="challenges-grid">
-          <ChallengeCard
-            v-for="challenge in filteredChallenges"
-            :key="challenge._id"
-            :challenge="challenge"
-            :current-user-id="currentUserId"
-            :show-join-button="false"
-            @click="openDetails"
-          />
+        <div v-else>
+          <!-- Active Challenges -->
+          <div v-if="activeChallenges.length > 0">
+            <h2 class="section-title mb-4">{{ t('challenges.activityActive') }}</h2>
+            <div class="challenges-grid">
+              <ChallengeCard
+                v-for="challenge in activeChallenges"
+                :key="challenge._id"
+                :challenge="challenge"
+                :current-user-id="currentUserId"
+                :show-join-button="false"
+                @click="openDetails"
+              />
+            </div>
+          </div>
+
+          <!-- Finished Challenges -->
+          <div v-if="finishedChallenges.length > 0" :class="{ 'finished-section': activeChallenges.length > 0 }">
+            <h2 class="section-title mb-4" :class="{ 'mt-8': activeChallenges.length > 0 }">{{ t('challenges.activityFinished') }}</h2>
+            <div class="challenges-grid">
+              <ChallengeCard
+                v-for="challenge in finishedChallenges"
+                :key="challenge._id"
+                :challenge="challenge"
+                :current-user-id="currentUserId"
+                :show-join-button="false"
+                @click="openDetails"
+              />
+            </div>
+          </div>
         </div>
       </v-card-text>
     </v-card>
@@ -157,6 +178,35 @@ function isChallengeEnded(challenge) {
   } catch {
     return false
   }
+}
+
+function isChallengeFinished(challenge) {
+  // Check if endDate is in the past
+  if (isChallengeEnded(challenge)) {
+    return true
+  }
+  
+  // For result challenges, check if all actions are done
+  if (challenge.challengeType === 'result') {
+    if (!challenge.actions || !Array.isArray(challenge.actions) || challenge.actions.length === 0) {
+      return false
+    }
+    
+    // Check if all actions and their children are checked
+    return challenge.actions.every(action => {
+      // Parent action must be checked
+      if (!action.checked) return false
+      
+      // All children must be checked (if any exist)
+      if (action.children && Array.isArray(action.children) && action.children.length > 0) {
+        return action.children.every(child => child.checked)
+      }
+      
+      return true
+    })
+  }
+  
+  return false
 }
 
 function isChallengeUpcoming(challenge) {
@@ -416,6 +466,15 @@ const filteredChallenges = computed(() => {
   return result
 })
 
+// Separate active and finished challenges
+const activeChallenges = computed(() => {
+  return filteredChallenges.value.filter(challenge => !isChallengeFinished(challenge))
+})
+
+const finishedChallenges = computed(() => {
+  return filteredChallenges.value.filter(challenge => isChallengeFinished(challenge))
+})
+
 onMounted(() => {
   fetchChallenges()
 })
@@ -457,6 +516,24 @@ onMounted(() => {
   .page-title {
     font-size: 2rem;
   }
+}
+
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: rgba(var(--v-theme-on-surface), 0.87);
+}
+
+@media (min-width: 600px) {
+  .section-title {
+    font-size: 1.5rem;
+  }
+}
+
+.finished-section {
+  border-top: 2px solid rgba(var(--v-theme-on-surface), 0.12);
+  padding-top: 24px;
+  margin-top: 24px;
 }
 
 

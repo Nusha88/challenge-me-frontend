@@ -13,45 +13,29 @@
           v-if="challenge?.challengeType"
           :color="challengeTypeColor"
           size="small"
-          class="ml-4"
+          class="ml-2 ml-md-4"
         >
           {{ challengeTypeLabel }}
         </v-chip>
         <v-icon
           v-if="challenge?.privacy === 'private'"
           color="grey-darken-1"
-          size="24"
-          class="ml-4 privacy-icon"
+          size="20"
+          class="ml-2 ml-md-4 privacy-icon"
         >
           mdi-lock
         </v-icon>
         <v-spacer></v-spacer>
-        <v-btn
-          v-if="isWatched"
-          variant="outlined"
-          color="primary"
-          :loading="watchingId === challenge?._id"
-          @click="handleUnwatch"
-          class="ml-4"
-        >
-          {{ t('challenges.unwatch') }}
-        </v-btn>
-        <v-btn
-          v-else-if="currentUserId && !isWatched && challenge"
-          variant="outlined"
-          color="primary"
-          :loading="watchingId === challenge._id"
-          @click="handleWatch"
-          class="ml-4"
-        >
-          {{ t('challenges.watch') }}
-        </v-btn>
       </div>
 
       <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4"></v-progress-linear>
 
       <v-alert v-if="errorMessage" type="error" class="mb-4">
         {{ errorMessage }}
+      </v-alert>
+
+      <v-alert v-if="challenge && isChallengeFinished(challenge) && !loading" type="info" class="mb-4">
+        {{ t('challenges.challengeFinished') }}
       </v-alert>
 
       <v-card v-if="challenge && !loading">
@@ -70,7 +54,8 @@
               <h2 
                 v-if="!isEditingTitle"
                 class="editable-title"
-                @click="isEditingTitle = true"
+                :class="{ 'disabled': isDisabled }"
+                @click="!isDisabled && (isEditingTitle = true)"
               >
                 {{ editForm.title || t('challenges.title') }}
               </h2>
@@ -81,6 +66,7 @@
                 variant="outlined"
                 required
                 :error-messages="titleErrorMessages"
+                :disabled="isDisabled"
                 autofocus
                 @blur="isEditingTitle = false"
                 @keyup.enter="isEditingTitle = false"
@@ -97,6 +83,7 @@
                   class="calendar-toggle-group"
                   color="primary"
                   variant="outlined"
+                  :disabled="isDisabled"
                 >
                   <v-btn value="personal">{{ t('challenges.myProgress') }}</v-btn>
                   <v-btn value="team">{{ t('challenges.teamProgress') }}</v-btn>
@@ -112,7 +99,7 @@
                       :start-date="editForm.startDate"
                       :end-date="editForm.endDate"
                       v-model="editForm.completedDays"
-                      :editable="true"
+                      :editable="!isDisabled"
                       :frequency="editForm.frequency"
                       @update:model-value="handleOwnerCompletedDaysUpdate"
                     />
@@ -131,7 +118,7 @@
 
             <ChallengeImageUpload
               v-model="editForm.imageUrl"
-              :editable="true"
+              :editable="!isDisabled"
             />
 
             <div class="description-section mb-4">
@@ -139,7 +126,8 @@
                 v-if="!isEditingDescription"
                 ref="descriptionDisplay"
                 class="editable-description"
-                @click="startEditingDescription"
+                :class="{ 'disabled': isDisabled }"
+                @click="!isDisabled && startEditingDescription()"
               >
                 {{ editForm.description || t('challenges.description') }}
               </p>
@@ -152,6 +140,7 @@
                 :rows="descriptionRows"
                 required
                 :error-messages="errors.description"
+                :disabled="isDisabled"
                 autofocus
                 auto-grow
                 @blur="isEditingDescription = false"
@@ -187,7 +176,8 @@
                   <p 
                     v-if="!isEditingFrequency"
                     class="editable-field"
-                    @click="isEditingFrequency = true"
+                    :class="{ 'disabled': isDisabled }"
+                    @click="!isDisabled && (isEditingFrequency = true)"
                   >
                     <strong>{{ t('challenges.frequency') }}:</strong> {{ getFrequencyLabel(editForm.frequency) }}
                   </p>
@@ -200,6 +190,7 @@
                     item-value="value"
                     variant="outlined"
                     :error-messages="errors.frequency"
+                    :disabled="isDisabled"
                     autofocus
                     @blur="isEditingFrequency = false"
                     @update:model-value="isEditingFrequency = false"
@@ -239,7 +230,8 @@
                   <p 
                     v-if="!isEditingPrivacy"
                     class="editable-field"
-                    @click="isEditingPrivacy = true"
+                    :class="{ 'disabled': isDisabled }"
+                    @click="!isDisabled && (isEditingPrivacy = true)"
                   >
                     <strong>{{ t('challenges.privacy') }}:</strong> {{ getPrivacyLabel(editForm.privacy) }}
                   </p>
@@ -251,6 +243,7 @@
                     item-title="title"
                     item-value="value"
                     variant="outlined"
+                    :disabled="isDisabled"
                     autofocus
                     @blur="isEditingPrivacy = false"
                     @update:model-value="isEditingPrivacy = false"
@@ -261,7 +254,8 @@
                   <p 
                     v-if="!isEditingDuration"
                     class="editable-field"
-                    @click="isEditingDuration = true"
+                    :class="{ 'disabled': isDisabled }"
+                    @click="!isDisabled && (isEditingDuration = true)"
                   >
                     <strong>{{ t('challenges.duration') }}:</strong> {{ getDurationLabel(editForm.duration) }}
                   </p>
@@ -274,6 +268,7 @@
                     item-value="value"
                     variant="outlined"
                     :error-messages="errors.duration"
+                    :disabled="isDisabled"
                     autofocus
                     @blur="isEditingDuration = false"
                     @update:model-value="isEditingDuration = false"
@@ -283,6 +278,7 @@
 
               <ChallengeActions
                 v-model="editForm.actions"
+                :readonly="isDisabled"
               />
             </template>
 
@@ -292,6 +288,7 @@
                 v-model="editForm.allowComments"
                 :label="t('challenges.allowComments')"
                 color="primary"
+                :disabled="isDisabled"
                 hide-details
               ></v-switch>
             </div>
@@ -303,6 +300,7 @@
                 :allow-comments="editForm.allowComments"
                 :current-user-id="currentUserId"
                 :is-owner="true"
+                :is-finished="isDisabled"
                 @comment-added="handleCommentAdded"
                 @comment-deleted="handleCommentDeleted"
               />
@@ -313,35 +311,47 @@
             </v-alert>
 
             <v-card-actions class="buttons-area">
-              <v-btn 
-                variant="elevated" 
-                color="error" 
-                @click="handleDelete" 
-                :disabled="saveLoading || deleteLoading"
-                :loading="deleteLoading"
-                class="action-button delete-button"
-              >
-                {{ t('challenges.delete') }}
-              </v-btn>
-              <v-spacer></v-spacer>
-              <v-btn 
-                variant="outlined" 
-                @click="goBack" 
-                :disabled="saveLoading || deleteLoading"
-                class="action-button cancel-button"
-              >
-                {{ t('challenges.cancel') }}
-              </v-btn>
-              <v-btn 
-                type="submit" 
-                variant="flat"
-                color="primary" 
-                :loading="saveLoading" 
-                :disabled="saveLoading || deleteLoading || !isFormValid"
-                class="action-button save-button"
-              >
-                {{ t('challenges.update') }}
-              </v-btn>
+              <template v-if="isDisabled">
+                <v-spacer></v-spacer>
+                <v-btn 
+                  variant="outlined" 
+                  @click="goBack" 
+                  class="action-button back-button"
+                >
+                  {{ t('common.back') }}
+                </v-btn>
+              </template>
+              <template v-else>
+                <v-btn 
+                  variant="elevated" 
+                  color="error" 
+                  @click="handleDelete" 
+                  :disabled="saveLoading || deleteLoading"
+                  :loading="deleteLoading"
+                  class="action-button delete-button"
+                >
+                  {{ t('challenges.delete') }}
+                </v-btn>
+                <v-spacer></v-spacer>
+                <v-btn 
+                  variant="outlined" 
+                  @click="goBack" 
+                  :disabled="saveLoading || deleteLoading"
+                  class="action-button cancel-button"
+                >
+                  {{ t('challenges.cancel') }}
+                </v-btn>
+                <v-btn 
+                  type="submit" 
+                  variant="flat"
+                  color="primary" 
+                  :disabled="saveLoading || deleteLoading || !isFormValid"
+                  :loading="saveLoading"
+                  class="action-button save-button"
+                >
+                  {{ t('challenges.update') }}
+                </v-btn>
+              </template>
             </v-card-actions>
           </v-form>
         </v-card-text>
@@ -707,10 +717,8 @@ function clearErrors() {
 }
 
 function goBack() {
-  // Navigate to challenges list instead of using router.back()
-  // to avoid the issue where going back to /challenges/:id triggers
-  // the watcher that re-opens the edit page
-  router.push('/challenges')
+  // Navigate to My Challenges page
+  router.push('/challenges/my')
 }
 
 function handleDelete() {
@@ -738,41 +746,87 @@ async function confirmDelete() {
 function normalizeCompletedDays(completedDays) {
   if (!Array.isArray(completedDays)) {
     return []
-  }
-  
+    }
+    
   return completedDays
-    .map(d => {
-      if (!d) return null
-      try {
-        let dateStr = String(d)
-        
+      .map(d => {
+        if (!d) return null
+        try {
+          let dateStr = String(d)
+          
         // Already in correct format
-        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-          return dateStr
-        }
-        
+          if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+            return dateStr
+          }
+          
         // Parse and format date
-        const date = new Date(dateStr)
-        if (Number.isNaN(date.getTime())) {
+          const date = new Date(dateStr)
+          if (Number.isNaN(date.getTime())) {
+            return null
+          }
+          
+          const year = date.getFullYear()
+          const month = String(date.getMonth() + 1).padStart(2, '0')
+          const day = String(date.getDate()).padStart(2, '0')
+          return `${year}-${month}-${day}`
+        } catch {
           return null
         }
-        
-        const year = date.getFullYear()
-        const month = String(date.getMonth() + 1).padStart(2, '0')
-        const day = String(date.getDate()).padStart(2, '0')
-        return `${year}-${month}-${day}`
-      } catch {
-        return null
-      }
-    })
-    .filter(d => {
-      if (!d) return false
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return false
-      const date = new Date(d)
-      return !Number.isNaN(date.getTime())
-    })
-    .sort()
+      })
+      .filter(d => {
+        if (!d) return false
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return false
+        const date = new Date(d)
+        return !Number.isNaN(date.getTime())
+      })
+      .sort()
 }
+
+function isChallengeEnded(challenge) {
+  if (!challenge?.endDate) return false
+  try {
+    const endDate = new Date(challenge.endDate)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    endDate.setHours(0, 0, 0, 0)
+    return endDate < today
+  } catch {
+    return false
+  }
+}
+
+function isChallengeFinished(challenge) {
+  // Check if endDate is in the past
+  if (isChallengeEnded(challenge)) {
+    return true
+  }
+  
+  // For result challenges, check if all actions are done
+  if (challenge?.challengeType === 'result') {
+    if (!challenge.actions || !Array.isArray(challenge.actions) || challenge.actions.length === 0) {
+      return false
+    }
+    
+    // Check if all actions and their children are checked
+    return challenge.actions.every(action => {
+      // Parent action must be checked
+      if (!action.checked) return false
+      
+      // All children must be checked (if any exist)
+      if (action.children && Array.isArray(action.children) && action.children.length > 0) {
+        return action.children.every(child => child.checked)
+      }
+      
+      return true
+    })
+  }
+  
+  return false
+}
+
+const isDisabled = computed(() => {
+  return challenge.value ? isChallengeFinished(challenge.value) : false
+})
 
 // Prepare form data for submission
 function prepareFormData() {
@@ -987,13 +1041,26 @@ onMounted(async () => {
 <style scoped>
 .challenge-edit-page {
   min-height: 100vh;
-  padding: 16px 0;
+  padding: 8px 0;
+}
+
+@media (min-width: 600px) {
+  .challenge-edit-page {
+    padding: 16px 0;
+  }
 }
 
 .page-header {
   display: flex;
   align-items: center;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (min-width: 600px) {
+  .page-header {
+    gap: 16px;
+  }
 }
 
 .back-button {
@@ -1001,8 +1068,10 @@ onMounted(async () => {
 }
 
 .page-title {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 600;
+  flex: 1;
+  min-width: 0;
 }
 
 @media (min-width: 600px) {
@@ -1013,6 +1082,12 @@ onMounted(async () => {
 
 .privacy-icon {
   flex-shrink: 0;
+}
+
+@media (min-width: 600px) {
+  .privacy-icon {
+    size: 24;
+  }
 }
 
 .frequency-privacy-row {
@@ -1045,10 +1120,18 @@ onMounted(async () => {
 
 .start-date-text,
 .end-date-text {
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   color: rgba(0, 0, 0, 0.6);
   margin: 0;
   flex: 0 0 auto;
+  word-break: break-word;
+}
+
+@media (min-width: 600px) {
+  .start-date-text,
+  .end-date-text {
+    font-size: 0.875rem;
+  }
 }
 
 .end-date-text {
@@ -1122,8 +1205,19 @@ onMounted(async () => {
 
 .buttons-area {
   border-top: 1px solid rgba(0, 0, 0, 0.12);
-  padding: 16px 24px !important;
+  padding: 12px 16px !important;
   margin-top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@media (min-width: 600px) {
+  .buttons-area {
+    padding: 16px 24px !important;
+    flex-direction: row;
+    gap: 0;
+  }
 }
 
 .action-button {
@@ -1131,10 +1225,17 @@ onMounted(async () => {
   text-transform: none;
   letter-spacing: 0.5px;
   min-width: 100px;
+  width: 100%;
   height: 40px;
   padding: 0 24px;
   border-radius: 24px !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (min-width: 600px) {
+  .action-button {
+    width: auto;
+  }
 }
 
 .delete-button {
@@ -1187,18 +1288,27 @@ onMounted(async () => {
   width: 100%;
 }
 
+.editable-title.disabled,
+.editable-description.disabled,
+.editable-field.disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
 .editable-title {
-  font-size: 1.75rem;
+  font-size: 1.25rem;
   font-weight: 600;
   margin: 0;
-  padding: 12px 16px;
+  padding: 10px 12px;
   border-radius: 8px;
   cursor: pointer;
   transition: background-color 0.2s ease;
-  min-height: 48px;
+  min-height: 44px;
   display: flex;
   align-items: center;
   color: rgba(0, 0, 0, 0.87);
+  word-break: break-word;
 }
 
 .editable-title:hover {
@@ -1222,14 +1332,14 @@ onMounted(async () => {
 }
 
 .editable-description {
-  font-size: 1rem;
+  font-size: 0.9375rem;
   line-height: 1.6;
   margin: 0;
-  padding: 12px 16px;
+  padding: 10px 12px;
   border-radius: 8px;
   cursor: pointer;
   transition: background-color 0.2s ease;
-  min-height: 60px;
+  min-height: 56px;
   color: rgba(0, 0, 0, 0.87);
   white-space: pre-wrap;
   word-wrap: break-word;
@@ -1246,6 +1356,14 @@ onMounted(async () => {
 
 @media (min-width: 600px) {
   .editable-description {
+    font-size: 1rem;
+    padding: 12px 16px;
+    min-height: 60px;
+  }
+}
+
+@media (min-width: 960px) {
+  .editable-description {
     font-size: 1.125rem;
     padding: 16px 20px;
     min-height: 80px;
@@ -1257,14 +1375,21 @@ onMounted(async () => {
 }
 
 .editable-field {
-  font-size: 1rem;
+  font-size: 0.9375rem;
   line-height: 1.6;
   margin: 0;
-  padding: 12px 16px;
+  padding: 10px 12px;
   border-radius: 8px;
   cursor: pointer;
   transition: background-color 0.2s ease;
   color: rgba(0, 0, 0, 0.87);
+}
+
+@media (min-width: 600px) {
+  .editable-field {
+    font-size: 1rem;
+    padding: 12px 16px;
+  }
 }
 
 .editable-field:hover {
@@ -1276,10 +1401,18 @@ onMounted(async () => {
   margin-right: 8px;
 }
 
+.card-content {
+  padding: 16px;
+}
+
 @media (min-width: 600px) {
+  .card-content {
+    padding: 24px;
+  }
+  
   .editable-field {
-    font-size: 1.125rem;
-    padding: 16px 20px;
+    font-size: 1rem;
+    padding: 12px 16px;
   }
 }
 </style>

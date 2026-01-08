@@ -18,14 +18,14 @@
           </v-chip>
         </div>
         <div class="d-flex align-center gap-2">
-          <v-icon
-            v-if="challenge.privacy === 'private'"
-            color="grey-darken-1"
-            size="24"
-            class="privacy-icon"
-          >
-            mdi-lock
-          </v-icon>
+        <v-icon
+          v-if="challenge.privacy === 'private'"
+          color="grey-darken-1"
+          size="24"
+          class="privacy-icon"
+        >
+          mdi-lock
+        </v-icon>
           <v-btn
             icon="mdi-close"
             variant="text"
@@ -364,7 +364,7 @@
         </v-btn>
         <v-spacer></v-spacer>
         <v-btn
-          v-if="isWatched"
+          v-if="!isOwner && isWatched"
           variant="outlined"
           color="primary"
           :loading="watchingId === challenge._id"
@@ -374,7 +374,7 @@
           {{ t('challenges.unwatch') }}
         </v-btn>
         <v-btn
-          v-else-if="currentUserId && !isWatched"
+          v-else-if="!isOwner && currentUserId && !isWatched"
           variant="outlined"
           color="primary"
           :loading="watchingId === challenge._id"

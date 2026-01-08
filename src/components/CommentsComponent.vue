@@ -333,6 +333,10 @@ const props = defineProps({
   isOwner: {
     type: Boolean,
     default: false
+  },
+  isFinished: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -452,7 +456,7 @@ function formatDate(dateString) {
 }
 
 const canComment = computed(() => {
-  return props.allowComments !== false && !!props.currentUserId
+  return props.allowComments !== false && !!props.currentUserId && !props.isFinished
 })
 
 function canDeleteComment(comment) {
