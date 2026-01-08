@@ -9,23 +9,25 @@
           class="back-button"
         ></v-btn>
         <h1 class="page-title">{{ t('challenges.editTitle') }}</h1>
-        <v-chip
-          v-if="challenge?.challengeType"
-          :color="challengeTypeColor"
-          size="small"
-          class="ml-2 ml-md-4"
-        >
-          {{ challengeTypeLabel }}
-        </v-chip>
-        <v-icon
-          v-if="challenge?.privacy === 'private'"
-          color="grey-darken-1"
-          size="20"
-          class="ml-2 ml-md-4 privacy-icon"
-        >
-          mdi-lock
-        </v-icon>
         <v-spacer></v-spacer>
+        <div class="header-badges">
+          <v-chip
+            v-if="challenge?.challengeType"
+            :color="challengeTypeColor"
+            size="small"
+            class="ml-2"
+          >
+            {{ challengeTypeLabel }}
+          </v-chip>
+          <v-icon
+            v-if="challenge?.privacy === 'private'"
+            color="grey-darken-1"
+            size="20"
+            class="ml-2 privacy-icon"
+          >
+            mdi-lock
+          </v-icon>
+        </div>
       </div>
 
       <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4"></v-progress-linear>
@@ -276,10 +278,27 @@
                 </div>
               </div>
 
-              <ChallengeActions
-                v-model="editForm.actions"
-                :readonly="isDisabled"
-              />
+              <div class="actions-plan-wrapper">
+                <div ref="actionsScrollContainer" class="actions-plan-container">
+                  <ChallengeActions
+                    v-model="editForm.actions"
+                    :readonly="isDisabled"
+                    :hide-add-button="true"
+                  />
+                </div>
+                <div class="actions-plan-footer">
+                  <v-btn
+                    v-if="!isDisabled"
+                    prepend-icon="mdi-plus"
+                    variant="outlined"
+                    color="primary"
+                    class="add-action-btn mt-2"
+                    @click="handleAddAction"
+                  >
+                    {{ t('challenges.addAction') }}
+                  </v-btn>
+                </div>
+              </div>
             </template>
 
             <!-- Allow Comments Switcher -->
@@ -294,7 +313,7 @@
             </div>
 
             <!-- Comments Component -->
-            <div class="mb-4">
+            <div v-if="editForm.allowComments" class="mb-4">
               <CommentsComponent
                 :challenge-id="challenge._id"
                 :allow-comments="editForm.allowComments"
@@ -341,6 +360,7 @@
                 >
                   {{ t('challenges.cancel') }}
                 </v-btn>
+                <div class="button-spacer"></div>
                 <v-btn 
                   type="submit" 
                   variant="flat"
@@ -721,6 +741,25 @@ function goBack() {
   router.push('/challenges/my')
 }
 
+const actionsScrollContainer = ref(null)
+
+function handleAddAction() {
+  if (!editForm.actions || !Array.isArray(editForm.actions)) {
+    editForm.actions = []
+  }
+  editForm.actions.push({ text: '', checked: false, children: [] })
+  
+  // Scroll to the end of the actions list
+  nextTick(() => {
+    if (actionsScrollContainer.value) {
+      // Try to find the scrollable card-text element inside
+      const cardText = actionsScrollContainer.value.querySelector('.v-card-text')
+      const scrollTarget = cardText || actionsScrollContainer.value
+      scrollTarget.scrollTop = scrollTarget.scrollHeight
+    }
+  })
+}
+
 function handleDelete() {
   deleteConfirmDialog.value = true
 }
@@ -1067,6 +1106,13 @@ onMounted(async () => {
   margin-right: 8px;
 }
 
+.header-badges {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 8px;
+}
+
 .page-title {
   font-size: 1.25rem;
   font-weight: 600;
@@ -1218,6 +1264,11 @@ onMounted(async () => {
     flex-direction: row;
     gap: 0;
   }
+}
+
+.button-spacer {
+  width: 16px;
+  flex-shrink: 0;
 }
 
 .action-button {
@@ -1414,6 +1465,41 @@ onMounted(async () => {
     font-size: 1rem;
     padding: 12px 16px;
   }
+}
+
+.actions-plan-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 400px;
+}
+
+.actions-plan-container {
+  height: 100%;
+  max-height: 400px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+}
+
+.actions-plan-container :deep(.v-card) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.actions-plan-container :deep(.v-card-text) {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.actions-plan-footer {
+  padding: 12px 0;
+  margin-top: 8px;
+}
+
+.actions-plan-footer .add-action-btn {
+  border-radius: 8px !important;
 }
 </style>
 

@@ -115,7 +115,7 @@
       </div>
       <div class="d-flex align-center justify-space-between">
         <v-btn
-          v-if="!readonly"
+          v-if="!readonly && !hideAddButton"
           prepend-icon="mdi-plus"
           variant="outlined"
           color="primary"
@@ -142,6 +142,10 @@ const props = defineProps({
     default: () => []
   },
   readonly: {
+    type: Boolean,
+    default: false
+  },
+  hideAddButton: {
     type: Boolean,
     default: false
   }
