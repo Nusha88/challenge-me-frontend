@@ -58,6 +58,22 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   response => response,
   async error => {
+    // Handle authentication errors (401/403)
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      const token = localStorage.getItem('token')
+      if (token) {
+        // Clear invalid token
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        // Dispatch auth-changed event to update UI
+        window.dispatchEvent(new Event('auth-changed'))
+        // Only redirect if not already on login/register page
+        if (typeof window !== 'undefined' && !window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
+          window.location.href = '/login'
+        }
+      }
+    }
+    
     if (error.code === 'ERR_NETWORK' && apiHealthcheckUrl) {
       try {
         await axios.get(apiHealthcheckUrl, { timeout: 4000 })
@@ -80,6 +96,12 @@ export const authService = {
   logout: () => {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
+  },
+  forgotPassword: (data) => {
+    return api.post('/auth/forgot-password', data)
+  },
+  resetPassword: (data) => {
+    return api.post('/auth/reset-password', data)
   }
 }
 

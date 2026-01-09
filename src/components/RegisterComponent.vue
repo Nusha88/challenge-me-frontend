@@ -64,20 +64,6 @@
             {{ t('auth.submitRegister') }}
           </GradientButton>
 
-          <div class="divider mb-4">
-            <span>{{ t('auth.or') }}</span>
-          </div>
-
-          <v-btn
-            block
-            size="x-large"
-            variant="outlined"
-            class="google-button"
-            @click="handleGoogleSignIn"
-          >
-            <v-icon start>mdi-google</v-icon>
-            {{ t('auth.continueWithGoogle') }}
-          </v-btn>
         </v-form>
       </v-card-text>
     </v-card>
@@ -281,23 +267,6 @@ function closeSuccessModal() {
   showSuccess.value = false
   router.push('/')
 }
-
-const handleGoogleSignIn = () => {
-  // Determine backend URL - same logic as api.js
-  const hostname = window.location.hostname
-  const isLocal = ['localhost', '127.0.0.1'].includes(hostname) || hostname.endsWith('.local')
-  
-  let backendUrl = import.meta.env.VITE_API_BASE_URL
-  if (!backendUrl) {
-    backendUrl = isLocal ? 'http://localhost:3000' : 'https://challenge-me-backend-frh7.onrender.com'
-  } else {
-    // Remove /api suffix if present
-    backendUrl = backendUrl.replace(/\/api\/?$/, '')
-  }
-  
-  const googleAuthUrl = `${backendUrl}/api/auth/google`
-  window.location.href = googleAuthUrl
-}
 </script>
 
 <style scoped>
@@ -379,36 +348,4 @@ const handleGoogleSignIn = () => {
   border-radius: 12px !important;
 }
 
-.divider {
-  display: flex;
-  align-items: center;
-  text-align: center;
-  margin: 16px 0;
-  color: rgba(0, 0, 0, 0.6);
-  font-size: 14px;
-}
-
-.divider::before,
-.divider::after {
-  content: '';
-  flex: 1;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
-}
-
-.divider span {
-  padding: 0 16px;
-}
-
-.google-button {
-  border-radius: 12px !important;
-  border-color: rgba(0, 0, 0, 0.12) !important;
-  text-transform: none !important;
-  font-size: 1rem !important;
-  font-weight: 500 !important;
-  color: rgba(0, 0, 0, 0.87) !important;
-}
-
-.google-button:hover {
-  background-color: rgba(0, 0, 0, 0.04) !important;
-}
 </style> 

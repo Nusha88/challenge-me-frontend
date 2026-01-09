@@ -5,7 +5,6 @@
       <v-card-text>
         <v-form @submit.prevent="handleSubmit">
           <div class="challenge-type-section mb-4">
-            <label class="text-body-2 mb-2 d-block">{{ t('challenges.challengeType') }}</label>
             <div class="challenge-type-cards">
               <v-card
                 class="challenge-type-card"

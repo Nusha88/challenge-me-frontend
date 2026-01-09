@@ -58,7 +58,7 @@
             </v-list-item>
           </v-list>
         </div>
-        <v-alert v-else type="info">{{ t('profile.noData') }}</v-alert>
+        <v-alert v-else-if="!error" type="info">{{ t('profile.noData') }}</v-alert>
       </v-card-text>
     </v-card>
   </div>
@@ -105,13 +105,36 @@ const formatCountry = (value) => {
 }
 
 const fetchProfile = async () => {
+  // Check if user is logged in
+  const token = localStorage.getItem('token')
+  if (!token) {
+    error.value = t('profile.notLoggedIn')
+    loading.value = false
+    return
+  }
+
   loading.value = true
   error.value = ''
   try {
     const response = await userService.getProfile()
-    user.value = response.data.user
+    if (response.data?.user) {
+      user.value = response.data.user
+    } else {
+      error.value = t('profile.noData')
+    }
   } catch (err) {
-    error.value = err.response?.data?.message || t('notifications.profileError')
+    // Handle specific error cases
+    if (err.response?.status === 401 || err.response?.status === 403) {
+      error.value = t('profile.invalidToken')
+      // Clear invalid token
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      window.dispatchEvent(new Event('auth-changed'))
+    } else if (err.response?.status === 404) {
+      error.value = t('profile.userNotFound')
+    } else {
+      error.value = err.response?.data?.message || t('notifications.profileError')
+    }
   } finally {
     loading.value = false
   }

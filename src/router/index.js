@@ -34,6 +34,16 @@ const router = createRouter({
       component: LoginComponent
     },
     {
+      path: '/forgot-password',
+      name: 'forgot-password',
+      component: () => import('../components/ForgotPasswordComponent.vue')
+    },
+    {
+      path: '/reset-password',
+      name: 'reset-password',
+      component: () => import('../components/ResetPasswordComponent.vue')
+    },
+    {
       path: '/profile',
       name: 'profile',
       component: ProfileComponent
@@ -67,11 +77,6 @@ const router = createRouter({
       path: '/challenges/:id',
       name: 'view-challenge',
       component: AllChallengesComponent
-    },
-    {
-      path: '/auth/google/callback',
-      name: 'google-callback',
-      component: () => import('../components/GoogleCallback.vue')
     }
   ]
 })
