@@ -252,14 +252,14 @@ watch(() => isLoggedIn.value, (loggedIn) => {
         >
           <v-list>
             <v-list-item
-              :active="currentRoute === 'my-challenges'"
-              to="/challenges/my"
+              :active="currentRoute === 'challenges'"
+              to="/challenges"
               color="primary"
             >
               <template v-slot:prepend>
-                <v-icon icon="mdi-trophy"></v-icon>
+                <v-icon icon="mdi-flag-checkered"></v-icon>
               </template>
-              <v-list-item-title>{{ t('navigation.myChallenges') }}</v-list-item-title>
+              <v-list-item-title>{{ t('navigation.allChallenges') }}</v-list-item-title>
             </v-list-item>
 
             <v-list-item
@@ -271,17 +271,6 @@ watch(() => isLoggedIn.value, (loggedIn) => {
                 <v-icon icon="mdi-account-group"></v-icon>
               </template>
               <v-list-item-title>{{ t('navigation.allUsers') }}</v-list-item-title>
-            </v-list-item>
-
-            <v-list-item
-              :active="currentRoute === 'challenges'"
-              to="/challenges"
-              color="primary"
-            >
-              <template v-slot:prepend>
-                <v-icon icon="mdi-flag-checkered"></v-icon>
-              </template>
-              <v-list-item-title>{{ t('navigation.allChallenges') }}</v-list-item-title>
             </v-list-item>
 
             <v-list-item
@@ -339,15 +328,15 @@ watch(() => isLoggedIn.value, (loggedIn) => {
         <v-divider class="my-2"></v-divider>
 
         <v-list-item
-          :active="currentRoute === 'my-challenges'"
-          to="/challenges/my"
+          :active="currentRoute === 'challenges'"
+          to="/challenges"
           color="primary"
           @click="drawerOpen = false"
         >
           <template v-slot:prepend>
-            <v-icon icon="mdi-trophy"></v-icon>
+            <v-icon icon="mdi-flag-checkered"></v-icon>
           </template>
-          <v-list-item-title>{{ t('navigation.myChallenges') }}</v-list-item-title>
+          <v-list-item-title>{{ t('navigation.allChallenges') }}</v-list-item-title>
         </v-list-item>
 
         <v-list-item
@@ -360,18 +349,6 @@ watch(() => isLoggedIn.value, (loggedIn) => {
             <v-icon icon="mdi-account-group"></v-icon>
           </template>
           <v-list-item-title>{{ t('navigation.allUsers') }}</v-list-item-title>
-        </v-list-item>
-
-        <v-list-item
-          :active="currentRoute === 'challenges'"
-          to="/challenges"
-          color="primary"
-          @click="drawerOpen = false"
-        >
-          <template v-slot:prepend>
-            <v-icon icon="mdi-flag-checkered"></v-icon>
-          </template>
-          <v-list-item-title>{{ t('navigation.allChallenges') }}</v-list-item-title>
         </v-list-item>
 
         <v-list-item

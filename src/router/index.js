@@ -6,7 +6,6 @@ import LoginComponent from '../components/LoginComponent.vue'
 import ProfileComponent from '../components/ProfileComponent.vue'
 import AllChallengesComponent from '../components/AllChallengesComponent.vue'
 import AddChallengeComponent from '../components/AddChallengeComponent.vue'
-import MyChallengesComponent from '../components/MyChallengesComponent.vue'
 import ChallengeEditPage from '../components/ChallengeEditPage.vue'
 import WatchedChallengesComponent from '../components/WatchedChallengesComponent.vue'
 
@@ -29,6 +28,11 @@ const router = createRouter({
       component: UsersList
     },
     {
+      path: '/users/:id',
+      name: 'user-profile',
+      component: () => import('../components/UserComponent.vue')
+    },
+    {
       path: '/login',
       name: 'login',
       component: LoginComponent
@@ -46,12 +50,7 @@ const router = createRouter({
     {
       path: '/profile',
       name: 'profile',
-      component: ProfileComponent
-    },
-    {
-      path: '/challenges/my',
-      name: 'my-challenges',
-      component: MyChallengesComponent
+      component: () => import('../components/UserComponent.vue')
     },
     {
       path: '/challenges',

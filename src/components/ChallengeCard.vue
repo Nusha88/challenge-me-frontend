@@ -37,7 +37,18 @@
         </v-icon>
       </div>
       <div class="challenge-header-content">
-        <span class="text-h6 mb-1">{{ challenge.title }}</span>
+        <div class="challenge-title-row">
+          <span class="text-h6 mb-1">{{ challenge.title }}</span>
+          <v-icon
+            v-if="challenge.privacy === 'private'"
+            size="small"
+            color="grey-darken-1"
+            class="privacy-icon"
+            :title="t('challenges.privacyOptions.private')"
+          >
+            mdi-lock
+          </v-icon>
+        </div>
         <div class="challenge-duration text-caption text-medium-emphasis mb-1">
           {{ formatDateRange(challenge.startDate, challenge.endDate) }}
         </div>
@@ -546,6 +557,18 @@ function getParticipantAvatarStyle(participant) {
   flex-direction: column;
   justify-content: flex-start;
   min-width: 0;
+}
+
+.challenge-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.privacy-icon {
+  flex-shrink: 0;
+  opacity: 0.7;
 }
 
 .challenge-duration {

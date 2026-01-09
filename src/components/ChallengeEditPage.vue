@@ -737,8 +737,8 @@ function clearErrors() {
 }
 
 function goBack() {
-  // Navigate to My Challenges page
-  router.push('/challenges/my')
+  // Navigate to Profile page
+  router.push('/profile')
 }
 
 const actionsScrollContainer = ref(null)
@@ -772,7 +772,7 @@ async function confirmDelete() {
 
   try {
     await challengeService.deleteChallenge(challenge.value._id)
-    router.push('/challenges/my')
+    router.push('/profile')
   } catch (error) {
     saveError.value = error.response?.data?.message || t('notifications.deleteError')
   } finally {
@@ -924,7 +924,7 @@ async function handleSubmit() {
       formData.challengeType,
       formData.completedDays
     )
-    router.push('/challenges/my')
+    router.push('/profile')
   } catch (error) {
     saveError.value = error.response?.data?.message || t('notifications.updateError')
   } finally {

@@ -77,14 +77,15 @@
                       @update:model-value="handleOwnerCompletedDaysUpdate"
                     />
                   </template>
-                  <template v-else>
-                    <TeamCalendarView
-                      :start-date="editForm.startDate"
-                      :end-date="editForm.endDate"
-                      :participants="challenge.participants || []"
-                      :frequency="editForm.frequency"
-                    />
-                  </template>
+                <template v-else>
+                  <TeamCalendarView
+                    :start-date="editForm.startDate"
+                    :end-date="editForm.endDate"
+                    :participants="challenge.participants || []"
+                    :frequency="editForm.frequency"
+                    @participant-clicked="handleParticipantClick"
+                  />
+                </template>
                 </v-card-text>
               </v-card>
             </div>
@@ -285,6 +286,7 @@
                     :end-date="challenge.endDate"
                     :participants="challenge.participants || []"
                     :frequency="challenge.frequency"
+                    @participant-clicked="handleParticipantClick"
                   />
                 </template>
               </v-card-text>
@@ -1258,6 +1260,11 @@ function handleCancel() {
 }
 
 function handleClose() {
+  emit('update:modelValue', false)
+}
+
+function handleParticipantClick() {
+  // Close dialog when participant is clicked
   emit('update:modelValue', false)
 }
 

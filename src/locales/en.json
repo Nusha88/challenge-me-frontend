@@ -20,7 +20,27 @@
     "description": "Create, join, and conquer challenges together.",
     "title": "Achieve goals together with friends",
     "subtitle": "Turn routine into a game. Create personal challenges, compete with your team and track progress.",
-    "createFirstChallenge": "Create first challenge"
+    "createFirstChallenge": "Create first challenge",
+    "benefitsTitle": "What makes ChallengeMe special",
+    "benefits": {
+      "block1": {
+        "title": "Turn habits into a game",
+        "description": "Mini-challenges, levels, rewards - everything to not give up what you started."
+      },
+      "block2": {
+        "title": "Move together with friends",
+        "description": "Team challenges increase motivation by 3 times. Share progress, support each other and compete."
+      },
+      "block3": {
+        "title": "Track your progress",
+        "description": "Charts, streaks, checklists - everything at hand. You can see how you grow day by day."
+      },
+      "block4": {
+        "title": "Create challenges tailored to you",
+        "description": "Flexible settings: deadlines, checklists, levels, reminders. Everything tailored to your lifestyle."
+      }
+    },
+    "copyright": "© {year} ChallengeMe. All rights reserved."
   },
   "common": {
     "unknown": "Unknown",
@@ -109,10 +129,12 @@
   "users": {
     "title": "Registered Users",
     "name": "Name",
-    "age": "Age",
-    "country": "Country",
-    "registered": "Registration Date",
-    "noUsers": "No users found"
+    "challenges": "Challenges",
+    "daysOnSite": "Days on Site",
+    "noUsers": "No users found",
+    "userChallenges": "User Challenges",
+    "noChallenges": "This user has no challenges yet",
+    "userNotFound": "User not found"
   },
   "challenges": {
     "addTitle": "Create a Challenge",
@@ -198,7 +220,7 @@
     "loginPrompt": "Please log in to view your challenges.",
     "mustBeLoggedIn": "You must be logged in to create a challenge.",
     "detailsTitle": "Challenge Details",
-    "editTitle": "Edit Challenge",
+    "editTitle": "Challenge Details",
     "notFound": "Challenge not found",
     "notAuthorized": "You are not authorized to edit this challenge",
     "challengeFinished": "This challenge is finished and cannot be edited",

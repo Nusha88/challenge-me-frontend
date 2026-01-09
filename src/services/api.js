@@ -129,8 +129,12 @@ export const challengeService = {
   deleteChallenge: (id) => {
     return api.delete(`/challenges/${id}`)
   },
-  getChallengesByUser: (userId) => {
-    return api.get(`/challenges/user/${userId}`)
+  getChallengesByUser: (userId, options = {}) => {
+    const params = {}
+    if (options.excludePrivate !== undefined) {
+      params.excludePrivate = options.excludePrivate
+    }
+    return api.get(`/challenges/user/${userId}`, { params })
   },
   getAllChallenges: (excludeFinished = true) => {
     return api.get('/challenges', {

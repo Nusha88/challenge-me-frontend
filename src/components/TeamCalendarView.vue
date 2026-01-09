@@ -56,6 +56,7 @@
           v-for="participant in participantsWithStats"
           :key="participant.id"
           class="participant-item"
+          @click="navigateToUserProfile(participant)"
         >
           <div class="participant-info">
             <div
@@ -84,7 +85,11 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+
+const router = useRouter()
+const emit = defineEmits(['participant-clicked'])
 
 const props = defineProps({
   startDate: {
@@ -317,6 +322,16 @@ function getParticipantAvatarStyle(participant) {
     return {}
   }
   return { backgroundColor: getParticipantColor(participant) }
+}
+
+function navigateToUserProfile(participant) {
+  // Get user ID from participant
+  const userId = participant.userId?._id || participant.userId || participant._id || participant.id
+  if (userId && typeof userId !== 'number') {
+    // Emit event before navigation so parent can close dialog if needed
+    emit('participant-clicked')
+    router.push(`/users/${userId}`)
+  }
 }
 </script>
 
@@ -570,6 +585,13 @@ function getParticipantAvatarStyle(participant) {
   padding: 12px;
   background-color: #f5f5f5;
   border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.participant-item:hover {
+  background-color: #e8e8e8;
+  transform: translateX(2px);
 }
 
 .participant-info {
