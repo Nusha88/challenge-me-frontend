@@ -115,6 +115,15 @@ export const userService = {
   },
   getAllUsers: () => {
     return api.get('/auth/users')
+  },
+  getTodayChecklist: () => {
+    return api.get('/auth/daily-checklist/today')
+  },
+  updateTodayChecklist: (tasks) => {
+    return api.put('/auth/daily-checklist/today', { tasks })
+  },
+  getChecklistHistory: () => {
+    return api.get('/auth/daily-checklist/history')
   }
 }
 

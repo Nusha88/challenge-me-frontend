@@ -38,7 +38,7 @@
       </div>
       <div class="challenge-header-content">
         <div class="challenge-title-row">
-          <span class="text-h6 mb-1">{{ challenge.title }}</span>
+        <span class="text-h6 mb-1">{{ challenge.title }}</span>
           <v-icon
             v-if="challenge.privacy === 'private'"
             size="small"
@@ -204,15 +204,15 @@ const isOwner = computed(() => {
 const isFinished = computed(() => {
   // Check if endDate is in the past
   if (props.challenge.endDate) {
-    try {
-      const endDate = new Date(props.challenge.endDate)
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      endDate.setHours(0, 0, 0, 0)
+  try {
+    const endDate = new Date(props.challenge.endDate)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    endDate.setHours(0, 0, 0, 0)
       if (endDate < today) {
         return true
       }
-    } catch {
+  } catch {
       // Continue to check other conditions
     }
   }
@@ -250,8 +250,8 @@ const isSuccessful = computed(() => {
   // For result challenges, check if all actions are done
   if (props.challenge.challengeType === 'result') {
     if (!props.challenge.actions || !Array.isArray(props.challenge.actions) || props.challenge.actions.length === 0) {
-      return false
-    }
+    return false
+  }
     
     // Check if all actions and their children are checked
     return props.challenge.actions.every(action => {

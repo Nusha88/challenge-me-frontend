@@ -13,6 +13,8 @@
     "myChallenges": "My Challenges",
     "allChallenges": "All Challenges",
     "watchedChallenges": "Watched Challenges",
+    "checklistHistory": "Checklist History",
+    "today": "Today",
     "language": "Language"
   },
   "home": {
@@ -40,7 +42,33 @@
         "description": "Flexible settings: deadlines, checklists, levels, reminders. Everything tailored to your lifestyle."
       }
     },
-    "copyright": "© {year} ChallengeMe. All rights reserved."
+    "copyright": "© {year} ChallengeMe. All rights reserved.",
+    "loggedIn": {
+      "greeting": "Hello, {name}",
+      "motivational": "Every step is a victory. Forward!",
+      "dailyChecklist": {
+        "title": "Today's Checklist",
+        "empty": "No steps added yet. Add your first step!",
+        "addStepPlaceholder": "Enter a step...",
+        "addStep": "Add Step",
+        "deleteStep": "Delete step",
+        "markComplete": "Mark as complete",
+        "markIncomplete": "Mark as incomplete",
+        "stepCompleted": "Completed",
+        "stepPending": "Pending",
+        "completed": "completed",
+        "loadError": "Failed to load checklist",
+        "saveError": "Failed to save checklist"
+      },
+      "checklistHistory": {
+        "title": "Checklist History",
+        "empty": "No checklists found. Start creating your daily checklists!",
+        "loadError": "Failed to load checklist history",
+        "today": "Today",
+        "yesterday": "Yesterday",
+        "noTasks": "No tasks"
+      }
+    }
   },
   "common": {
     "unknown": "Unknown",
@@ -304,7 +332,7 @@
     "apiError": "Failed to load data",
     "joinError": "Failed to join challenge",
     "updateError": "Failed to update challenge",
-    "deleteError": "Failed to delete challenge",
+    "deleteChallengeError": "Failed to delete challenge",
     "deleteSuccess": "Challenge deleted successfully",
     "createError": "Failed to create challenge",
     "mustLogin": "You must be logged in to continue.",

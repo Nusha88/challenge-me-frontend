@@ -714,6 +714,10 @@ onMounted(() => {
   position: relative;
   cursor: pointer;
   display: inline-block;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  overflow: hidden;
 }
 
 .avatar-clickable:hover .avatar-overlay {
@@ -748,8 +752,8 @@ onMounted(() => {
   position: absolute;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
+  width: 100%;
+  height: 100%;
   background-color: rgba(0, 0, 0, 0.6);
   display: flex;
   flex-direction: column;

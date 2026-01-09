@@ -11,22 +11,22 @@
         <h1 class="page-title">{{ t('challenges.editTitle') }}</h1>
         <v-spacer></v-spacer>
         <div class="header-badges">
-          <v-chip
-            v-if="challenge?.challengeType"
-            :color="challengeTypeColor"
-            size="small"
+        <v-chip
+          v-if="challenge?.challengeType"
+          :color="challengeTypeColor"
+          size="small"
             class="ml-2"
-          >
-            {{ challengeTypeLabel }}
-          </v-chip>
-          <v-icon
-            v-if="challenge?.privacy === 'private'"
-            color="grey-darken-1"
+        >
+          {{ challengeTypeLabel }}
+        </v-chip>
+        <v-icon
+          v-if="challenge?.privacy === 'private'"
+          color="grey-darken-1"
             size="20"
             class="ml-2 privacy-icon"
-          >
-            mdi-lock
-          </v-icon>
+        >
+          mdi-lock
+        </v-icon>
         </div>
       </div>
 
@@ -280,8 +280,8 @@
 
               <div class="actions-plan-wrapper">
                 <div ref="actionsScrollContainer" class="actions-plan-container">
-                  <ChallengeActions
-                    v-model="editForm.actions"
+              <ChallengeActions
+                v-model="editForm.actions"
                     :readonly="isDisabled"
                     :hide-add-button="true"
                   />
@@ -341,36 +341,36 @@
                 </v-btn>
               </template>
               <template v-else>
-                <v-btn 
-                  variant="elevated" 
-                  color="error" 
-                  @click="handleDelete" 
-                  :disabled="saveLoading || deleteLoading"
-                  :loading="deleteLoading"
-                  class="action-button delete-button"
-                >
-                  {{ t('challenges.delete') }}
-                </v-btn>
-                <v-spacer></v-spacer>
-                <v-btn 
-                  variant="outlined" 
-                  @click="goBack" 
-                  :disabled="saveLoading || deleteLoading"
-                  class="action-button cancel-button"
-                >
-                  {{ t('challenges.cancel') }}
-                </v-btn>
+              <v-btn 
+                variant="elevated" 
+                color="error" 
+                @click="handleDelete" 
+                :disabled="saveLoading || deleteLoading"
+                :loading="deleteLoading"
+                class="action-button delete-button"
+              >
+                {{ t('challenges.delete') }}
+              </v-btn>
+              <v-spacer></v-spacer>
+              <v-btn 
+                variant="outlined" 
+                @click="goBack" 
+                :disabled="saveLoading || deleteLoading"
+                class="action-button cancel-button"
+              >
+                {{ t('challenges.cancel') }}
+              </v-btn>
                 <div class="button-spacer"></div>
-                <v-btn 
-                  type="submit" 
-                  variant="flat"
-                  color="primary" 
-                  :disabled="saveLoading || deleteLoading || !isFormValid"
+              <v-btn 
+                type="submit" 
+                variant="flat"
+                color="primary" 
+                :disabled="saveLoading || deleteLoading || !isFormValid"
                   :loading="saveLoading"
-                  class="action-button save-button"
-                >
-                  {{ t('challenges.update') }}
-                </v-btn>
+                class="action-button save-button"
+              >
+                {{ t('challenges.update') }}
+              </v-btn>
               </template>
             </v-card-actions>
           </v-form>
@@ -774,7 +774,7 @@ async function confirmDelete() {
     await challengeService.deleteChallenge(challenge.value._id)
     router.push('/profile')
   } catch (error) {
-    saveError.value = error.response?.data?.message || t('notifications.deleteError')
+    saveError.value = error.response?.data?.message || t('notifications.deleteChallengeError')
   } finally {
     deleteLoading.value = false
     deleteConfirmDialog.value = false
@@ -1085,7 +1085,7 @@ onMounted(async () => {
 
 @media (min-width: 600px) {
   .challenge-edit-page {
-    padding: 16px 0;
+  padding: 16px 0;
   }
 }
 
@@ -1098,7 +1098,7 @@ onMounted(async () => {
 
 @media (min-width: 600px) {
   .page-header {
-    gap: 16px;
+  gap: 16px;
   }
 }
 
@@ -1496,7 +1496,7 @@ onMounted(async () => {
 .actions-plan-footer {
   padding: 12px 0;
   margin-top: 8px;
-}
+  }
 
 .actions-plan-footer .add-action-btn {
   border-radius: 8px !important;

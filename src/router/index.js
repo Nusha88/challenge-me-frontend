@@ -76,6 +76,11 @@ const router = createRouter({
       path: '/challenges/:id',
       name: 'view-challenge',
       component: AllChallengesComponent
+    },
+    {
+      path: '/checklists/history',
+      name: 'checklists-history',
+      component: () => import('../components/DailyChecklistsHistory.vue')
     }
   ]
 })

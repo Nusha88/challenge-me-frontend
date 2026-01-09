@@ -77,15 +77,15 @@
                       @update:model-value="handleOwnerCompletedDaysUpdate"
                     />
                   </template>
-                <template v-else>
-                  <TeamCalendarView
-                    :start-date="editForm.startDate"
-                    :end-date="editForm.endDate"
-                    :participants="challenge.participants || []"
+                  <template v-else>
+                    <TeamCalendarView
+                      :start-date="editForm.startDate"
+                      :end-date="editForm.endDate"
+                      :participants="challenge.participants || []"
                     :frequency="editForm.frequency"
                     @participant-clicked="handleParticipantClick"
-                  />
-                </template>
+                    />
+                  </template>
                 </v-card-text>
               </v-card>
             </div>

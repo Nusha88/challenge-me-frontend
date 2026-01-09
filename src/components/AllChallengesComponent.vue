@@ -462,7 +462,7 @@ async function handleDialogDelete(challengeId) {
     await fetchChallenges()
     detailsDialogOpen.value = false
   } catch (error) {
-    saveError.value = error.response?.data?.message || t('notifications.deleteError')
+    saveError.value = error.response?.data?.message || t('notifications.deleteChallengeError')
   } finally {
     deleteLoading.value = false
   }

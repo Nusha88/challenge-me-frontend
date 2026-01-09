@@ -34,6 +34,16 @@ function updateAuthState() {
 }
 
 const userName = computed(() => currentUser.value?.name || null)
+const userAvatarUrl = computed(() => currentUser.value?.avatarUrl || null)
+
+const getUserInitials = (name) => {
+  if (!name) return '?'
+  const parts = name.trim().split(' ')
+  if (parts.length === 1) {
+    return parts[0].slice(0, 2).toUpperCase()
+  }
+  return `${parts[0][0] || ''}${parts[1][0] || ''}`.toUpperCase()
+}
 
 const currentLocaleLabel = computed(() => {
   return availableLocales.find(lang => lang.code === locale.value)?.label || locale.value
@@ -143,6 +153,15 @@ watch(() => isLoggedIn.value, (loggedIn) => {
       <div class="add-button-mobile-wrapper d-md-none">
         <v-btn
           v-if="isLoggedIn"
+          to="/"
+          size="default"
+          class="today-button-mobile mr-2"
+          prepend-icon="mdi-calendar-today"
+        >
+          {{ t('navigation.today') }}
+        </v-btn>
+        <v-btn
+          v-if="isLoggedIn"
           to="/challenges/add"
           variant="elevated"
           size="large"
@@ -153,29 +172,6 @@ watch(() => isLoggedIn.value, (loggedIn) => {
         </v-btn>
       </div>
       <v-spacer></v-spacer>
-      <v-menu location="bottom" open-on-hover class="d-none d-md-block">
-        <template #activator="{ props }">
-          <v-btn
-            v-bind="props"
-            variant="text"
-            class="mr-2 language-button d-none d-md-inline-flex"
-            prepend-icon="mdi-translate"
-            style="color: rgba(0, 0, 0, 0.87);"
-          >
-            {{ currentLocaleLabel }}
-          </v-btn>
-        </template>
-        <v-list>
-          <v-list-item
-            v-for="language in availableLocales"
-            :key="language.code"
-            :active="language.code === locale.value"
-            @click="changeLanguage(language.code)"
-          >
-            <v-list-item-title>{{ language.label }}</v-list-item-title>
-          </v-list-item>
-        </v-list>
-      </v-menu>
       <v-btn
         v-if="!isLoggedIn && route.path !== '/register'"
         to="/register"
@@ -193,6 +189,15 @@ watch(() => isLoggedIn.value, (loggedIn) => {
         style="border-color: #3C60E8; color: #3C60E8; border-width: 2px;"
       >
         {{ t('navigation.login') }}
+      </v-btn>
+      <v-btn
+        v-if="isLoggedIn"
+        to="/"
+        size="default"
+        class="mr-2 today-button d-none d-md-inline-flex"
+        prepend-icon="mdi-calendar-today"
+      >
+        {{ t('navigation.today') }}
       </v-btn>
       <v-btn
         v-if="isLoggedIn"
@@ -221,25 +226,29 @@ watch(() => isLoggedIn.value, (loggedIn) => {
         >
         </v-badge>
       </v-btn>
-      <v-btn
-        v-if="isLoggedIn"
-        to="/profile"
-        variant="text"
-        class="mr-2 d-none d-md-inline-flex"
-        prepend-icon="mdi-account"
-        style="color: rgba(0, 0, 0, 0.87);"
-      >
-        {{ userName || t('navigation.profile') }}
-      </v-btn>
-      <v-btn
-        v-if="isLoggedIn"
-        variant="text"
-        class="d-none d-md-inline-flex"
-        @click="logout"
-        style="color: rgba(0, 0, 0, 0.87);"
-      >
-        {{ t('navigation.logout') }}
-      </v-btn>
+      <v-menu location="bottom" open-on-hover class="d-none d-md-block">
+        <template #activator="{ props }">
+          <v-btn
+            v-bind="props"
+            variant="text"
+            class="mr-2 language-button d-none d-md-inline-flex"
+            prepend-icon="mdi-translate"
+            style="color: rgba(0, 0, 0, 0.87);"
+          >
+            {{ currentLocaleLabel }}
+          </v-btn>
+        </template>
+        <v-list>
+          <v-list-item
+            v-for="language in availableLocales"
+            :key="language.code"
+            :active="language.code === locale.value"
+            @click="changeLanguage(language.code)"
+          >
+            <v-list-item-title>{{ language.label }}</v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
     </v-app-bar>
 
     <v-main :class="['main-content', { 'public-view': !isLoggedIn, 'with-sidebar': isLoggedIn }]">
@@ -251,6 +260,33 @@ watch(() => isLoggedIn.value, (loggedIn) => {
           class="d-none d-md-block desktop-sidebar sidebar-column"
         >
           <v-list>
+            <v-list-item
+              to="/profile"
+              :active="currentRoute === 'profile'"
+              color="primary"
+            >
+              <template v-slot:prepend>
+                <v-avatar size="32" class="sidebar-avatar">
+                  <v-img v-if="userAvatarUrl" :src="userAvatarUrl" :alt="userName || ''" cover></v-img>
+                  <span v-else class="sidebar-avatar-initials">{{ getUserInitials(userName) }}</span>
+                </v-avatar>
+              </template>
+              <v-list-item-title>{{ userName || t('navigation.profile') }}</v-list-item-title>
+            </v-list-item>
+
+            <v-divider class="my-2"></v-divider>
+
+            <v-list-item
+              to="/"
+              :active="currentRoute === 'home'"
+              color="primary"
+            >
+              <template v-slot:prepend>
+                <v-icon icon="mdi-calendar-today"></v-icon>
+              </template>
+              <v-list-item-title>{{ t('navigation.today') }}</v-list-item-title>
+            </v-list-item>
+
             <v-list-item
               :active="currentRoute === 'challenges'"
               to="/challenges"
@@ -282,6 +318,29 @@ watch(() => isLoggedIn.value, (loggedIn) => {
                 <v-icon icon="mdi-eye"></v-icon>
               </template>
               <v-list-item-title>{{ t('navigation.watchedChallenges') }}</v-list-item-title>
+            </v-list-item>
+
+            <v-list-item
+              :active="currentRoute === 'checklists-history'"
+              to="/checklists/history"
+              color="primary"
+            >
+              <template v-slot:prepend>
+                <v-icon icon="mdi-history"></v-icon>
+              </template>
+              <v-list-item-title>{{ t('navigation.checklistHistory') }}</v-list-item-title>
+            </v-list-item>
+
+            <v-divider class="my-2"></v-divider>
+
+            <v-list-item
+              @click="logout"
+              color="error"
+            >
+              <template v-slot:prepend>
+                <v-icon icon="mdi-logout"></v-icon>
+              </template>
+              <v-list-item-title>{{ t('navigation.logout') }}</v-list-item-title>
             </v-list-item>
           </v-list>
         </v-navigation-drawer>
@@ -320,12 +379,27 @@ watch(() => isLoggedIn.value, (loggedIn) => {
           @click="drawerOpen = false"
         >
           <template v-slot:prepend>
-            <v-icon icon="mdi-account"></v-icon>
+            <v-avatar size="32" class="sidebar-avatar">
+              <v-img v-if="userAvatarUrl" :src="userAvatarUrl" :alt="userName || ''" cover></v-img>
+              <span v-else class="sidebar-avatar-initials">{{ getUserInitials(userName) }}</span>
+            </v-avatar>
           </template>
           <v-list-item-title>{{ userName || t('navigation.profile') }}</v-list-item-title>
         </v-list-item>
 
         <v-divider class="my-2"></v-divider>
+
+        <v-list-item
+          to="/"
+          :active="currentRoute === 'home'"
+          color="primary"
+          @click="drawerOpen = false"
+        >
+          <template v-slot:prepend>
+            <v-icon icon="mdi-calendar-today"></v-icon>
+          </template>
+          <v-list-item-title>{{ t('navigation.today') }}</v-list-item-title>
+        </v-list-item>
 
         <v-list-item
           :active="currentRoute === 'challenges'"
@@ -361,6 +435,18 @@ watch(() => isLoggedIn.value, (loggedIn) => {
             <v-icon icon="mdi-eye"></v-icon>
           </template>
           <v-list-item-title>{{ t('navigation.watchedChallenges') }}</v-list-item-title>
+        </v-list-item>
+
+        <v-list-item
+          :active="currentRoute === 'checklists-history'"
+          to="/checklists/history"
+          color="primary"
+          @click="drawerOpen = false"
+        >
+          <template v-slot:prepend>
+            <v-icon icon="mdi-history"></v-icon>
+          </template>
+          <v-list-item-title>{{ t('navigation.checklistHistory') }}</v-list-item-title>
         </v-list-item>
 
         <v-list-item
@@ -465,8 +551,9 @@ watch(() => isLoggedIn.value, (loggedIn) => {
   padding-top: 0;
   top: 0;
   width: auto;
-  background-color: transparent !important;
+  background-color: #F4F0FF !important;
   border: none !important;
+  color: #2E2A47;
 }
 
 .desktop-sidebar :deep(.v-list) {
@@ -475,12 +562,13 @@ watch(() => isLoggedIn.value, (loggedIn) => {
 
 .desktop-sidebar :deep(.v-navigation-drawer__content) {
   padding-top: 0;
-  background-color: transparent !important;
+  background-color: #F4F0FF !important;
+  color: #2E2A47;
 }
 
 .desktop-sidebar :deep(.v-navigation-drawer__prepend),
 .desktop-sidebar :deep(.v-navigation-drawer__append) {
-  background-color: transparent !important;
+  background-color: #F4F0FF !important;
 }
 
 .desktop-sidebar :deep(.v-navigation-drawer__border) {
@@ -489,6 +577,64 @@ watch(() => isLoggedIn.value, (loggedIn) => {
 
 .mobile-drawer {
   z-index: 2000;
+  background-color: #F4F0FF !important;
+  color: #2E2A47;
+}
+
+.mobile-drawer :deep(.v-navigation-drawer__content) {
+  background-color: #F4F0FF !important;
+  color: #2E2A47;
+}
+
+.mobile-drawer :deep(.v-list-item-title) {
+  font-size: 0.95rem;
+}
+
+@media (max-width: 600px) {
+  .mobile-drawer {
+    width: 280px !important;
+  }
+
+  .mobile-drawer :deep(.v-list-item-title) {
+    font-size: 0.9rem;
+  }
+
+  .mobile-drawer :deep(.v-icon) {
+    font-size: 20px;
+  }
+
+  .mobile-drawer :deep(.v-avatar) {
+    width: 28px !important;
+    height: 28px !important;
+  }
+
+  .mobile-drawer .sidebar-avatar-initials {
+    font-size: 12px;
+  }
+}
+
+.desktop-sidebar :deep(.v-list-item-title) {
+  font-size: 0.95rem;
+}
+
+@media (min-width: 960px) and (max-width: 1279px) {
+  .desktop-sidebar {
+    width: 220px !important;
+  }
+
+  .desktop-sidebar :deep(.v-list-item-title) {
+    font-size: 0.9rem;
+  }
+
+  .desktop-sidebar :deep(.v-icon) {
+    font-size: 20px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .desktop-sidebar {
+    width: 256px !important;
+  }
 }
 
 @media (max-width: 959px) {
@@ -533,7 +679,7 @@ watch(() => isLoggedIn.value, (loggedIn) => {
   top: 0;
   height: 100%;
   width: 4px;
-  background: linear-gradient(180deg, #1FA0F6 0%, #A62EE8 100%);
+  background: linear-gradient(90deg, #7C4DFF, #536DFE);
   transform: scaleY(0);
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -543,9 +689,9 @@ watch(() => isLoggedIn.value, (loggedIn) => {
 }
 
 .v-list-item:hover {
-  background-color: rgba(31, 160, 246, 0.1) !important;
+  background-color: rgba(124, 77, 255, 0.1) !important;
   transform: translateX(4px);
-  box-shadow: 0 2px 8px rgba(31, 160, 246, 0.2);
+  box-shadow: 0 2px 8px rgba(124, 77, 255, 0.2);
 }
 
 .v-list-item :deep(.v-list-item__prepend) {
@@ -558,36 +704,46 @@ watch(() => isLoggedIn.value, (loggedIn) => {
 
 .v-list-item :deep(.v-icon) {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #2E2A47;
 }
 
 .v-list-item:hover :deep(.v-icon) {
   transform: scale(1.15) rotate(5deg);
-  color: #1FA0F6;
+  color: #7C4DFF;
 }
 
 .v-list-item :deep(.v-list-item-title) {
   transition: color 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  color: #2E2A47;
 }
 
 .v-list-item:hover :deep(.v-list-item-title) {
-  color: #1FA0F6;
+  color: #7C4DFF;
   transform: translateX(2px);
 }
 
 .v-list-item.active {
-  background-color: #1976d2 !important;
+  background: linear-gradient(90deg, #7C4DFF, #536DFE) !important;
   color: white !important;
   transform: translateX(4px);
-  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+  box-shadow: 0 4px 12px rgba(124, 77, 255, 0.3);
 }
 
 .v-list-item.active::before {
   transform: scaleY(1);
-  background: linear-gradient(180deg, #1976d2 0%, #1565c0 100%);
+  background: linear-gradient(90deg, #7C4DFF, #536DFE);
 }
 
 .v-list-item.active :deep(.v-icon) {
   transform: scale(1.1);
+  color: white !important;
+}
+
+.v-list-item.active :deep(.v-list-item-title) {
   color: white !important;
 }
 
@@ -710,6 +866,55 @@ watch(() => isLoggedIn.value, (loggedIn) => {
   box-shadow: 0 4px 12px rgba(31, 160, 246, 0.4);
 }
 
+.today-button {
+  font-weight: 600;
+  border-radius: 10px;
+  padding-left: 16px;
+  padding-right: 16px;
+  background: transparent !important;
+  border: 1px solid rgba(31, 160, 246, 0.2);
+  color: #1565C0 !important;
+  transition: all 0.2s ease;
+}
+
+.today-button :deep(.v-btn__content) {
+  color: #1565C0 !important;
+}
+
+.today-button :deep(.v-icon) {
+  color: #1565C0 !important;
+}
+
+.today-button:hover {
+  background: transparent !important;
+  border-color: rgba(31, 160, 246, 0.3);
+  transform: translateY(-1px);
+}
+
+.today-button-mobile {
+  font-weight: 600;
+  border-radius: 10px;
+  padding-left: 12px;
+  padding-right: 12px;
+  background: linear-gradient(135deg, rgba(31, 160, 246, 0.1) 0%, rgba(166, 46, 232, 0.1) 100%) !important;
+  border: 1px solid rgba(31, 160, 246, 0.2);
+  color: #1565C0 !important;
+  transition: all 0.2s ease;
+}
+
+.today-button-mobile :deep(.v-btn__content) {
+  color: #1565C0 !important;
+}
+
+.today-button-mobile :deep(.v-icon) {
+  color: #1565C0 !important;
+}
+
+.today-button-mobile:hover {
+  background: linear-gradient(135deg, rgba(31, 160, 246, 0.15) 0%, rgba(166, 46, 232, 0.15) 100%) !important;
+  border-color: rgba(31, 160, 246, 0.3);
+}
+
 .brand-link {
   color: white;
   font-weight: 600;
@@ -739,6 +944,23 @@ watch(() => isLoggedIn.value, (loggedIn) => {
 .language-button {
   text-transform: none;
   font-weight: 500;
+}
+
+.sidebar-avatar {
+  border: 2px solid rgba(31, 160, 246, 0.2);
+  transition: border-color 0.2s ease;
+}
+
+.sidebar-avatar-initials {
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, #1FA0F6 0%, #A62EE8 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
 }
 
 .app-bar-custom {
@@ -786,6 +1008,7 @@ watch(() => isLoggedIn.value, (loggedIn) => {
     overflow-x: auto;
     overflow-y: hidden;
     gap: 0.25em;
+    min-height: 56px;
   }
   
   .brand-link {
@@ -818,15 +1041,45 @@ watch(() => isLoggedIn.value, (loggedIn) => {
   .login-button :deep(.v-btn__content) {
     padding: 0 4px;
   }
+
+  .today-button-mobile {
+    font-size: 0.75rem;
+    padding: 6px 10px;
+    height: 36px;
+    min-width: auto;
+  }
+
+  .today-button-mobile :deep(.v-btn__content) {
+    padding: 0 4px;
+    gap: 4px;
+  }
+
+  .cta-button {
+    font-size: 0.875rem;
+    padding: 8px 16px;
+    height: 40px;
+    min-width: 140px;
+  }
+
+  .cta-button :deep(.v-btn__content) {
+    padding: 0 4px;
+    gap: 6px;
+  }
+
+  .add-button-mobile-wrapper {
+    gap: 0.5em;
+    display: flex;
+    align-items: center;
+  }
 }
 
 @media (max-width: 600px) {
   .app-bar-custom {
-    margin: 0.5em 0.25em 0 0.25em;
+    margin: 0;
   }
   
   .app-bar-custom :deep(.v-toolbar__content) {
-    padding: 0.5em 0.25em;
+    padding: 0.5em 0.5em;
     gap: 0.25em;
   }
   
@@ -842,6 +1095,67 @@ watch(() => isLoggedIn.value, (loggedIn) => {
     font-size: 0.7rem;
     padding: 4px 8px;
     height: 28px;
+  }
+
+  .today-button-mobile {
+    font-size: 0.7rem;
+    padding: 4px 8px;
+    height: 32px;
+  }
+
+  .today-button-mobile :deep(.v-btn__content) {
+    gap: 3px;
+  }
+
+  .today-button-mobile :deep(.v-icon) {
+    font-size: 18px;
+  }
+
+  .cta-button {
+    font-size: 0.8rem;
+    padding: 6px 12px;
+    height: 36px;
+    min-width: 120px;
+  }
+
+  .cta-button :deep(.v-btn__content) {
+    gap: 4px;
+  }
+
+  .cta-button :deep(.v-icon) {
+    font-size: 20px;
+  }
+}
+
+@media (min-width: 960px) and (max-width: 1279px) {
+  .app-bar-custom :deep(.v-toolbar__content) {
+    padding: 0 1em;
+  }
+
+  .today-button {
+    padding-left: 12px;
+    padding-right: 12px;
+    font-size: 0.875rem;
+  }
+
+  .cta-button {
+    padding-left: 20px;
+    padding-right: 20px;
+    font-size: 0.875rem;
+  }
+
+  .language-button {
+    font-size: 0.875rem;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .notification-button {
+    padding: 0 8px;
+  }
+
+  .profile-button {
+    padding: 0 4px;
   }
 }
 
@@ -886,11 +1200,65 @@ watch(() => isLoggedIn.value, (loggedIn) => {
   left: 50%;
   transform: translateX(-50%);
   z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
 }
 
 @media (min-width: 960px) {
   .add-button-mobile-wrapper {
     display: none !important;
+  }
+}
+
+.profile-button {
+  padding: 0 4px;
+  min-width: auto;
+}
+
+.profile-avatar {
+  transition: transform 0.2s ease;
+}
+
+.profile-button:hover .profile-avatar {
+  transform: scale(1.1);
+}
+
+.profile-avatar-initials {
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, #1FA0F6 0%, #A62EE8 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.notification-button {
+  min-width: auto;
+  padding: 0 8px;
+}
+
+.notification-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+}
+
+.language-button {
+  min-width: auto;
+  white-space: nowrap;
+}
+
+@media (max-width: 1279px) {
+  .language-button :deep(.v-btn__content) {
+    gap: 4px;
+  }
+
+  .language-button {
+    font-size: 0.875rem;
   }
 }
 </style> 
