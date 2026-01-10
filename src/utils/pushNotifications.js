@@ -177,6 +177,8 @@ function urlBase64ToUint8Array(base64String) {
 
 /**
  * Initialize push notifications (call this when user logs in)
+ * This only registers the service worker and creates subscription if needed
+ * Syncing to server happens separately after login completes
  */
 export async function initializePushNotifications() {
   const isLoggedIn = !!localStorage.getItem('token')
@@ -184,13 +186,58 @@ export async function initializePushNotifications() {
     return
   }
 
-  // Register service worker
-  await registerServiceWorker()
+  try {
+    // Register service worker (non-blocking)
+    registerServiceWorker().catch(() => {
+      // Silent fail - service worker registration shouldn't block login
+    })
 
-  // Check if already subscribed
-  const isSubscribed = await isSubscribedToPushNotifications()
-  if (!isSubscribed) {
-    // Try to subscribe
-    await subscribeToPushNotifications()
+    // Don't try to sync or subscribe here - do it after login completes
+    // This prevents any authentication errors from blocking the login process
+  } catch (error) {
+    // Silent fail - don't block login
+  }
+}
+
+/**
+ * Sync existing browser subscription to server (call after login completes)
+ */
+export async function syncPushSubscriptionToServer() {
+  try {
+    // Verify token exists and user is logged in
+    const token = localStorage.getItem('token')
+    if (!token) {
+      return false
+    }
+
+    if (!('serviceWorker' in navigator)) {
+      return false
+    }
+
+    // Wait for service worker to be ready
+    const reg = await navigator.serviceWorker.ready
+    const subscription = await reg.pushManager.getSubscription()
+    
+    if (subscription) {
+      // Double-check token is still valid before syncing
+      const currentToken = localStorage.getItem('token')
+      if (!currentToken) {
+        return false
+      }
+      
+      const subscriptionData = subscription.toJSON()
+      await pushService.subscribe(subscriptionData)
+      console.log('Push subscription synced to server')
+      return true
+    }
+    
+    return false
+  } catch (error) {
+    // Silent fail - subscription exists in browser
+    // Don't log errors for auth failures - they're expected during login
+    if (error.response?.status !== 401 && error.response?.status !== 403) {
+      console.log('Could not sync push subscription:', error.message)
+    }
+    return false
   }
 }

@@ -6,7 +6,7 @@ import { useDisplay } from 'vuetify'
 import { SUPPORTED_LOCALES, setLocale } from '../i18n'
 import NotificationsComponent from './NotificationsComponent.vue'
 import { notificationService, userService, challengeService } from '../services/api'
-import { initializePushNotifications } from '../utils/pushNotifications'
+import { initializePushNotifications, syncPushSubscriptionToServer } from '../utils/pushNotifications'
 
 const router = useRouter()
 const route = useRoute()
@@ -36,8 +36,14 @@ function updateAuthState() {
   currentUser.value = readStoredUser()
   
   // Initialize push notifications when user logs in
+  // Wait a bit to ensure token is stored and axios interceptors are ready
   if (isLoggedIn.value && !wasLoggedIn) {
-    initializePushNotifications()
+    setTimeout(() => {
+      const token = localStorage.getItem('token')
+      if (token) {
+        initializePushNotifications()
+      }
+    }, 1000)
   }
 }
 
@@ -119,9 +125,23 @@ async function loadUnreadNotificationCount() {
   try {
     const { data } = await notificationService.getUnreadCount(userId)
     unreadNotificationCount.value = data.count || 0
+    
+    // If this API call succeeds, token is valid - try to sync push subscription
+    // Delay significantly to ensure we're fully logged in and token is stable
+    setTimeout(() => {
+      // Double-check we're still logged in before syncing
+      if (localStorage.getItem('token') && isLoggedIn.value) {
+        syncPushSubscriptionIfNeeded()
+      }
+    }, 3000)
   } catch (error) {
     console.error('Error loading unread notification count:', error)
   }
+}
+
+async function syncPushSubscriptionIfNeeded() {
+  // Use the exported function
+  await syncPushSubscriptionToServer()
 }
 
 function openNotifications() {

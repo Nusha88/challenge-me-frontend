@@ -59,7 +59,10 @@ api.interceptors.response.use(
   response => response,
   async error => {
     // Handle authentication errors (401/403)
-    if (error.response?.status === 401 || error.response?.status === 403) {
+    // Don't clear token for push subscription endpoints - they might fail during login
+    const isPushEndpoint = error.config?.url?.includes('/push/')
+    
+    if ((error.response?.status === 401 || error.response?.status === 403) && !isPushEndpoint) {
       const token = localStorage.getItem('token')
       if (token) {
         // Clear invalid token
