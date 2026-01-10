@@ -165,6 +165,7 @@
     "pushNotificationsDeniedInstructions": "To enable notifications, click the lock icon in your browser's address bar and allow notifications, then refresh this page.",
     "pushNotificationsUnsupported": "Your browser does not support push notifications",
     "enablePushNotifications": "Enable Notifications",
+    "reSubscribePushNotifications": "Re-subscribe",
     "pushNotificationsActive": "Active",
     "pushNotificationsEnabledSuccess": "Push notifications enabled successfully!",
     "pushNotificationsPermissionDenied": "Notification permission was denied. Please enable it in your browser settings.",

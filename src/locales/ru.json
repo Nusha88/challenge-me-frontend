@@ -165,6 +165,7 @@
     "pushNotificationsDeniedInstructions": "Чтобы включить уведомления, нажмите на значок замка в адресной строке браузера и разрешите уведомления, затем обновите эту страницу.",
     "pushNotificationsUnsupported": "Ваш браузер не поддерживает push-уведомления",
     "enablePushNotifications": "Включить уведомления",
+    "reSubscribePushNotifications": "Переподписаться",
     "pushNotificationsActive": "Активны",
     "pushNotificationsEnabledSuccess": "Push-уведомления успешно включены!",
     "pushNotificationsPermissionDenied": "Разрешение на уведомления было отклонено. Пожалуйста, включите его в настройках браузера.",

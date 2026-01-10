@@ -108,7 +108,7 @@
                 :loading="subscribingToPush"
                 @click="enablePushNotifications"
               >
-                {{ t('profile.enablePushNotifications') }}
+                {{ pushNotificationStatus === 'granted' && !isPushSubscribed ? t('profile.reSubscribePushNotifications') : t('profile.enablePushNotifications') }}
               </v-btn>
               <v-btn
                 v-else-if="pushNotificationStatus === 'granted' && isPushSubscribed"
@@ -752,8 +752,28 @@ async function checkPushNotificationStatus() {
     
     if (pushNotificationStatus.value === 'granted') {
       try {
-        isPushSubscribed.value = await isSubscribedToPushNotifications()
-        console.log('Push subscription status:', isPushSubscribed.value)
+        const browserHasSubscription = await isSubscribedToPushNotifications()
+        console.log('Browser has push subscription:', browserHasSubscription)
+        
+        // Check if server also has the subscription
+        if (browserHasSubscription) {
+          try {
+            const { pushService } = await import('../services/api')
+            const statusResponse = await pushService.getStatus()
+            const serverHasSubscription = statusResponse.data.hasSubscription
+            console.log('Server has push subscription:', serverHasSubscription)
+            
+            // If browser has subscription but server doesn't, user needs to re-subscribe
+            // (This happens when VAPID keys change and server removes invalid subscriptions)
+            isPushSubscribed.value = serverHasSubscription
+          } catch (error) {
+            // If we can't check server status, assume browser subscription is valid
+            console.log('Could not check server subscription status:', error.message)
+            isPushSubscribed.value = browserHasSubscription
+          }
+        } else {
+          isPushSubscribed.value = false
+        }
       } catch (error) {
         console.error('Error checking push subscription:', error)
         isPushSubscribed.value = false
