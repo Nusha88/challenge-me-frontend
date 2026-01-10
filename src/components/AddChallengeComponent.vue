@@ -409,7 +409,7 @@ async function handleSubmit() {
     }
 
     await challengeService.createChallenge(challengeData)
-    router.push('/profile')
+    router.push('/challenges/my')
   } catch (error) {
     errorMessage.value = error.response?.data?.message || t('notifications.createError')
   } finally {

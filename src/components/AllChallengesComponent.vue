@@ -31,6 +31,7 @@
             @join="joinChallenge"
             @watch="watchChallenge"
             @unwatch="unwatchChallenge"
+            @owner-navigated="handleOwnerNavigated"
           />
         </div>
       </v-card-text>
@@ -518,6 +519,11 @@ watch(() => route.params.id, (newId) => {
     detailsDialogOpen.value = false
   }
 })
+
+function handleOwnerNavigated() {
+  // Close dialog when owner is navigated
+  detailsDialogOpen.value = false
+}
 </script>
 
 <style scoped>

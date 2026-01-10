@@ -15,7 +15,8 @@
     "watchedChallenges": "Watched Challenges",
     "checklistHistory": "Checklist History",
     "today": "Today",
-    "language": "Language"
+    "language": "Language",
+    "streakDays": "days streak"
   },
   "home": {
     "welcome": "Welcome to ChallengeMe",
@@ -45,7 +46,9 @@
     "copyright": "© {year} ChallengeMe. All rights reserved.",
     "loggedIn": {
       "greeting": "Hello, {name}",
-      "motivational": "Every step is a victory. Forward!",
+      "motivational": "You're already closer to your goal than yesterday",
+      "today": "Today",
+      "todaysChallenges": "Today's Challenges",
       "dailyChecklist": {
         "title": "Today's Checklist",
         "empty": "No steps added yet. Add your first step!",
@@ -328,6 +331,8 @@
     "daysAgo": "{count} day ago | {count} days ago",
     "mentionedInComment": "mentioned you in a comment on {challenge}",
     "newComment": "commented on {challenge}",
+    "userJoinedChallenge": "joined {challenge}",
+    "userWatchingChallenge": "started watching {challenge}",
     "challenge": "a challenge",
     "apiError": "Failed to load data",
     "joinError": "Failed to join challenge",

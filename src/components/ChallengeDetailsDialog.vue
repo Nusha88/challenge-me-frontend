@@ -182,7 +182,7 @@
             </template>
 
             <!-- Allow Comments Switcher -->
-            <div class="mb-4">
+            <div v-if="!isFinished" class="mb-4">
               <v-switch
                 v-model="editForm.allowComments"
                 :label="t('challenges.allowComments')"
@@ -192,7 +192,7 @@
             </div>
 
             <!-- Comments Component -->
-            <div class="mb-4">
+            <div v-if="!isFinished" class="mb-4">
               <CommentsComponent
                 :challenge-id="challenge._id"
                 :allow-comments="editForm.allowComments"
@@ -200,6 +200,7 @@
                 :is-owner="true"
                 @comment-added="handleCommentAdded"
                 @comment-deleted="handleCommentDeleted"
+                @user-navigated="handleUserNavigated"
               />
             </div>
 
@@ -321,7 +322,7 @@
           />
 
           <!-- Comments Component -->
-          <div class="mb-4">
+          <div v-if="!isFinished" class="mb-4">
             <CommentsComponent
               :challenge-id="challenge._id"
               :allow-comments="challenge.allowComments !== undefined ? challenge.allowComments : true"
@@ -329,6 +330,7 @@
               :is-owner="isOwner"
               @comment-added="handleCommentAdded"
               @comment-deleted="handleCommentDeleted"
+              @user-navigated="handleUserNavigated"
             />
           </div>
 
@@ -366,7 +368,7 @@
         </v-btn>
         <v-spacer></v-spacer>
         <v-btn
-          v-if="!isOwner && isWatched"
+          v-if="!isOwner && isWatched && !isFinished"
           variant="outlined"
           color="primary"
           :loading="watchingId === challenge._id"
@@ -376,7 +378,7 @@
           {{ t('challenges.unwatch') }}
         </v-btn>
         <v-btn
-          v-else-if="!isOwner && currentUserId && !isWatched"
+          v-else-if="!isOwner && currentUserId && !isWatched && !isFinished"
           variant="outlined"
           color="primary"
           :loading="watchingId === challenge._id"
@@ -592,6 +594,54 @@ const progressDone = computed(() => {
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1
     return Math.max(0, diffDays)
   }
+})
+
+// Check if challenge is finished
+const isFinished = computed(() => {
+  if (!props.challenge) return false
+  
+  // Check if endDate is in the past
+  const endDate = props.isOwner ? editForm.endDate : props.challenge.endDate
+  if (endDate) {
+    try {
+      const end = new Date(endDate)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      end.setHours(0, 0, 0, 0)
+      if (end < today) {
+        return true
+      }
+    } catch {
+      // Continue to check other conditions
+    }
+  }
+  
+  // For result challenges, check if all actions are done
+  if (props.challenge.challengeType === 'result') {
+    const actions = props.isOwner ? editForm.actions : (props.challenge.actions || [])
+    if (!actions || !Array.isArray(actions) || actions.length === 0) {
+      return false
+    }
+    
+    // Check if all actions and their children are checked
+    const allActionsDone = actions.every(action => {
+      // Parent action must be checked
+      if (!action.checked) return false
+      
+      // All children must be checked (if any exist)
+      if (action.children && Array.isArray(action.children) && action.children.length > 0) {
+        return action.children.every(child => child.checked)
+      }
+      
+      return true
+    })
+    
+    if (allActionsDone) {
+      return true
+    }
+  }
+  
+  return false
 })
 
 const progressTotal = computed(() => {
@@ -1472,6 +1522,11 @@ function handleCommentAdded() {
 function handleCommentDeleted() {
   // Refresh challenge data if needed
   emit('update')
+}
+
+function handleUserNavigated() {
+  // Close dialog when user navigates to a profile
+  handleVisibility(false)
 }
 
 // Handle owner completedDays update

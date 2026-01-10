@@ -15,7 +15,8 @@
     "watchedChallenges": "Отслеживаемые челленджи",
     "checklistHistory": "История чеклистов",
     "today": "Сегодня",
-    "language": "Язык"
+    "language": "Язык",
+    "streakDays": "дней подряд"
   },
   "home": {
     "welcome": "Добро пожаловать в ChallengeMe",
@@ -45,7 +46,9 @@
     "copyright": "© {year} ChallengeMe. Все права защищены.",
     "loggedIn": {
       "greeting": "Привет, {name}",
-      "motivational": "Каждый шаг — это победа. Вперёд!",
+      "motivational": "Ты уже ближе к цели, чем вчера",
+      "today": "Сегодня",
+      "todaysChallenges": "Челленджи на сегодня",
       "dailyChecklist": {
         "title": "Чеклист на сегодня",
         "empty": "Шаги ещё не добавлены. Добавьте первый шаг!",
@@ -328,6 +331,8 @@
     "daysAgo": "{count} день назад | {count} дня назад | {count} дней назад",
     "mentionedInComment": "упомянул(а) вас в комментарии к {challenge}",
     "newComment": "прокомментировал(а) {challenge}",
+    "userJoinedChallenge": "присоединился(ась) к {challenge}",
+    "userWatchingChallenge": "начал(а) отслеживать {challenge}",
     "challenge": "челлендж",
     "apiError": "Не удалось загрузить данные",
     "joinError": "Не удалось присоединиться к челленджу",

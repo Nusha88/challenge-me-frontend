@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { useDisplay } from 'vuetify'
 import { SUPPORTED_LOCALES, setLocale } from '../i18n'
 import NotificationsComponent from './NotificationsComponent.vue'
-import { notificationService } from '../services/api'
+import { notificationService, userService, challengeService } from '../services/api'
 
 const router = useRouter()
 const route = useRoute()
@@ -13,6 +13,7 @@ const currentRoute = computed(() => route.name)
 const isLoggedIn = ref(!!localStorage.getItem('token'))
 const notificationsDrawerOpen = ref(false)
 const unreadNotificationCount = ref(0)
+const streakDays = ref(0)
 
 function readStoredUser() {
   try {
@@ -64,14 +65,21 @@ watch(currentRoute, () => {
 
 onMounted(() => {
   window.addEventListener('auth-changed', updateAuthState)
+  window.addEventListener('checklist-updated', calculateStreak)
+  window.addEventListener('challenge-completed', calculateStreak)
+  window.addEventListener('participant-completed-days-updated', calculateStreak)
   updateAuthState()
   if (isLoggedIn.value) {
     loadUnreadNotificationCount()
+    calculateStreak()
   }
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('auth-changed', updateAuthState)
+  window.removeEventListener('checklist-updated', calculateStreak)
+  window.removeEventListener('challenge-completed', calculateStreak)
+  window.removeEventListener('participant-completed-days-updated', calculateStreak)
 })
 
 function logout() {
@@ -109,7 +117,7 @@ async function loadUnreadNotificationCount() {
 }
 
 function openNotifications() {
-  notificationsDrawerOpen.value = true
+  notificationsDrawerOpen.value = !notificationsDrawerOpen.value
 }
 
 function closeNotifications() {
@@ -120,19 +128,126 @@ function handleUnreadCountChanged(newCount) {
   unreadNotificationCount.value = newCount
 }
 
+function formatDateString(date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+async function calculateStreak() {
+  const userId = getCurrentUserId()
+  if (!userId || !isLoggedIn.value) {
+    streakDays.value = 0
+    return
+  }
+
+  try {
+    // Fetch both checklist history and challenges
+    const [checklistResponse, challengesResponse] = await Promise.all([
+      userService.getChecklistHistory(),
+      challengeService.getChallengesByUser(userId, { excludePrivate: false })
+    ])
+    
+    const checklists = checklistResponse.data?.checklists || []
+    const allChallenges = challengesResponse.data?.challenges || []
+    
+    // Filter for habit challenges only
+    const habitChallenges = allChallenges.filter(c => c.challengeType === 'habit')
+
+    // Sort checklists by date descending
+    const sortedChecklists = [...checklists].sort((a, b) => {
+      return new Date(b.date) - new Date(a.date)
+    })
+
+    // Check if today's checklist exists and has completed tasks
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    let streak = 0
+    let currentDate = new Date(today)
+    
+    // Check each day backwards from today
+    for (let i = 0; i < 365; i++) { // Max 365 days
+      const currentDateStr = formatDateString(currentDate)
+      
+      // Find checklist for this date
+      const checklist = sortedChecklists.find(c => {
+        const checklistDate = new Date(c.date)
+        checklistDate.setHours(0, 0, 0, 0)
+        return checklistDate.getTime() === currentDate.getTime()
+      })
+      
+      // Check if checklist has completed tasks
+      const hasCompletedChecklistTask = checklist && checklist.tasks && checklist.tasks.length > 0
+        ? checklist.tasks.some(task => task.done === true)
+        : false
+      
+      // Check if any challenge was completed on this date
+      let hasCompletedChallenge = false
+      for (const challenge of habitChallenges) {
+        if (!challenge.participants || challenge.participants.length === 0) continue
+        
+        // Find current user's participant entry
+        const participant = challenge.participants.find(p => {
+          const pUserId = p.userId?._id || p.userId || p._id
+          return pUserId && pUserId.toString() === userId.toString()
+        })
+        
+        if (participant && participant.completedDays && Array.isArray(participant.completedDays)) {
+          const hasDate = participant.completedDays.some(date => {
+            if (!date) return false
+            let dateStr = String(date)
+            if (dateStr.includes('T')) {
+              dateStr = dateStr.split('T')[0]
+            }
+            dateStr = dateStr.substring(0, 10)
+            return dateStr === currentDateStr
+          })
+          
+          if (hasDate) {
+            hasCompletedChallenge = true
+            break
+          }
+        }
+      }
+      
+      // Day counts if checklist OR challenges were completed
+      if (hasCompletedChecklistTask || hasCompletedChallenge) {
+        streak++
+      } else {
+        // No completion for this day, break streak
+        break
+      }
+      
+      // Move to previous day
+      currentDate.setDate(currentDate.getDate() - 1)
+      currentDate.setHours(0, 0, 0, 0)
+    }
+    
+    streakDays.value = streak
+  } catch (error) {
+    console.error('Error calculating streak:', error)
+    streakDays.value = 0
+  }
+}
+
 watch(() => isLoggedIn.value, (loggedIn) => {
   if (loggedIn) {
     loadUnreadNotificationCount()
+    calculateStreak()
     // Poll for new notifications every 30 seconds
     const pollInterval = setInterval(() => {
       if (isLoggedIn.value) {
         loadUnreadNotificationCount()
+        calculateStreak()
       } else {
         clearInterval(pollInterval)
       }
     }, 30000)
   } else {
     unreadNotificationCount.value = 0
+    streakDays.value = 0
   }
 })
 </script>
@@ -190,15 +305,17 @@ watch(() => isLoggedIn.value, (loggedIn) => {
       >
         {{ t('navigation.login') }}
       </v-btn>
-      <v-btn
-        v-if="isLoggedIn"
-        to="/"
-        size="default"
-        class="mr-2 today-button d-none d-md-inline-flex"
-        prepend-icon="mdi-calendar-today"
+      <div
+        v-if="isLoggedIn && streakDays > 0"
+        class="mr-4 streak-button d-none d-md-inline-flex"
       >
-        {{ t('navigation.today') }}
-      </v-btn>
+        <i class="mdi mdi-fire"></i>
+        <span>{{ streakDays }} {{ t('navigation.streakDays') }}</span>
+      </div>
+      <div
+        v-if="isLoggedIn && streakDays > 0"
+        class="streak-divider mr-4 d-none d-md-inline-flex"
+      ></div>
       <v-btn
         v-if="isLoggedIn"
         to="/challenges/add"
@@ -208,6 +325,15 @@ watch(() => isLoggedIn.value, (loggedIn) => {
         prepend-icon="mdi-plus-circle"
       >
         {{ t('navigation.addChallenge') }}
+      </v-btn>
+      <v-btn
+        v-if="isLoggedIn"
+        to="/"
+        size="default"
+        class="mr-2 today-button d-none d-md-inline-flex"
+        prepend-icon="mdi-calendar-today"
+      >
+        {{ t('navigation.today') }}
       </v-btn>
       <v-btn
         v-if="isLoggedIn"
@@ -233,10 +359,10 @@ watch(() => isLoggedIn.value, (loggedIn) => {
             variant="text"
             class="mr-2 language-button d-none d-md-inline-flex"
             prepend-icon="mdi-translate"
-            style="color: rgba(0, 0, 0, 0.87);"
-          >
+        style="color: rgba(0, 0, 0, 0.87);"
+      >
             {{ currentLocaleLabel }}
-          </v-btn>
+      </v-btn>
         </template>
         <v-list>
           <v-list-item
@@ -249,6 +375,16 @@ watch(() => isLoggedIn.value, (loggedIn) => {
           </v-list-item>
         </v-list>
       </v-menu>
+      <v-btn
+        v-if="isLoggedIn"
+        variant="text"
+        class="mr-2 logout-button"
+        prepend-icon="mdi-logout"
+        color="error"
+        @click="logout"
+      >
+        <span class="d-none d-md-inline">{{ t('navigation.logout') }}</span>
+      </v-btn>
     </v-app-bar>
 
     <v-main :class="['main-content', { 'public-view': !isLoggedIn, 'with-sidebar': isLoggedIn }]">
@@ -285,6 +421,17 @@ watch(() => isLoggedIn.value, (loggedIn) => {
                 <v-icon icon="mdi-calendar-today"></v-icon>
               </template>
               <v-list-item-title>{{ t('navigation.today') }}</v-list-item-title>
+            </v-list-item>
+
+            <v-list-item
+              :active="currentRoute === 'my-challenges'"
+              to="/challenges/my"
+              color="primary"
+            >
+              <template v-slot:prepend>
+                <v-icon icon="mdi-account-star"></v-icon>
+              </template>
+              <v-list-item-title>{{ t('navigation.myChallenges') }}</v-list-item-title>
             </v-list-item>
 
             <v-list-item
@@ -329,18 +476,6 @@ watch(() => isLoggedIn.value, (loggedIn) => {
                 <v-icon icon="mdi-history"></v-icon>
               </template>
               <v-list-item-title>{{ t('navigation.checklistHistory') }}</v-list-item-title>
-            </v-list-item>
-
-            <v-divider class="my-2"></v-divider>
-
-            <v-list-item
-              @click="logout"
-              color="error"
-            >
-              <template v-slot:prepend>
-                <v-icon icon="mdi-logout"></v-icon>
-              </template>
-              <v-list-item-title>{{ t('navigation.logout') }}</v-list-item-title>
             </v-list-item>
           </v-list>
         </v-navigation-drawer>
@@ -399,6 +534,18 @@ watch(() => isLoggedIn.value, (loggedIn) => {
             <v-icon icon="mdi-calendar-today"></v-icon>
           </template>
           <v-list-item-title>{{ t('navigation.today') }}</v-list-item-title>
+        </v-list-item>
+
+        <v-list-item
+          :active="currentRoute === 'my-challenges'"
+          to="/challenges/my"
+          color="primary"
+          @click="drawerOpen = false"
+        >
+          <template v-slot:prepend>
+            <v-icon icon="mdi-account-star"></v-icon>
+          </template>
+          <v-list-item-title>{{ t('navigation.myChallenges') }}</v-list-item-title>
         </v-list-item>
 
         <v-list-item
@@ -481,17 +628,6 @@ watch(() => isLoggedIn.value, (loggedIn) => {
             <v-icon icon="mdi-translate"></v-icon>
           </template>
           <v-list-item-title>{{ language.label }}</v-list-item-title>
-        </v-list-item>
-
-        <v-divider class="my-2"></v-divider>
-
-        <v-list-item
-          @click="logout(); drawerOpen = false"
-        >
-          <template v-slot:prepend>
-            <v-icon icon="mdi-logout"></v-icon>
-          </template>
-          <v-list-item-title>{{ t('navigation.logout') }}</v-list-item-title>
         </v-list-item>
       </v-list>
     </v-navigation-drawer>
@@ -1157,6 +1293,50 @@ watch(() => isLoggedIn.value, (loggedIn) => {
   .profile-button {
     padding: 0 4px;
   }
+}
+
+.streak-button {
+  background: #FEF3E1 !important;
+  color: #FF6D00 !important;
+  border: none !important;
+  border-radius: 4px !important;
+  padding: 8px 16px !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  box-shadow: 0 4px 12px rgba(255, 109, 0, 0.3) !important;
+  cursor: default !important;
+  text-transform: uppercase !important;
+  min-width: auto !important;
+}
+
+@media (max-width: 959px) {
+  .streak-button {
+    display: none !important;
+  }
+  
+  .streak-divider {
+    display: none !important;
+  }
+}
+
+.streak-button span {
+  color: #FF6D00 !important;
+  text-transform: uppercase !important;
+}
+
+.streak-button i {
+  color: #FF6D00 !important;
+  font-size: 18px;
+}
+
+.streak-divider {
+  width: 1px;
+  height: 32px;
+  background-color: rgba(0, 0, 0, 0.12);
+  align-self: center;
 }
 
 .app-bar-custom :deep(.v-toolbar__content) {

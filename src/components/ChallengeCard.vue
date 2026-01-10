@@ -85,7 +85,7 @@
       </v-btn>
       <v-spacer></v-spacer>
       <v-btn
-        v-if="currentUserId && !isOwner"
+        v-if="currentUserId && !isOwner && !isFinished"
         size="small"
         variant="outlined"
         :class="['watch-button', { 'watch-button--watched': isWatched }]"
@@ -105,7 +105,15 @@
           {{ t('challenges.createdByMe') }}
         </template>
         <template v-else>
-          {{ t('challenges.createdBy', { name: challenge.owner.name || t('common.unknown') }) }}
+          <span class="created-by-text">
+            {{ t('challenges.createdBy').split('{name}')[0] }}
+            <span 
+              class="owner-name-link" 
+              @click.stop="navigateToOwner"
+            >
+              {{ challenge.owner.name || t('common.unknown') }}
+            </span>
+          </span>
         </template>
       </v-card-subtitle>
       
@@ -162,6 +170,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 
 const props = defineProps({
   challenge: {
@@ -190,9 +199,10 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['click', 'join', 'watch', 'unwatch'])
+const emit = defineEmits(['click', 'join', 'watch', 'unwatch', 'owner-navigated'])
 
 const { t, locale } = useI18n()
+const router = useRouter()
 
 // Computed properties
 const isOwner = computed(() => {
@@ -469,6 +479,20 @@ function getParticipantAvatarStyle(participant) {
   }
   return { backgroundColor: getParticipantColor(participant) }
 }
+
+function navigateToOwner() {
+  if (!props.challenge.owner) return
+  
+  // Get owner ID - handle both populated object and ID string
+  const ownerId = props.challenge.owner._id || props.challenge.owner
+  
+  if (!ownerId) return
+  
+  // Emit event to notify parent component (e.g., dialog should close)
+  emit('owner-navigated')
+  
+  router.push(`/users/${ownerId}`)
+}
 </script>
 
 <style scoped>
@@ -674,6 +698,21 @@ function getParticipantAvatarStyle(participant) {
 
 .challenge-type-chip {
   width: fit-content;
+}
+
+.created-by-text {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.owner-name-link {
+  cursor: pointer;
+  color: #1976d2;
+  transition: opacity 0.2s, text-decoration 0.2s;
+}
+
+.owner-name-link:hover {
+  opacity: 0.7;
+  text-decoration: underline;
 }
 
 .challenge-description {

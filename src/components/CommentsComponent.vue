@@ -63,7 +63,12 @@
               <div class="comment-content flex-grow-1">
                 <div class="comment-header mb-1" :class="mobile ? 'flex-column align-start' : ''">
                   <div class="d-flex align-center" style="width: 100%;">
-                    <span class="comment-author font-weight-medium">{{ getCommentName(comment) }}</span>
+                    <span 
+                      class="comment-author font-weight-medium user-name-link" 
+                      @click.stop="navigateToUser(comment.userId)"
+                    >
+                      {{ getCommentName(comment) }}
+                    </span>
                     <span class="comment-date text-caption text-medium-emphasis" :class="mobile ? 'ml-2' : 'ml-2'">
                       {{ formatDate(comment.createdAt) }}
                     </span>
@@ -152,12 +157,17 @@
                         <div class="reply-header mb-1" :class="mobile ? 'flex-column align-start' : ''">
                           <div class="d-flex align-center" style="width: 100%;">
                             <span class="comment-author font-weight-medium reply-author">
-                              {{ getReplyName(reply) }}
+                              <span 
+                                class="user-name-link" 
+                                @click.stop="navigateToUser(reply.userId)"
+                              >
+                                {{ getReplyName(reply) }}
+                              </span>
                               <span v-if="reply.mentionedUserId" class="text-primary">
                                 → 
                                 <span 
-                                  class="mention-link" 
-                                  @click.stop="navigateToMention(comment, reply)"
+                                  class="mention-link user-name-link" 
+                                  @click.stop="navigateToUser(reply.mentionedUserId)"
                                   :title="t('challenges.comments.goToMention')"
                                 >
                                   @{{ getMentionedName(reply) }}
@@ -255,12 +265,17 @@
                                 <div class="reply-header mb-1" :class="mobile ? 'flex-column align-start' : ''">
                                   <div class="d-flex align-center" style="width: 100%;">
                                     <span class="comment-author font-weight-medium nested-reply-author">
-                                      {{ getNestedReplyName(nestedReply) }}
+                                      <span 
+                                        class="user-name-link" 
+                                        @click.stop="navigateToUser(nestedReply.userId)"
+                                      >
+                                        {{ getNestedReplyName(nestedReply) }}
+                                      </span>
                                       <span v-if="nestedReply.mentionedUserId" class="text-primary">
                                         → 
                                         <span 
-                                          class="mention-link" 
-                                          @click.stop="navigateToMention(comment, reply, nestedReply)"
+                                          class="mention-link user-name-link" 
+                                          @click.stop="navigateToUser(nestedReply.mentionedUserId)"
                                           :title="t('challenges.comments.goToMention')"
                                         >
                                           @{{ getNestedMentionedName(nestedReply) }}
@@ -340,7 +355,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['comment-added', 'comment-deleted'])
+const emit = defineEmits(['comment-added', 'comment-deleted', 'user-navigated'])
 
 const { t, locale } = useI18n()
 
@@ -675,6 +690,20 @@ function navigateToMention(comment, reply, nestedReply = null) {
   }
 }
 
+function navigateToUser(userId) {
+  if (!userId) return
+  
+  // Get user ID - handle both populated object and ID string
+  const id = userId._id || userId
+  
+  if (!id) return
+  
+  // Emit event to notify parent component (e.g., dialog should close)
+  emit('user-navigated')
+  
+  router.push(`/users/${id}`)
+}
+
 function scrollToComment(commentId, replyId) {
   // Wait a bit for the page to render
   setTimeout(() => {
@@ -834,6 +863,17 @@ onMounted(() => {
 
 .comment-author {
   color: rgba(0, 0, 0, 0.87);
+}
+
+.user-name-link {
+  cursor: pointer;
+  color: #1976d2;
+  transition: opacity 0.2s, text-decoration 0.2s;
+}
+
+.user-name-link:hover {
+  opacity: 0.7;
+  text-decoration: underline;
 }
 
 .comment-date {

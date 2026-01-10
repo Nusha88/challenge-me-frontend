@@ -32,6 +32,7 @@
             @join="joinChallenge"
             @watch="watchChallenge"
             @unwatch="unwatchChallenge"
+            @owner-navigated="handleOwnerNavigated"
           />
         </div>
       </v-card-text>
@@ -225,6 +226,11 @@ async function unwatchChallenge(challenge) {
 function openDetails(challenge) {
   selectedChallenge.value = challenge
   detailsDialogOpen.value = true
+}
+
+function handleOwnerNavigated() {
+  // Close dialog when owner is navigated
+  detailsDialogOpen.value = false
 }
 
 async function handleDialogSave() {

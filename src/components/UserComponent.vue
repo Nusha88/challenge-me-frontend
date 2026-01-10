@@ -71,10 +71,10 @@
       </v-card-text>
     </v-card>
 
-    <!-- Challenges Section -->
-    <v-card>
+    <!-- Challenges Section - Only show for other users' profiles -->
+    <v-card v-if="!isOwnProfile">
       <v-card-title class="text-h5 mb-4">
-        {{ isOwnProfile ? t('challenges.myListTitle') : t('users.userChallenges') }}
+        {{ t('users.userChallenges') }}
       </v-card-title>
       <v-card-text>
         <!-- Filter Panel -->
@@ -87,11 +87,11 @@
         </v-alert>
         
         <v-alert v-else-if="!loadingChallenges && challenges.length === 0" type="info">
-          {{ isOwnProfile ? t('challenges.noMyChallenges') : t('users.noChallenges') }}
+          {{ t('users.noChallenges') }}
         </v-alert>
         
         <v-alert v-else-if="!loadingChallenges && filteredChallenges.length === 0" type="info">
-          {{ t('challenges.noMyChallenges') }}
+          {{ t('users.noChallenges') }}
         </v-alert>
         
         <div v-else>
@@ -106,6 +106,7 @@
                 :current-user-id="currentUserId"
                 :show-join-button="false"
                 @click="handleChallengeClick"
+                @owner-navigated="handleOwnerNavigated"
               />
             </div>
           </div>
@@ -121,6 +122,7 @@
                 :current-user-id="currentUserId"
                 :show-join-button="false"
                 @click="handleChallengeClick"
+                @owner-navigated="handleOwnerNavigated"
               />
             </div>
           </div>
@@ -456,6 +458,12 @@ const fetchUser = async () => {
 }
 
 const fetchChallenges = async () => {
+  // Skip fetching challenges when viewing own profile (they're shown in My Challenges page)
+  if (isOwnProfile.value) {
+    challenges.value = []
+    return
+  }
+
   const userId = targetUserId.value
   
   if (!userId) {
@@ -467,8 +475,8 @@ const fetchChallenges = async () => {
   challengesError.value = ''
   
   try {
-    // Exclude private challenges unless viewing own profile
-    const excludePrivate = !isOwnProfile.value
+    // Exclude private challenges when viewing other users' profiles
+    const excludePrivate = true
     const { data } = await challengeService.getChallengesByUser(userId, { excludePrivate })
     challenges.value = data?.challenges || []
   } catch (err) {
@@ -500,6 +508,11 @@ const handleDialogUpdate = async () => {
       selectedChallenge.value = updatedChallenge
     }
   }
+}
+
+function handleOwnerNavigated() {
+  // Close dialog when owner is navigated
+  detailsDialogOpen.value = false
 }
 
 // Watch for changes in target user ID

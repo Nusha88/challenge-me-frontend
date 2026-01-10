@@ -1,84 +1,65 @@
 <template>
-  <v-card class="daily-checklist-card">
-    <v-card-title class="checklist-title">
-      {{ t('home.loggedIn.dailyChecklist.title') }}
-    </v-card-title>
-    <v-card-text>
-      <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4"></v-progress-linear>
-      <v-alert v-if="error" type="error" class="mb-4" density="compact">{{ error }}</v-alert>
-      
-      <div v-if="!loading && todaySteps.length > 0" class="progress-section mb-4">
-        <div class="progress-header">
-          <span class="progress-text">{{ completedSteps }} / {{ totalSteps }} {{ t('home.loggedIn.dailyChecklist.completed') }}</span>
-          <span class="progress-percentage">{{ progressPercentage }}%</span>
-        </div>
-        <v-progress-linear
-          :model-value="progressPercentage"
-          color="primary"
-          height="8"
-          rounded
-          class="progress-bar"
-        ></v-progress-linear>
-      </div>
-      
-      <div v-if="!loading && todaySteps.length === 0" class="empty-checklist">
-        <p class="empty-text">{{ t('home.loggedIn.dailyChecklist.empty') }}</p>
-      </div>
-      <div v-else-if="!loading" class="steps-list">
-        <div
-          v-for="(step, index) in todaySteps"
-          :key="index"
-          class="step-item"
-        >
-          <v-checkbox
-            v-model="step.done"
-            density="compact"
-            hide-details
-            :aria-label="step.done ? t('home.loggedIn.dailyChecklist.markIncomplete') : t('home.loggedIn.dailyChecklist.markComplete')"
-            @update:model-value="updateStep(index, $event)"
-          />
-          <span
-            class="step-text"
-            :class="{ completed: step.done }"
-          >
-            {{ step.title }}
-          </span>
-          <v-btn
-            icon="mdi-delete"
-            size="small"
-            variant="text"
-            color="error"
-            :title="t('home.loggedIn.dailyChecklist.deleteStep')"
-            :aria-label="t('home.loggedIn.dailyChecklist.deleteStep')"
-            @click="removeStep(index)"
-          />
-        </div>
-      </div>
-      
-      <div class="add-step-section">
-        <v-text-field
-          v-model="newStepText"
-          :label="t('home.loggedIn.dailyChecklist.addStepPlaceholder')"
-          variant="outlined"
-          :density="mobile ? 'default' : 'compact'"
+  <div class="daily-checklist-content">
+    <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4"></v-progress-linear>
+    <v-alert v-if="error" type="error" class="mb-4" density="compact">{{ error }}</v-alert>
+    
+    <div v-if="!loading && todaySteps.length === 0" class="empty-checklist">
+      <p class="empty-text">{{ t('home.loggedIn.dailyChecklist.empty') }}</p>
+    </div>
+    <div v-else-if="!loading" class="steps-list">
+      <div
+        v-for="(step, index) in todaySteps"
+        :key="index"
+        class="step-item"
+      >
+        <v-checkbox
+          v-model="step.done"
+          density="compact"
           hide-details
-          class="add-step-input"
-          @keyup.enter="addStep"
+          :aria-label="step.done ? t('home.loggedIn.dailyChecklist.markIncomplete') : t('home.loggedIn.dailyChecklist.markComplete')"
+          @update:model-value="updateStep(index, $event)"
         />
-        <v-btn
-          color="primary"
-          :disabled="!newStepText.trim()"
-          @click="addStep"
+        <span
+          class="step-text"
+          :class="{ completed: step.done }"
         >
-          {{ t('home.loggedIn.dailyChecklist.addStep') }}
-        </v-btn>
+          {{ step.title }}
+        </span>
+        <v-btn
+          icon="mdi-delete"
+          size="small"
+          variant="text"
+          color="error"
+          :title="t('home.loggedIn.dailyChecklist.deleteStep')"
+          :aria-label="t('home.loggedIn.dailyChecklist.deleteStep')"
+          @click="removeStep(index)"
+        />
       </div>
-    </v-card-text>
-  </v-card>
+    </div>
+    
+    <div class="add-step-section">
+      <v-text-field
+        v-model="newStepText"
+        :label="t('home.loggedIn.dailyChecklist.addStepPlaceholder')"
+        variant="outlined"
+        :density="mobile ? 'default' : 'compact'"
+        hide-details
+        class="add-step-input"
+        @keyup.enter="addStep"
+      />
+      <v-btn
+        color="primary"
+        :disabled="!newStepText.trim()"
+        @click="addStep"
+      >
+        {{ t('home.loggedIn.dailyChecklist.addStep') }}
+      </v-btn>
+    </div>
+  </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, defineExpose } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useDisplay } from 'vuetify'
 import { userService } from '../services/api'
@@ -102,6 +83,14 @@ const totalSteps = computed(() => {
 const progressPercentage = computed(() => {
   if (totalSteps.value === 0) return 0
   return Math.round((completedSteps.value / totalSteps.value) * 100)
+})
+
+// Expose progress data to parent component
+defineExpose({
+  completedSteps,
+  totalSteps,
+  progressPercentage,
+  loading
 })
 
 const loadTodaySteps = async () => {
@@ -133,6 +122,8 @@ const saveTodaySteps = async () => {
       done: step.done || false
     }))
     await userService.updateTodayChecklist(tasks)
+    // Dispatch event to update streak in header
+    window.dispatchEvent(new Event('checklist-updated'))
   } catch (err) {
     console.error('Error saving daily checklist:', err)
     error.value = err.response?.data?.message || t('home.loggedIn.dailyChecklist.saveError')
@@ -168,26 +159,8 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.daily-checklist-card {
+.daily-checklist-content {
   width: 100%;
-  max-width: 600px;
-  margin: 0 auto;
-  background: linear-gradient(to right, #e3f2fd, #fce4ec) !important;
-  border-left: 4px solid #42a5f5;
-  box-shadow: 0 2px 8px rgba(66, 165, 245, 0.2) !important;
-}
-
-.checklist-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: rgba(0, 0, 0, 0.87);
-  padding-bottom: 0.5em;
-}
-
-@media (min-width: 600px) {
-  .checklist-title {
-    font-size: 1.5rem;
-  }
 }
 
 .empty-checklist {

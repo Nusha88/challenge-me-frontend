@@ -268,6 +268,21 @@ function getNotificationText(notification) {
       challenge: notification.challengeId?.title || t('notifications.challenge')
     })
   }
+  if (notification.type === 'join') {
+    return t('notifications.userJoinedChallenge', {
+      challenge: notification.challengeId?.title || t('notifications.challenge')
+    })
+  }
+  if (notification.type === 'watch') {
+    return t('notifications.userWatchingChallenge', {
+      challenge: notification.challengeId?.title || t('notifications.challenge')
+    })
+  }
+  if (notification.type === 'comment') {
+    return t('notifications.newComment', {
+      challenge: notification.challengeId?.title || t('notifications.challenge')
+    })
+  }
   return t('notifications.newComment', {
     challenge: notification.challengeId?.title || t('notifications.challenge')
   })
