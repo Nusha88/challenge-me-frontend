@@ -30,8 +30,19 @@ const vuetify = createVuetify({
   },
 })
 
-createApp(App)
+const app = createApp(App)
   .use(router)
   .use(i18n)
   .use(vuetify)
-  .mount('#app')
+
+app.mount('#app')
+
+// Initialize push notifications when app starts
+if ('serviceWorker' in navigator) {
+  import('./utils/pushNotifications').then(({ initializePushNotifications }) => {
+    // Wait a bit for the app to fully load
+    setTimeout(() => {
+      initializePushNotifications()
+    }, 1000)
+  })
+}

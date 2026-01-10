@@ -6,6 +6,7 @@ import { useDisplay } from 'vuetify'
 import { SUPPORTED_LOCALES, setLocale } from '../i18n'
 import NotificationsComponent from './NotificationsComponent.vue'
 import { notificationService, userService, challengeService } from '../services/api'
+import { initializePushNotifications } from '../utils/pushNotifications'
 
 const router = useRouter()
 const route = useRoute()
@@ -30,8 +31,14 @@ const { mobile, mdAndUp } = useDisplay()
 const availableLocales = SUPPORTED_LOCALES
 
 function updateAuthState() {
+  const wasLoggedIn = isLoggedIn.value
   isLoggedIn.value = !!localStorage.getItem('token')
   currentUser.value = readStoredUser()
+  
+  // Initialize push notifications when user logs in
+  if (isLoggedIn.value && !wasLoggedIn) {
+    initializePushNotifications()
+  }
 }
 
 const userName = computed(() => currentUser.value?.name || null)
@@ -72,6 +79,7 @@ onMounted(() => {
   if (isLoggedIn.value) {
     loadUnreadNotificationCount()
     calculateStreak()
+    initializePushNotifications()
   }
 })
 

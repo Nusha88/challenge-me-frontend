@@ -240,4 +240,17 @@ export const happinessService = {
   }
 }
 
+// Push notification service
+export const pushService = {
+  getVapidPublicKey: () => {
+    return api.get('/push/vapid-public-key')
+  },
+  subscribe: (subscription) => {
+    return api.post('/push/subscribe', { subscription })
+  },
+  unsubscribe: () => {
+    return api.post('/push/unsubscribe')
+  }
+}
+
 export default api 
