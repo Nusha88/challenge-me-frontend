@@ -53,16 +53,74 @@
                   <v-icon size="small" class="mr-1">mdi-calendar-check</v-icon>
                   <span>{{ t('users.daysOnSite') }}: {{ daysOnSite }}</span>
                 </div>
-                <div class="stat-item">
-                  <v-icon size="small" class="mr-1">mdi-target</v-icon>
-                  <span>{{ t('users.challenges') }}: {{ user.challengeCount || challenges.length }}</span>
-                </div>
               </div>
             </div>
           </div>
           
           <v-alert v-if="uploadError" type="error" class="mb-4">{{ uploadError }}</v-alert>
           <v-alert v-if="uploadSuccess" type="success" class="mb-4">{{ uploadSuccess }}</v-alert>
+
+          <!-- Push Notifications Settings - Only show for own profile -->
+          <div v-if="isOwnProfile" class="push-notifications-section mt-6">
+            <v-divider class="mb-4"></v-divider>
+            <h3 class="text-h6 mb-3">{{ t('profile.pushNotifications') }}</h3>
+            
+            <v-alert
+              v-if="pushNotificationStatus === 'denied'"
+              type="warning"
+              variant="tonal"
+              class="mb-3"
+            >
+              <div class="text-body-2">{{ t('profile.pushNotificationsDenied') }}</div>
+              <div class="text-caption mt-2">{{ t('profile.pushNotificationsDeniedInstructions') }}</div>
+            </v-alert>
+
+            <v-alert
+              v-else-if="pushNotificationStatus === 'unsupported'"
+              type="info"
+              variant="tonal"
+              class="mb-3"
+            >
+              {{ t('profile.pushNotificationsUnsupported') }}
+            </v-alert>
+
+            <div v-else class="d-flex align-center justify-space-between">
+              <div>
+                <div class="text-body-1 font-weight-medium mb-1">
+                  {{ t('profile.pushNotificationsStatus') }}
+                </div>
+                <div class="text-caption text-medium-emphasis">
+                  <span v-if="pushNotificationStatus === 'granted' && isPushSubscribed">
+                    {{ t('profile.pushNotificationsEnabled') }}
+                  </span>
+                  <span v-else-if="pushNotificationStatus === 'granted'">
+                    {{ t('profile.pushNotificationsNotSubscribed') }}
+                  </span>
+                  <span v-else>
+                    {{ t('profile.pushNotificationsNotEnabled') }}
+                  </span>
+                </div>
+              </div>
+              <v-btn
+                v-if="pushNotificationStatus === 'default' || (pushNotificationStatus === 'granted' && !isPushSubscribed)"
+                color="primary"
+                variant="flat"
+                :loading="subscribingToPush"
+                @click="enablePushNotifications"
+              >
+                {{ t('profile.enablePushNotifications') }}
+              </v-btn>
+              <v-btn
+                v-else-if="pushNotificationStatus === 'granted' && isPushSubscribed"
+                color="success"
+                variant="text"
+                disabled
+              >
+                <v-icon size="small" class="mr-1">mdi-check-circle</v-icon>
+                {{ t('profile.pushNotificationsActive') }}
+              </v-btn>
+            </div>
+          </div>
         </div>
         
         <v-alert v-else-if="error" type="error">
@@ -154,6 +212,11 @@ import { useI18n } from 'vue-i18n'
 import ChallengeCard from './ChallengeCard.vue'
 import ChallengeDetailsDialog from './ChallengeDetailsDialog.vue'
 import FilterPanel from './FilterPanel.vue'
+import { 
+  getNotificationPermission, 
+  requestAndSubscribeToPushNotifications,
+  isSubscribedToPushNotifications 
+} from '../utils/pushNotifications'
 
 const props = defineProps({
   userId: {
@@ -178,6 +241,9 @@ const selectedChallenge = ref(null)
 const uploading = ref(false)
 const uploadError = ref('')
 const uploadSuccess = ref('')
+const subscribingToPush = ref(false)
+const pushNotificationStatus = ref('default')
+const isPushSubscribed = ref(false)
 const fileInputRef = ref(null)
 
 // Hardcoded ImgBB API key for all users
@@ -563,6 +629,13 @@ watch(() => route.params.id, (newId, oldId) => {
   }
 })
 
+// Watch for when viewing own profile to check push notification status
+watch(isOwnProfile, (newValue) => {
+  if (newValue) {
+    checkPushNotificationStatus()
+  }
+}, { immediate: true })
+
 const readFileAsBase64 = (file) => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -672,9 +745,57 @@ const handleFileInputChange = (event) => {
   }
 }
 
+async function checkPushNotificationStatus() {
+  try {
+    pushNotificationStatus.value = getNotificationPermission()
+    console.log('Push notification status:', pushNotificationStatus.value)
+    
+    if (pushNotificationStatus.value === 'granted') {
+      try {
+        isPushSubscribed.value = await isSubscribedToPushNotifications()
+        console.log('Push subscription status:', isPushSubscribed.value)
+      } catch (error) {
+        console.error('Error checking push subscription:', error)
+        isPushSubscribed.value = false
+      }
+    }
+  } catch (error) {
+    console.error('Error checking push notification status:', error)
+  }
+}
+
+async function enablePushNotifications() {
+  subscribingToPush.value = true
+  uploadError.value = ''
+  uploadSuccess.value = ''
+  
+  try {
+    const result = await requestAndSubscribeToPushNotifications()
+    
+    if (result.success) {
+      uploadSuccess.value = t('profile.pushNotificationsEnabledSuccess')
+      await checkPushNotificationStatus()
+    } else if (result.reason === 'permission-denied') {
+      uploadError.value = t('profile.pushNotificationsPermissionDenied')
+      await checkPushNotificationStatus()
+    } else {
+      uploadError.value = t('profile.pushNotificationsEnableError')
+    }
+  } catch (error) {
+    console.error('Error enabling push notifications:', error)
+    uploadError.value = t('profile.pushNotificationsEnableError')
+  } finally {
+    subscribingToPush.value = false
+  }
+}
+
 onMounted(() => {
   fetchUser()
   fetchChallenges()
+  // Only check push notification status if viewing own profile
+  if (isOwnProfile.value) {
+    checkPushNotificationStatus()
+  }
 })
 </script>
 

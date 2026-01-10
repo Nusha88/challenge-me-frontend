@@ -65,6 +65,38 @@ export async function requestNotificationPermission() {
 }
 
 /**
+ * Get current notification permission status
+ */
+export function getNotificationPermission() {
+  if (!('Notification' in window)) {
+    return 'unsupported'
+  }
+  return Notification.permission // 'granted', 'denied', or 'default'
+}
+
+/**
+ * Request notification permission and subscribe (for manual trigger)
+ */
+export async function requestAndSubscribeToPushNotifications() {
+  try {
+    const permission = await requestNotificationPermission()
+    if (!permission) {
+      return { success: false, reason: 'permission-denied' }
+    }
+
+    const subscription = await subscribeToPushNotifications()
+    if (subscription) {
+      return { success: true, subscription }
+    }
+    
+    return { success: false, reason: 'subscription-failed' }
+  } catch (error) {
+    console.error('Error requesting and subscribing to push notifications:', error)
+    return { success: false, reason: 'error', error: error.message }
+  }
+}
+
+/**
  * Subscribe to push notifications
  */
 export async function subscribeToPushNotifications() {

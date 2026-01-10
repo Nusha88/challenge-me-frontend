@@ -155,7 +155,20 @@
     "apiKeySaved": "API key saved locally.",
     "apiKeyCleared": "Stored API key removed.",
     "apiKeyInvalid": "API key may only contain letters and numbers.",
-    "apiKeySaveFailed": "Failed to store API key. Please check browser storage settings."
+    "apiKeySaveFailed": "Failed to store API key. Please check browser storage settings.",
+    "pushNotifications": "Push Notifications",
+    "pushNotificationsStatus": "Status",
+    "pushNotificationsEnabled": "Enabled and subscribed",
+    "pushNotificationsNotSubscribed": "Permission granted but not subscribed",
+    "pushNotificationsNotEnabled": "Not enabled",
+    "pushNotificationsDenied": "Notifications are blocked",
+    "pushNotificationsDeniedInstructions": "To enable notifications, click the lock icon in your browser's address bar and allow notifications, then refresh this page.",
+    "pushNotificationsUnsupported": "Your browser does not support push notifications",
+    "enablePushNotifications": "Enable Notifications",
+    "pushNotificationsActive": "Active",
+    "pushNotificationsEnabledSuccess": "Push notifications enabled successfully!",
+    "pushNotificationsPermissionDenied": "Notification permission was denied. Please enable it in your browser settings.",
+    "pushNotificationsEnableError": "Failed to enable push notifications. Please try again."
   },
   "users": {
     "title": "Registered Users",
