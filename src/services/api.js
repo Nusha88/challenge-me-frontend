@@ -253,6 +253,9 @@ export const pushService = {
   },
   unsubscribe: () => {
     return api.post('/push/unsubscribe')
+  },
+  getStatus: () => {
+    return api.get('/push/status')
   }
 }
 
