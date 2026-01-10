@@ -125,29 +125,51 @@ export async function subscribeToPushNotifications() {
       return null
     }
 
-    // Get VAPID public key
+    // Get VAPID public key from server (always get fresh key)
     const publicKey = await getVapidPublicKey()
     if (!publicKey) {
       console.log('Failed to get VAPID public key')
       return null
     }
 
+    console.log('[Push] Using VAPID public key:', publicKey.substring(0, 20) + '...')
+
+    // Unsubscribe from any existing subscription first (to avoid key mismatches)
+    try {
+      const existingSubscription = await registration.pushManager.getSubscription()
+      if (existingSubscription) {
+        console.log('[Push] Unsubscribing from existing subscription to avoid key mismatch')
+        await existingSubscription.unsubscribe()
+        // Also remove from server
+        try {
+          await pushService.unsubscribe()
+        } catch (unsubError) {
+          // Ignore errors - subscription might not exist on server
+          console.log('[Push] Could not unsubscribe from server:', unsubError.message)
+        }
+      }
+    } catch (unsubError) {
+      console.log('[Push] Error unsubscribing from old subscription:', unsubError.message)
+    }
+
     // Convert VAPID key to Uint8Array
     const applicationServerKey = urlBase64ToUint8Array(publicKey)
 
-    // Subscribe to push notifications
+    // Subscribe to push notifications with fresh key
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: applicationServerKey
     })
 
+    console.log('[Push] Created new subscription with endpoint:', subscription.endpoint.substring(0, 50) + '...')
+
     // Send subscription to server
     await pushService.subscribe(subscription.toJSON())
 
-    console.log('Push subscription successful')
+    console.log('[Push] Push subscription successful')
     return subscription
   } catch (error) {
-    console.error('Error subscribing to push notifications:', error)
+    console.error('[Push] Error subscribing to push notifications:', error)
     return null
   }
 }
