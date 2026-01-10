@@ -128,11 +128,12 @@ export async function subscribeToPushNotifications() {
     // Get VAPID public key from server (always get fresh key)
     const publicKey = await getVapidPublicKey()
     if (!publicKey) {
-      console.log('Failed to get VAPID public key')
+      console.log('[Push] Failed to get VAPID public key')
       return null
     }
 
-    console.log('[Push] Using VAPID public key:', publicKey.substring(0, 20) + '...')
+    console.log('[Push] Using VAPID public key from server:', publicKey.substring(0, 20) + '...')
+    console.log('[Push] Full VAPID public key:', publicKey)
 
     // Unsubscribe from any existing subscription first (to avoid key mismatches)
     try {
