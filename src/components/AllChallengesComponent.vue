@@ -360,7 +360,7 @@ async function joinChallenge(challenge) {
         selectedChallenge.value = data
       } catch (error) {
         // Fallback to finding in list
-        selectedChallenge.value = challenges.value.find(c => c._id === challenge._id) || null
+      selectedChallenge.value = challenges.value.find(c => c._id === challenge._id) || null
       }
     }
   } catch (error) {
@@ -412,7 +412,7 @@ async function fetchChallenges(page = 1, append = false) {
   if (append) {
     loadingMore.value = true
   } else {
-    loading.value = true
+  loading.value = true
     currentPage.value = 1
   }
   errorMessage.value = ''
@@ -437,7 +437,7 @@ async function fetchChallenges(page = 1, append = false) {
       challenges.value = [...challenges.value, ...(data?.challenges || [])]
     } else {
       // Replace challenges list (first page or filter change)
-      challenges.value = data?.challenges || []
+    challenges.value = data?.challenges || []
     }
     
     // Update pagination state
@@ -507,7 +507,7 @@ async function openDetails(challenge) {
     })
   } else {
     nextTick(() => {
-      detailsDialogOpen.value = true
+  detailsDialogOpen.value = true
       isOpeningChallenge.value = false
     })
   }

@@ -67,11 +67,11 @@
                 </template>
                 <v-list-item-title>{{ t('challenges.share.telegram') }}</v-list-item-title>
               </v-list-item>
-              <v-list-item @click="shareToInstagram">
+              <v-list-item @click="shareToInstagramStory">
                 <template #prepend>
                   <v-icon color="#E4405F">mdi-instagram</v-icon>
                 </template>
-                <v-list-item-title>{{ t('challenges.share.instagram') }}</v-list-item-title>
+                <v-list-item-title>{{ t('challenges.share.instagramStory') }}</v-list-item-title>
               </v-list-item>
             </v-list>
           </v-menu>
@@ -1829,16 +1829,14 @@ const shareToTelegram = () => {
   window.open(`https://t.me/share/url?url=${url}&text=${text}`, '_blank', 'width=600,height=400')
 }
 
-const shareToInstagram = async () => {
-  // Instagram doesn't support web sharing, so we copy the link
-  // and try to open Instagram app (on mobile) or show instructions
+const shareToInstagramStory = async () => {
   const url = getShareUrl()
   const text = getShareText()
   
   // Copy link to clipboard first
   try {
     await navigator.clipboard.writeText(`${text}\n\n${url}`)
-    snackbarText.value = t('challenges.share.instagramCopied')
+    snackbarText.value = t('challenges.share.instagramStoryCopied')
     snackbar.value = true
   } catch (err) {
     // Fallback for older browsers
@@ -1848,7 +1846,7 @@ const shareToInstagram = async () => {
     textArea.select()
     try {
       document.execCommand('copy')
-      snackbarText.value = t('challenges.share.instagramCopied')
+      snackbarText.value = t('challenges.share.instagramStoryCopied')
       snackbar.value = true
     } catch (e) {
       console.error('Fallback copy failed:', e)
@@ -1856,20 +1854,25 @@ const shareToInstagram = async () => {
     document.body.removeChild(textArea)
   }
   
-  // Try to open Instagram app (works on mobile devices)
-  // Instagram URL scheme: instagram://
-  // Try to open Instagram app, fallback to web if not available
+  // Try to open Instagram Story camera
   setTimeout(() => {
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
     if (isMobile) {
-      // Try to open Instagram app
-      window.location.href = 'instagram://'
-      // Fallback to web after a delay
+      // Try to open Instagram Story camera
+      // iOS: instagram-stories://share
+      // Android: instagram://story-camera
+      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent)
+      if (isIOS) {
+        window.location.href = 'instagram-stories://share'
+      } else {
+        window.location.href = 'instagram://story-camera'
+      }
+      // Fallback to regular Instagram app after a delay
       setTimeout(() => {
-        window.open('https://www.instagram.com/', '_blank')
+        window.location.href = 'instagram://'
       }, 500)
     } else {
-      // On desktop, just open Instagram web
+      // On desktop, open Instagram web
       window.open('https://www.instagram.com/', '_blank')
     }
   }, 100)

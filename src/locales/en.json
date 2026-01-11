@@ -273,8 +273,10 @@
       "vk": "Share on VK",
       "telegram": "Share on Telegram",
       "instagram": "Share on Instagram",
+      "instagramStory": "Share to Instagram Story",
       "linkCopied": "Link copied to clipboard!",
-      "instagramCopied": "Link copied! Opening Instagram..."
+      "instagramCopied": "Link copied! Opening Instagram...",
+      "instagramStoryCopied": "Link copied! Opening Instagram Story..."
     },
     "loginPrompt": "Please log in to view your challenges.",
     "mustBeLoggedIn": "You must be logged in to create a challenge.",

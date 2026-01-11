@@ -273,8 +273,10 @@
       "vk": "Поделиться в VK",
       "telegram": "Поделиться в Telegram",
       "instagram": "Поделиться в Instagram",
+      "instagramStory": "Поделиться в Instagram Story",
       "linkCopied": "Ссылка скопирована в буфер обмена!",
-      "instagramCopied": "Ссылка скопирована! Открываю Instagram..."
+      "instagramCopied": "Ссылка скопирована! Открываю Instagram...",
+      "instagramStoryCopied": "Ссылка скопирована! Открываю Instagram Story..."
     },
     "loginPrompt": "Авторизуйтесь, чтобы увидеть свои челленджи.",
     "mustBeLoggedIn": "Необходимо войти в систему, чтобы создать челлендж.",
