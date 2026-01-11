@@ -2,6 +2,34 @@
   <v-card class="mb-4 filter-panel">
     <v-card-text>
       <div class="filters-grid">
+        <!-- Search by Title -->
+        <div class="search-title-container">
+          <v-text-field
+            :model-value="modelValue.title"
+            @update:model-value="updateFilter('title', $event)"
+            :label="t('filters.searchTitle')"
+            variant="outlined"
+            density="compact"
+            clearable
+            hide-details
+            class="search-title-input"
+            @keyup.enter="handleSearch"
+            @click:clear="handleClearSearch"
+          >
+            <template #append-inner>
+              <v-btn
+                icon
+                size="small"
+                variant="text"
+                @click="handleSearch"
+                class="search-icon-btn"
+              >
+                <v-icon>mdi-magnify</v-icon>
+              </v-btn>
+            </template>
+          </v-text-field>
+        </div>
+
         <!-- Type Filter -->
         <v-select
           :model-value="modelValue.type"
@@ -16,26 +44,27 @@
           hide-details
         ></v-select>
 
-        <!-- Activity Filter -->
+        <!-- Owner Filter -->
         <v-select
-          :model-value="modelValue.activity"
-          @update:model-value="updateFilter('activity', $event)"
-          :items="activityOptions"
-          :label="t('filters.activity')"
+          :model-value="modelValue.owner"
+          @update:model-value="updateFilter('owner', $event)"
+          :items="ownerOptions"
+          :label="t('filters.owner')"
           item-title="title"
           item-value="value"
           variant="outlined"
           density="compact"
           clearable
           hide-details
+          :loading="loadingUsers"
         ></v-select>
 
-        <!-- Participants Filter -->
+        <!-- Popularity Filter -->
         <v-select
-          :model-value="modelValue.participants"
-          @update:model-value="updateFilter('participants', $event)"
-          :items="participantsOptions"
-          :label="t('filters.participants')"
+          :model-value="modelValue.popularity"
+          @update:model-value="updateFilter('popularity', $event)"
+          :items="popularityOptions"
+          :label="t('filters.popularity')"
           item-title="title"
           item-value="value"
           variant="outlined"
@@ -73,25 +102,30 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { userService } from '../services/api'
 
 const props = defineProps({
   modelValue: {
     type: Object,
     required: true,
     default: () => ({
+      title: null,
       type: null,
-      activity: null,
-      participants: null,
+      owner: null,
+      popularity: null,
       creationDate: null
     })
   }
 })
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'search'])
 
 const { t } = useI18n()
+
+const loadingUsers = ref(false)
+const users = ref([])
 
 // Filter options
 const typeOptions = computed(() => [
@@ -118,11 +152,24 @@ const creationDateOptions = computed(() => [
   { title: t('filters.creationDateOlder'), value: 'older' }
 ])
 
+const popularityOptions = computed(() => [
+  { title: t('filters.popularityMost'), value: 'most' },
+  { title: t('filters.popularityLeast'), value: 'least' }
+])
+
+const ownerOptions = computed(() => {
+  return users.value.map(user => ({
+    title: user.name,
+    value: user._id || user.id
+  }))
+})
+
 // Check if any filters are active
 const hasActiveFilters = computed(() => {
-  return props.modelValue.type !== null ||
-         props.modelValue.activity !== null ||
-         props.modelValue.participants !== null ||
+  return props.modelValue.title !== null ||
+         props.modelValue.type !== null ||
+         props.modelValue.owner !== null ||
+         props.modelValue.popularity !== null ||
          props.modelValue.creationDate !== null
 })
 
@@ -135,12 +182,38 @@ function updateFilter(key, value) {
 
 function clearFilters() {
   emit('update:modelValue', {
+    title: null,
     type: null,
-    activity: null,
-    participants: null,
+    owner: null,
+    popularity: null,
     creationDate: null
   })
 }
+
+function handleSearch() {
+  emit('search')
+}
+
+function handleClearSearch() {
+  updateFilter('title', null)
+  emit('search')
+}
+
+const fetchUsers = async () => {
+  loadingUsers.value = true
+  try {
+    const response = await userService.getAllUsers({ page: 1, limit: 100 })
+    users.value = response.data.users || []
+  } catch (error) {
+    console.error('Error fetching users:', error)
+  } finally {
+    loadingUsers.value = false
+  }
+}
+
+onMounted(() => {
+  fetchUsers()
+})
 </script>
 
 <style scoped>
@@ -157,6 +230,18 @@ function clearFilters() {
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
   align-items: end;
+}
+
+.search-title-container {
+  grid-column: 1 / -1;
+}
+
+.search-title-input {
+  width: 100%;
+}
+
+.search-icon-btn {
+  margin-right: -8px;
 }
 
 /* Style filter selects */

@@ -116,8 +116,8 @@ export const userService = {
   updateProfile: (userData) => {
     return api.put('/auth/profile', userData)
   },
-  getAllUsers: () => {
-    return api.get('/auth/users')
+  getAllUsers: (params = {}) => {
+    return api.get('/auth/users', { params })
   },
   getTodayChecklist: () => {
     return api.get('/auth/daily-checklist/today')
@@ -146,18 +146,45 @@ export const challengeService = {
     if (options.excludePrivate !== undefined) {
       params.excludePrivate = options.excludePrivate
     }
+    // Add filter parameters
+    if (options.type) params.type = options.type
+    if (options.activity) params.activity = options.activity
+    if (options.participants) params.participants = options.participants
+    if (options.creationDate) params.creationDate = options.creationDate
     return api.get(`/challenges/user/${userId}`, { params })
   },
-  getAllChallenges: (excludeFinished = true) => {
-    return api.get('/challenges', {
-      params: { excludeFinished: excludeFinished }
-    })
+  getAllChallenges: (filters = {}) => {
+    const params = {}
+    
+    // Pagination parameters
+    if (filters.page) params.page = filters.page
+    if (filters.limit) params.limit = filters.limit
+    
+    // Support legacy excludeFinished parameter
+    if (filters.excludeFinished !== undefined) {
+      params.excludeFinished = filters.excludeFinished
+    } else {
+      // Default to excluding finished challenges if no filters specified
+      params.excludeFinished = true
+    }
+    
+    // Add filter parameters
+    if (filters.title) params.title = filters.title
+    if (filters.type) params.type = filters.type
+    if (filters.owner) params.owner = filters.owner
+    if (filters.popularity) params.popularity = filters.popularity
+    if (filters.creationDate) params.creationDate = filters.creationDate
+    
+    return api.get('/challenges', { params })
   },
   getChallenge: (id) => {
     return api.get(`/challenges/${id}`)
   },
   joinChallenge: (id, payload = {}) => {
     return api.post(`/challenges/${id}/join`, payload)
+  },
+  leaveChallenge: (id, payload = {}) => {
+    return api.post(`/challenges/${id}/leave`, payload)
   },
   updateParticipantCompletedDays: (challengeId, userId, completedDays) => {
     return api.put(`/challenges/${challengeId}/participant/${userId}/completedDays`, { completedDays })

@@ -1,9 +1,9 @@
 <template>
   <div class="all-challenges">
-    <h1 class="mb-4 mb-md-6 page-title">{{ t('challenges.listTitle') }}</h1>
+    <h1 class="mb-4 mb-md-6 page-title">{{ t('challenges.listTitle') }} ({{ totalChallenges }})</h1>
 
     <!-- Filter Panel -->
-    <FilterPanel v-model="filters" />
+    <FilterPanel v-model="filters" @search="handleFilterSearch" />
 
     <v-card>
       <v-card-text>
@@ -25,14 +25,21 @@
             :current-user-id="currentUserId"
             :show-join-button="true"
             :joining-id="joiningId"
+            :leaving-id="leavingId"
             :watching-id="watchingId"
             :is-watched="isWatched(challenge)"
             @click="openDetails"
             @join="joinChallenge"
+            @leave="leaveChallenge"
             @watch="watchChallenge"
             @unwatch="unwatchChallenge"
             @owner-navigated="handleOwnerNavigated"
           />
+        </div>
+        
+        <!-- Loading More Indicator -->
+        <div v-if="loadingMore" class="text-center py-4">
+          <v-progress-circular indeterminate color="primary" size="32"></v-progress-circular>
         </div>
       </v-card-text>
     </v-card>
@@ -43,12 +50,15 @@
       :is-owner="selectedIsOwner"
       :is-participant="selectedIsParticipant"
       :show-join-button="showDialogJoinButton"
+      :show-leave-button="showDialogLeaveButton"
       :join-loading="selectedJoinLoading"
+      :leave-loading="selectedLeaveLoading"
       :save-loading="saveLoading"
       :save-error="saveError"
       :delete-loading="deleteLoading"
       @save="handleDialogSave"
       @join="handleDialogJoin"
+      @leave="handleDialogLeave"
       @delete="handleDialogDelete"
       @update="handleDialogUpdate"
     />
@@ -56,7 +66,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, watch, nextTick, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { challengeService } from '../services/api'
 import ChallengeDetailsDialog from './ChallengeDetailsDialog.vue'
@@ -69,106 +79,39 @@ const route = useRoute()
 
 const challenges = ref([])
 const loading = ref(false)
+const loadingMore = ref(false)
 const errorMessage = ref('')
 const currentUserId = ref(getCurrentUserId())
 const joiningId = ref(null)
+const leavingId = ref(null)
 const watchingId = ref(null)
 const watchedChallenges = ref([])
+const currentPage = ref(1)
+const hasMore = ref(true)
 
 // Filter state
 const filters = ref({
+  title: null,
   type: null,
-  activity: null,
-  participants: null,
+  owner: null,
+  popularity: null,
   creationDate: null
 })
 
-// Filter out private challenges from the display
-const publicChallenges = computed(() => {
-  return challenges.value.filter(challenge => challenge.privacy !== 'private')
+// Challenges are already filtered by the backend, so use them directly
+const filteredChallenges = computed(() => {
+  return challenges.value
 })
 
-// Filtered challenges
-const filteredChallenges = computed(() => {
-  let result = [...publicChallenges.value]
-
-  // Filter by type
-  if (filters.value.type) {
-    result = result.filter(challenge => challenge.challengeType === filters.value.type)
-  }
-
-  // Filter by activity
-  if (filters.value.activity) {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    
-    result = result.filter(challenge => {
-      if (!challenge.startDate || !challenge.endDate) return false
-      
-      const startDate = new Date(challenge.startDate)
-      startDate.setHours(0, 0, 0, 0)
-      const endDate = new Date(challenge.endDate)
-      endDate.setHours(0, 0, 0, 0)
-      
-      if (filters.value.activity === 'active') {
-        return startDate <= today && endDate >= today
-      } else if (filters.value.activity === 'finished') {
-        return endDate < today
-      } else if (filters.value.activity === 'upcoming') {
-        return startDate > today
-      }
-      return true
-    })
-  }
-
-  // Filter by participants
-  if (filters.value.participants) {
-    result = result.filter(challenge => {
-      const participantCount = (challenge.participants || []).length
-      
-      if (filters.value.participants === '0') {
-        return participantCount === 0
-      } else if (filters.value.participants === '1-5') {
-        return participantCount >= 1 && participantCount <= 5
-      } else if (filters.value.participants === '6+') {
-        return participantCount >= 6
-      }
-      return true
-    })
-  }
-
-  // Filter by creation date
-  if (filters.value.creationDate) {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    
-    result = result.filter(challenge => {
-      // Use createdAt if available, otherwise use startDate as fallback
-      const creationDate = challenge.createdAt || challenge.startDate
-      if (!creationDate) return false
-      
-      const created = new Date(creationDate)
-      created.setHours(0, 0, 0, 0)
-      const daysDiff = Math.floor((today - created) / (1000 * 60 * 60 * 24))
-      
-      if (filters.value.creationDate === 'today') {
-        return daysDiff === 0
-      } else if (filters.value.creationDate === 'week') {
-        return daysDiff >= 0 && daysDiff <= 7
-      } else if (filters.value.creationDate === 'month') {
-        return daysDiff >= 0 && daysDiff <= 30
-      } else if (filters.value.creationDate === 'older') {
-        return daysDiff > 30
-      }
-      return true
-    })
-  }
-
-  return result
+const totalChallenges = computed(() => {
+  // Return the total from pagination if available, otherwise use current count
+  // This will be updated when we get pagination info from backend
+  return challenges.value.length
 })
 
 const detailsDialogOpen = ref(false)
 const selectedChallenge = ref(null)
+const isOpeningChallenge = ref(false) // Flag to prevent recursive updates
 const saveLoading = ref(false)
 const saveError = ref('')
 const deleteLoading = ref(false)
@@ -209,13 +152,41 @@ const showDialogJoinButton = computed(() => {
   )
 })
 
+const showDialogLeaveButton = computed(() => {
+  if (!selectedChallenge.value) return false
+  
+  // Cannot leave if challenge has ended
+  if (isChallengeEnded(selectedChallenge.value)) {
+    return false
+  }
+  
+  // Can only leave habit challenges
+  if (selectedChallenge.value.challengeType !== 'habit') {
+    return false
+  }
+  
+  return (
+    !!currentUserId.value &&
+    !selectedIsOwner.value &&
+    selectedIsParticipant.value
+  )
+})
+
+const selectedLeaveLoading = computed(() => {
+  if (!selectedChallenge.value) return false
+  return leavingId.value === selectedChallenge.value._id
+})
+
 watch(detailsDialogOpen, value => {
-  if (!value) {
+  if (!value && !isOpeningChallenge.value) {
     selectedChallenge.value = null
     saveError.value = ''
     // Update route when dialog closes if we're on a challenge view route
+    // Use nextTick to avoid recursive updates
     if (route.params.id) {
-      router.push('/challenges')
+      nextTick(() => {
+        router.push('/challenges')
+      })
     }
   }
 })
@@ -367,14 +338,30 @@ async function joinChallenge(challenge) {
     return
   }
 
+  if (!challenge || !challenge._id) {
+    errorMessage.value = t('notifications.joinError')
+    return
+  }
+
   joiningId.value = challenge._id
   errorMessage.value = ''
 
   try {
     await challengeService.joinChallenge(challenge._id, { userId: currentUserId.value })
-    await fetchChallenges()
+    
+    // Refresh challenges list (keep current page)
+    await fetchChallenges(currentPage.value, false)
+    
+    // Refresh the selected challenge if dialog is open
     if (selectedChallenge.value?._id === challenge._id) {
-      selectedChallenge.value = challenges.value.find(c => c._id === challenge._id) || null
+      // Fetch fresh challenge data to get updated participants list
+      try {
+        const { data } = await challengeService.getChallenge(challenge._id)
+        selectedChallenge.value = data
+      } catch (error) {
+        // Fallback to finding in list
+        selectedChallenge.value = challenges.value.find(c => c._id === challenge._id) || null
+      }
     }
   } catch (error) {
     errorMessage.value = error.response?.data?.message || t('notifications.joinError')
@@ -383,21 +370,114 @@ async function joinChallenge(challenge) {
   }
 }
 
-async function fetchChallenges() {
-  loading.value = true
+async function leaveChallenge(challenge) {
+  if (!currentUserId.value) {
+    errorMessage.value = t('notifications.mustLogin')
+    return
+  }
+
+  if (!challenge || !challenge._id) {
+    errorMessage.value = t('notifications.joinError')
+    return
+  }
+
+  leavingId.value = challenge._id
   errorMessage.value = ''
 
   try {
-    const { data } = await challengeService.getAllChallenges()
-    challenges.value = data?.challenges || []
+    await challengeService.leaveChallenge(challenge._id, { userId: currentUserId.value })
+    
+    // Refresh challenges list (keep current page)
+    await fetchChallenges(currentPage.value, false)
+    
+    // Refresh the selected challenge if dialog is open
+    if (selectedChallenge.value?._id === challenge._id) {
+      // Fetch fresh challenge data to get updated participants list
+      try {
+        const { data } = await challengeService.getChallenge(challenge._id)
+        selectedChallenge.value = data
+      } catch (error) {
+        // Fallback to finding in list
+        selectedChallenge.value = challenges.value.find(c => c._id === challenge._id) || null
+      }
+    }
+  } catch (error) {
+    errorMessage.value = error.response?.data?.message || t('notifications.joinError')
+  } finally {
+    leavingId.value = null
+  }
+}
+
+async function fetchChallenges(page = 1, append = false) {
+  if (append) {
+    loadingMore.value = true
+  } else {
+    loading.value = true
+    currentPage.value = 1
+  }
+  errorMessage.value = ''
+
+  try {
+    // Build filter object for API call
+    const filterParams = {
+      page,
+      limit: 20,
+      excludeFinished: true, // Default to excluding finished challenges
+      ...(filters.value.title && { title: filters.value.title }),
+      ...(filters.value.type && { type: filters.value.type }),
+      ...(filters.value.owner && { owner: filters.value.owner }),
+      ...(filters.value.popularity && { popularity: filters.value.popularity }),
+      ...(filters.value.creationDate && { creationDate: filters.value.creationDate })
+    }
+    
+    const { data } = await challengeService.getAllChallenges(filterParams)
+    
+    if (append) {
+      // Append new challenges to existing list
+      challenges.value = [...challenges.value, ...(data?.challenges || [])]
+    } else {
+      // Replace challenges list (first page or filter change)
+      challenges.value = data?.challenges || []
+    }
+    
+    // Update pagination state
+    hasMore.value = data?.pagination?.hasMore || false
+    currentPage.value = page
   } catch (error) {
     errorMessage.value = error.response?.data?.message || t('notifications.apiError')
   } finally {
     loading.value = false
+    loadingMore.value = false
   }
 }
 
-function openDetails(challenge) {
+const loadMoreChallenges = async () => {
+  if (loadingMore.value || !hasMore.value) {
+    return // Don't load more if already loading or no more pages
+  }
+  
+  await fetchChallenges(currentPage.value + 1, true)
+}
+
+const handleScroll = () => {
+  if (loadingMore.value || !hasMore.value) {
+    return
+  }
+  
+  const scrollTop = window.pageYOffset || document.documentElement.scrollTop
+  const windowHeight = window.innerHeight
+  const documentHeight = document.documentElement.scrollHeight
+  
+  // Load more when user is within 200px of the bottom
+  if (scrollTop + windowHeight >= documentHeight - 200) {
+    loadMoreChallenges()
+  }
+}
+
+async function openDetails(challenge) {
+  // Prevent recursive calls
+  if (isOpeningChallenge.value) return
+  
   // Check if user is owner - navigate to edit page
   if (isChallengeOwner(challenge.owner)) {
     router.push(`/challenges/edit/${challenge._id}`)
@@ -405,9 +485,32 @@ function openDetails(challenge) {
   }
   
   // Otherwise open modal for non-owners
-  selectedChallenge.value = challenge
+  isOpeningChallenge.value = true
   saveError.value = ''
-  detailsDialogOpen.value = true
+  
+  // Fetch full challenge data to ensure we have populated owner and participants
+  try {
+    const { data } = await challengeService.getChallenge(challenge._id)
+    selectedChallenge.value = data
+  } catch (error) {
+    // Fallback to using the challenge from the list
+    selectedChallenge.value = challenge
+  }
+  
+  // Update route if not already set to this challenge
+  if (route.params.id !== challenge._id) {
+    router.push(`/challenges/${challenge._id}`).finally(() => {
+      nextTick(() => {
+        detailsDialogOpen.value = true
+        isOpeningChallenge.value = false
+      })
+    })
+  } else {
+    nextTick(() => {
+      detailsDialogOpen.value = true
+      isOpeningChallenge.value = false
+    })
+  }
 }
 
 async function handleDialogSave(formData) {
@@ -418,7 +521,7 @@ async function handleDialogSave(formData) {
 
   try {
     await challengeService.updateChallenge(selectedChallenge.value._id, { ...formData })
-    await fetchChallenges()
+    await fetchChallenges(currentPage.value, false)
     // Update selected challenge if dialog is still open
     if (selectedChallenge.value) {
       const updatedChallenge = challenges.value.find(c => c._id === selectedChallenge.value._id)
@@ -436,7 +539,7 @@ async function handleDialogSave(formData) {
 
 async function handleDialogUpdate() {
   // Refresh challenges when participant updates their completedDays or watch/unwatch
-  await fetchChallenges()
+  await fetchChallenges(currentPage.value, false)
   await loadWatchedChallenges()
   // Also refresh the selected challenge if dialog is open
   if (selectedChallenge.value) {
@@ -452,6 +555,11 @@ async function handleDialogJoin() {
   await joinChallenge(selectedChallenge.value)
 }
 
+async function handleDialogLeave() {
+  if (!selectedChallenge.value) return
+  await leaveChallenge(selectedChallenge.value)
+}
+
 async function handleDialogDelete(challengeId) {
   if (!challengeId) return
 
@@ -460,7 +568,7 @@ async function handleDialogDelete(challengeId) {
 
   try {
     await challengeService.deleteChallenge(challengeId)
-    await fetchChallenges()
+    await fetchChallenges(currentPage.value, false)
     detailsDialogOpen.value = false
   } catch (error) {
     saveError.value = error.response?.data?.message || t('notifications.deleteChallengeError')
@@ -473,33 +581,72 @@ async function handleDialogDelete(challengeId) {
 async function openChallengeById(challengeId) {
   if (!challengeId) return
   
+  // Prevent multiple simultaneous calls
+  if (loading.value) return
+  
   // Check if challenge is already in the list
   let challenge = challenges.value.find(c => c._id === challengeId)
   
   if (!challenge) {
     // Fetch the challenge if not in list
     try {
+      loading.value = true
       const { data } = await challengeService.getChallenge(challengeId)
       challenge = data
       // Add to challenges list if it's public or user has access
+      // Use nextTick to avoid reactive updates during render
       if (challenge && challenge.privacy !== 'private') {
-        challenges.value.push(challenge)
+        await nextTick()
+        // Check again if challenge was added by another process
+        const existingChallenge = challenges.value.find(c => c._id === challengeId)
+        if (!existingChallenge) {
+          challenges.value.push(challenge)
+        } else {
+          challenge = existingChallenge
+        }
       }
     } catch (error) {
       console.error('Error fetching challenge:', error)
       errorMessage.value = error.response?.data?.message || t('challenges.notFound')
       return
+    } finally {
+      loading.value = false
     }
   }
   
   if (challenge) {
+    await nextTick()
     openDetails(challenge)
   }
 }
 
+// Handle filter search button click
+const handleFilterSearch = () => {
+  fetchChallenges(1, false) // Reset to page 1 when search is triggered
+}
+
+// Watch for filter changes (except title which uses search button)
+// Watch each filter property individually to avoid triggering on title changes
+watch(() => filters.value.type, () => {
+  fetchChallenges(1, false)
+})
+
+watch(() => filters.value.owner, () => {
+  fetchChallenges(1, false)
+})
+
+watch(() => filters.value.popularity, () => {
+  fetchChallenges(1, false)
+})
+
+watch(() => filters.value.creationDate, () => {
+  fetchChallenges(1, false)
+})
+
 onMounted(async () => {
-  await fetchChallenges()
+  await fetchChallenges(1, false)
   loadWatchedChallenges()
+  window.addEventListener('scroll', handleScroll)
   
   // Check if route has challenge ID parameter
   if (route.params.id) {
@@ -510,13 +657,31 @@ onMounted(async () => {
   }
 })
 
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll)
+})
+
 // Watch for route changes
-watch(() => route.params.id, (newId) => {
-  if (newId) {
-    openChallengeById(newId)
-  } else {
+watch(() => route.params.id, (newId, oldId) => {
+  // Prevent recursive updates
+  if (isOpeningChallenge.value) return
+  
+  // Only act if the ID actually changed
+  if (newId && newId !== oldId) {
+    // Check if dialog is already open for this challenge
+    if (detailsDialogOpen.value && selectedChallenge.value?._id === newId) {
+      return // Already showing this challenge
+    }
+    
+    nextTick(() => {
+      openChallengeById(newId)
+    })
+  } else if (!newId && oldId && !isOpeningChallenge.value) {
     // Close dialog if navigating away from challenge view
-    detailsDialogOpen.value = false
+    // Use nextTick to avoid recursive updates
+    nextTick(() => {
+      detailsDialogOpen.value = false
+    })
   }
 })
 

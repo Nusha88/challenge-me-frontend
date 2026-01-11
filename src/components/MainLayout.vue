@@ -275,7 +275,6 @@ watch(() => isLoggedIn.value, (loggedIn) => {
     }, 30000)
   } else {
     unreadNotificationCount.value = 0
-    streakDays.value = 0
   }
 })
 </script>

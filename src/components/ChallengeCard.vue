@@ -83,6 +83,21 @@
           <span>{{ t('challenges.join') }}</span>
         </span>
       </v-btn>
+      <v-btn
+        v-else-if="canLeave"
+        color="error"
+        size="small"
+        variant="outlined"
+        class="leave-button"
+        :loading="leavingId === challenge._id"
+        @click.stop="$emit('leave', challenge)"
+      >
+        <span class="leave-button-content">
+          <span v-if="participantCount > 0" class="participant-count">{{ participantCount }}</span>
+          <span v-if="participantCount > 0" class="separator">|</span>
+          <span>{{ t('challenges.leave') }}</span>
+        </span>
+      </v-btn>
       <v-spacer></v-spacer>
       <v-btn
         v-if="currentUserId && !isOwner && !isFinished"
@@ -189,6 +204,10 @@ const props = defineProps({
     type: String,
     default: null
   },
+  leavingId: {
+    type: String,
+    default: null
+  },
   watchingId: {
     type: String,
     default: null
@@ -199,7 +218,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['click', 'join', 'watch', 'unwatch', 'owner-navigated'])
+const emit = defineEmits(['click', 'join', 'leave', 'watch', 'unwatch', 'owner-navigated'])
 
 const { t, locale } = useI18n()
 const router = useRouter()
@@ -311,6 +330,21 @@ const canJoin = computed(() => {
   })
   
   return !isParticipant
+})
+
+const canLeave = computed(() => {
+  if (isFinished.value) return false
+  if (props.challenge.challengeType !== 'habit') return false
+  if (!props.currentUserId) return false
+  if (isOwner.value) return false
+  
+  // Check if user is a participant
+  const isParticipant = (props.challenge.participants || []).some(participant => {
+    const userId = participant.userId?._id || participant.userId || participant._id || participant
+    return userId && userId.toString() === props.currentUserId.toString()
+  })
+  
+  return isParticipant
 })
 
 const participantCount = computed(() => {
@@ -741,7 +775,8 @@ function navigateToOwner() {
   background: linear-gradient(135deg, #1FA0F6 0%, #A62EE8 100%) !important;
 }
 
-.join-button-content {
+.join-button-content,
+.leave-button-content {
   display: flex;
   align-items: center;
   gap: 6px;

@@ -12,14 +12,12 @@ export async function registerServiceWorker() {
       registration = await navigator.serviceWorker.register('/sw.js', {
         scope: '/'
       })
-      console.log('Service Worker registered successfully')
       return registration
     } catch (error) {
       console.error('Service Worker registration failed:', error)
       return null
     }
   } else {
-    console.log('Service Workers are not supported')
     return null
   }
 }
@@ -47,7 +45,6 @@ export async function getVapidPublicKey() {
  */
 export async function requestNotificationPermission() {
   if (!('Notification' in window)) {
-    console.log('This browser does not support notifications')
     return false
   }
 
@@ -56,7 +53,6 @@ export async function requestNotificationPermission() {
   }
 
   if (Notification.permission === 'denied') {
-    console.log('Notification permission denied')
     return false
   }
 
@@ -103,7 +99,6 @@ export async function subscribeToPushNotifications() {
   try {
     // Check if service worker is supported
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      console.log('Push messaging is not supported')
       return null
     }
 
@@ -121,36 +116,29 @@ export async function subscribeToPushNotifications() {
     // Request notification permission
     const hasPermission = await requestNotificationPermission()
     if (!hasPermission) {
-      console.log('Notification permission not granted')
       return null
     }
 
     // Get VAPID public key from server (always get fresh key)
     const publicKey = await getVapidPublicKey()
     if (!publicKey) {
-      console.log('[Push] Failed to get VAPID public key')
       return null
     }
-
-    console.log('[Push] Using VAPID public key from server:', publicKey.substring(0, 20) + '...')
-    console.log('[Push] Full VAPID public key:', publicKey)
 
     // Unsubscribe from any existing subscription first (to avoid key mismatches)
     try {
       const existingSubscription = await registration.pushManager.getSubscription()
       if (existingSubscription) {
-        console.log('[Push] Unsubscribing from existing subscription to avoid key mismatch')
         await existingSubscription.unsubscribe()
         // Also remove from server
         try {
           await pushService.unsubscribe()
         } catch (unsubError) {
           // Ignore errors - subscription might not exist on server
-          console.log('[Push] Could not unsubscribe from server:', unsubError.message)
         }
       }
     } catch (unsubError) {
-      console.log('[Push] Error unsubscribing from old subscription:', unsubError.message)
+      // Ignore unsubscribe errors
     }
 
     // Convert VAPID key to Uint8Array
@@ -162,12 +150,9 @@ export async function subscribeToPushNotifications() {
       applicationServerKey: applicationServerKey
     })
 
-    console.log('[Push] Created new subscription with endpoint:', subscription.endpoint.substring(0, 50) + '...')
-
     // Send subscription to server
     await pushService.subscribe(subscription.toJSON())
 
-    console.log('[Push] Push subscription successful')
     return subscription
   } catch (error) {
     console.error('[Push] Error subscribing to push notifications:', error)
@@ -188,7 +173,6 @@ export async function unsubscribeFromPushNotifications() {
     if (subscription) {
       await subscription.unsubscribe()
       await pushService.unsubscribe()
-      console.log('Push subscription removed')
     }
   } catch (error) {
     console.error('Error unsubscribing from push notifications:', error)
@@ -282,7 +266,6 @@ export async function syncPushSubscriptionToServer() {
       
       const subscriptionData = subscription.toJSON()
       await pushService.subscribe(subscriptionData)
-      console.log('Push subscription synced to server')
       return true
     }
     
@@ -290,9 +273,6 @@ export async function syncPushSubscriptionToServer() {
   } catch (error) {
     // Silent fail - subscription exists in browser
     // Don't log errors for auth failures - they're expected during login
-    if (error.response?.status !== 401 && error.response?.status !== 403) {
-      console.log('Could not sync push subscription:', error.message)
-    }
     return false
   }
 }

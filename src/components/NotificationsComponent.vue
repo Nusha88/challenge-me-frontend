@@ -6,7 +6,7 @@
     location="right"
     temporary
     :width="mobile ? '100%' : '400'"
-    :class="{ 'drawer-closed': !modelValue }"
+    :class="{ 'drawer-closed': !modelValue, 'notification-drawer-desktop': !mobile }"
   >
     <v-card-title class="d-flex align-center justify-space-between pa-4">
       <div class="d-flex align-center">
@@ -538,6 +538,13 @@ onBeforeUnmount(() => {
   pointer-events: none !important;
   position: fixed !important;
   z-index: -1 !important;
+}
+
+/* Add margin-top for desktop to prevent hiding under header */
+@media (min-width: 960px) {
+  .notification-drawer-desktop {
+    margin-top: 64px !important;
+  }
 }
 </style>
 

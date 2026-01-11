@@ -737,8 +737,8 @@ function clearErrors() {
 }
 
 function goBack() {
-  // Navigate to Profile page
-  router.push('/profile')
+  // Navigate to My Challenges page
+  router.push('/challenges/my')
 }
 
 const actionsScrollContainer = ref(null)
@@ -924,7 +924,7 @@ async function handleSubmit() {
       formData.challengeType,
       formData.completedDays
     )
-    router.push('/profile')
+    router.push('/challenges/my')
   } catch (error) {
     saveError.value = error.response?.data?.message || t('notifications.updateError')
   } finally {

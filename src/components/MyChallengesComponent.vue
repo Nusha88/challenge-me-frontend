@@ -1,9 +1,6 @@
 <template>
   <div class="my-challenges">
-    <h1 class="mb-4 mb-md-6 page-title">{{ t('challenges.myListTitle') }}</h1>
-
-    <!-- Filter Panel -->
-    <FilterPanel v-if="challenges.length > 0" v-model="filters" class="mb-4" />
+    <h1 class="mb-4 mb-md-6 page-title">{{ t('challenges.myListTitle') }} ({{ totalChallenges }})</h1>
 
     <v-card>
       <v-card-text>
@@ -64,11 +61,14 @@
       :is-owner="selectedIsOwner"
       :is-participant="selectedIsParticipant"
       :show-join-button="false"
+      :show-leave-button="showDialogLeaveButton"
       :join-loading="false"
+      :leave-loading="selectedLeaveLoading"
       :save-loading="false"
       :save-error="''"
       :delete-loading="false"
       @update="handleDialogUpdate"
+      @leave="handleDialogLeave"
     />
   </div>
 </template>
@@ -80,7 +80,6 @@ import { challengeService } from '../services/api'
 import { useI18n } from 'vue-i18n'
 import ChallengeCard from './ChallengeCard.vue'
 import ChallengeDetailsDialog from './ChallengeDetailsDialog.vue'
-import FilterPanel from './FilterPanel.vue'
 
 const router = useRouter()
 const { t } = useI18n()
@@ -105,14 +104,6 @@ function getCurrentUserId() {
 }
 
 const currentUserId = ref(getCurrentUserId())
-
-// Filter state
-const filters = ref({
-  type: null,
-  activity: null,
-  participants: null,
-  creationDate: null
-})
 
 // Helper functions to determine if challenge is finished
 function isChallengeEnded(challenge) {
@@ -157,83 +148,9 @@ function isChallengeFinished(challenge) {
   return false
 }
 
-// Filtered challenges
+// Challenges are already filtered by the backend, so use them directly
 const filteredChallenges = computed(() => {
-  let result = [...challenges.value]
-
-  // Filter by type
-  if (filters.value.type) {
-    result = result.filter(challenge => challenge.challengeType === filters.value.type)
-  }
-
-  // Filter by activity
-  if (filters.value.activity) {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    
-    result = result.filter(challenge => {
-      if (!challenge.startDate || !challenge.endDate) return false
-      
-      const startDate = new Date(challenge.startDate)
-      startDate.setHours(0, 0, 0, 0)
-      const endDate = new Date(challenge.endDate)
-      endDate.setHours(0, 0, 0, 0)
-      
-      if (filters.value.activity === 'active') {
-        return startDate <= today && endDate >= today
-      } else if (filters.value.activity === 'finished') {
-        return endDate < today
-      } else if (filters.value.activity === 'upcoming') {
-        return startDate > today
-      }
-      return true
-    })
-  }
-
-  // Filter by participants
-  if (filters.value.participants) {
-    result = result.filter(challenge => {
-      const participantCount = (challenge.participants || []).length
-      
-      if (filters.value.participants === '0') {
-        return participantCount === 0
-      } else if (filters.value.participants === '1-5') {
-        return participantCount >= 1 && participantCount <= 5
-      } else if (filters.value.participants === '6+') {
-        return participantCount >= 6
-      }
-      return true
-    })
-  }
-
-  // Filter by creation date
-  if (filters.value.creationDate) {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    
-    result = result.filter(challenge => {
-      // Use createdAt if available, otherwise use startDate as fallback
-      const creationDate = challenge.createdAt || challenge.startDate
-      if (!creationDate) return false
-      
-      const created = new Date(creationDate)
-      created.setHours(0, 0, 0, 0)
-      const daysDiff = Math.floor((today - created) / (1000 * 60 * 60 * 24))
-      
-      if (filters.value.creationDate === 'today') {
-        return daysDiff === 0
-      } else if (filters.value.creationDate === 'week') {
-        return daysDiff >= 0 && daysDiff <= 7
-      } else if (filters.value.creationDate === 'month') {
-        return daysDiff >= 0 && daysDiff <= 30
-      } else if (filters.value.creationDate === 'older') {
-        return daysDiff > 30
-      }
-      return true
-    })
-  }
-
-  return result
+  return challenges.value
 })
 
 // Separate active and finished challenges
@@ -243,6 +160,10 @@ const activeChallenges = computed(() => {
 
 const finishedChallenges = computed(() => {
   return filteredChallenges.value.filter(challenge => isChallengeFinished(challenge))
+})
+
+const totalChallenges = computed(() => {
+  return challenges.value.length
 })
 
 const selectedIsOwner = computed(() => {
@@ -259,6 +180,33 @@ const selectedIsParticipant = computed(() => {
   })
 })
 
+const leavingId = ref(null)
+
+const showDialogLeaveButton = computed(() => {
+  if (!selectedChallenge.value) return false
+  
+  // Cannot leave if challenge has ended
+  if (isChallengeEnded(selectedChallenge.value)) {
+    return false
+  }
+  
+  // Can only leave habit challenges
+  if (selectedChallenge.value.challengeType !== 'habit') {
+    return false
+  }
+  
+  return (
+    !!currentUserId.value &&
+    !selectedIsOwner.value &&
+    selectedIsParticipant.value
+  )
+})
+
+const selectedLeaveLoading = computed(() => {
+  if (!selectedChallenge.value) return false
+  return leavingId.value === selectedChallenge.value._id
+})
+
 function isChallengeOwner(owner) {
   if (!currentUserId.value || !owner) return false
   const ownerId = owner._id || owner
@@ -273,10 +221,12 @@ const fetchChallenges = async () => {
 
   loading.value = true
   error.value = ''
-  
+
   try {
-    // Get current user's challenges, including private ones
-    const { data } = await challengeService.getChallengesByUser(currentUserId.value, { excludePrivate: false })
+    // Get current user's challenges
+    const { data } = await challengeService.getChallengesByUser(currentUserId.value, {
+      excludePrivate: false // Include private challenges for own profile
+    })
     challenges.value = data?.challenges || []
   } catch (err) {
     error.value = err.response?.data?.message || t('notifications.apiError')
@@ -295,6 +245,49 @@ const handleChallengeClick = (challenge) => {
   // Otherwise open details dialog
   selectedChallenge.value = challenge
   detailsDialogOpen.value = true
+}
+
+async function leaveChallenge(challenge) {
+  if (!currentUserId.value) {
+    error.value = t('notifications.mustLogin')
+    return
+  }
+
+  if (!challenge || !challenge._id) {
+    error.value = t('notifications.joinError')
+    return
+  }
+
+  leavingId.value = challenge._id
+  error.value = ''
+
+  try {
+    await challengeService.leaveChallenge(challenge._id, { userId: currentUserId.value })
+    
+    // Refresh challenges list
+    await fetchChallenges()
+    
+    // Refresh the selected challenge if dialog is open
+    if (selectedChallenge.value?._id === challenge._id) {
+      // Fetch fresh challenge data to get updated participants list
+      try {
+        const { data } = await challengeService.getChallenge(challenge._id)
+        selectedChallenge.value = data
+      } catch (error) {
+        // Fallback to finding in list
+        selectedChallenge.value = challenges.value.find(c => c._id === challenge._id) || null
+      }
+    }
+  } catch (err) {
+    error.value = err.response?.data?.message || t('notifications.joinError')
+  } finally {
+    leavingId.value = null
+  }
+}
+
+async function handleDialogLeave() {
+  if (!selectedChallenge.value) return
+  await leaveChallenge(selectedChallenge.value)
 }
 
 const handleDialogUpdate = async () => {

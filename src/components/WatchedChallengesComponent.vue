@@ -44,12 +44,15 @@
       :is-owner="selectedIsOwner"
       :is-participant="selectedIsParticipant"
       :show-join-button="showDialogJoinButton"
+      :show-leave-button="showDialogLeaveButton"
       :join-loading="selectedJoinLoading"
+      :leave-loading="selectedLeaveLoading"
       :save-loading="saveLoading"
       :save-error="saveError"
       :delete-loading="deleteLoading"
       @save="handleDialogSave"
       @join="handleDialogJoin"
+      @leave="handleDialogLeave"
       @delete="handleDialogDelete"
       @update="handleDialogUpdate"
     />
@@ -72,6 +75,7 @@ const errorMessage = ref('')
 const isLoggedIn = ref(!!localStorage.getItem('token'))
 const currentUserId = ref(getCurrentUserId())
 const joiningId = ref(null)
+const leavingId = ref(null)
 const watchingId = ref(null)
 
 const detailsDialogOpen = ref(false)
@@ -112,6 +116,31 @@ const showDialogJoinButton = computed(() => {
     !selectedIsOwner.value &&
     !selectedIsParticipant.value
   )
+})
+
+const showDialogLeaveButton = computed(() => {
+  if (!selectedChallenge.value) return false
+  
+  // Cannot leave if challenge has ended
+  if (isChallengeEnded(selectedChallenge.value)) {
+    return false
+  }
+  
+  // Can only leave habit challenges
+  if (selectedChallenge.value.challengeType !== 'habit') {
+    return false
+  }
+  
+  return (
+    !!currentUserId.value &&
+    !selectedIsOwner.value &&
+    selectedIsParticipant.value
+  )
+})
+
+const selectedLeaveLoading = computed(() => {
+  if (!selectedChallenge.value) return false
+  return leavingId.value === selectedChallenge.value._id
 })
 
 function getCurrentUserId() {
@@ -237,8 +266,51 @@ async function handleDialogSave() {
   // Not implemented for watched challenges
 }
 
+async function leaveChallenge(challenge) {
+  if (!currentUserId.value) {
+    errorMessage.value = t('notifications.mustLogin')
+    return
+  }
+
+  if (!challenge || !challenge._id) {
+    errorMessage.value = t('notifications.joinError')
+    return
+  }
+
+  leavingId.value = challenge._id
+  errorMessage.value = ''
+
+  try {
+    await challengeService.leaveChallenge(challenge._id, { userId: currentUserId.value })
+    
+    // Refresh watched challenges list
+    await loadWatchedChallenges()
+    
+    // Refresh the selected challenge if dialog is open
+    if (selectedChallenge.value?._id === challenge._id) {
+      // Fetch fresh challenge data to get updated participants list
+      try {
+        const { data } = await challengeService.getChallenge(challenge._id)
+        selectedChallenge.value = data
+      } catch (error) {
+        // Fallback to finding in list
+        selectedChallenge.value = challenges.value.find(c => c._id === challenge._id) || null
+      }
+    }
+  } catch (error) {
+    errorMessage.value = error.response?.data?.message || t('notifications.joinError')
+  } finally {
+    leavingId.value = null
+  }
+}
+
 async function handleDialogJoin(challenge) {
   await joinChallenge(challenge)
+}
+
+async function handleDialogLeave() {
+  if (!selectedChallenge.value) return
+  await leaveChallenge(selectedChallenge.value)
 }
 
 async function handleDialogDelete() {

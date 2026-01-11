@@ -182,11 +182,8 @@ function formatDay(date) {
 function toggleDay(day) {
   // Only allow toggling today's date
   if (!props.editable || day.disabled || !day.isToday) {
-    console.log('Calendar toggle blocked:', { editable: props.editable, disabled: day.disabled, isToday: day.isToday })
     return
   }
-  
-  console.log('Toggling day:', day.dateStr)
   
   const updatedDays = [...localCompletedDays.value]
   const index = updatedDays.indexOf(day.dateStr)
@@ -194,17 +191,13 @@ function toggleDay(day) {
   if (index > -1) {
     // Remove if already marked
     updatedDays.splice(index, 1)
-    console.log('Removed day from completedDays')
   } else {
     // Add if not marked
     updatedDays.push(day.dateStr)
-    console.log('Added day to completedDays')
   }
   
   // Sort dates
   updatedDays.sort()
-  
-  console.log('Updated completedDays:', updatedDays)
   localCompletedDays.value = updatedDays
 }
 </script>

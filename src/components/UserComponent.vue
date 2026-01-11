@@ -162,8 +162,16 @@
                 :key="challenge._id"
                 :challenge="challenge"
                 :current-user-id="currentUserId"
-                :show-join-button="false"
+                :show-join-button="true"
+                :joining-id="joiningId"
+                :leaving-id="leavingId"
+                :watching-id="watchingId"
+                :is-watched="isWatched(challenge)"
                 @click="handleChallengeClick"
+                @join="joinChallenge"
+                @leave="leaveChallenge"
+                @watch="watchChallenge"
+                @unwatch="unwatchChallenge"
                 @owner-navigated="handleOwnerNavigated"
               />
             </div>
@@ -178,8 +186,16 @@
                 :key="challenge._id"
                 :challenge="challenge"
                 :current-user-id="currentUserId"
-                :show-join-button="false"
+                :show-join-button="true"
+                :joining-id="joiningId"
+                :leaving-id="leavingId"
+                :watching-id="watchingId"
+                :is-watched="isWatched(challenge)"
                 @click="handleChallengeClick"
+                @join="joinChallenge"
+                @leave="leaveChallenge"
+                @watch="watchChallenge"
+                @unwatch="unwatchChallenge"
                 @owner-navigated="handleOwnerNavigated"
               />
             </div>
@@ -194,12 +210,16 @@
       :challenge="selectedChallenge"
       :is-owner="selectedIsOwner"
       :is-participant="selectedIsParticipant"
-      :show-join-button="false"
-      :join-loading="false"
+      :show-join-button="showDialogJoinButton"
+      :show-leave-button="showDialogLeaveButton"
+      :join-loading="selectedJoinLoading"
+      :leave-loading="selectedLeaveLoading"
       :save-loading="false"
       :save-error="''"
       :delete-loading="false"
       @update="handleDialogUpdate"
+      @join="handleDialogJoin"
+      @leave="handleDialogLeave"
     />
   </div>
 </template>
@@ -462,6 +482,61 @@ const selectedIsParticipant = computed(() => {
   })
 })
 
+const leavingId = ref(null)
+const joiningId = ref(null)
+const watchingId = ref(null)
+const watchedChallenges = ref([])
+
+const showDialogLeaveButton = computed(() => {
+  if (!selectedChallenge.value) return false
+  
+  // Cannot leave if challenge has ended
+  if (isChallengeEnded(selectedChallenge.value)) {
+    return false
+  }
+  
+  // Can only leave habit challenges
+  if (selectedChallenge.value.challengeType !== 'habit') {
+    return false
+  }
+  
+  return (
+    !!currentUserId.value &&
+    !selectedIsOwner.value &&
+    selectedIsParticipant.value
+  )
+})
+
+const selectedLeaveLoading = computed(() => {
+  if (!selectedChallenge.value) return false
+  return leavingId.value === selectedChallenge.value._id
+})
+
+const showDialogJoinButton = computed(() => {
+  if (!selectedChallenge.value) return false
+  
+  // Cannot join if challenge has ended
+  if (isChallengeEnded(selectedChallenge.value)) {
+    return false
+  }
+  
+  // Can only join habit challenges
+  if (selectedChallenge.value.challengeType !== 'habit') {
+    return false
+  }
+  
+  return (
+    !!currentUserId.value &&
+    !selectedIsOwner.value &&
+    !selectedIsParticipant.value
+  )
+})
+
+const selectedJoinLoading = computed(() => {
+  if (!selectedChallenge.value) return false
+  return joiningId.value === selectedChallenge.value._id
+})
+
 function isChallengeOwner(owner) {
   if (!currentUserId.value || !owner) return false
   const ownerId = owner._id || owner
@@ -564,9 +639,147 @@ const handleChallengeClick = (challenge) => {
   detailsDialogOpen.value = true
 }
 
+async function joinChallenge(challenge) {
+  if (!currentUserId.value) {
+    challengesError.value = t('notifications.mustLogin')
+    return
+  }
+
+  if (!challenge || !challenge._id) {
+    challengesError.value = t('notifications.joinError')
+    return
+  }
+
+  joiningId.value = challenge._id
+  challengesError.value = ''
+
+  try {
+    await challengeService.joinChallenge(challenge._id, { userId: currentUserId.value })
+    
+    // Refresh challenges list
+    await fetchChallenges()
+    
+    // Refresh the selected challenge if dialog is open
+    if (selectedChallenge.value?._id === challenge._id) {
+      // Fetch fresh challenge data to get updated participants list
+      try {
+        const { data } = await challengeService.getChallenge(challenge._id)
+        selectedChallenge.value = data
+      } catch (err) {
+        // Fallback to finding in list
+        selectedChallenge.value = challenges.value.find(c => c._id === challenge._id) || null
+      }
+    }
+  } catch (err) {
+    challengesError.value = err.response?.data?.message || t('notifications.joinError')
+  } finally {
+    joiningId.value = null
+  }
+}
+
+async function leaveChallenge(challenge) {
+  if (!currentUserId.value) {
+    challengesError.value = t('notifications.mustLogin')
+    return
+  }
+
+  if (!challenge || !challenge._id) {
+    challengesError.value = t('notifications.joinError')
+    return
+  }
+
+  leavingId.value = challenge._id
+  challengesError.value = ''
+
+  try {
+    await challengeService.leaveChallenge(challenge._id, { userId: currentUserId.value })
+    
+    // Refresh challenges list
+    await fetchChallenges()
+    
+    // Refresh the selected challenge if dialog is open
+    if (selectedChallenge.value?._id === challenge._id) {
+      // Fetch fresh challenge data to get updated participants list
+      try {
+        const { data } = await challengeService.getChallenge(challenge._id)
+        selectedChallenge.value = data
+      } catch (err) {
+        // Fallback to finding in list
+        selectedChallenge.value = challenges.value.find(c => c._id === challenge._id) || null
+      }
+    }
+  } catch (err) {
+    challengesError.value = err.response?.data?.message || t('notifications.joinError')
+  } finally {
+    leavingId.value = null
+  }
+}
+
+function isWatched(challenge) {
+  if (!challenge || !currentUserId.value) return false
+  return watchedChallenges.value.some(id => id.toString() === challenge._id.toString())
+}
+
+async function watchChallenge(challenge) {
+  if (!currentUserId.value) {
+    challengesError.value = t('notifications.mustLogin')
+    return
+  }
+
+  watchingId.value = challenge._id
+  challengesError.value = ''
+
+  try {
+    await challengeService.watchChallenge(challenge._id, currentUserId.value)
+    await loadWatchedChallenges()
+  } catch (err) {
+    challengesError.value = err.response?.data?.message || t('challenges.watchError')
+  } finally {
+    watchingId.value = null
+  }
+}
+
+async function unwatchChallenge(challenge) {
+  if (!currentUserId.value) return
+
+  watchingId.value = challenge._id
+  challengesError.value = ''
+
+  try {
+    await challengeService.unwatchChallenge(challenge._id, currentUserId.value)
+    await loadWatchedChallenges()
+  } catch (err) {
+    challengesError.value = err.response?.data?.message || t('challenges.unwatchError')
+  } finally {
+    watchingId.value = null
+  }
+}
+
+async function loadWatchedChallenges() {
+  if (!currentUserId.value) return
+  
+  try {
+    const { data } = await challengeService.getWatchedChallenges(currentUserId.value)
+    watchedChallenges.value = (data.challenges || []).map(c => c._id)
+  } catch (err) {
+    console.error('Error loading watched challenges:', err)
+  }
+}
+
+async function handleDialogJoin() {
+  if (!selectedChallenge.value) return
+  await joinChallenge(selectedChallenge.value)
+}
+
+async function handleDialogLeave() {
+  if (!selectedChallenge.value) return
+  await leaveChallenge(selectedChallenge.value)
+}
+
 const handleDialogUpdate = async () => {
-  // Refresh challenges when participant updates their completedDays
+  // Refresh challenges when participant updates their completedDays or watch/unwatch
   await fetchChallenges()
+  await loadWatchedChallenges()
   // Also refresh the selected challenge if dialog is open
   if (selectedChallenge.value) {
     const updatedChallenge = challenges.value.find(c => c._id === selectedChallenge.value._id)
@@ -748,12 +961,10 @@ const handleFileInputChange = (event) => {
 async function checkPushNotificationStatus() {
   try {
     pushNotificationStatus.value = getNotificationPermission()
-    console.log('Push notification status:', pushNotificationStatus.value)
     
     if (pushNotificationStatus.value === 'granted') {
       try {
         const browserHasSubscription = await isSubscribedToPushNotifications()
-        console.log('Browser has push subscription:', browserHasSubscription)
         
         // Check if server also has the subscription
         if (browserHasSubscription) {
@@ -761,14 +972,12 @@ async function checkPushNotificationStatus() {
             const { pushService } = await import('../services/api')
             const statusResponse = await pushService.getStatus()
             const serverHasSubscription = statusResponse.data.hasSubscription
-            console.log('Server has push subscription:', serverHasSubscription)
             
             // If browser has subscription but server doesn't, user needs to re-subscribe
             // (This happens when VAPID keys change and server removes invalid subscriptions)
             isPushSubscribed.value = serverHasSubscription
           } catch (error) {
             // If we can't check server status, assume browser subscription is valid
-            console.log('Could not check server subscription status:', error.message)
             isPushSubscribed.value = browserHasSubscription
           }
         } else {
@@ -812,6 +1021,7 @@ async function enablePushNotifications() {
 onMounted(() => {
   fetchUser()
   fetchChallenges()
+  loadWatchedChallenges()
   // Only check push notification status if viewing own profile
   if (isOwnProfile.value) {
     checkPushNotificationStatus()

@@ -398,6 +398,16 @@
           {{ t('challenges.join') }}
         </v-btn>
         <v-btn
+          v-if="showLeaveButton"
+          variant="outlined"
+          color="error"
+          :loading="leaveLoading"
+          @click="emitLeave"
+          class="action-button"
+        >
+          {{ t('challenges.leave') }}
+        </v-btn>
+        <v-btn
           v-if="isCurrentUserParticipant && challenge.challengeType === 'habit'"
           variant="flat"
           color="primary"
@@ -479,6 +489,14 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
+  showLeaveButton: {
+    type: Boolean,
+    default: false
+  },
+  leaveLoading: {
+    type: Boolean,
+    default: false
+  },
   saveLoading: {
     type: Boolean,
     default: false
@@ -493,13 +511,14 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:modelValue', 'save', 'join', 'delete', 'update'])
+const emit = defineEmits(['update:modelValue', 'save', 'join', 'leave', 'delete', 'update'])
 
 const deleteConfirmDialog = ref(false)
 const isInitializing = ref(true)
 const participantSaveLoading = ref(false)
 let dateRangeObserver = null
 const calendarViewMode = ref('personal') // 'personal' или 'team'
+let isStylingDateRange = false // Flag to prevent recursive calls
 
 // Get current user ID
 function getCurrentUserId() {
@@ -729,10 +748,8 @@ const currentUserCompletedDays = computed(() => {
     .filter(Boolean)
     .sort()
   
-  // Update local ref when prop changes (but only if local is empty)
-  if (localCurrentUserCompletedDays.value.length === 0) {
-    localCurrentUserCompletedDays.value = days
-  }
+  // DO NOT modify reactive state inside computed property - this causes recursive updates!
+  // The local ref will be updated by a watcher instead
   
   return days
 })
@@ -843,7 +860,16 @@ function isDateInRange(date) {
 
 // Function to style dates in the challenge range with orange background
 function styleDateRange() {
+  // Prevent recursive calls
+  if (isStylingDateRange) return
   if (!editForm.startDate || !editForm.endDate || datesInRange.value.length === 0) return
+  
+  isStylingDateRange = true
+  
+  // Temporarily disconnect observer to prevent loops
+  if (dateRangeObserver) {
+    dateRangeObserver.disconnect()
+  }
   
   // Use multiple timeouts to catch calendar at different render stages
   const attemptStyle = () => {
@@ -939,10 +965,44 @@ function styleDateRange() {
   }
   
   // Try multiple times with delays
-  setTimeout(() => attemptStyle(), 100)
-  setTimeout(() => attemptStyle(), 300)
-  setTimeout(() => attemptStyle(), 600)
-  setTimeout(() => attemptStyle(), 1000)
+  setTimeout(() => {
+    attemptStyle()
+    // Reconnect observer after styling is complete
+    if (dateRangeObserver && editForm.startDate && editForm.endDate) {
+      const datePickers = document.querySelectorAll('.habit-date-picker')
+      datePickers.forEach(picker => {
+        dateRangeObserver.observe(picker, {
+          childList: true,
+          subtree: true,
+          attributes: false // Don't watch attributes to avoid loops
+        })
+      })
+    }
+    isStylingDateRange = false
+  }, 100)
+  setTimeout(() => {
+    attemptStyle()
+    isStylingDateRange = false
+  }, 300)
+  setTimeout(() => {
+    attemptStyle()
+    isStylingDateRange = false
+  }, 600)
+  setTimeout(() => {
+    attemptStyle()
+    // Final reconnect
+    if (dateRangeObserver && editForm.startDate && editForm.endDate) {
+      const datePickers = document.querySelectorAll('.habit-date-picker')
+      datePickers.forEach(picker => {
+        dateRangeObserver.observe(picker, {
+          childList: true,
+          subtree: true,
+          attributes: false
+        })
+      })
+    }
+    isStylingDateRange = false
+  }, 1000)
 }
 
 // Handler for calendar updates
@@ -953,11 +1013,17 @@ function onCalendarUpdate() {
 }
 
 // Watch for date range changes to update styling
+// Don't watch datesInRange.value directly - it's computed from startDate/endDate
 watch(
-  () => [editForm.startDate, editForm.endDate, props.modelValue, datesInRange.value],
+  () => [editForm.startDate, editForm.endDate, props.modelValue],
   () => {
-    if (props.modelValue && editForm.startDate && editForm.endDate && datesInRange.value.length > 0) {
+    if (props.modelValue && editForm.startDate && editForm.endDate) {
+      // Use nextTick to avoid recursive updates during render
+      nextTick(() => {
+        if (datesInRange.value.length > 0) {
       styleDateRange()
+        }
+      })
     }
   }
 )
@@ -1050,9 +1116,15 @@ onMounted(() => {
 
 watch(
   () => props.challenge,
-  value => {
+  (value, oldValue) => {
+    // Only reset if challenge actually changed (by ID)
+    const valueId = value?._id || value?.id
+    const oldValueId = oldValue?._id || oldValue?.id
+    
     // Reset local completedDays when challenge changes
+    if (valueId !== oldValueId) {
     localCurrentUserCompletedDays.value = []
+    }
     
     if (value) {
       loadWatchedChallenges()
@@ -1143,18 +1215,25 @@ watch(
 
 watch(
   () => props.modelValue,
-  value => {
+  (value, oldValue) => {
+    // Only act if value actually changed
+    if (value === oldValue) return
+    
     if (!value) {
       resetForm()
       deleteConfirmDialog.value = false
       isInitializing.value = true
+      // Reset local completedDays when dialog closes
+      localCurrentUserCompletedDays.value = []
     } else {
       // Reset initialization flag when dialog opens so completedDays can be loaded
       isInitializing.value = true
       // Force re-initialization of completedDays when dialog opens
+      // Use nextTick to avoid conflicts with other watchers
       if (props.challenge?.challengeType === 'habit' && props.challenge?.completedDays) {
         nextTick(() => {
-          // Always load completedDays when dialog opens
+          // Only update if still initializing (prevent overwriting from other watchers)
+          if (isInitializing.value) {
           editForm.completedDays = Array.isArray(props.challenge.completedDays)
             ? props.challenge.completedDays
                 .filter(d => {
@@ -1173,6 +1252,7 @@ watch(
                 .sort()
             : []
           isInitializing.value = false
+          }
         })
       }
     }
@@ -1182,10 +1262,19 @@ watch(
 // Also watch for challenge changes when dialog is open
 watch(
   () => [props.modelValue, props.challenge],
-  ([dialogOpen, challenge]) => {
+  ([dialogOpen, challenge], [oldDialogOpen, oldChallenge]) => {
+    // Only act if something actually changed
+    const challengeId = challenge?._id || challenge?.id
+    const oldChallengeId = oldChallenge?._id || oldChallenge?.id
+    if (dialogOpen === oldDialogOpen && challengeId === oldChallengeId) return
+    
     // When dialog opens and challenge is set, ensure completedDays are loaded
+    // Only run if isInitializing is still true (prevent conflicts with other watchers)
     if (dialogOpen && challenge?.challengeType === 'habit' && isInitializing.value) {
-      if (challenge.completedDays && Array.isArray(challenge.completedDays)) {
+      // Use nextTick to avoid conflicts with other watchers
+      nextTick(() => {
+        // Double-check isInitializing is still true (another watcher might have set it)
+        if (isInitializing.value && challenge.completedDays && Array.isArray(challenge.completedDays)) {
         editForm.completedDays = challenge.completedDays
           .filter(d => {
             if (!d) return false
@@ -1203,6 +1292,7 @@ watch(
           .sort()
         isInitializing.value = false
       }
+      })
     }
     // Style date range when dialog opens
     if (dialogOpen && challenge?.challengeType === 'habit' && editForm.startDate && editForm.endDate) {
@@ -1217,15 +1307,27 @@ watch(
             }
             
             // Create new observer
-            dateRangeObserver = new MutationObserver(() => {
+            // Only watch for childList changes, not attributes to avoid loops
+            dateRangeObserver = new MutationObserver((mutations) => {
+              // Only react to actual DOM structure changes, not style/attribute changes
+              const hasStructuralChanges = mutations.some(mutation => 
+                mutation.type === 'childList' && mutation.addedNodes.length > 0
+              )
+              if (hasStructuralChanges && !isStylingDateRange) {
+                // Use a debounce to prevent rapid-fire calls
+                setTimeout(() => {
+                  if (!isStylingDateRange) {
               styleDateRange()
+                  }
+                }, 200)
+              }
             })
             
-            // Observe the calendar for changes
+            // Observe the calendar for changes (only childList, not attributes)
             dateRangeObserver.observe(picker, {
               childList: true,
               subtree: true,
-              attributes: true
+              attributes: false // Don't watch attributes to prevent loops
             })
             
             // Initial styling attempts
@@ -1320,6 +1422,10 @@ function handleParticipantClick() {
 
 function emitJoin() {
   emit('join')
+}
+
+function emitLeave() {
+  emit('leave')
 }
 
 function handleDelete() {
@@ -1532,11 +1638,8 @@ function handleUserNavigated() {
 // Handle owner completedDays update
 async function handleOwnerCompletedDaysUpdate(completedDays) {
   if (!props.challenge || !currentUserId.value || !props.isOwner) {
-    console.log('Skipping owner update:', { challenge: !!props.challenge, userId: !!currentUserId.value, isOwner: props.isOwner })
     return
   }
-  
-  console.log('Updating owner completedDays:', completedDays)
   
   // Update local form data
   editForm.completedDays = completedDays
@@ -1546,17 +1649,15 @@ async function handleOwnerCompletedDaysUpdate(completedDays) {
   
   // Save to owner's participant entry
   try {
-    const response = await challengeService.updateParticipantCompletedDays(
+    await challengeService.updateParticipantCompletedDays(
       props.challenge._id,
       currentUserId.value,
       completedDays
     )
-    console.log('Successfully updated owner completedDays:', response)
     // Emit update event to refresh challenge data from server
     emit('update')
   } catch (error) {
     console.error('Error updating owner completed days:', error)
-    console.error('Error details:', error.response?.data || error.message)
     // Revert optimistic update on error
     emit('update')
   }
@@ -1584,12 +1685,11 @@ async function handleParticipantSave() {
       ? localCurrentUserCompletedDays.value 
       : currentUserCompletedDays.value
     
-    const response = await challengeService.updateParticipantCompletedDays(
+    await challengeService.updateParticipantCompletedDays(
       props.challenge._id,
       currentUserId.value,
       completedDays
     )
-    console.log('Successfully saved participant completedDays:', response)
     // Emit update event to refresh challenge data from server
     emit('update')
     // Close the modal after successful save

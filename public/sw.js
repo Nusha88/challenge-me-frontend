@@ -34,7 +34,17 @@ self.addEventListener('activate', (event) => {
 });
 
 // Fetch event - serve from cache, fallback to network
+// IMPORTANT: Do NOT cache API requests - they should always go to network
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  
+  // Don't cache API requests - always fetch from network
+  if (url.pathname.startsWith('/api/') || url.pathname.includes('/api/')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+  
+  // For static assets, try cache first, then network
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
