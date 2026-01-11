@@ -266,6 +266,16 @@
     "createdByMe": "Created by me",
     "activityActive": "Active",
     "activityFinished": "Finished",
+    "share": {
+      "share": "Share",
+      "copyLink": "Copy Link",
+      "facebook": "Share on Facebook",
+      "vk": "Share on VK",
+      "telegram": "Share on Telegram",
+      "instagram": "Share on Instagram",
+      "linkCopied": "Link copied to clipboard!",
+      "instagramCopied": "Link copied! Opening Instagram..."
+    },
     "loginPrompt": "Please log in to view your challenges.",
     "mustBeLoggedIn": "You must be logged in to create a challenge.",
     "detailsTitle": "Challenge Details",

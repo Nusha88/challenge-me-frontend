@@ -266,6 +266,16 @@
     "createdByMe": "Создано мной",
     "activityActive": "Активные",
     "activityFinished": "Завершенные",
+    "share": {
+      "share": "Поделиться",
+      "copyLink": "Копировать ссылку",
+      "facebook": "Поделиться в Facebook",
+      "vk": "Поделиться в VK",
+      "telegram": "Поделиться в Telegram",
+      "instagram": "Поделиться в Instagram",
+      "linkCopied": "Ссылка скопирована в буфер обмена!",
+      "instagramCopied": "Ссылка скопирована! Открываю Instagram..."
+    },
     "loginPrompt": "Авторизуйтесь, чтобы увидеть свои челленджи.",
     "mustBeLoggedIn": "Необходимо войти в систему, чтобы создать челлендж.",
     "detailsTitle": "Детали челленджа",

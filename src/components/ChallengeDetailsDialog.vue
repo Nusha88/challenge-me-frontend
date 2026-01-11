@@ -26,6 +26,55 @@
         >
           mdi-lock
         </v-icon>
+          <!-- Share Menu -->
+          <v-menu location="bottom end">
+            <template #activator="{ props: menuProps }">
+              <v-btn
+                variant="text"
+                size="small"
+                v-bind="menuProps"
+                class="share-btn"
+                prepend-icon="mdi-share-variant"
+              >
+                {{ t('challenges.share.share') }}</v-btn>
+            </template>
+            <v-list>
+              <v-list-item @click="copyLink">
+                <template #prepend>
+                  <v-icon>mdi-link</v-icon>
+                </template>
+                <v-list-item-title>{{ t('challenges.share.copyLink') }}</v-list-item-title>
+              </v-list-item>
+              <v-list-item @click="shareToFacebook">
+                <template #prepend>
+                  <v-icon color="#1877F2">mdi-facebook</v-icon>
+                </template>
+                <v-list-item-title>{{ t('challenges.share.facebook') }}</v-list-item-title>
+              </v-list-item>
+              <v-list-item @click="shareToVK">
+                <template #prepend>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="#4680C2" xmlns="http://www.w3.org/2000/svg" style="margin-right: 31px;">
+                    <path d="M12.785 15.586s.336-.034.51-.205c.097-.097.093-.252.093-.252s-.007-1.32.58-1.513c.592-.193 1.35.95 2.154 1.37.595.31 1.05.242 1.05.242l2.145-.031s1.12-.07.588-.93c-.043-.065-.308-.66-1.583-1.87-1.34-1.27-1.16-1.066.453-3.266.983-1.34 1.377-2.16 1.253-2.51-.116-.33-.83-.243-.83-.243l-2.126.013s-.157-.023-.274.073c-.116.095-.19.314-.19.314s-.34.912-.74 1.688c-.89 1.78-1.246 1.876-1.392 1.766-.338-.256-.254-1.03-.254-1.58 0-1.72.26-2.437-.51-2.62-.256-.062-.444-.103-1.1-.11-.843-.007-1.553.003-1.955.207-.274.138-.486.443-.357.46.16.02.523.096.713.352.246.33.237 1.07.237 1.07s.143 2.11-.333 2.37c-.327.18-.776-.188-1.74-1.88-.492-.87-.864-1.83-.864-1.83s-.07-.17-.195-.262c-.15-.11-.36-.146-.36-.146l-2.03.013s-.305.009-.417.14c-.1.12-.008.37-.008.37s1.58 3.7 3.36 5.57c1.64 1.7 3.51 1.57 3.51 1.57h.85s.255.016.392-.12c.13-.13.126-.3.126-.3v-2.48s-.007-.21.15-.34c.154-.13.31-.09.31-.09l2.29.014z"/>
+                  </svg>
+                </template>
+                <v-list-item-title>{{ t('challenges.share.vk') }}</v-list-item-title>
+              </v-list-item>
+              <v-list-item @click="shareToTelegram">
+                <template #prepend>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="#0088cc" xmlns="http://www.w3.org/2000/svg" style="margin-right: 31px;">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.13-.31-1.09-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.45.08-.01.15-.01.22-.01.23.01.33.05.45.12.1.06.13.1.15.17.01.07.01.22-.01.38z"/>
+                  </svg>
+                </template>
+                <v-list-item-title>{{ t('challenges.share.telegram') }}</v-list-item-title>
+              </v-list-item>
+              <v-list-item @click="shareToInstagram">
+                <template #prepend>
+                  <v-icon color="#E4405F">mdi-instagram</v-icon>
+                </template>
+                <v-list-item-title>{{ t('challenges.share.instagram') }}</v-list-item-title>
+              </v-list-item>
+            </v-list>
+          </v-menu>
           <v-btn
             icon="mdi-close"
             variant="text"
@@ -516,6 +565,8 @@ const emit = defineEmits(['update:modelValue', 'save', 'join', 'leave', 'delete'
 const deleteConfirmDialog = ref(false)
 const isInitializing = ref(true)
 const participantSaveLoading = ref(false)
+const snackbar = ref(false)
+const snackbarText = ref('')
 let dateRangeObserver = null
 const calendarViewMode = ref('personal') // 'personal' или 'team'
 let isStylingDateRange = false // Flag to prevent recursive calls
@@ -1724,6 +1775,105 @@ const isWatched = computed(() => {
   if (!props.challenge || !currentUserId.value) return false
   return watchedChallenges.value.some(id => id.toString() === props.challenge._id.toString())
 })
+
+// Share functionality
+const getShareUrl = () => {
+  if (!props.challenge?._id) return ''
+  return `${window.location.origin}/challenges/${props.challenge._id}`
+}
+
+const getShareText = () => {
+  if (!props.challenge) return ''
+  return props.challenge.title || ''
+}
+
+const copyLink = async () => {
+  const url = getShareUrl()
+  try {
+    await navigator.clipboard.writeText(url)
+    snackbarText.value = t('challenges.share.linkCopied')
+    snackbar.value = true
+  } catch (err) {
+    console.error('Failed to copy link:', err)
+    // Fallback for older browsers
+    const textArea = document.createElement('textarea')
+    textArea.value = url
+    document.body.appendChild(textArea)
+    textArea.select()
+    try {
+      document.execCommand('copy')
+      snackbarText.value = t('challenges.share.linkCopied')
+      snackbar.value = true
+    } catch (e) {
+      console.error('Fallback copy failed:', e)
+    }
+    document.body.removeChild(textArea)
+  }
+}
+
+const shareToFacebook = () => {
+  const url = encodeURIComponent(getShareUrl())
+  const text = encodeURIComponent(getShareText())
+  window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${text}`, '_blank', 'width=600,height=400')
+}
+
+const shareToVK = () => {
+  const url = encodeURIComponent(getShareUrl())
+  const text = encodeURIComponent(getShareText())
+  window.open(`https://vk.com/share.php?url=${url}&title=${text}`, '_blank', 'width=600,height=400')
+}
+
+const shareToTelegram = () => {
+  const url = encodeURIComponent(getShareUrl())
+  const text = encodeURIComponent(getShareText())
+  window.open(`https://t.me/share/url?url=${url}&text=${text}`, '_blank', 'width=600,height=400')
+}
+
+const shareToInstagram = async () => {
+  // Instagram doesn't support web sharing, so we copy the link
+  // and try to open Instagram app (on mobile) or show instructions
+  const url = getShareUrl()
+  const text = getShareText()
+  
+  // Copy link to clipboard first
+  try {
+    await navigator.clipboard.writeText(`${text}\n\n${url}`)
+    snackbarText.value = t('challenges.share.instagramCopied')
+    snackbar.value = true
+  } catch (err) {
+    // Fallback for older browsers
+    const textArea = document.createElement('textarea')
+    textArea.value = `${text}\n\n${url}`
+    document.body.appendChild(textArea)
+    textArea.select()
+    try {
+      document.execCommand('copy')
+      snackbarText.value = t('challenges.share.instagramCopied')
+      snackbar.value = true
+    } catch (e) {
+      console.error('Fallback copy failed:', e)
+    }
+    document.body.removeChild(textArea)
+  }
+  
+  // Try to open Instagram app (works on mobile devices)
+  // Instagram URL scheme: instagram://
+  // Try to open Instagram app, fallback to web if not available
+  setTimeout(() => {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+    if (isMobile) {
+      // Try to open Instagram app
+      window.location.href = 'instagram://'
+      // Fallback to web after a delay
+      setTimeout(() => {
+        window.open('https://www.instagram.com/', '_blank')
+      }, 500)
+    } else {
+      // On desktop, just open Instagram web
+      window.open('https://www.instagram.com/', '_blank')
+    }
+  }, 100)
+}
 
 // Handle watch challenge
 async function handleWatch() {
