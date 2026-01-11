@@ -70,7 +70,12 @@
         "today": "Today",
         "yesterday": "Yesterday",
         "noTasks": "No tasks"
-      }
+      },
+      "completionImage": {
+        "title": "🎉 All Done, {name}!",
+        "motivational": "Every small step forward is a victory. Keep going!"
+      },
+      "generateCompletionImage": "Generate Completion Image"
     }
   },
   "common": {

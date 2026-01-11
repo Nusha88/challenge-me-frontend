@@ -69,6 +69,21 @@
           <h3 class="section-subtitle">{{ t('home.loggedIn.dailyChecklist.title') }}</h3>
           <DailyChecklist ref="checklistRef" />
         </div>
+        
+        <!-- Completion Celebration Button -->
+        <div v-if="isAllCompleted && !checklistLoading && totalItems > 0" class="completion-celebration mt-4">
+          <v-btn
+            color="success"
+            size="large"
+            variant="elevated"
+            prepend-icon="mdi-image"
+            @click="generateCompletionImage"
+            :loading="generatingImage"
+            class="celebration-button"
+          >
+            {{ t('home.loggedIn.generateCompletionImage') }}
+          </v-btn>
+        </div>
       </v-card-text>
     </v-card>
   </div>
@@ -78,10 +93,13 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import html2canvas from 'html2canvas'
 import DailyChecklist from './DailyChecklist.vue'
 import { userService, challengeService } from '../services/api'
+import motivationalMessagesEn from '../data/motivationalMessages.en.json'
+import motivationalMessagesRu from '../data/motivationalMessages.ru.json'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const router = useRouter()
 
 const userName = ref('')
@@ -90,6 +108,7 @@ const challenges = ref([])
 const loadingChallenges = ref(false)
 const checklistRef = ref(null)
 const checklistLoading = ref(false)
+const generatingImage = ref(false)
 
 function readStoredUser() {
   try {
@@ -425,6 +444,11 @@ const combinedProgressPercentage = computed(() => {
   return Math.round((completedItems.value / totalItems.value) * 100)
 })
 
+const isAllCompleted = computed(() => {
+  if (totalItems.value === 0) return false
+  return completedItems.value === totalItems.value
+})
+
 // Watch for checklist loading state
 const updateChecklistLoading = () => {
   if (checklistRef.value) {
@@ -470,6 +494,227 @@ onMounted(() => {
     updateChecklistLoading()
   })
 })
+
+async function generateCompletionImage() {
+  generatingImage.value = true
+  try {
+    // Wait for DOM to be ready
+    await nextTick()
+    // Create a temporary container for the image
+    const container = document.createElement('div')
+    container.style.position = 'absolute'
+    container.style.left = '-9999px'
+    container.style.width = '800px'
+    container.style.padding = '40px'
+    container.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+    container.style.color = '#ffffff'
+    container.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+    
+    // Get today's date
+    const todayDate = new Date()
+    const dateStr = todayDate.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    })
+    
+    // Create header
+    const header = document.createElement('div')
+    header.style.textAlign = 'center'
+    header.style.marginBottom = '30px'
+    
+    const title = document.createElement('h1')
+    title.textContent = t('home.loggedIn.completionImage.title', { name: userName.value })
+    title.style.fontSize = '36px'
+    title.style.fontWeight = 'bold'
+    title.style.marginBottom = '10px'
+    title.style.textShadow = '2px 2px 4px rgba(0,0,0,0.3)'
+    
+    const date = document.createElement('p')
+    date.textContent = dateStr
+    date.style.fontSize = '18px'
+    date.style.opacity = '0.9'
+    date.style.margin = '0 0 15px 0'
+    
+    // Add motivational text - select based on date for consistency (same message for the same day)
+    const dayOfYear = Math.floor((todayDate - new Date(todayDate.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24)
+    const messages = locale.value === 'ru' ? motivationalMessagesRu : motivationalMessagesEn
+    const messageIndex = dayOfYear % messages.length
+    const selectedMessage = messages[messageIndex]
+    
+    const motivationalText = document.createElement('p')
+    motivationalText.textContent = selectedMessage
+    motivationalText.style.fontSize = '20px'
+    motivationalText.style.fontWeight = '500'
+    motivationalText.style.fontStyle = 'italic'
+    motivationalText.style.opacity = '0.95'
+    motivationalText.style.margin = '0'
+    motivationalText.style.padding = '15px 20px'
+    motivationalText.style.background = 'rgba(255,255,255,0.15)'
+    motivationalText.style.borderRadius = '12px'
+    motivationalText.style.borderLeft = '4px solid rgba(255,255,255,0.5)'
+    
+    header.appendChild(title)
+    header.appendChild(date)
+    header.appendChild(motivationalText)
+    container.appendChild(header)
+    
+    // Create completed challenges section
+    if (todaysChallenges.value.length > 0) {
+      const challengesSection = document.createElement('div')
+      challengesSection.style.marginBottom = '30px'
+      
+      const challengesTitle = document.createElement('h2')
+      let challengesText = t('home.loggedIn.todaysChallenges')
+      // Force space after "Today's" - handle both "Today'sChallenges" and "Today's Challenges"
+      challengesText = challengesText.replace(/Today's([A-Z])/g, "Today's $1")
+      challengesTitle.textContent = challengesText
+      // Set explicit letter-spacing to prevent space collapse
+      challengesTitle.style.letterSpacing = 'normal'
+      challengesTitle.style.fontSize = '24px'
+      challengesTitle.style.fontWeight = '600'
+      challengesTitle.style.marginBottom = '15px'
+      challengesTitle.style.borderBottom = '2px solid rgba(255,255,255,0.3)'
+      challengesTitle.style.paddingBottom = '10px'
+      
+      challengesSection.appendChild(challengesTitle)
+      
+      todaysChallenges.value.forEach(challenge => {
+        const item = document.createElement('div')
+        item.style.display = 'flex'
+        item.style.alignItems = 'center'
+        item.style.padding = '12px'
+        item.style.marginBottom = '8px'
+        item.style.background = 'rgba(255,255,255,0.1)'
+        item.style.borderRadius = '8px'
+        
+        const checkmark = document.createElement('span')
+        checkmark.textContent = '✓'
+        checkmark.style.fontSize = '24px'
+        checkmark.style.color = '#4caf50'
+        checkmark.style.marginRight = '12px'
+        checkmark.style.fontWeight = 'bold'
+        
+        const text = document.createElement('span')
+        text.textContent = challenge.title
+        text.style.fontSize = '18px'
+        text.style.flex = '1'
+        
+        item.appendChild(checkmark)
+        item.appendChild(text)
+        challengesSection.appendChild(item)
+      })
+      
+      container.appendChild(challengesSection)
+    }
+    
+    // Create completed checklist section
+    if (checklistRef.value && checklistRef.value.totalSteps > 0) {
+      const checklistSection = document.createElement('div')
+      
+      const checklistTitle = document.createElement('h2')
+      let checklistText = t('home.loggedIn.dailyChecklist.title')
+      // Force space after "Today's" - handle both "Today'sChecklist" and "Today's Checklist"
+      checklistText = checklistText.replace(/Today's([A-Z])/g, "Today's $1")
+      checklistTitle.textContent = checklistText
+      // Set explicit letter-spacing to prevent space collapse
+      checklistTitle.style.letterSpacing = 'normal'
+      checklistTitle.style.fontSize = '24px'
+      checklistTitle.style.fontWeight = '600'
+      checklistTitle.style.marginBottom = '15px'
+      checklistTitle.style.borderBottom = '2px solid rgba(255,255,255,0.3)'
+      checklistTitle.style.paddingBottom = '10px'
+      
+      checklistSection.appendChild(checklistTitle)
+      
+      // Get checklist items from the component's DOM
+      if (checklistRef.value && checklistRef.value.$el) {
+        const checklistItems = checklistRef.value.$el.querySelectorAll('.step-item') || []
+        checklistItems.forEach((item) => {
+          const stepText = item.querySelector('.step-text')
+          const checkbox = item.querySelector('input[type="checkbox"]')
+          // Only include completed items
+          if (stepText && checkbox && checkbox.checked) {
+            const div = document.createElement('div')
+            div.style.display = 'flex'
+            div.style.alignItems = 'center'
+            div.style.padding = '12px'
+            div.style.marginBottom = '8px'
+            div.style.background = 'rgba(255,255,255,0.1)'
+            div.style.borderRadius = '8px'
+            
+            const checkmark = document.createElement('span')
+            checkmark.textContent = '✓'
+            checkmark.style.fontSize = '24px'
+            checkmark.style.color = '#4caf50'
+            checkmark.style.marginRight = '12px'
+            checkmark.style.fontWeight = 'bold'
+            
+            const text = document.createElement('span')
+            text.textContent = stepText.textContent.trim()
+            text.style.fontSize = '18px'
+            text.style.flex = '1'
+            
+            div.appendChild(checkmark)
+            div.appendChild(text)
+            checklistSection.appendChild(div)
+          }
+        })
+      }
+      
+      container.appendChild(checklistSection)
+    }
+    
+    // Add footer with streak
+    if (streakDays.value > 0) {
+      const footer = document.createElement('div')
+      footer.style.textAlign = 'center'
+      footer.style.marginTop = '30px'
+      footer.style.paddingTop = '20px'
+      footer.style.borderTop = '2px solid rgba(255,255,255,0.3)'
+      
+      const streakText = document.createElement('p')
+      streakText.innerHTML = `🔥 ${streakDays.value} ${t('navigation.streakDays')}`
+      streakText.style.fontSize = '20px'
+      streakText.style.fontWeight = '600'
+      streakText.style.margin = '0'
+      
+      footer.appendChild(streakText)
+      container.appendChild(footer)
+    }
+    
+    // Append to body temporarily
+    document.body.appendChild(container)
+    
+    // Generate image
+    const canvas = await html2canvas(container, {
+      backgroundColor: null,
+      scale: 2,
+      logging: false,
+      useCORS: true
+    })
+    
+    // Remove temporary container
+    document.body.removeChild(container)
+    
+    // Convert to blob and download
+    canvas.toBlob((blob) => {
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `daily-completion-${formatDateString(new Date())}.png`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    }, 'image/png')
+  } catch (error) {
+    console.error('Error generating completion image:', error)
+  } finally {
+    generatingImage.value = false
+  }
+}
 
 onBeforeUnmount(() => {
   window.removeEventListener('auth-changed', updateUser)
@@ -739,5 +984,19 @@ onBeforeUnmount(() => {
 .challenge-title.completed {
   text-decoration: line-through;
   color: rgba(0, 0, 0, 0.5);
+}
+
+.completion-celebration {
+  text-align: center;
+  padding: 1em;
+  background-color: rgba(76, 175, 80, 0.1);
+  border-radius: 8px;
+  border: 2px solid rgba(76, 175, 80, 0.3);
+}
+
+.celebration-button {
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0.5px;
 }
 </style>
