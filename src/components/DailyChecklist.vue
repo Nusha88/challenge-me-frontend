@@ -50,6 +50,7 @@
       <v-btn
         color="primary"
         :disabled="!newStepText.trim()"
+        class="add-step-button mt-1"
         @click="addStep"
       >
         {{ t('home.loggedIn.dailyChecklist.addStep') }}
@@ -246,6 +247,34 @@ onMounted(() => {
   opacity: 1;
 }
 
+/* Custom blue checkbox styling */
+.step-item :deep(.v-checkbox .v-selection-control__input) {
+  color: #1FA0F6;
+  border-radius: 12px;
+}
+
+.step-item :deep(.v-checkbox .v-selection-control__input .v-icon) {
+  color: #1FA0F6;
+}
+
+.step-item :deep(.v-checkbox--checked .v-selection-control__input) {
+  color: #1FA0F6;
+  border-radius: 12px;
+}
+
+.step-item :deep(.v-checkbox--checked .v-selection-control__input .v-icon) {
+  color: #1FA0F6;
+}
+
+.step-item :deep(.v-checkbox .v-selection-control__ripple) {
+  color: #1FA0F6;
+  border-radius: 12px;
+}
+
+.step-item :deep(.v-checkbox .v-selection-control__wrapper) {
+  border-radius: 12px;
+}
+
 .step-text {
   flex: 1;
   font-size: 0.95rem;
@@ -274,11 +303,18 @@ onMounted(() => {
 
 .add-step-input :deep(.v-field) {
   min-height: 48px;
+  border-radius: 12px;
 }
 
 .add-step-input :deep(.v-field__input) {
   min-height: 48px;
   font-size: 1rem;
+}
+
+.add-step-button {
+  border-radius: 12px;
+  text-transform: none;
+  font-weight: 600;
 }
 
 @media (max-width: 600px) {
@@ -295,6 +331,7 @@ onMounted(() => {
     width: 100%;
     height: 48px;
     font-size: 1rem;
+    border-radius: 12px;
   }
 
   .add-step-input :deep(.v-field) {

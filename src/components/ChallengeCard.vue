@@ -73,7 +73,7 @@
         color="primary"
         size="small"
         variant="flat"
-        class="join-button"
+        class="join-button card-action-button"
         :loading="joiningId === challenge._id"
         @click.stop="$emit('join', challenge)"
       >
@@ -88,7 +88,7 @@
         color="error"
         size="small"
         variant="outlined"
-        class="leave-button"
+        class="leave-button card-action-button"
         :loading="leavingId === challenge._id"
         @click.stop="$emit('leave', challenge)"
       >
@@ -103,7 +103,7 @@
         v-if="currentUserId && !isOwner && !isFinished"
         size="small"
         variant="outlined"
-        :class="['watch-button', { 'watch-button--watched': isWatched }]"
+        :class="['watch-button', { 'watch-button--watched': isWatched }, 'card-action-button']"
         :loading="watchingId === challenge._id"
         @click.stop="handleWatchClick"
       >
@@ -813,6 +813,10 @@ function navigateToOwner() {
 
 .watch-button--watched:hover {
   background-color: rgba(31, 160, 246, 0.2) !important;
+}
+
+.card-action-button {
+  border-radius: 12px !important;
 }
 </style>
 

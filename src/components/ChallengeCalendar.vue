@@ -203,6 +203,10 @@ function toggleDay(day) {
 </script>
 
 <style scoped>
+.calendar-wrapper :deep(.v-card--variant-outlined) {
+  border-radius: 12px;
+}
+
 .challenge-calendar {
   display: grid;
   grid-template-columns: repeat(7, 1fr);

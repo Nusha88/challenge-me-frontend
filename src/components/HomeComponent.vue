@@ -22,4 +22,4 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener('auth-changed', updateAuthState)
 })
-</script> 
+</script>

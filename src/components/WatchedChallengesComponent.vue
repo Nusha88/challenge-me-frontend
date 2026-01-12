@@ -1,6 +1,6 @@
 <template>
   <div class="watched-challenges">
-    <h1 class="mb-4 mb-md-6 page-title">{{ t('challenges.watchedListTitle') }}</h1>
+    <h1 class="mb-4 mb-md-6 page-title ml-4">{{ t('challenges.watchedListTitle') }}</h1>
 
     <v-card>
       <v-card-text>

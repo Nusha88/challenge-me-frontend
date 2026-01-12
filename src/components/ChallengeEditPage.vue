@@ -3,31 +3,31 @@
     <v-container>
       <div class="page-header mb-6">
         <div class="header-top-row">
-          <v-btn
-            icon="mdi-arrow-left"
-            variant="text"
-            @click="goBack"
-            class="back-button"
-          ></v-btn>
-          <h1 class="page-title">{{ t('challenges.editTitle') }}</h1>
+        <v-btn
+          icon="mdi-arrow-left"
+          variant="text"
+          @click="goBack"
+          class="back-button"
+        ></v-btn>
+        <h1 class="page-title">{{ t('challenges.editTitle') }}</h1>
           <v-spacer class="mobile-hidden"></v-spacer>
           <div class="header-badges desktop-badges">
-            <v-chip
-              v-if="challenge?.challengeType"
-              :color="challengeTypeColor"
-              size="small"
+        <v-chip
+          v-if="challenge?.challengeType"
+          :color="challengeTypeColor"
+          size="small"
               class="ml-2"
-            >
-              {{ challengeTypeLabel }}
-            </v-chip>
-            <v-icon
-              v-if="challenge?.privacy === 'private'"
-              color="grey-darken-1"
+        >
+          {{ challengeTypeLabel }}
+        </v-chip>
+        <v-icon
+          v-if="challenge?.privacy === 'private'"
+          color="grey-darken-1"
               size="20"
               class="ml-2 privacy-icon"
-            >
-              mdi-lock
-            </v-icon>
+        >
+          mdi-lock
+        </v-icon>
             <!-- Share Menu -->
             <v-menu location="bottom end">
               <template #activator="{ props: menuProps }">
@@ -409,27 +409,27 @@
 
             <v-card-actions class="buttons-area">
               <template v-if="isDisabled">
-                <v-spacer></v-spacer>
-                <v-btn 
-                  variant="outlined" 
-                  @click="goBack" 
+              <v-spacer></v-spacer>
+              <v-btn 
+                variant="outlined" 
+                @click="goBack" 
                   class="action-button back-button"
-                >
+              >
                   {{ t('common.back') }}
-                </v-btn>
+              </v-btn>
               </template>
               <template v-else>
                 <div class="buttons-container">
-                  <v-btn 
-                    type="submit" 
-                    variant="flat"
-                    color="primary" 
-                    :disabled="saveLoading || deleteLoading || !isFormValid"
+              <v-btn 
+                type="submit" 
+                variant="flat"
+                color="primary" 
+                :disabled="saveLoading || deleteLoading || !isFormValid"
                     :loading="saveLoading"
-                    class="action-button save-button"
-                  >
-                    {{ t('challenges.update') }}
-                  </v-btn>
+                class="action-button save-button"
+              >
+                {{ t('challenges.update') }}
+              </v-btn>
                   <div class="secondary-buttons-row">
                     <v-btn 
                       variant="outlined" 
@@ -485,9 +485,9 @@
           >
             {{ t('challenges.delete') }}
           </v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
     <!-- Snackbar for notifications -->
     <v-snackbar v-model="snackbar" :timeout="3000" color="success">
@@ -1213,7 +1213,7 @@ onMounted(async () => {
 
 @media (min-width: 600px) {
   .challenge-edit-page {
-    padding: 16px 0;
+  padding: 16px 0;
   }
 }
 
@@ -1246,7 +1246,7 @@ onMounted(async () => {
 @media (min-width: 600px) {
   .page-header {
     flex-direction: row;
-    align-items: center;
+  align-items: center;
     flex-wrap: wrap;
     gap: 12px;
     padding: 16px 0;
@@ -1255,7 +1255,7 @@ onMounted(async () => {
 
 @media (min-width: 960px) {
   .page-header {
-    gap: 16px;
+  gap: 16px;
     padding: 20px 0;
   }
 }
@@ -1286,8 +1286,8 @@ onMounted(async () => {
 }
 
 @media (min-width: 600px) {
-  .back-button {
-    margin-right: 8px;
+.back-button {
+  margin-right: 8px;
     padding: 8px !important;
   }
 }
@@ -1482,6 +1482,10 @@ onMounted(async () => {
 
 .habit-calendar {
   width: 100%;
+}
+
+.habit-calendar :deep(.v-card--variant-outlined) {
+  border-radius: 12px;
 }
 
 .habit-calendar :deep(.v-card-text) {

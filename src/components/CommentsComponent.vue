@@ -765,9 +765,23 @@ onMounted(() => {
   width: 100%;
 }
 
+.comments-component :deep(.v-card--variant-outlined) {
+  border-radius: 12px;
+}
+
 .add-comment-section {
   padding-bottom: 16px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.add-comment-section :deep(.v-textarea .v-field) {
+  border-radius: 12px;
+}
+
+.add-comment-section .v-btn {
+  border-radius: 12px;
+  text-transform: none;
+  font-weight: 600;
 }
 
 .comments-list {
@@ -776,7 +790,7 @@ onMounted(() => {
 
 .comment-item {
   padding: 12px;
-  border-radius: 8px;
+  border-radius: 12px;
   background-color: rgba(0, 0, 0, 0.02);
   transition: background-color 0.2s;
 }
@@ -944,7 +958,17 @@ onMounted(() => {
 .reply-input-section {
   padding: 12px;
   background-color: rgba(0, 0, 0, 0.02);
-  border-radius: 8px;
+  border-radius: 12px;
+}
+
+.reply-input-section :deep(.v-textarea .v-field) {
+  border-radius: 12px;
+}
+
+.reply-input-section .v-btn {
+  border-radius: 12px;
+  text-transform: none;
+  font-weight: 600;
 }
 
 @media (max-width: 599px) {
@@ -960,6 +984,7 @@ onMounted(() => {
 .reply-item {
   padding: 8px 0;
   border-left: 2px solid rgba(0, 0, 0, 0.12);
+  border-radius: 12px;
 }
 
 @media (min-width: 600px) {
@@ -996,6 +1021,7 @@ onMounted(() => {
 .nested-reply-item {
   padding: 6px 0;
   border-left: 2px solid rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
 }
 
 @media (min-width: 600px) {

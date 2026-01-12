@@ -180,7 +180,7 @@ const fetchUsers = async (page = 1, append = false) => {
   if (append) {
     loadingMore.value = true
   } else {
-    loading.value = true
+  loading.value = true
     if (!append) {
       currentPage.value = 1
     }
@@ -339,8 +339,13 @@ onUnmounted(() => {
   max-width: 500px;
 }
 
+.search-input :deep(.v-field) {
+  border-radius: 12px;
+}
+
 .search-button {
   margin-left: 8px;
+  border-radius: 12px;
 }
 
 @media (max-width: 600px) {

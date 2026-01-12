@@ -239,35 +239,35 @@
 
             <v-card-actions class="buttons-area">
               <div class="buttons-container">
-                <v-btn 
+              <v-btn 
                   type="submit" 
                   variant="flat"
                   color="primary" 
                   :loading="saveLoading" 
                   :disabled="saveLoading || deleteLoading || !isFormValid"
                   class="action-button save-button"
-                >
+              >
                   {{ t('challenges.update') }}
-                </v-btn>
+              </v-btn>
                 <div class="secondary-buttons-row">
-                  <v-btn 
-                    variant="outlined" 
-                    @click="handleCancel" 
-                    :disabled="saveLoading || deleteLoading"
+              <v-btn 
+                variant="outlined" 
+                @click="handleCancel" 
+                :disabled="saveLoading || deleteLoading"
                     class="action-button cancel-button secondary-button"
-                  >
-                    {{ t('challenges.cancel') }}
-                  </v-btn>
-                  <v-btn 
+              >
+                {{ t('challenges.cancel') }}
+              </v-btn>
+              <v-btn 
                     variant="outlined" 
                     color="error" 
                     @click="handleDelete" 
                     :disabled="saveLoading || deleteLoading"
                     :loading="deleteLoading"
                     class="action-button delete-button secondary-button"
-                  >
+              >
                     {{ t('challenges.delete') }}
-                  </v-btn>
+              </v-btn>
                 </div>
               </div>
             </v-card-actions>
@@ -1866,6 +1866,15 @@ async function handleUnwatch() {
   flex-direction: column;
   max-height: 90vh;
   overflow: hidden;
+  border-radius: 12px !important;
+}
+
+/* Target the card inside the dialog overlay - multiple selectors for different Vuetify versions */
+:deep(.v-dialog .v-overlay__content .v-card),
+:deep(.v-dialog .v-overlay__content > .v-card),
+:deep(.v-overlay__content .v-card.dialog-card) {
+  border-radius: 12px !important;
+  overflow: hidden;
 }
 
 .dialog-header {
@@ -1962,7 +1971,7 @@ async function handleUnwatch() {
 
 @media (min-width: 600px) {
   .dialog-title {
-    gap: 12px;
+  gap: 12px;
   }
 }
 
@@ -2066,6 +2075,10 @@ async function handleUnwatch() {
 
 .habit-calendar {
   width: 100%;
+}
+
+.habit-calendar :deep(.v-card--variant-outlined) {
+  border-radius: 12px;
 }
 
 .habit-calendar :deep(.v-card-text) {
