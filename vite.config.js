@@ -16,5 +16,15 @@ export default defineConfig({
   },
   optimizeDeps: {
     exclude: ['punycode']
-  }
+  },
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    rollupOptions: {
+      output: {
+        manualChunks: undefined
+      }
+    }
+  },
+  base: './'
 })
