@@ -45,20 +45,6 @@
                 </template>
                 <v-list-item-title>{{ t('challenges.share.copyLink') }}</v-list-item-title>
               </v-list-item>
-              <v-list-item @click="shareToFacebook">
-                <template #prepend>
-                  <v-icon color="#1877F2">mdi-facebook</v-icon>
-                </template>
-                <v-list-item-title>{{ t('challenges.share.facebook') }}</v-list-item-title>
-              </v-list-item>
-              <v-list-item @click="shareToVK">
-                <template #prepend>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="#4680C2" xmlns="http://www.w3.org/2000/svg" style="margin-right: 31px;">
-                    <path d="M12.785 15.586s.336-.034.51-.205c.097-.097.093-.252.093-.252s-.007-1.32.58-1.513c.592-.193 1.35.95 2.154 1.37.595.31 1.05.242 1.05.242l2.145-.031s1.12-.07.588-.93c-.043-.065-.308-.66-1.583-1.87-1.34-1.27-1.16-1.066.453-3.266.983-1.34 1.377-2.16 1.253-2.51-.116-.33-.83-.243-.83-.243l-2.126.013s-.157-.023-.274.073c-.116.095-.19.314-.19.314s-.34.912-.74 1.688c-.89 1.78-1.246 1.876-1.392 1.766-.338-.256-.254-1.03-.254-1.58 0-1.72.26-2.437-.51-2.62-.256-.062-.444-.103-1.1-.11-.843-.007-1.553.003-1.955.207-.274.138-.486.443-.357.46.16.02.523.096.713.352.246.33.237 1.07.237 1.07s.143 2.11-.333 2.37c-.327.18-.776-.188-1.74-1.88-.492-.87-.864-1.83-.864-1.83s-.07-.17-.195-.262c-.15-.11-.36-.146-.36-.146l-2.03.013s-.305.009-.417.14c-.1.12-.008.37-.008.37s1.58 3.7 3.36 5.57c1.64 1.7 3.51 1.57 3.51 1.57h.85s.255.016.392-.12c.13-.13.126-.3.126-.3v-2.48s-.007-.21.15-.34c.154-.13.31-.09.31-.09l2.29.014z"/>
-                  </svg>
-                </template>
-                <v-list-item-title>{{ t('challenges.share.vk') }}</v-list-item-title>
-              </v-list-item>
               <v-list-item @click="shareToTelegram">
                 <template #prepend>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="#0088cc" xmlns="http://www.w3.org/2000/svg" style="margin-right: 31px;">
@@ -66,12 +52,6 @@
                   </svg>
                 </template>
                 <v-list-item-title>{{ t('challenges.share.telegram') }}</v-list-item-title>
-              </v-list-item>
-              <v-list-item @click="shareToInstagramStory">
-                <template #prepend>
-                  <v-icon color="#E4405F">mdi-instagram</v-icon>
-                </template>
-                <v-list-item-title>{{ t('challenges.share.instagramStory') }}</v-list-item-title>
               </v-list-item>
             </v-list>
           </v-menu>
@@ -1811,71 +1791,10 @@ const copyLink = async () => {
   }
 }
 
-const shareToFacebook = () => {
-  const url = encodeURIComponent(getShareUrl())
-  const text = encodeURIComponent(getShareText())
-  window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${text}`, '_blank', 'width=600,height=400')
-}
-
-const shareToVK = () => {
-  const url = encodeURIComponent(getShareUrl())
-  const text = encodeURIComponent(getShareText())
-  window.open(`https://vk.com/share.php?url=${url}&title=${text}`, '_blank', 'width=600,height=400')
-}
-
 const shareToTelegram = () => {
   const url = encodeURIComponent(getShareUrl())
   const text = encodeURIComponent(getShareText())
   window.open(`https://t.me/share/url?url=${url}&text=${text}`, '_blank', 'width=600,height=400')
-}
-
-const shareToInstagramStory = async () => {
-  const url = getShareUrl()
-  const text = getShareText()
-  
-  // Copy link to clipboard first
-  try {
-    await navigator.clipboard.writeText(`${text}\n\n${url}`)
-    snackbarText.value = t('challenges.share.instagramStoryCopied')
-    snackbar.value = true
-  } catch (err) {
-    // Fallback for older browsers
-    const textArea = document.createElement('textarea')
-    textArea.value = `${text}\n\n${url}`
-    document.body.appendChild(textArea)
-    textArea.select()
-    try {
-      document.execCommand('copy')
-      snackbarText.value = t('challenges.share.instagramStoryCopied')
-      snackbar.value = true
-    } catch (e) {
-      console.error('Fallback copy failed:', e)
-    }
-    document.body.removeChild(textArea)
-  }
-  
-  // Try to open Instagram Story camera
-  setTimeout(() => {
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
-    if (isMobile) {
-      // Try to open Instagram Story camera
-      // iOS: instagram-stories://share
-      // Android: instagram://story-camera
-      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent)
-      if (isIOS) {
-        window.location.href = 'instagram-stories://share'
-      } else {
-        window.location.href = 'instagram://story-camera'
-      }
-      // Fallback to regular Instagram app after a delay
-      setTimeout(() => {
-        window.location.href = 'instagram://'
-      }, 500)
-    } else {
-      // On desktop, open Instagram web
-      window.open('https://www.instagram.com/', '_blank')
-    }
-  }, 100)
 }
 
 // Handle watch challenge

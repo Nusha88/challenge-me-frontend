@@ -29,7 +29,15 @@
                 :challenge="challenge"
                 :current-user-id="currentUserId"
                 :show-join-button="false"
+                :joining-id="joiningId"
+                :leaving-id="leavingId"
+                :watching-id="watchingId"
+                :is-watched="isWatched(challenge)"
                 @click="handleChallengeClick"
+                @join="joinChallenge"
+                @leave="leaveChallenge"
+                @watch="watchChallenge"
+                @unwatch="unwatchChallenge"
                 @owner-navigated="handleOwnerNavigated"
               />
             </div>
@@ -45,7 +53,15 @@
             :challenge="challenge"
             :current-user-id="currentUserId"
             :show-join-button="false"
+            :joining-id="joiningId"
+            :leaving-id="leavingId"
+            :watching-id="watchingId"
+            :is-watched="isWatched(challenge)"
                 @click="handleChallengeClick"
+                @join="joinChallenge"
+                @leave="leaveChallenge"
+                @watch="watchChallenge"
+                @unwatch="unwatchChallenge"
                 @owner-navigated="handleOwnerNavigated"
           />
             </div>
@@ -181,6 +197,9 @@ const selectedIsParticipant = computed(() => {
 })
 
 const leavingId = ref(null)
+const joiningId = ref(null)
+const watchingId = ref(null)
+const watchedChallenges = ref([])
 
 const showDialogLeaveButton = computed(() => {
   if (!selectedChallenge.value) return false
@@ -247,6 +266,44 @@ const handleChallengeClick = (challenge) => {
   detailsDialogOpen.value = true
 }
 
+async function joinChallenge(challenge) {
+  if (!currentUserId.value) {
+    error.value = t('notifications.mustLogin')
+    return
+  }
+
+  if (!challenge || !challenge._id) {
+    error.value = t('notifications.joinError')
+    return
+  }
+
+  joiningId.value = challenge._id
+  error.value = ''
+
+  try {
+    await challengeService.joinChallenge(challenge._id, { userId: currentUserId.value })
+    
+    // Refresh challenges list
+    await fetchChallenges()
+    
+    // Refresh the selected challenge if dialog is open
+    if (selectedChallenge.value?._id === challenge._id) {
+      // Fetch fresh challenge data to get updated participants list
+      try {
+        const { data } = await challengeService.getChallenge(challenge._id)
+        selectedChallenge.value = data
+      } catch (err) {
+        // Fallback to finding in list
+        selectedChallenge.value = challenges.value.find(c => c._id === challenge._id) || null
+      }
+    }
+  } catch (err) {
+    error.value = err.response?.data?.message || t('notifications.joinError')
+  } finally {
+    joiningId.value = null
+  }
+}
+
 async function leaveChallenge(challenge) {
   if (!currentUserId.value) {
     error.value = t('notifications.mustLogin')
@@ -273,7 +330,7 @@ async function leaveChallenge(challenge) {
       try {
         const { data } = await challengeService.getChallenge(challenge._id)
         selectedChallenge.value = data
-      } catch (error) {
+      } catch (err) {
         // Fallback to finding in list
         selectedChallenge.value = challenges.value.find(c => c._id === challenge._id) || null
       }
@@ -285,6 +342,81 @@ async function leaveChallenge(challenge) {
   }
 }
 
+function isWatched(challenge) {
+  if (!challenge || !currentUserId.value) return false
+  const challengeId = challenge._id?.toString()
+  if (!challengeId) return false
+  return watchedChallenges.value.some(id => id.toString() === challengeId)
+}
+
+async function loadWatchedChallenges() {
+  if (!currentUserId.value) return
+  
+  try {
+    const { data } = await challengeService.getWatchedChallenges()
+    watchedChallenges.value = (data?.challenges || []).map(c => (c._id?.toString() || c._id))
+  } catch (err) {
+    console.error('Error loading watched challenges:', err)
+  }
+}
+
+async function watchChallenge(challenge) {
+  if (!currentUserId.value) {
+    error.value = t('notifications.mustLogin')
+    return
+  }
+
+  watchingId.value = challenge._id
+  error.value = ''
+
+  // Optimistic update
+  const challengeId = challenge._id.toString()
+  if (!watchedChallenges.value.includes(challengeId)) {
+    watchedChallenges.value.push(challengeId)
+  }
+
+  try {
+    await challengeService.watchChallenge(challenge._id, currentUserId.value)
+    await loadWatchedChallenges()
+  } catch (err) {
+    // Revert optimistic update on error
+    const index = watchedChallenges.value.indexOf(challengeId)
+    if (index > -1) {
+      watchedChallenges.value.splice(index, 1)
+    }
+    error.value = err.response?.data?.message || t('challenges.watchError')
+  } finally {
+    watchingId.value = null
+  }
+}
+
+async function unwatchChallenge(challenge) {
+  if (!currentUserId.value) return
+
+  watchingId.value = challenge._id
+  error.value = ''
+
+  // Optimistic update
+  const challengeId = challenge._id.toString()
+  const index = watchedChallenges.value.indexOf(challengeId)
+  if (index > -1) {
+    watchedChallenges.value.splice(index, 1)
+  }
+
+  try {
+    await challengeService.unwatchChallenge(challenge._id, currentUserId.value)
+    await loadWatchedChallenges()
+  } catch (err) {
+    // Revert optimistic update on error
+    if (!watchedChallenges.value.includes(challengeId)) {
+      watchedChallenges.value.push(challengeId)
+    }
+    error.value = err.response?.data?.message || t('challenges.watchError')
+  } finally {
+    watchingId.value = null
+  }
+}
+
 async function handleDialogLeave() {
   if (!selectedChallenge.value) return
   await leaveChallenge(selectedChallenge.value)
@@ -293,6 +425,7 @@ async function handleDialogLeave() {
 const handleDialogUpdate = async () => {
   // Refresh challenges when participant updates their completedDays
   await fetchChallenges()
+  await loadWatchedChallenges()
   // Also refresh the selected challenge if dialog is open
   if (selectedChallenge.value) {
     const updatedChallenge = challenges.value.find(c => c._id === selectedChallenge.value._id)
@@ -309,6 +442,7 @@ function handleOwnerNavigated() {
 
 onMounted(() => {
   fetchChallenges()
+  loadWatchedChallenges()
 })
 </script>
 
