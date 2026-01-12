@@ -353,7 +353,7 @@ async function loadWatchedChallenges() {
   if (!currentUserId.value) return
   
   try {
-    const { data } = await challengeService.getWatchedChallenges()
+    const { data } = await challengeService.getWatchedChallenges(currentUserId.value)
     watchedChallenges.value = (data?.challenges || []).map(c => (c._id?.toString() || c._id))
   } catch (err) {
     console.error('Error loading watched challenges:', err)
