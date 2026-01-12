@@ -1,7 +1,8 @@
-// Service Worker for Push Notifications
-const CACHE_NAME = 'challengeme-v1';
+// Service Worker for Push Notifications and minimal static caching
+// Bump version to invalidate old caches on deploy
+const CACHE_NAME = 'challengeme-v2';
 const urlsToCache = [
-  '/',
+  // Do not cache "/" to avoid serving stale index.html after deploys
   '/icons/icon.png',
   '/manifest.json'
 ];
@@ -44,7 +45,13 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   
-  // For static assets, try cache first, then network
+  // Always fetch documents (HTML) from network to avoid stale pages
+  if (event.request.destination === 'document') {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // For other static assets, try cache first, then network
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
