@@ -405,12 +405,12 @@ watch(() => isLoggedIn.value, (loggedIn) => {
       <v-btn
         v-if="isLoggedIn"
         variant="text"
-        class="mr-2 logout-button"
+        class="mr-2 logout-button d-none d-md-inline-flex"
         prepend-icon="mdi-logout"
         color="error"
         @click="logout"
       >
-        <span class="d-none d-md-inline">{{ t('navigation.logout') }}</span>
+        <span>{{ t('navigation.logout') }}</span>
       </v-btn>
     </v-app-bar>
 
@@ -655,6 +655,18 @@ watch(() => isLoggedIn.value, (loggedIn) => {
             <v-icon icon="mdi-translate"></v-icon>
           </template>
           <v-list-item-title>{{ language.label }}</v-list-item-title>
+        </v-list-item>
+
+        <v-divider class="my-2"></v-divider>
+
+        <v-list-item
+          color="error"
+          @click="logout(); drawerOpen = false"
+        >
+          <template v-slot:prepend>
+            <v-icon icon="mdi-logout" color="error"></v-icon>
+          </template>
+          <v-list-item-title>{{ t('navigation.logout') }}</v-list-item-title>
         </v-list-item>
       </v-list>
     </v-navigation-drawer>

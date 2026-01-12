@@ -238,40 +238,45 @@
             </v-alert>
 
             <v-card-actions class="buttons-area">
-              <v-btn 
-                variant="elevated" 
-                color="error" 
-                @click="handleDelete" 
-                :disabled="saveLoading || deleteLoading"
-                :loading="deleteLoading"
-                class="action-button delete-button"
-              >
-                {{ t('challenges.delete') }}
-              </v-btn>
-              <v-spacer></v-spacer>
-              <v-btn 
-                variant="outlined" 
-                @click="handleCancel" 
-                :disabled="saveLoading || deleteLoading"
-                class="action-button cancel-button"
-              >
-                {{ t('challenges.cancel') }}
-              </v-btn>
-              <v-btn 
-                type="submit" 
-                variant="flat"
-                color="primary" 
-                :loading="saveLoading" 
-                :disabled="saveLoading || deleteLoading || !isFormValid"
-                class="action-button save-button"
-              >
-                {{ t('challenges.update') }}
-              </v-btn>
+              <div class="buttons-container">
+                <v-btn 
+                  type="submit" 
+                  variant="flat"
+                  color="primary" 
+                  :loading="saveLoading" 
+                  :disabled="saveLoading || deleteLoading || !isFormValid"
+                  class="action-button save-button"
+                >
+                  {{ t('challenges.update') }}
+                </v-btn>
+                <div class="secondary-buttons-row">
+                  <v-btn 
+                    variant="outlined" 
+                    @click="handleCancel" 
+                    :disabled="saveLoading || deleteLoading"
+                    class="action-button cancel-button secondary-button"
+                  >
+                    {{ t('challenges.cancel') }}
+                  </v-btn>
+                  <v-btn 
+                    variant="outlined" 
+                    color="error" 
+                    @click="handleDelete" 
+                    :disabled="saveLoading || deleteLoading"
+                    :loading="deleteLoading"
+                    class="action-button delete-button secondary-button"
+                  >
+                    {{ t('challenges.delete') }}
+                  </v-btn>
+                </div>
+              </div>
             </v-card-actions>
           </v-form>
         </template>
 
         <template v-else>
+          <h2 class="challenge-title-display mb-4">{{ challenge.title }}</h2>
+          
           <div class="dates-row mb-4">
             <p class="start-date-text">
               <strong>{{ t('challenges.startDate') }}:</strong> {{ formatDisplayDate(challenge.startDate) }}
@@ -1838,9 +1843,22 @@ async function handleUnwatch() {
 
 <style scoped>
 .dialog-content {
-  padding: 28px !important;
+  padding: 16px !important;
   overflow-y: auto;
   flex: 1;
+  min-height: 0;
+}
+
+@media (min-width: 600px) {
+  .dialog-content {
+    padding: 24px !important;
+  }
+}
+
+@media (min-width: 960px) {
+  .dialog-content {
+    padding: 28px !important;
+  }
 }
 
 .dialog-card {
@@ -1858,18 +1876,126 @@ async function handleUnwatch() {
   top: 0;
   z-index: 10;
   background-color: rgb(var(--v-theme-surface));
-  padding: 20px 24px !important;
+  padding: 8px 12px !important;
   border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  flex-shrink: 0;
+}
+
+@media (min-width: 600px) {
+  .dialog-header {
+    padding: 16px 20px !important;
+  }
+}
+
+@media (min-width: 960px) {
+  .dialog-header {
+    padding: 20px 24px !important;
+  }
 }
 
 .close-btn {
   margin-left: 8px;
+  flex-shrink: 0;
+}
+
+.share-btn {
+  flex-shrink: 0;
+  min-width: auto;
+  padding: 4px 8px !important;
+  font-size: 0.75rem;
+}
+
+.share-btn :deep(.v-btn__prepend) {
+  margin-inline-end: 4px;
+}
+
+@media (min-width: 600px) {
+  .share-btn {
+    padding: 6px 12px !important;
+    font-size: 0.875rem;
+  }
+  
+  .share-btn :deep(.v-btn__prepend) {
+    margin-inline-end: 6px;
+  }
+}
+
+.dialog-header > .d-flex {
+  flex-shrink: 0;
+  gap: 2px;
+}
+
+@media (min-width: 600px) {
+  .dialog-header > .d-flex {
+    gap: 8px;
+  }
+}
+
+.privacy-icon {
+  font-size: 18px !important;
+}
+
+@media (min-width: 600px) {
+  .privacy-icon {
+    font-size: 24px !important;
+  }
+}
+
+.close-btn {
+  padding: 4px !important;
+}
+
+@media (min-width: 600px) {
+  .close-btn {
+    padding: 8px !important;
+  }
 }
 
 .dialog-title {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+@media (min-width: 600px) {
+  .dialog-title {
+    gap: 12px;
+  }
+}
+
+.dialog-title span {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+@media (min-width: 600px) {
+  .dialog-title span {
+    font-size: 1.25rem;
+  }
+}
+
+@media (min-width: 960px) {
+  .dialog-title span {
+    font-size: 1.5rem;
+  }
+}
+
+.dialog-title :deep(.v-chip) {
+  height: 20px;
+  font-size: 0.6875rem;
+  padding: 0 6px;
+}
+
+@media (min-width: 600px) {
+  .dialog-title :deep(.v-chip) {
+    height: 24px;
+    font-size: 0.75rem;
+    padding: 0 8px;
+  }
 }
 
 .privacy-icon {
@@ -1989,6 +2115,27 @@ async function handleUnwatch() {
   }
 }
 
+.challenge-title-display {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.87);
+  margin: 0;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+@media (min-width: 600px) {
+  .challenge-title-display {
+    font-size: 1.75rem;
+  }
+}
+
+@media (min-width: 960px) {
+  .challenge-title-display {
+    font-size: 2rem;
+  }
+}
+
 .created-by-section {
   padding: 12px 24px;
   border-top: 1px solid rgba(0, 0, 0, 0.12);
@@ -2001,32 +2148,120 @@ async function handleUnwatch() {
   text-align: center;
 }
 
-.buttons-area {
+.buttons-area,
+:deep(.v-card-actions.buttons-area) {
   border-top: 1px solid rgba(0, 0, 0, 0.12);
-  padding: 16px 24px !important;
+  padding: 12px 16px !important;
   margin-top: 0;
   border-radius: 0 0 4px 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex-shrink: 0;
+  position: sticky;
+  bottom: 0;
+  background-color: rgb(var(--v-theme-surface));
+  z-index: 10;
+  justify-content: center !important;
+}
+
+@media (min-width: 600px) {
+  .buttons-area,
+  :deep(.v-card-actions.buttons-area) {
+    padding: 16px 20px !important;
+    gap: 12px;
+    justify-content: flex-start !important;
+  }
+}
+
+@media (min-width: 960px) {
+  .buttons-area,
+  :deep(.v-card-actions.buttons-area) {
+    padding: 16px 24px !important;
+  }
+}
+
+.buttons-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+@media (min-width: 600px) {
+  .buttons-container {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+  }
+}
+
+.secondary-buttons-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+@media (min-width: 600px) {
+  .secondary-buttons-row {
+    width: auto;
+    margin-left: auto;
+  }
+}
+
+@media (max-width: 599px) {
+  .buttons-area .v-spacer {
+    display: none;
+  }
 }
 
 .action-button {
   font-weight: 600;
   text-transform: none;
   letter-spacing: 0.5px;
-  min-width: 100px;
   height: 40px;
   padding: 0 24px;
   border-radius: 24px !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.delete-button {
-  box-shadow: 0 2px 4px rgba(211, 47, 47, 0.2);
+.save-button {
+  width: 100%;
+  min-width: 120px;
 }
 
-.delete-button:hover:not(:disabled) {
-  box-shadow: 0 4px 8px rgba(211, 47, 47, 0.3);
-  transform: translateY(-2px);
+@media (min-width: 600px) {
+  .save-button {
+    width: auto;
+  }
+}
+
+.secondary-button {
+  flex: 1;
+  min-width: 100px;
+  height: 36px;
+  padding: 0 16px;
+  font-size: 0.875rem;
+}
+
+@media (min-width: 600px) {
+  .secondary-button {
+    flex: 0 0 auto;
+    min-width: 90px;
+  }
+}
+
+.delete-button.secondary-button {
+  border-color: rgba(211, 47, 47, 0.5) !important;
+  color: #d32f2f !important;
+}
+
+.delete-button.secondary-button:hover:not(:disabled) {
+  background-color: rgba(211, 47, 47, 0.08) !important;
+  border-color: #d32f2f !important;
+  transform: translateY(-1px);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 4px rgba(211, 47, 47, 0.2);
 }
 
 .save-button {

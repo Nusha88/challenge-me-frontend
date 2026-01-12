@@ -2,60 +2,109 @@
   <div class="challenge-edit-page">
     <v-container>
       <div class="page-header mb-6">
-        <v-btn
-          icon="mdi-arrow-left"
-          variant="text"
-          @click="goBack"
-          class="back-button"
-        ></v-btn>
-        <h1 class="page-title">{{ t('challenges.editTitle') }}</h1>
-        <v-spacer></v-spacer>
-        <div class="header-badges">
-        <v-chip
-          v-if="challenge?.challengeType"
-          :color="challengeTypeColor"
-          size="small"
+        <div class="header-top-row">
+          <v-btn
+            icon="mdi-arrow-left"
+            variant="text"
+            @click="goBack"
+            class="back-button"
+          ></v-btn>
+          <h1 class="page-title">{{ t('challenges.editTitle') }}</h1>
+          <v-spacer class="mobile-hidden"></v-spacer>
+          <div class="header-badges desktop-badges">
+            <v-chip
+              v-if="challenge?.challengeType"
+              :color="challengeTypeColor"
+              size="small"
+              class="ml-2"
+            >
+              {{ challengeTypeLabel }}
+            </v-chip>
+            <v-icon
+              v-if="challenge?.privacy === 'private'"
+              color="grey-darken-1"
+              size="20"
+              class="ml-2 privacy-icon"
+            >
+              mdi-lock
+            </v-icon>
+            <!-- Share Menu -->
+            <v-menu location="bottom end">
+              <template #activator="{ props: menuProps }">
+                <v-btn
+                  variant="text"
+                  size="small"
+                  v-bind="menuProps"
+                  class="ml-2 share-btn"
+                  prepend-icon="mdi-share-variant"
+                >
+                  {{ t('challenges.share.share') }}</v-btn>
+              </template>
+              <v-list>
+                <v-list-item @click="copyLink">
+                  <template #prepend>
+                    <v-icon>mdi-link</v-icon>
+                  </template>
+                  <v-list-item-title>{{ t('challenges.share.copyLink') }}</v-list-item-title>
+                </v-list-item>
+                <v-list-item @click="shareToTelegram">
+                  <template #prepend>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="#0088cc" xmlns="http://www.w3.org/2000/svg" style="margin-right: 31px;">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.13-.31-1.09-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.45.08-.01.15-.01.22-.01.23.01.33.05.45.12.1.06.13.1.15.17.01.07.01.22-.01.38z"/>
+                    </svg>
+                  </template>
+                  <v-list-item-title>{{ t('challenges.share.telegram') }}</v-list-item-title>
+                </v-list-item>
+              </v-list>
+            </v-menu>
+          </div>
+        </div>
+        <div class="header-badges mobile-badges">
+          <v-chip
+            v-if="challenge?.challengeType"
+            :color="challengeTypeColor"
+            size="small"
             class="ml-2"
-        >
-          {{ challengeTypeLabel }}
-        </v-chip>
-        <v-icon
-          v-if="challenge?.privacy === 'private'"
-          color="grey-darken-1"
+          >
+            {{ challengeTypeLabel }}
+          </v-chip>
+          <v-icon
+            v-if="challenge?.privacy === 'private'"
+            color="grey-darken-1"
             size="20"
             class="ml-2 privacy-icon"
-        >
-          mdi-lock
-        </v-icon>
-        <!-- Share Menu -->
-        <v-menu location="bottom end">
-          <template #activator="{ props: menuProps }">
-            <v-btn
-              variant="text"
-              size="small"
-              v-bind="menuProps"
-              class="ml-2 share-btn"
-              prepend-icon="mdi-share-variant"
-            >
-              {{ t('challenges.share.share') }}</v-btn>
-          </template>
-          <v-list>
-            <v-list-item @click="copyLink">
-              <template #prepend>
-                <v-icon>mdi-link</v-icon>
-              </template>
-              <v-list-item-title>{{ t('challenges.share.copyLink') }}</v-list-item-title>
-            </v-list-item>
-            <v-list-item @click="shareToTelegram">
-              <template #prepend>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="#0088cc" xmlns="http://www.w3.org/2000/svg" style="margin-right: 31px;">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.13-.31-1.09-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.45.08-.01.15-.01.22-.01.23.01.33.05.45.12.1.06.13.1.15.17.01.07.01.22-.01.38z"/>
-                </svg>
-              </template>
-              <v-list-item-title>{{ t('challenges.share.telegram') }}</v-list-item-title>
-            </v-list-item>
-          </v-list>
-        </v-menu>
+          >
+            mdi-lock
+          </v-icon>
+          <!-- Share Menu -->
+          <v-menu location="bottom end">
+            <template #activator="{ props: menuProps }">
+              <v-btn
+                variant="text"
+                size="small"
+                v-bind="menuProps"
+                class="ml-2 share-btn"
+                prepend-icon="mdi-share-variant"
+              >
+                {{ t('challenges.share.share') }}</v-btn>
+            </template>
+            <v-list>
+              <v-list-item @click="copyLink">
+                <template #prepend>
+                  <v-icon>mdi-link</v-icon>
+                </template>
+                <v-list-item-title>{{ t('challenges.share.copyLink') }}</v-list-item-title>
+              </v-list-item>
+              <v-list-item @click="shareToTelegram">
+                <template #prepend>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="#0088cc" xmlns="http://www.w3.org/2000/svg" style="margin-right: 31px;">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.13-.31-1.09-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.45.08-.01.15-.01.22-.01.23.01.33.05.45.12.1.06.13.1.15.17.01.07.01.22-.01.38z"/>
+                  </svg>
+                </template>
+                <v-list-item-title>{{ t('challenges.share.telegram') }}</v-list-item-title>
+              </v-list-item>
+            </v-list>
+          </v-menu>
         </div>
       </div>
 
@@ -370,36 +419,38 @@
                 </v-btn>
               </template>
               <template v-else>
-              <v-btn 
-                variant="elevated" 
-                color="error" 
-                @click="handleDelete" 
-                :disabled="saveLoading || deleteLoading"
-                :loading="deleteLoading"
-                class="action-button delete-button"
-              >
-                {{ t('challenges.delete') }}
-              </v-btn>
-              <v-spacer></v-spacer>
-              <v-btn 
-                variant="outlined" 
-                @click="goBack" 
-                :disabled="saveLoading || deleteLoading"
-                class="action-button cancel-button"
-              >
-                {{ t('challenges.cancel') }}
-              </v-btn>
-                <div class="button-spacer"></div>
-              <v-btn 
-                type="submit" 
-                variant="flat"
-                color="primary" 
-                :disabled="saveLoading || deleteLoading || !isFormValid"
-                  :loading="saveLoading"
-                class="action-button save-button"
-              >
-                {{ t('challenges.update') }}
-              </v-btn>
+                <div class="buttons-container">
+                  <v-btn 
+                    type="submit" 
+                    variant="flat"
+                    color="primary" 
+                    :disabled="saveLoading || deleteLoading || !isFormValid"
+                    :loading="saveLoading"
+                    class="action-button save-button"
+                  >
+                    {{ t('challenges.update') }}
+                  </v-btn>
+                  <div class="secondary-buttons-row">
+                    <v-btn 
+                      variant="outlined" 
+                      @click="goBack" 
+                      :disabled="saveLoading || deleteLoading"
+                      class="action-button cancel-button secondary-button"
+                    >
+                      {{ t('challenges.cancel') }}
+                    </v-btn>
+                    <v-btn 
+                      variant="outlined" 
+                      color="error" 
+                      @click="handleDelete" 
+                      :disabled="saveLoading || deleteLoading"
+                      :loading="deleteLoading"
+                      class="action-button delete-button secondary-button"
+                    >
+                      {{ t('challenges.delete') }}
+                    </v-btn>
+                  </div>
+                </div>
               </template>
             </v-card-actions>
           </v-form>
@@ -1154,48 +1205,200 @@ onMounted(async () => {
 
 <style scoped>
 .challenge-edit-page {
-  min-height: 100vh;
+  min-height: calc(100vh - 64px);
   padding: 8px 0;
+  display: flex;
+  flex-direction: column;
 }
 
 @media (min-width: 600px) {
   .challenge-edit-page {
-  padding: 16px 0;
+    padding: 16px 0;
   }
+}
+
+.challenge-edit-page .v-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.challenge-edit-page .v-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.challenge-edit-page .v-card-text {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .page-header {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 0;
 }
 
 @media (min-width: 600px) {
   .page-header {
-  gap: 16px;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 16px 0;
+  }
+}
+
+@media (min-width: 960px) {
+  .page-header {
+    gap: 16px;
+    padding: 20px 0;
+  }
+}
+
+.header-top-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 6px;
+}
+
+@media (min-width: 600px) {
+  .header-top-row {
+    gap: 12px;
+  }
+}
+
+@media (min-width: 960px) {
+  .header-top-row {
+    gap: 16px;
   }
 }
 
 .back-button {
-  margin-right: 8px;
+  margin-right: 2px;
+  flex-shrink: 0;
+  padding: 4px !important;
+}
+
+@media (min-width: 600px) {
+  .back-button {
+    margin-right: 8px;
+    padding: 8px !important;
+  }
 }
 
 .header-badges {
   display: flex;
   align-items: center;
   flex-shrink: 0;
-  gap: 8px;
+  gap: 2px;
+  flex-wrap: wrap;
 }
 
-.page-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  flex: 1;
-  min-width: 0;
+.mobile-badges {
+  display: flex;
+  margin-left: 40px;
+  gap: 4px;
 }
 
 @media (min-width: 600px) {
+  .mobile-badges {
+    display: none;
+  }
+  
+  .header-badges {
+    gap: 8px;
+  }
+}
+
+.desktop-badges {
+  display: none;
+}
+
+@media (min-width: 600px) {
+  .desktop-badges {
+    display: flex;
+  }
+}
+
+.mobile-hidden {
+  display: none;
+}
+
+@media (min-width: 600px) {
+  .mobile-hidden {
+    display: block;
+  }
+}
+
+.share-btn {
+  flex-shrink: 0;
+  min-width: auto;
+  padding: 4px 8px !important;
+  font-size: 0.75rem;
+}
+
+.share-btn :deep(.v-btn__prepend) {
+  margin-inline-end: 4px;
+}
+
+@media (min-width: 600px) {
+  .share-btn {
+    padding: 6px 12px !important;
+    font-size: 0.875rem;
+  }
+  
+  .share-btn :deep(.v-btn__prepend) {
+    margin-inline-end: 6px;
+  }
+}
+
+.header-badges :deep(.v-chip) {
+  height: 20px;
+  font-size: 0.6875rem;
+  padding: 0 6px;
+}
+
+@media (min-width: 600px) {
+  .header-badges :deep(.v-chip) {
+    height: 24px;
+    font-size: 0.75rem;
+    padding: 0 8px;
+  }
+}
+
+.privacy-icon {
+  font-size: 18px !important;
+}
+
+@media (min-width: 600px) {
+  .privacy-icon {
+    font-size: 24px !important;
+  }
+}
+
+.page-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  line-height: 1.2;
+}
+
+@media (min-width: 600px) {
+  .page-title {
+    font-size: 1.5rem;
+    line-height: 1.4;
+  }
+}
+
+@media (min-width: 960px) {
   .page-title {
     font-size: 2rem;
   }
@@ -1330,47 +1533,104 @@ onMounted(async () => {
   margin-top: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 @media (min-width: 600px) {
   .buttons-area {
-    padding: 16px 24px !important;
-    flex-direction: row;
-    gap: 0;
+    padding: 16px 20px !important;
   }
 }
 
-.button-spacer {
-  width: 16px;
-  flex-shrink: 0;
+@media (min-width: 960px) {
+  .buttons-area {
+    padding: 16px 24px !important;
+  }
 }
+
+.buttons-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+@media (min-width: 600px) {
+  .buttons-container {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+  }
+}
+
+.secondary-buttons-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+@media (min-width: 600px) {
+  .secondary-buttons-row {
+    width: auto;
+    margin-left: auto;
+  }
+}
+
 
 .action-button {
   font-weight: 600;
   text-transform: none;
   letter-spacing: 0.5px;
-  min-width: 100px;
-  width: 100%;
   height: 40px;
   padding: 0 24px;
   border-radius: 24px !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.save-button {
+  width: 100%;
+  min-width: 120px;
+}
+
 @media (min-width: 600px) {
-  .action-button {
+  .save-button {
     width: auto;
   }
 }
 
-.delete-button {
-  box-shadow: 0 2px 4px rgba(211, 47, 47, 0.2);
+.secondary-button {
+  flex: 1;
+  min-width: 100px;
+  height: 36px;
+  padding: 0 16px;
+  font-size: 0.875rem;
 }
 
-.delete-button:hover:not(:disabled) {
-  box-shadow: 0 4px 8px rgba(211, 47, 47, 0.3);
-  transform: translateY(-2px);
+@media (min-width: 600px) {
+  .secondary-button {
+    flex: 0 0 auto;
+    min-width: 90px;
+  }
+}
+
+@media (max-width: 599px) {
+  .buttons-area .v-spacer {
+    display: none;
+  }
+}
+
+.delete-button.secondary-button {
+  border-color: rgba(211, 47, 47, 0.5) !important;
+  color: #d32f2f !important;
+}
+
+.delete-button.secondary-button:hover:not(:disabled) {
+  background-color: rgba(211, 47, 47, 0.08) !important;
+  border-color: #d32f2f !important;
+  transform: translateY(-1px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 4px rgba(211, 47, 47, 0.2);
 }
 
 .save-button {
@@ -1528,17 +1788,23 @@ onMounted(async () => {
 }
 
 .card-content {
-  padding: 16px;
+  padding: 16px !important;
 }
 
 @media (min-width: 600px) {
   .card-content {
-    padding: 24px;
+    padding: 20px !important;
   }
   
   .editable-field {
     font-size: 1rem;
     padding: 12px 16px;
+  }
+}
+
+@media (min-width: 960px) {
+  .card-content {
+    padding: 24px !important;
   }
 }
 
