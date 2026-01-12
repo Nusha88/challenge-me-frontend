@@ -1560,6 +1560,7 @@ onMounted(async () => {
   .buttons-container {
     flex-direction: row;
     align-items: center;
+    justify-content: space-between;
     gap: 12px;
   }
 }
@@ -1573,7 +1574,12 @@ onMounted(async () => {
 @media (min-width: 600px) {
   .secondary-buttons-row {
     width: auto;
-    margin-left: auto;
+    margin-left: 0;
+    order: -1;
+  }
+  
+  .save-button {
+    order: 1;
   }
 }
 

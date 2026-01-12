@@ -15,6 +15,8 @@ const isLoggedIn = ref(!!localStorage.getItem('token'))
 const notificationsDrawerOpen = ref(false)
 const unreadNotificationCount = ref(0)
 const streakDays = ref(0)
+const yesterdayStreakDays = ref(0)
+const hasTodayCompletedTasks = ref(false)
 
 function readStoredUser() {
   try {
@@ -163,10 +165,59 @@ function formatDateString(date) {
   return `${year}-${month}-${day}`
 }
 
+function checkDayCompletion(date, checklists, habitChallenges, userId) {
+  const dateStr = formatDateString(date)
+  
+  // Find checklist for this date
+  const checklist = checklists.find(c => {
+    const checklistDate = new Date(c.date)
+    checklistDate.setHours(0, 0, 0, 0)
+    return checklistDate.getTime() === date.getTime()
+  })
+  
+  // Check if checklist has completed tasks
+  const hasCompletedChecklistTask = checklist && checklist.tasks && checklist.tasks.length > 0
+    ? checklist.tasks.some(task => task.done === true)
+    : false
+  
+  // Check if any challenge was completed on this date
+  let hasCompletedChallenge = false
+  for (const challenge of habitChallenges) {
+    if (!challenge.participants || challenge.participants.length === 0) continue
+    
+    // Find current user's participant entry
+    const participant = challenge.participants.find(p => {
+      const pUserId = p.userId?._id || p.userId || p._id
+      return pUserId && pUserId.toString() === userId.toString()
+    })
+    
+    if (participant && participant.completedDays && Array.isArray(participant.completedDays)) {
+      const hasDate = participant.completedDays.some(completedDate => {
+        if (!completedDate) return false
+        let completedDateStr = String(completedDate)
+        if (completedDateStr.includes('T')) {
+          completedDateStr = completedDateStr.split('T')[0]
+        }
+        completedDateStr = completedDateStr.substring(0, 10)
+        return completedDateStr === dateStr
+      })
+      
+      if (hasDate) {
+        hasCompletedChallenge = true
+        break
+      }
+    }
+  }
+  
+  return hasCompletedChecklistTask || hasCompletedChallenge
+}
+
 async function calculateStreak() {
   const userId = getCurrentUserId()
   if (!userId || !isLoggedIn.value) {
     streakDays.value = 0
+    yesterdayStreakDays.value = 0
+    hasTodayCompletedTasks.value = false
     return
   }
 
@@ -188,77 +239,64 @@ async function calculateStreak() {
       return new Date(b.date) - new Date(a.date)
     })
 
-    // Check if today's checklist exists and has completed tasks
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     
-    let streak = 0
+    // Check if today has any completed tasks
+    hasTodayCompletedTasks.value = checkDayCompletion(today, sortedChecklists, habitChallenges, userId)
+    
+    // Calculate today's streak (starting from today)
+    let todayStreak = 0
     let currentDate = new Date(today)
     
-    // Check each day backwards from today
-    for (let i = 0; i < 365; i++) { // Max 365 days
-      const currentDateStr = formatDateString(currentDate)
-      
-      // Find checklist for this date
-      const checklist = sortedChecklists.find(c => {
-        const checklistDate = new Date(c.date)
-        checklistDate.setHours(0, 0, 0, 0)
-        return checklistDate.getTime() === currentDate.getTime()
-      })
-      
-      // Check if checklist has completed tasks
-      const hasCompletedChecklistTask = checklist && checklist.tasks && checklist.tasks.length > 0
-        ? checklist.tasks.some(task => task.done === true)
-        : false
-      
-      // Check if any challenge was completed on this date
-      let hasCompletedChallenge = false
-      for (const challenge of habitChallenges) {
-        if (!challenge.participants || challenge.participants.length === 0) continue
-        
-        // Find current user's participant entry
-        const participant = challenge.participants.find(p => {
-          const pUserId = p.userId?._id || p.userId || p._id
-          return pUserId && pUserId.toString() === userId.toString()
-        })
-        
-        if (participant && participant.completedDays && Array.isArray(participant.completedDays)) {
-          const hasDate = participant.completedDays.some(date => {
-            if (!date) return false
-            let dateStr = String(date)
-            if (dateStr.includes('T')) {
-              dateStr = dateStr.split('T')[0]
-            }
-            dateStr = dateStr.substring(0, 10)
-            return dateStr === currentDateStr
-          })
-          
-          if (hasDate) {
-            hasCompletedChallenge = true
-            break
-          }
-        }
-      }
-      
-      // Day counts if checklist OR challenges were completed
-      if (hasCompletedChecklistTask || hasCompletedChallenge) {
-        streak++
+    for (let i = 0; i < 365; i++) {
+      if (checkDayCompletion(currentDate, sortedChecklists, habitChallenges, userId)) {
+        todayStreak++
       } else {
-        // No completion for this day, break streak
         break
       }
-      
-      // Move to previous day
       currentDate.setDate(currentDate.getDate() - 1)
       currentDate.setHours(0, 0, 0, 0)
     }
     
-    streakDays.value = streak
+    streakDays.value = todayStreak
+    
+    // Calculate yesterday's streak (starting from yesterday)
+    const yesterday = new Date(today)
+    yesterday.setDate(yesterday.getDate() - 1)
+    yesterday.setHours(0, 0, 0, 0)
+    
+    let yesterdayStreak = 0
+    currentDate = new Date(yesterday)
+    
+    for (let i = 0; i < 365; i++) {
+      if (checkDayCompletion(currentDate, sortedChecklists, habitChallenges, userId)) {
+        yesterdayStreak++
+      } else {
+        break
+      }
+      currentDate.setDate(currentDate.getDate() - 1)
+      currentDate.setHours(0, 0, 0, 0)
+    }
+    
+    yesterdayStreakDays.value = yesterdayStreak
   } catch (error) {
     console.error('Error calculating streak:', error)
     streakDays.value = 0
+    yesterdayStreakDays.value = 0
+    hasTodayCompletedTasks.value = false
   }
 }
+
+// Display streak: show yesterday's streak in grey if today isn't completed, otherwise show today's streak
+const displayStreakDays = computed(() => {
+  if (hasTodayCompletedTasks.value) {
+    return streakDays.value
+  } else if (yesterdayStreakDays.value > 0) {
+    return yesterdayStreakDays.value
+  }
+  return streakDays.value
+})
 
 watch(() => isLoggedIn.value, (loggedIn) => {
   if (loggedIn) {
@@ -275,6 +313,16 @@ watch(() => isLoggedIn.value, (loggedIn) => {
     }, 30000)
   } else {
     unreadNotificationCount.value = 0
+    streakDays.value = 0
+    yesterdayStreakDays.value = 0
+    hasTodayCompletedTasks.value = false
+  }
+})
+
+// Watch route changes to recalculate streak when navigating
+watch(() => route.path, () => {
+  if (isLoggedIn.value) {
+    calculateStreak()
   }
 })
 </script>
@@ -333,14 +381,15 @@ watch(() => isLoggedIn.value, (loggedIn) => {
         {{ t('navigation.login') }}
       </v-btn>
       <div
-        v-if="isLoggedIn && streakDays > 0"
+        v-if="isLoggedIn && (displayStreakDays > 0 || (!hasTodayCompletedTasks && yesterdayStreakDays > 0))"
         class="mr-4 streak-button d-none d-md-inline-flex"
+        :class="{ 'streak-yesterday': !hasTodayCompletedTasks && yesterdayStreakDays > 0 }"
       >
         <i class="mdi mdi-fire"></i>
-        <span>{{ streakDays }} {{ t('navigation.streakDays') }}</span>
+        <span>{{ (!hasTodayCompletedTasks && yesterdayStreakDays > 0) ? yesterdayStreakDays : displayStreakDays }} {{ t('navigation.streakDays') }}</span>
       </div>
       <div
-        v-if="isLoggedIn && streakDays > 0"
+        v-if="isLoggedIn && (displayStreakDays > 0 || (!hasTodayCompletedTasks && yesterdayStreakDays > 0))"
         class="streak-divider mr-4 d-none d-md-inline-flex"
       ></div>
       <v-btn
@@ -1349,6 +1398,13 @@ watch(() => isLoggedIn.value, (loggedIn) => {
   cursor: default !important;
   text-transform: uppercase !important;
   min-width: auto !important;
+  transition: all 0.3s ease !important;
+}
+
+.streak-button.streak-yesterday {
+  background: #E0E0E0 !important;
+  color: #757575 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
 }
 
 @media (max-width: 959px) {
@@ -1362,12 +1418,12 @@ watch(() => isLoggedIn.value, (loggedIn) => {
 }
 
 .streak-button span {
-  color: #FF6D00 !important;
+  color: inherit !important;
   text-transform: uppercase !important;
 }
 
 .streak-button i {
-  color: #FF6D00 !important;
+  color: inherit !important;
   font-size: 18px;
 }
 
