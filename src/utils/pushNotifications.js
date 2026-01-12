@@ -3,6 +3,19 @@ import { pushService } from '../services/api'
 let vapidPublicKey = null
 let registration = null
 
+function withTimeout(promise, ms, label = 'operation') {
+  let timeoutId = null
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(`[Push] Timeout waiting for ${label} (${ms}ms)`))
+    }, ms)
+  })
+
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId)
+  })
+}
+
 /**
  * Register service worker and request notification permission
  */
@@ -96,12 +109,12 @@ export async function requestAndSubscribeToPushNotifications() {
  * Subscribe to push notifications
  */
 export async function subscribeToPushNotifications() {
-  try {
-    // Check if service worker is supported
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      return null
-    }
+  // Check if service worker is supported
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    return null
+  }
 
+  try {
     // Register service worker if not already registered
     if (!registration) {
       registration = await registerServiceWorker()
@@ -110,8 +123,14 @@ export async function subscribeToPushNotifications() {
       }
     }
 
-    // Wait for service worker to be ready
-    await navigator.serviceWorker.ready
+    // Wait for service worker to be ready (can hang on some browsers) - add timeout
+    try {
+      const readyReg = await withTimeout(navigator.serviceWorker.ready, 12000, 'serviceWorker.ready')
+      if (readyReg) registration = readyReg
+    } catch (e) {
+      // Fallback: try to continue with existing registration
+      // (Some environments may never resolve ready but still allow pushManager usage)
+    }
 
     // Request notification permission
     const hasPermission = await requestNotificationPermission()
@@ -122,17 +141,21 @@ export async function subscribeToPushNotifications() {
     // Get VAPID public key from server (always get fresh key)
     const publicKey = await getVapidPublicKey()
     if (!publicKey) {
-      return null
+      throw new Error('[Push] Could not fetch VAPID public key from server')
     }
 
     // Unsubscribe from any existing subscription first (to avoid key mismatches)
     try {
-      const existingSubscription = await registration.pushManager.getSubscription()
+      const existingSubscription = await withTimeout(
+        registration.pushManager.getSubscription(),
+        8000,
+        'pushManager.getSubscription'
+      )
       if (existingSubscription) {
-        await existingSubscription.unsubscribe()
+        await withTimeout(existingSubscription.unsubscribe(), 8000, 'existingSubscription.unsubscribe')
         // Also remove from server
         try {
-          await pushService.unsubscribe()
+          await withTimeout(pushService.unsubscribe(), 8000, 'api.push.unsubscribe')
         } catch (unsubError) {
           // Ignore errors - subscription might not exist on server
         }
@@ -144,19 +167,23 @@ export async function subscribeToPushNotifications() {
     // Convert VAPID key to Uint8Array
     const applicationServerKey = urlBase64ToUint8Array(publicKey)
 
-    // Subscribe to push notifications with fresh key
-    const subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: applicationServerKey
-    })
+    // Subscribe to push notifications with fresh key (can hang on some browsers) - add timeout
+    const subscription = await withTimeout(
+      registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: applicationServerKey
+      }),
+      20000,
+      'pushManager.subscribe'
+    )
 
-    // Send subscription to server
-    await pushService.subscribe(subscription.toJSON())
+    // Send subscription to server (avoid infinite loader if network hangs)
+    await withTimeout(pushService.subscribe(subscription.toJSON()), 12000, 'api.push.subscribe')
 
     return subscription
   } catch (error) {
     console.error('[Push] Error subscribing to push notifications:', error)
-    return null
+    throw error
   }
 }
 

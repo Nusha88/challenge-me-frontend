@@ -1007,12 +1007,15 @@ async function enablePushNotifications() {
     } else if (result.reason === 'permission-denied') {
       uploadError.value = t('profile.pushNotificationsPermissionDenied')
       await checkPushNotificationStatus()
+    } else if (result.reason === 'error' && result.error) {
+      // Show the actual error so we can debug (timeouts, network errors, etc.)
+      uploadError.value = result.error
     } else {
       uploadError.value = t('profile.pushNotificationsEnableError')
     }
   } catch (error) {
     console.error('Error enabling push notifications:', error)
-    uploadError.value = t('profile.pushNotificationsEnableError')
+    uploadError.value = error?.message || t('profile.pushNotificationsEnableError')
   } finally {
     subscribingToPush.value = false
   }
