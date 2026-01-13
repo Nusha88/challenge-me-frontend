@@ -1685,11 +1685,24 @@ async function handleOwnerCompletedDaysUpdate(completedDays) {
   
   // Save to owner's participant entry
   try {
-    await challengeService.updateParticipantCompletedDays(
+    const response = await challengeService.updateParticipantCompletedDays(
       props.challenge._id,
       currentUserId.value,
       completedDays
     )
+
+    // Update stored user XP if backend returned it
+    if (response?.data?.user) {
+      try {
+        const stored = localStorage.getItem('user')
+        const storedUser = stored ? JSON.parse(stored) : {}
+        const merged = { ...storedUser, ...response.data.user }
+        localStorage.setItem('user', JSON.stringify(merged))
+        window.dispatchEvent(new Event('auth-changed'))
+      } catch {
+        // ignore
+      }
+    }
     // Emit update event to refresh challenge data from server
     emit('update')
   } catch (error) {
@@ -1721,11 +1734,24 @@ async function handleParticipantSave() {
       ? localCurrentUserCompletedDays.value 
       : currentUserCompletedDays.value
     
-    await challengeService.updateParticipantCompletedDays(
+    const response = await challengeService.updateParticipantCompletedDays(
       props.challenge._id,
       currentUserId.value,
       completedDays
     )
+
+    // Update stored user XP if backend returned it
+    if (response?.data?.user) {
+      try {
+        const stored = localStorage.getItem('user')
+        const storedUser = stored ? JSON.parse(stored) : {}
+        const merged = { ...storedUser, ...response.data.user }
+        localStorage.setItem('user', JSON.stringify(merged))
+        window.dispatchEvent(new Event('auth-changed'))
+      } catch {
+        // ignore
+      }
+    }
     // Emit update event to refresh challenge data from server
     emit('update')
     // Close the modal after successful save

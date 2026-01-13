@@ -1023,11 +1023,24 @@ async function updateParticipantCompletedDaysIfChanged(challengeId, challengeTyp
   
   if (hasChanged) {
     try {
-      await challengeService.updateParticipantCompletedDays(
+      const response = await challengeService.updateParticipantCompletedDays(
         challengeId,
         currentUserId.value,
         currentCompletedDaysSorted
       )
+      
+      // Update stored user XP if backend returned it
+      if (response?.data?.user) {
+        try {
+          const stored = localStorage.getItem('user')
+          const storedUser = stored ? JSON.parse(stored) : {}
+          const merged = { ...storedUser, ...response.data.user }
+          localStorage.setItem('user', JSON.stringify(merged))
+          window.dispatchEvent(new Event('auth-changed'))
+        } catch {
+          // ignore
+        }
+      }
     } catch (error) {
       console.error('Error updating participant completed days:', error)
       // Don't fail the whole save if this fails

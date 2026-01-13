@@ -127,6 +127,9 @@ export const userService = {
   },
   getChecklistHistory: () => {
     return api.get('/auth/daily-checklist/history')
+  },
+  awardDailyBonusXp: () => {
+    return api.post('/auth/xp/daily-bonus')
   }
 }
 

@@ -15,7 +15,7 @@
       :class="{ 'streak-yesterday': !hasTodayCompletedTasks && yesterdayStreakDays > 0 }"
     >
       <i class="mdi mdi-fire"></i>
-      <span>{{ (!hasTodayCompletedTasks && yesterdayStreakDays > 0) ? yesterdayStreakDays : displayStreakDays }} {{ t('navigation.streakDays') }}</span>
+      <span>{{ (!hasTodayCompletedTasks && yesterdayStreakDays > 0) ? yesterdayStreakDays : displayStreakDays }} {{ streakDaysText }}</span>
     </div>
     
     <!-- Today's Card: Challenges + Checklist -->
@@ -69,7 +69,7 @@
         <!-- Today's Checklist Section -->
         <div class="todays-checklist-section">
           <h3 class="section-subtitle">{{ t('home.loggedIn.dailyChecklist.title') }}</h3>
-          <DailyChecklist ref="checklistRef" />
+          <DailyChecklist ref="checklistRef" :hide-add-step="isAllCompleted && !checklistLoading && totalItems > 0" />
         </div>
         
         <!-- Completion Celebration Button -->
@@ -490,6 +490,55 @@ const isAllCompleted = computed(() => {
   return completedItems.value === totalItems.value
 })
 
+// Award +50 XP once per day when today's activities reach 100%
+function getDailyBonusKey() {
+  const todayStr = new Date().toISOString().slice(0, 10) // UTC YYYY-MM-DD
+  return `xp_daily_bonus_${todayStr}`
+}
+
+async function tryAwardDailyBonusXp() {
+  try {
+    if (!isLoggedIn.value) return
+    if (!isAllCompleted.value) return
+
+    const key = getDailyBonusKey()
+    if (localStorage.getItem(key)) return
+
+    const response = await userService.awardDailyBonusXp()
+    if (response?.data?.awarded) {
+      localStorage.setItem(key, '1')
+    } else {
+      // still set to avoid spamming the server
+      localStorage.setItem(key, '0')
+    }
+
+    if (response?.data?.user) {
+      try {
+        const stored = localStorage.getItem('user')
+        const storedUser = stored ? JSON.parse(stored) : {}
+        const merged = { ...storedUser, ...response.data.user }
+        localStorage.setItem('user', JSON.stringify(merged))
+        window.dispatchEvent(new Event('auth-changed'))
+      } catch {
+        // ignore storage errors
+      }
+    }
+  } catch (err) {
+    // Don't block UI; just avoid infinite retries this session
+    try {
+      localStorage.setItem(getDailyBonusKey(), '0')
+    } catch {
+      // ignore
+    }
+  }
+}
+
+watch(isAllCompleted, (val) => {
+  if (val) {
+    tryAwardDailyBonusXp()
+  }
+})
+
 // Display streak: show yesterday's streak in grey if today isn't completed, otherwise show today's streak
 const displayStreakDays = computed(() => {
   if (hasTodayCompletedTasks.value) {
@@ -498,6 +547,42 @@ const displayStreakDays = computed(() => {
     return yesterdayStreakDays.value
   }
   return streakDays.value
+})
+
+// Helper function for Russian pluralization of "день"
+function getRussianDayWord(days) {
+  if (locale.value !== 'ru') {
+    return t('navigation.streakDays')
+  }
+  
+  const num = Math.abs(days)
+  const lastDigit = num % 10
+  const lastTwoDigits = num % 100
+  
+  // Special cases: 11, 12, 13, 14 use "дней"
+  if (lastTwoDigits >= 11 && lastTwoDigits <= 14) {
+    return 'дней подряд'
+  }
+  
+  // 1, 21, 31, etc. (ends in 1, but not 11) → "день"
+  if (lastDigit === 1) {
+    return 'день подряд'
+  }
+  
+  // 2, 3, 4, 22, 23, 24, etc. (ends in 2, 3, 4, but not 12, 13, 14) → "дня"
+  if (lastDigit >= 2 && lastDigit <= 4) {
+    return 'дня подряд'
+  }
+  
+  // Everything else (5-9, 0, 10, 15-20, 25-30, etc.) → "дней"
+  return 'дней подряд'
+}
+
+const streakDaysText = computed(() => {
+  const days = (!hasTodayCompletedTasks.value && yesterdayStreakDays.value > 0) 
+    ? yesterdayStreakDays.value 
+    : displayStreakDays.value
+  return getRussianDayWord(days)
 })
 
 // Watch for checklist loading state

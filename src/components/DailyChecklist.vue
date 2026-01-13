@@ -16,6 +16,7 @@
           v-model="step.done"
           density="compact"
           hide-details
+          :disabled="step.locked"
           :aria-label="step.done ? t('home.loggedIn.dailyChecklist.markIncomplete') : t('home.loggedIn.dailyChecklist.markComplete')"
           @update:model-value="updateStep(index, $event)"
         />
@@ -26,6 +27,7 @@
           {{ step.title }}
         </span>
         <v-btn
+          v-if="!step.done"
           icon="mdi-delete"
           size="small"
           variant="text"
@@ -37,7 +39,7 @@
       </div>
     </div>
     
-    <div class="add-step-section">
+    <div v-if="!hideAddStep" class="add-step-section">
       <v-text-field
         v-model="newStepText"
         :label="t('home.loggedIn.dailyChecklist.addStepPlaceholder')"
@@ -64,6 +66,13 @@ import { ref, computed, onMounted, defineExpose } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useDisplay } from 'vuetify'
 import { userService } from '../services/api'
+
+const props = defineProps({
+  hideAddStep: {
+    type: Boolean,
+    default: false
+  }
+})
 
 const { t } = useI18n()
 const { mobile } = useDisplay()
@@ -100,9 +109,11 @@ const loadTodaySteps = async () => {
   try {
     const response = await userService.getTodayChecklist()
     if (response.data?.checklist?.tasks) {
+      // Mark steps that were already checked as locked (they already got XP)
       todaySteps.value = response.data.checklist.tasks.map(task => ({
         title: task.title,
-        done: task.done || false
+        done: task.done || false,
+        locked: task.done || false // Lock already checked items
       }))
     } else {
       todaySteps.value = []
@@ -122,7 +133,20 @@ const saveTodaySteps = async () => {
       title: step.title,
       done: step.done || false
     }))
-    await userService.updateTodayChecklist(tasks)
+    const response = await userService.updateTodayChecklist(tasks)
+
+    // Update stored user XP if backend returned it
+    if (response?.data?.user) {
+      try {
+        const stored = localStorage.getItem('user')
+        const storedUser = stored ? JSON.parse(stored) : {}
+        const merged = { ...storedUser, ...response.data.user }
+        localStorage.setItem('user', JSON.stringify(merged))
+        window.dispatchEvent(new Event('auth-changed'))
+      } catch {
+        // ignore storage errors
+      }
+    }
     // Dispatch event to update streak in header
     window.dispatchEvent(new Event('checklist-updated'))
   } catch (err) {
@@ -149,8 +173,17 @@ const removeStep = async (index) => {
 
 const updateStep = async (index, done) => {
   if (todaySteps.value[index]) {
+    const wasUnchecked = !todaySteps.value[index].done && done
     todaySteps.value[index].done = done
-    await saveTodaySteps()
+    
+    // If item was just checked (unchecked -> checked), lock it after saving
+    if (wasUnchecked) {
+      await saveTodaySteps()
+      // Lock the checkbox after XP is awarded
+      todaySteps.value[index].locked = true
+    } else {
+      await saveTodaySteps()
+    }
   }
 }
 

@@ -16,7 +16,9 @@
     "checklistHistory": "Checklist History",
     "today": "Today",
     "language": "Language",
-    "streakDays": "days streak"
+    "streakDays": "days streak",
+    "level": "Lv",
+    "xp": "XP"
   },
   "home": {
     "welcome": "Welcome to ChallengeMe",

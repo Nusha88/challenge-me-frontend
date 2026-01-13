@@ -7,6 +7,7 @@ import { SUPPORTED_LOCALES, setLocale } from '../i18n'
 import NotificationsComponent from './NotificationsComponent.vue'
 import { notificationService, userService, challengeService } from '../services/api'
 import { initializePushNotifications, syncPushSubscriptionToServer } from '../utils/pushNotifications'
+import { getLevelFromXp, getXpForLevel, getXpForNextLevel, getLevelName } from '../utils/levelSystem'
 
 const router = useRouter()
 const route = useRoute()
@@ -51,6 +52,18 @@ function updateAuthState() {
 
 const userName = computed(() => currentUser.value?.name || null)
 const userAvatarUrl = computed(() => currentUser.value?.avatarUrl || null)
+const userXp = computed(() => Number(currentUser.value?.xp || 0))
+const userLevel = computed(() => getLevelFromXp(userXp.value))
+const userLevelName = computed(() => getLevelName(userLevel.value, locale.value))
+const xpForCurrentLevel = computed(() => getXpForLevel(userLevel.value))
+const xpForNextLevel = computed(() => getXpForNextLevel(userLevel.value))
+const xpProgress = computed(() => Math.max(0, userXp.value - xpForCurrentLevel.value))
+const xpNeeded = computed(() => Math.max(0, xpForNextLevel.value - userXp.value))
+const levelProgressPercentage = computed(() => {
+  const range = xpForNextLevel.value - xpForCurrentLevel.value
+  if (range <= 0) return 100
+  return Math.min(100, Math.max(0, (xpProgress.value / range) * 100))
+})
 
 const getUserInitials = (name) => {
   if (!name) return '?'
@@ -298,6 +311,42 @@ const displayStreakDays = computed(() => {
   return streakDays.value
 })
 
+// Helper function for Russian pluralization of "день"
+function getRussianDayWord(days) {
+  if (locale.value !== 'ru') {
+    return t('navigation.streakDays')
+  }
+  
+  const num = Math.abs(days)
+  const lastDigit = num % 10
+  const lastTwoDigits = num % 100
+  
+  // Special cases: 11, 12, 13, 14 use "дней"
+  if (lastTwoDigits >= 11 && lastTwoDigits <= 14) {
+    return 'дней подряд'
+  }
+  
+  // 1, 21, 31, etc. (ends in 1, but not 11) → "день"
+  if (lastDigit === 1) {
+    return 'день подряд'
+  }
+  
+  // 2, 3, 4, 22, 23, 24, etc. (ends in 2, 3, 4, but not 12, 13, 14) → "дня"
+  if (lastDigit >= 2 && lastDigit <= 4) {
+    return 'дня подряд'
+  }
+  
+  // Everything else (5-9, 0, 10, 15-20, 25-30, etc.) → "дней"
+  return 'дней подряд'
+}
+
+const streakDaysText = computed(() => {
+  const days = (!hasTodayCompletedTasks.value && yesterdayStreakDays.value > 0) 
+    ? yesterdayStreakDays.value 
+    : displayStreakDays.value
+  return getRussianDayWord(days)
+})
+
 watch(() => isLoggedIn.value, (loggedIn) => {
   if (loggedIn) {
     loadUnreadNotificationCount()
@@ -386,7 +435,7 @@ watch(() => route.path, () => {
         :class="{ 'streak-yesterday': !hasTodayCompletedTasks && yesterdayStreakDays > 0 }"
       >
         <i class="mdi mdi-fire"></i>
-        <span>{{ (!hasTodayCompletedTasks && yesterdayStreakDays > 0) ? yesterdayStreakDays : displayStreakDays }} {{ t('navigation.streakDays') }}</span>
+        <span>{{ (!hasTodayCompletedTasks && yesterdayStreakDays > 0) ? yesterdayStreakDays : displayStreakDays }} {{ streakDaysText }}</span>
       </div>
       <div
         v-if="isLoggedIn && (displayStreakDays > 0 || (!hasTodayCompletedTasks && yesterdayStreakDays > 0))"
@@ -485,6 +534,30 @@ watch(() => route.path, () => {
               </template>
               <v-list-item-title>{{ userName || t('navigation.profile') }}</v-list-item-title>
             </v-list-item>
+
+            <!-- Level Progress Bar -->
+            <div v-if="isLoggedIn" class="level-progress-section pa-3">
+              <div class="level-progress-title text-caption mb-1">
+                {{ userLevelName }}
+              </div>
+              <div class="level-progress-header d-flex justify-space-between align-center mb-1">
+                <v-avatar size="28" class="level-badge">
+                  <span class="level-number">{{ userLevel }}</span>
+                </v-avatar>
+                <v-avatar size="28" class="level-badge">
+                  <span class="level-number">{{ userLevel + 1 }}</span>
+                </v-avatar>
+              </div>
+              <v-progress-linear
+                :model-value="levelProgressPercentage"
+                height="8"
+                rounded
+                class="mb-1 level-progress-bar"
+              ></v-progress-linear>
+              <div class="text-caption text-center">
+                {{ xpProgress }} / {{ xpNeeded }} {{ t('navigation.xp') }}
+              </div>
+            </div>
 
             <v-divider class="my-2"></v-divider>
 
@@ -597,6 +670,30 @@ watch(() => route.path, () => {
           </template>
           <v-list-item-title>{{ userName || t('navigation.profile') }}</v-list-item-title>
         </v-list-item>
+
+        <!-- Level Progress Bar (Mobile) -->
+        <div v-if="isLoggedIn" class="level-progress-section pa-3">
+          <div class="level-progress-title text-caption mb-1">
+            {{ userLevelName }}
+          </div>
+          <div class="level-progress-header d-flex justify-space-between align-center mb-1">
+            <v-avatar size="28" class="level-badge">
+              <span class="level-number">{{ userLevel }}</span>
+            </v-avatar>
+            <v-avatar size="28" class="level-badge">
+              <span class="level-number">{{ userLevel + 1 }}</span>
+            </v-avatar>
+          </div>
+          <v-progress-linear
+            :model-value="levelProgressPercentage"
+            height="8"
+            rounded
+            class="mb-1 level-progress-bar"
+          ></v-progress-linear>
+          <div class="text-caption text-center">
+            {{ xpProgress }} / {{ xpNeeded }} {{ t('navigation.xp') }}
+          </div>
+        </div>
 
         <v-divider class="my-2"></v-divider>
 
@@ -1185,6 +1282,48 @@ watch(() => route.path, () => {
   justify-content: center;
   width: 100%;
   height: 100%;
+}
+
+.level-progress-section {
+  margin: 8px 16px;
+  padding: 12px;
+  background-color: rgba(0, 0, 0, 0.02);
+  border-radius: 12px;
+}
+
+.level-progress-title {
+  color: rgba(0, 0, 0, 0.7);
+  font-weight: 600;
+  text-align: center;
+}
+
+.level-progress-header {
+  font-size: 0.75rem;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.level-badge {
+  background: #C0C0C0;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.level-number {
+  color: white;
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+.level-progress-bar {
+  border: 1px solid #D0D0D0;
+  border-radius: 4px;
+}
+
+.level-progress-bar :deep(.v-progress-linear__determinate) {
+  background: linear-gradient(135deg, #1FA0F6 0%, #A62EE8 100%);
+}
+
+.level-progress-bar :deep(.v-progress-linear__background) {
+  background-color: #E0E0E0;
 }
 
 .app-bar-custom {

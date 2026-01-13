@@ -16,7 +16,9 @@
     "checklistHistory": "История чеклистов",
     "today": "Сегодня",
     "language": "Язык",
-    "streakDays": "дней подряд"
+    "streakDays": "дней подряд",
+    "level": "ур",
+    "xp": "XP"
   },
   "home": {
     "welcome": "Добро пожаловать в ChallengeMe",
