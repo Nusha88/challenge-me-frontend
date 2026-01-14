@@ -299,7 +299,16 @@
     "progressDays": "{passed} из {total} дней прошло",
     "challengeCalendar": "Календарь челленджа",
     "myProgress": "Мой прогресс",
+    "authorProgress": "Прогресс автора",
     "teamProgress": "Прогресс команды",
+    "newsFeed": "Лента новостей",
+    "feedEmpty": "Нет недавней активности",
+    "feed": {
+      "joined": "присоединился(ась) к {challenge}",
+      "progress": "сделал(а) прогресс в {challenge}",
+      "finished": "завершил(а) {challenge}",
+      "commented": "прокомментировал(а) в {challenge}"
+    },
     "calendarLegend": {
       "completed": "Выполнено",
       "missed": "Пропущено",
@@ -308,7 +317,7 @@
     },
     "allowComments": "Разрешить комментарии",
     "comments": {
-      "title": "Комментарии",
+      "title": "Дневник челленджа",
       "addComment": "Добавить комментарий...",
       "post": "Отправить",
       "noComments": "Комментариев пока нет. Будьте первым!",

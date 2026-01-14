@@ -115,9 +115,9 @@
     
     <!-- Created by and Participants - Above progress bar -->
     <div class="challenge-meta-container">
-      <v-card-subtitle v-if="challenge.owner" class="mb-2 pa-0 px-4">
+      <v-card-subtitle v-if="challenge.owner" class="mb-2 pa-0 px-4 d-flex align-center justify-space-between">
         <template v-if="isOwner">
-          {{ t('challenges.createdByMe') }}
+          <span>{{ t('challenges.createdByMe') }}</span>
         </template>
         <template v-else>
           <span class="created-by-text">
@@ -130,6 +130,10 @@
             </span>
           </span>
         </template>
+        <div v-if="watchersCount !== undefined" class="watchers-count d-flex align-center">
+          <v-icon size="small" class="mr-1">mdi-eye</v-icon>
+          <span>{{ watchersCount }}</span>
+        </div>
       </v-card-subtitle>
       
       <div v-if="challenge.participants && challenge.participants.length > 0" class="participants-container mb-2 px-4">
@@ -183,7 +187,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
@@ -219,6 +223,21 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['click', 'join', 'leave', 'watch', 'unwatch', 'owner-navigated'])
+
+// Local watchers count that can be updated in real-time
+const localWatchersCount = ref(props.challenge.watchersCount ?? 0)
+
+// Watch for changes to challenge prop
+watch(() => props.challenge.watchersCount, (newCount) => {
+  if (newCount !== undefined) {
+    localWatchersCount.value = newCount
+  }
+}, { immediate: true })
+
+// Computed watchers count that uses local value
+const watchersCount = computed(() => {
+  return localWatchersCount.value
+})
 
 const { t, locale } = useI18n()
 const router = useRouter()
@@ -352,9 +371,16 @@ const participantCount = computed(() => {
 })
 
 function handleWatchClick() {
+  // Optimistically update watchers count
   if (props.isWatched) {
+    // Unwatching - decrease count
+    if (localWatchersCount.value > 0) {
+      localWatchersCount.value--
+    }
     emit('unwatch', props.challenge)
   } else {
+    // Watching - increase count
+    localWatchersCount.value++
     emit('watch', props.challenge)
   }
 }
@@ -747,6 +773,11 @@ function navigateToOwner() {
 .owner-name-link:hover {
   opacity: 0.7;
   text-decoration: underline;
+}
+
+.watchers-count {
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 0.875rem;
 }
 
 .challenge-description {

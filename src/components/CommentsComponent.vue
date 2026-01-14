@@ -48,6 +48,12 @@
             :id="`comment-${comment._id}`"
             class="comment-item mb-3"
           >
+            <div
+              v-if="shouldShowDayLabel(comment)"
+              class="day-badge"
+            >
+              {{ getDayLabel(comment) }}
+            </div>
             <div class="d-flex align-start">
               <div class="comment-avatar" :class="mobile ? 'mr-2' : 'mr-3'">
                 <img
@@ -352,6 +358,18 @@ const props = defineProps({
   isFinished: {
     type: Boolean,
     default: false
+  },
+  challengeStartDate: {
+    type: String,
+    default: null
+  },
+  challengeOwner: {
+    type: [Object, String],
+    default: null
+  },
+  challengeParticipants: {
+    type: Array,
+    default: () => []
   }
 })
 
@@ -478,6 +496,73 @@ function canDeleteComment(comment) {
   if (!props.currentUserId) return false
   const commentUserId = comment.userId?._id || comment.userId
   return props.isOwner || (commentUserId && commentUserId.toString() === props.currentUserId.toString())
+}
+
+// Check if comment author is the challenge owner or a participant
+function isCommentAuthorOwnerOrParticipant(comment) {
+  if (!comment || !comment.userId) return false
+  
+  const commentUserId = comment.userId._id || comment.userId
+  
+  // Check if comment author is the challenge owner
+  if (props.challengeOwner) {
+    const ownerId = props.challengeOwner._id || props.challengeOwner
+    if (ownerId && ownerId.toString() === commentUserId.toString()) {
+      return true
+    }
+  }
+  
+  // Check if comment author is a participant
+  if (props.challengeParticipants && Array.isArray(props.challengeParticipants)) {
+    return props.challengeParticipants.some(participant => {
+      const userId = participant.userId?._id || participant.userId || participant._id || participant
+      return userId && userId.toString() === commentUserId.toString()
+    })
+  }
+  
+  return false
+}
+
+// Calculate day number from challenge start date to comment date
+function calculateDayNumber(commentDate) {
+  if (!props.challengeStartDate || !commentDate) return null
+  
+  try {
+    const startDate = new Date(props.challengeStartDate)
+    const commentDateObj = new Date(commentDate)
+    
+    // Set both dates to midnight for accurate day calculation
+    startDate.setHours(0, 0, 0, 0)
+    commentDateObj.setHours(0, 0, 0, 0)
+    
+    const diffTime = commentDateObj - startDate
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+    
+    // Day 0 is the start date, so add 1 to get day number
+    return diffDays + 1
+  } catch (error) {
+    console.error('Error calculating day number:', error)
+    return null
+  }
+}
+
+// Get day label text
+function getDayLabel(comment) {
+  const dayNumber = calculateDayNumber(comment.createdAt)
+  if (dayNumber === null) return ''
+  
+  if (locale.value === 'ru') {
+    // Russian: always use "день" regardless of number
+    return `${dayNumber} день`
+  } else {
+    // English
+    return dayNumber === 1 ? `${dayNumber} day` : `${dayNumber} days`
+  }
+}
+
+// Check if day label should be shown
+function shouldShowDayLabel(comment) {
+  return isCommentAuthorOwnerOrParticipant(comment) && calculateDayNumber(comment.createdAt) !== null
 }
 
 function startReply(comment) {
@@ -789,7 +874,8 @@ onMounted(() => {
 }
 
 .comment-item {
-  padding: 12px;
+  position: relative;
+  padding: 12px 12px 12px 20px;
   border-radius: 12px;
   background-color: rgba(0, 0, 0, 0.02);
   transition: background-color 0.2s;
@@ -797,7 +883,7 @@ onMounted(() => {
 
 @media (max-width: 599px) {
   .comment-item {
-    padding: 8px;
+    padding: 8px 8px 8px 16px;
   }
 }
 
@@ -821,7 +907,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #1FA0F6 0%, #A62EE8 100%);
+  background: #1FA0F6;
   color: white;
   font-weight: 600;
   font-size: 16px;
@@ -868,6 +954,37 @@ onMounted(() => {
 
 .comment-content {
   min-width: 0;
+}
+
+.day-badge {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1FA0F6 0%, #A62EE8 100%);
+  color: white;
+  font-weight: 600;
+  font-size: 11px;
+  border-radius: 4px;
+  z-index: 1;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  line-height: 1.2;
+  padding: 4px;
+}
+
+@media (max-width: 599px) {
+  .day-badge {
+    width: 36px;
+    height: 36px;
+    font-size: 10px;
+    top: -6px;
+    left: -6px;
+  }
 }
 
 .comment-header {

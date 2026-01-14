@@ -398,6 +398,9 @@
                 :current-user-id="currentUserId"
                 :is-owner="true"
                 :is-finished="isDisabled"
+                :challenge-start-date="editForm.startDate"
+                :challenge-owner="challenge.owner"
+                :challenge-participants="challenge.participants || []"
                 @comment-added="handleCommentAdded"
                 @comment-deleted="handleCommentDeleted"
               />

@@ -295,10 +295,20 @@ async function watchChallenge(challenge) {
   watchingId.value = challenge._id
   errorMessage.value = ''
 
+  // Optimistically update watchers count
+  const challengeIndex = challenges.value.findIndex(c => c._id === challenge._id)
+  if (challengeIndex !== -1 && challenges.value[challengeIndex].watchersCount !== undefined) {
+    challenges.value[challengeIndex].watchersCount = (challenges.value[challengeIndex].watchersCount || 0) + 1
+  }
+
   try {
     await challengeService.watchChallenge(challenge._id, currentUserId.value)
     await loadWatchedChallenges()
   } catch (error) {
+    // Revert optimistic update on error
+    if (challengeIndex !== -1 && challenges.value[challengeIndex].watchersCount !== undefined) {
+      challenges.value[challengeIndex].watchersCount = Math.max(0, (challenges.value[challengeIndex].watchersCount || 0) - 1)
+    }
     errorMessage.value = error.response?.data?.message || t('challenges.watchError')
   } finally {
     watchingId.value = null
@@ -311,10 +321,20 @@ async function unwatchChallenge(challenge) {
   watchingId.value = challenge._id
   errorMessage.value = ''
 
+  // Optimistically update watchers count
+  const challengeIndex = challenges.value.findIndex(c => c._id === challenge._id)
+  if (challengeIndex !== -1 && challenges.value[challengeIndex].watchersCount !== undefined) {
+    challenges.value[challengeIndex].watchersCount = Math.max(0, (challenges.value[challengeIndex].watchersCount || 0) - 1)
+  }
+
   try {
     await challengeService.unwatchChallenge(challenge._id, currentUserId.value)
     await loadWatchedChallenges()
   } catch (error) {
+    // Revert optimistic update on error
+    if (challengeIndex !== -1 && challenges.value[challengeIndex].watchersCount !== undefined) {
+      challenges.value[challengeIndex].watchersCount = (challenges.value[challengeIndex].watchersCount || 0) + 1
+    }
     errorMessage.value = error.response?.data?.message || t('challenges.unwatchError')
   } finally {
     watchingId.value = null

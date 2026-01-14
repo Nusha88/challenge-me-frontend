@@ -299,7 +299,16 @@
     "progressDays": "{passed} of {total} days passed",
     "challengeCalendar": "Challenge Calendar",
     "myProgress": "My Progress",
+    "authorProgress": "Author's Progress",
     "teamProgress": "Team Progress",
+    "newsFeed": "Feed",
+    "feedEmpty": "No recent activity",
+    "feed": {
+      "joined": "joined {challenge}",
+      "progress": "made progress in {challenge}",
+      "finished": "finished {challenge}",
+      "commented": "commented in {challenge}"
+    },
     "calendarLegend": {
       "completed": "Completed",
       "missed": "Missed",
@@ -308,7 +317,7 @@
     },
     "allowComments": "Allow Comments",
     "comments": {
-      "title": "Comments",
+      "title": "Challenge diary",
       "addComment": "Add a comment...",
       "post": "Post",
       "noComments": "No comments yet. Be the first to comment!",

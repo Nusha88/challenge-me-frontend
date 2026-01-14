@@ -369,20 +369,29 @@ async function watchChallenge(challenge) {
   watchingId.value = challenge._id
   error.value = ''
 
-  // Optimistic update
+  // Optimistic update for watched challenges list
   const challengeId = challenge._id.toString()
   if (!watchedChallenges.value.includes(challengeId)) {
     watchedChallenges.value.push(challengeId)
+  }
+
+  // Optimistically update watchers count
+  const challengeIndex = challenges.value.findIndex(c => c._id === challenge._id)
+  if (challengeIndex !== -1 && challenges.value[challengeIndex].watchersCount !== undefined) {
+    challenges.value[challengeIndex].watchersCount = (challenges.value[challengeIndex].watchersCount || 0) + 1
   }
 
   try {
     await challengeService.watchChallenge(challenge._id, currentUserId.value)
     await loadWatchedChallenges()
   } catch (err) {
-    // Revert optimistic update on error
+    // Revert optimistic updates on error
     const index = watchedChallenges.value.indexOf(challengeId)
     if (index > -1) {
       watchedChallenges.value.splice(index, 1)
+    }
+    if (challengeIndex !== -1 && challenges.value[challengeIndex].watchersCount !== undefined) {
+      challenges.value[challengeIndex].watchersCount = Math.max(0, (challenges.value[challengeIndex].watchersCount || 0) - 1)
     }
     error.value = err.response?.data?.message || t('challenges.watchError')
   } finally {
@@ -396,20 +405,29 @@ async function unwatchChallenge(challenge) {
   watchingId.value = challenge._id
   error.value = ''
 
-  // Optimistic update
+  // Optimistic update for watched challenges list
   const challengeId = challenge._id.toString()
   const index = watchedChallenges.value.indexOf(challengeId)
   if (index > -1) {
     watchedChallenges.value.splice(index, 1)
   }
 
+  // Optimistically update watchers count
+  const challengeIndex = challenges.value.findIndex(c => c._id === challenge._id)
+  if (challengeIndex !== -1 && challenges.value[challengeIndex].watchersCount !== undefined) {
+    challenges.value[challengeIndex].watchersCount = Math.max(0, (challenges.value[challengeIndex].watchersCount || 0) - 1)
+  }
+
   try {
     await challengeService.unwatchChallenge(challenge._id, currentUserId.value)
     await loadWatchedChallenges()
   } catch (err) {
-    // Revert optimistic update on error
+    // Revert optimistic updates on error
     if (!watchedChallenges.value.includes(challengeId)) {
       watchedChallenges.value.push(challengeId)
+    }
+    if (challengeIndex !== -1 && challenges.value[challengeIndex].watchersCount !== undefined) {
+      challenges.value[challengeIndex].watchersCount = (challenges.value[challengeIndex].watchersCount || 0) + 1
     }
     error.value = err.response?.data?.message || t('challenges.watchError')
   } finally {
