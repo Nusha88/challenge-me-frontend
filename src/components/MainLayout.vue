@@ -8,6 +8,8 @@ import NotificationsComponent from './NotificationsComponent.vue'
 import { notificationService, userService, challengeService } from '../services/api'
 import { initializePushNotifications, syncPushSubscriptionToServer } from '../utils/pushNotifications'
 import { getLevelFromXp, getXpForLevel, getXpForNextLevel, getLevelName } from '../utils/levelSystem'
+import { Sparkles, Mountain, BookOpen, Compass, Eye, Trophy, Star, Globe2, Coins } from 'lucide-vue-next'
+import logo2Image from '../assets/logo2.png'
 
 const router = useRouter()
 const route = useRoute()
@@ -388,17 +390,11 @@ watch(() => route.path, () => {
         to="/" 
         class="brand-link"
         :class="{ 'hide-on-mobile-logged-in': isLoggedIn }"
-      >{{ t('app.name') }}</router-link>
+      >
+        <img :src="logo2Image" alt="Awa" class="brand-logo" />
+        <span class="brand-title">Awa</span>
+      </router-link>
       <div class="add-button-mobile-wrapper d-md-none">
-        <v-btn
-          v-if="isLoggedIn"
-          to="/"
-          size="default"
-          class="today-button-mobile mr-2"
-          prepend-icon="mdi-calendar-today"
-        >
-          {{ t('navigation.today') }}
-        </v-btn>
         <v-btn
           v-if="isLoggedIn"
           to="/challenges/add"
@@ -453,15 +449,6 @@ watch(() => route.path, () => {
       </v-btn>
       <v-btn
         v-if="isLoggedIn"
-        to="/"
-        size="default"
-        class="mr-2 today-button d-none d-md-inline-flex"
-        prepend-icon="mdi-calendar-today"
-      >
-        {{ t('navigation.today') }}
-      </v-btn>
-      <v-btn
-        v-if="isLoggedIn"
         variant="text"
         class="mr-2 d-none d-md-inline-flex notification-button"
         style="color: rgba(0, 0, 0, 0.87); position: relative;"
@@ -477,39 +464,6 @@ watch(() => route.path, () => {
         >
         </v-badge>
       </v-btn>
-      <v-menu location="bottom" open-on-hover class="d-none d-md-block">
-        <template #activator="{ props }">
-          <v-btn
-            v-bind="props"
-            variant="text"
-            class="mr-2 language-button d-none d-md-inline-flex"
-            prepend-icon="mdi-translate"
-        style="color: rgba(0, 0, 0, 0.87);"
-      >
-            {{ currentLocaleLabel }}
-      </v-btn>
-        </template>
-        <v-list>
-          <v-list-item
-            v-for="language in availableLocales"
-            :key="language.code"
-            :active="language.code === locale.value"
-            @click="changeLanguage(language.code)"
-          >
-            <v-list-item-title>{{ language.label }}</v-list-item-title>
-          </v-list-item>
-        </v-list>
-      </v-menu>
-      <v-btn
-        v-if="isLoggedIn"
-        variant="text"
-        class="mr-2 logout-button d-none d-md-inline-flex"
-        prepend-icon="mdi-logout"
-        color="error"
-        @click="logout"
-      >
-        <span>{{ t('navigation.logout') }}</span>
-      </v-btn>
     </v-app-bar>
 
     <v-main :class="['main-content', { 'public-view': !isLoggedIn, 'with-sidebar': isLoggedIn }]">
@@ -520,113 +474,143 @@ watch(() => route.path, () => {
           permanent
           class="d-none d-md-block desktop-sidebar sidebar-column"
         >
-          <v-list>
-            <v-list-item
-              to="/profile"
-              :active="currentRoute === 'profile'"
-              color="primary"
-            >
-              <template v-slot:prepend>
-                <v-avatar size="32" class="sidebar-avatar">
-                  <v-img v-if="userAvatarUrl" :src="userAvatarUrl" :alt="userName || ''" cover></v-img>
-                  <span v-else class="sidebar-avatar-initials">{{ getUserInitials(userName) }}</span>
-                </v-avatar>
-              </template>
-              <v-list-item-title>{{ userName || t('navigation.profile') }}</v-list-item-title>
-            </v-list-item>
+          <div class="sidebar-content-wrapper">
+            <v-list>
+              <!-- User Section -->
+              <div class="sidebar-user-section pa-3">
+                <div class="d-flex align-center mb-3">
+                  <v-avatar size="40" class="sidebar-avatar mr-3">
+                    <v-img v-if="userAvatarUrl" :src="userAvatarUrl" :alt="userName || ''" cover></v-img>
+                    <span v-else class="sidebar-avatar-initials">{{ getUserInitials(userName) }}</span>
+                  </v-avatar>
+                  <div class="flex-grow-1">
+                    <div class="text-body-1 font-weight-medium">{{ userName || t('navigation.profile') }}</div>
+                    <div class="text-caption text-medium-emphasis">{{ userLevelName }} (Lvl {{ userLevel }})</div>
+                  </div>
+                </div>
 
-            <!-- Level Progress Bar -->
-            <div v-if="isLoggedIn" class="level-progress-section pa-3">
-              <div class="level-progress-title text-caption mb-1">
-                {{ userLevelName }}
+                <!-- Level Progress Bar -->
+                <v-progress-linear
+                  :model-value="levelProgressPercentage"
+                  height="4"
+                  rounded
+                  class="mb-2 level-progress-bar full-width-progress"
+                ></v-progress-linear>
+
+                <div class="d-flex justify-space-between align-center">
+                  <span class="text-caption">{{ xpProgress }} / {{ xpNeeded }} {{ t('navigation.xp') }}</span>
+                  <div class="d-flex align-center">
+                    <span class="text-caption mr-1">0</span>
+                    <Coins :size="16" style="color: #2E2A47;" />
+                  </div>
+                </div>
               </div>
-              <div class="level-progress-header d-flex justify-space-between align-center mb-1">
-                <v-avatar size="28" class="level-badge">
-                  <span class="level-number">{{ userLevel }}</span>
-                </v-avatar>
-                <v-avatar size="28" class="level-badge">
-                  <span class="level-number">{{ userLevel + 1 }}</span>
-                </v-avatar>
-              </div>
-              <v-progress-linear
-                :model-value="levelProgressPercentage"
-                height="8"
-                rounded
-                class="mb-1 level-progress-bar"
-              ></v-progress-linear>
-              <div class="text-caption text-center">
-                {{ xpProgress }} / {{ xpNeeded }} {{ t('navigation.xp') }}
-              </div>
+
+              <v-divider class="my-2"></v-divider>
+
+              <!-- YOUR JOURNEY Section -->
+              <v-list-subheader class="sidebar-section-header">
+                <Star :size="14" class="sidebar-section-icon ml-8" />
+                {{ t('navigation.yourJourney') }}
+              </v-list-subheader>
+
+              <v-list-item
+                to="/"
+                :active="currentRoute === 'home'"
+                color="primary"
+              >
+                <template v-slot:prepend>
+                  <Sparkles :size="20" class="sidebar-lucide-icon mr-2" />
+                </template>
+                <v-list-item-title>{{ t('navigation.today') }}</v-list-item-title>
+              </v-list-item>
+
+              <v-list-item
+                :active="currentRoute === 'my-challenges'"
+                to="/challenges/my"
+                color="primary"
+              >
+                <template v-slot:prepend>
+                  <Mountain :size="20" class="sidebar-lucide-icon mr-2" />
+                </template>
+                <v-list-item-title>{{ t('navigation.myChallenges') }}</v-list-item-title>
+              </v-list-item>
+
+              <v-list-item
+                :active="currentRoute === 'checklists-history'"
+                to="/checklists/history"
+                color="primary"
+              >
+                <template v-slot:prepend>
+                  <BookOpen :size="20" class="sidebar-lucide-icon mr-2" />
+                </template>
+                <v-list-item-title>{{ t('navigation.checklistHistory') }}</v-list-item-title>
+              </v-list-item>
+
+              <v-divider class="my-2"></v-divider>
+
+              <!-- WORLD Section -->
+              <v-list-subheader class="sidebar-section-header">
+                <Globe2 :size="14" class="sidebar-section-icon ml-8" />
+                {{ t('navigation.world') }}
+              </v-list-subheader>
+
+              <v-list-item
+                :active="currentRoute === 'challenges'"
+                to="/challenges"
+                color="primary"
+              >
+                <template v-slot:prepend>
+                  <Compass :size="20" class="sidebar-lucide-icon mr-2" />
+                </template>
+                <v-list-item-title>{{ t('navigation.allChallenges') }}</v-list-item-title>
+              </v-list-item>
+
+              <v-list-item
+                :active="currentRoute === 'watched-challenges'"
+                to="/challenges/watched"
+                color="primary"
+              >
+                <template v-slot:prepend>
+                  <Eye :size="20" class="sidebar-lucide-icon mr-2" />
+                </template>
+                <v-list-item-title>{{ t('navigation.interested') }}</v-list-item-title>
+              </v-list-item>
+
+              <v-list-item
+                :active="currentRoute === 'users'"
+                to="/users"
+                color="primary"
+              >
+                <template v-slot:prepend>
+                  <Trophy :size="20" class="sidebar-lucide-icon mr-2" />
+                </template>
+                <v-list-item-title>{{ t('navigation.allUsers') }}</v-list-item-title>
+              </v-list-item>
+
+              <v-divider class="my-2"></v-divider>
+
+              <v-list-item
+                :active="currentRoute === 'profile'"
+                to="/profile"
+                color="primary"
+              >
+                <v-list-item-title>{{ t('navigation.profile') }}</v-list-item-title>
+              </v-list-item>
+
+            </v-list>
+            
+            <!-- Logout Button - Sticky at Bottom -->
+            <div class="sidebar-logout-section">
+              <v-divider class="mb-2"></v-divider>
+              <v-list-item
+                class="logout-item"
+                @click="logout"
+              >
+                <v-list-item-title class="logout-text">{{ t('navigation.logout') }}</v-list-item-title>
+              </v-list-item>
             </div>
-
-            <v-divider class="my-2"></v-divider>
-
-            <v-list-item
-              to="/"
-              :active="currentRoute === 'home'"
-              color="primary"
-            >
-              <template v-slot:prepend>
-                <v-icon icon="mdi-calendar-today"></v-icon>
-              </template>
-              <v-list-item-title>{{ t('navigation.today') }}</v-list-item-title>
-            </v-list-item>
-
-            <v-list-item
-              :active="currentRoute === 'my-challenges'"
-              to="/challenges/my"
-              color="primary"
-            >
-              <template v-slot:prepend>
-                <v-icon icon="mdi-account-star"></v-icon>
-              </template>
-              <v-list-item-title>{{ t('navigation.myChallenges') }}</v-list-item-title>
-            </v-list-item>
-
-            <v-list-item
-              :active="currentRoute === 'challenges'"
-              to="/challenges"
-              color="primary"
-            >
-              <template v-slot:prepend>
-                <v-icon icon="mdi-flag-checkered"></v-icon>
-              </template>
-              <v-list-item-title>{{ t('navigation.allChallenges') }}</v-list-item-title>
-            </v-list-item>
-
-            <v-list-item
-              :active="currentRoute === 'users'"
-              to="/users"
-              color="primary"
-            >
-              <template v-slot:prepend>
-                <v-icon icon="mdi-account-group"></v-icon>
-              </template>
-              <v-list-item-title>{{ t('navigation.allUsers') }}</v-list-item-title>
-            </v-list-item>
-
-            <v-list-item
-              :active="currentRoute === 'watched-challenges'"
-              to="/challenges/watched"
-              color="primary"
-            >
-              <template v-slot:prepend>
-                <v-icon icon="mdi-eye"></v-icon>
-              </template>
-              <v-list-item-title>{{ t('navigation.watchedChallenges') }}</v-list-item-title>
-            </v-list-item>
-
-            <v-list-item
-              :active="currentRoute === 'checklists-history'"
-              to="/checklists/history"
-              color="primary"
-            >
-              <template v-slot:prepend>
-                <v-icon icon="mdi-history"></v-icon>
-              </template>
-              <v-list-item-title>{{ t('navigation.checklistHistory') }}</v-list-item-title>
-            </v-list-item>
-          </v-list>
+          </div>
         </v-navigation-drawer>
 
         <div :class="['main-content-inner', { 'content-column': isLoggedIn, 'full-column': !isLoggedIn }]">
@@ -644,59 +628,46 @@ watch(() => route.path, () => {
       location="start"
       class="d-md-none mobile-drawer"
     >
-      <v-list>
-        <v-list-item
-          to="/"
-          :active="currentRoute === 'home'"
-          color="primary"
-          @click="drawerOpen = false"
-        >
-          <template v-slot:prepend>
-            <v-icon icon="mdi-home"></v-icon>
-          </template>
-          <v-list-item-title>{{ t('navigation.home') }}</v-list-item-title>
-        </v-list-item>
-
-        <v-list-item
-          to="/profile"
-          color="primary"
-          @click="drawerOpen = false"
-        >
-          <template v-slot:prepend>
-            <v-avatar size="32" class="sidebar-avatar">
+      <div class="sidebar-content-wrapper">
+        <v-list>
+        <!-- User Section -->
+        <div class="sidebar-user-section pa-3">
+          <div class="d-flex align-center mb-3">
+            <v-avatar size="40" class="sidebar-avatar mr-3">
               <v-img v-if="userAvatarUrl" :src="userAvatarUrl" :alt="userName || ''" cover></v-img>
               <span v-else class="sidebar-avatar-initials">{{ getUserInitials(userName) }}</span>
             </v-avatar>
-          </template>
-          <v-list-item-title>{{ userName || t('navigation.profile') }}</v-list-item-title>
-        </v-list-item>
+            <div class="flex-grow-1">
+              <div class="text-body-1 font-weight-medium">{{ userName || t('navigation.profile') }}</div>
+              <div class="text-caption text-medium-emphasis">{{ userLevelName }} (Lvl {{ userLevel }})</div>
+            </div>
+          </div>
 
-        <!-- Level Progress Bar (Mobile) -->
-        <div v-if="isLoggedIn" class="level-progress-section pa-3">
-          <div class="level-progress-title text-caption mb-1">
-            {{ userLevelName }}
-          </div>
-          <div class="level-progress-header d-flex justify-space-between align-center mb-1">
-            <v-avatar size="28" class="level-badge">
-              <span class="level-number">{{ userLevel }}</span>
-            </v-avatar>
-            <v-avatar size="28" class="level-badge">
-              <span class="level-number">{{ userLevel + 1 }}</span>
-            </v-avatar>
-          </div>
+          <!-- Level Progress Bar -->
           <v-progress-linear
             :model-value="levelProgressPercentage"
-            height="8"
+            height="4"
             rounded
-            class="mb-1 level-progress-bar"
+            class="mb-2 level-progress-bar full-width-progress"
           ></v-progress-linear>
-          <div class="text-caption text-center">
-            {{ xpProgress }} / {{ xpNeeded }} {{ t('navigation.xp') }}
+
+          <div class="d-flex justify-space-between align-center">
+            <span class="text-caption">{{ xpProgress }} / {{ xpNeeded }} {{ t('navigation.xp') }}</span>
+            <div class="d-flex align-center">
+              <span class="text-caption mr-1">0</span>
+              <Coins :size="16" style="color: #2E2A47;" />
+            </div>
           </div>
         </div>
 
         <v-divider class="my-2"></v-divider>
 
+        <!-- YOUR JOURNEY Section -->
+        <v-list-subheader class="sidebar-section-header">
+          <Star :size="14" class="sidebar-section-icon ml-8" />
+          {{ t('navigation.yourJourney') }}
+        </v-list-subheader>
+
         <v-list-item
           to="/"
           :active="currentRoute === 'home'"
@@ -704,7 +675,7 @@ watch(() => route.path, () => {
           @click="drawerOpen = false"
         >
           <template v-slot:prepend>
-            <v-icon icon="mdi-calendar-today"></v-icon>
+            <Sparkles :size="20" class="sidebar-lucide-icon mr-2" />
           </template>
           <v-list-item-title>{{ t('navigation.today') }}</v-list-item-title>
         </v-list-item>
@@ -716,45 +687,9 @@ watch(() => route.path, () => {
           @click="drawerOpen = false"
         >
           <template v-slot:prepend>
-            <v-icon icon="mdi-account-star"></v-icon>
+            <Mountain :size="20" class="sidebar-lucide-icon mr-2" />
           </template>
           <v-list-item-title>{{ t('navigation.myChallenges') }}</v-list-item-title>
-        </v-list-item>
-
-        <v-list-item
-          :active="currentRoute === 'challenges'"
-          to="/challenges"
-          color="primary"
-          @click="drawerOpen = false"
-        >
-          <template v-slot:prepend>
-            <v-icon icon="mdi-flag-checkered"></v-icon>
-          </template>
-          <v-list-item-title>{{ t('navigation.allChallenges') }}</v-list-item-title>
-        </v-list-item>
-
-        <v-list-item
-          :active="currentRoute === 'users'"
-          to="/users"
-          color="primary"
-          @click="drawerOpen = false"
-        >
-          <template v-slot:prepend>
-            <v-icon icon="mdi-account-group"></v-icon>
-          </template>
-          <v-list-item-title>{{ t('navigation.allUsers') }}</v-list-item-title>
-        </v-list-item>
-
-        <v-list-item
-          :active="currentRoute === 'watched-challenges'"
-          to="/challenges/watched"
-          color="primary"
-          @click="drawerOpen = false"
-        >
-          <template v-slot:prepend>
-            <v-icon icon="mdi-eye"></v-icon>
-          </template>
-          <v-list-item-title>{{ t('navigation.watchedChallenges') }}</v-list-item-title>
         </v-list-item>
 
         <v-list-item
@@ -764,10 +699,67 @@ watch(() => route.path, () => {
           @click="drawerOpen = false"
         >
           <template v-slot:prepend>
-            <v-icon icon="mdi-history"></v-icon>
+            <BookOpen :size="20" class="sidebar-lucide-icon mr-2" />
           </template>
           <v-list-item-title>{{ t('navigation.checklistHistory') }}</v-list-item-title>
         </v-list-item>
+
+        <v-divider class="my-2"></v-divider>
+
+        <!-- WORLD Section -->
+        <v-list-subheader class="sidebar-section-header">
+          <Globe2 :size="14" class="sidebar-section-icon ml-8" />
+          {{ t('navigation.world') }}
+        </v-list-subheader>
+
+        <v-list-item
+          :active="currentRoute === 'challenges'"
+          to="/challenges"
+          color="primary"
+          @click="drawerOpen = false"
+        >
+          <template v-slot:prepend>
+            <Compass :size="20" class="sidebar-lucide-icon mr-2" />
+          </template>
+          <v-list-item-title>{{ t('navigation.allChallenges') }}</v-list-item-title>
+        </v-list-item>
+
+        <v-list-item
+          :active="currentRoute === 'watched-challenges'"
+          to="/challenges/watched"
+          color="primary"
+          @click="drawerOpen = false"
+        >
+          <template v-slot:prepend>
+            <Eye :size="20" class="sidebar-lucide-icon mr-2" />
+          </template>
+          <v-list-item-title>{{ t('navigation.interested') }}</v-list-item-title>
+        </v-list-item>
+
+        <v-list-item
+          :active="currentRoute === 'users'"
+          to="/users"
+          color="primary"
+          @click="drawerOpen = false"
+        >
+          <template v-slot:prepend>
+            <Trophy :size="20" class="sidebar-lucide-icon mr-2" />
+          </template>
+          <v-list-item-title>{{ t('navigation.allUsers') }}</v-list-item-title>
+        </v-list-item>
+
+        <v-divider class="my-2"></v-divider>
+
+        <v-list-item
+          :active="currentRoute === 'profile'"
+          to="/profile"
+          color="primary"
+          @click="drawerOpen = false"
+        >
+          <v-list-item-title>{{ t('navigation.profile') }}</v-list-item-title>
+        </v-list-item>
+
+        <v-divider class="my-2"></v-divider>
 
         <v-list-item
           color="primary"
@@ -788,33 +780,19 @@ watch(() => route.path, () => {
           </template>
         </v-list-item>
 
-        <v-divider class="my-2"></v-divider>
-
-        <v-list-subheader>{{ t('navigation.language') }}</v-list-subheader>
-        <v-list-item
-          v-for="language in availableLocales"
-          :key="language.code"
-          :active="language.code === locale.value"
-          @click="changeLanguage(language.code); drawerOpen = false"
-        >
-          <template v-slot:prepend>
-            <v-icon icon="mdi-translate"></v-icon>
-          </template>
-          <v-list-item-title>{{ language.label }}</v-list-item-title>
-        </v-list-item>
-
-        <v-divider class="my-2"></v-divider>
-
-        <v-list-item
-          color="error"
-          @click="logout(); drawerOpen = false"
-        >
-          <template v-slot:prepend>
-            <v-icon icon="mdi-logout" color="error"></v-icon>
-          </template>
-          <v-list-item-title>{{ t('navigation.logout') }}</v-list-item-title>
-        </v-list-item>
-      </v-list>
+        </v-list>
+        
+        <!-- Logout Button - Sticky at Bottom -->
+        <div class="sidebar-logout-section">
+          <v-divider class="mb-2"></v-divider>
+          <v-list-item
+            class="logout-item"
+            @click="logout(); drawerOpen = false"
+          >
+            <v-list-item-title class="logout-text">{{ t('navigation.logout') }}</v-list-item-title>
+          </v-list-item>
+        </div>
+      </div>
     </v-navigation-drawer>
 
     <!-- Notifications Sidebar -->
@@ -885,6 +863,9 @@ watch(() => route.path, () => {
   padding-top: 0;
   background-color: #F4F0FF !important;
   color: #2E2A47;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .desktop-sidebar :deep(.v-navigation-drawer__prepend),
@@ -1262,9 +1243,20 @@ watch(() => route.path, () => {
   background-color: transparent;
 }
 
-.language-button {
-  text-transform: none;
-  font-weight: 500;
+.brand-logo {
+  height: 48px;
+  width: auto;
+  object-fit: contain;
+  margin-right: 12px;
+}
+
+.brand-title {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  font-size: 26px;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: #1E293B;
 }
 
 .sidebar-avatar {
@@ -1507,12 +1499,6 @@ watch(() => route.path, () => {
     font-size: 0.875rem;
   }
 
-  .language-button {
-    font-size: 0.875rem;
-    padding-left: 8px;
-    padding-right: 8px;
-  }
-
   .notification-button {
     padding: 0 8px;
   }
@@ -1666,13 +1652,153 @@ watch(() => route.path, () => {
   white-space: nowrap;
 }
 
-@media (max-width: 1279px) {
-  .language-button :deep(.v-btn__content) {
-    gap: 4px;
-  }
+/* Sidebar Logo */
+.sidebar-logo {
+  padding: 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
 
-  .language-button {
-    font-size: 0.875rem;
-  }
+.sidebar-logo-text {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #2E2A47;
+  letter-spacing: 0.02em;
+}
+
+/* Sidebar Section Headers */
+.sidebar-section-header {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #BDBDBD;
+  padding: 12px 16px 8px 16px;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sidebar-section-header :deep(.v-list-subheader__text) {
+  color: #BDBDBD;
+}
+
+.sidebar-section-icon {
+  color: #BDBDBD;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+/* Sidebar Icons (Emoji) */
+.sidebar-icon {
+  font-size: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+}
+
+.sidebar-icon-small {
+  font-size: 1rem;
+}
+
+/* Lucide Icons */
+.sidebar-lucide-icon {
+  color: #2E2A47;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.v-list-item:hover .sidebar-lucide-icon {
+  color: #7C4DFF;
+  transform: scale(1.15);
+}
+
+.v-list-item.active .sidebar-lucide-icon {
+  color: white;
+}
+
+/* Sidebar User Section */
+.sidebar-user-section {
+  background-color: rgba(0, 0, 0, 0.02);
+  border-radius: 12px;
+  margin: 8px;
+}
+
+.full-width-progress {
+  width: calc(100% + 24px);
+  margin-left: -12px;
+  margin-right: -12px;
+}
+
+.settings-button {
+  color: #2E2A47 !important;
+  opacity: 0.7;
+}
+
+.settings-button:hover {
+  opacity: 1;
+  background-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+.sidebar-content-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 100vh;
+}
+
+.desktop-sidebar .sidebar-content-wrapper > .v-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.sidebar-logout-section {
+  margin-top: auto;
+  padding: 8px 0;
+  background-color: #F4F0FF;
+}
+
+.logout-item {
+  cursor: pointer;
+}
+
+.logout-text {
+  color: rgba(0, 0, 0, 0.5) !important;
+  font-weight: 400;
+}
+
+.logout-item:hover .logout-text {
+  color: rgba(0, 0, 0, 0.7) !important;
+}
+
+.mobile-drawer :deep(.v-navigation-drawer__content) {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.mobile-drawer .sidebar-content-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  flex: 1;
+}
+
+.mobile-drawer .sidebar-content-wrapper > .v-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Adjust list item spacing for sections */
+.desktop-sidebar :deep(.v-list-subheader) {
+  padding: 12px 16px 8px 16px;
+  margin-top: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #2E2A47;
+  opacity: 0.8;
 }
 </style> 

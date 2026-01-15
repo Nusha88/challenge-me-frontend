@@ -60,6 +60,44 @@
           <v-alert v-if="uploadError" type="error" class="mb-4">{{ uploadError }}</v-alert>
           <v-alert v-if="uploadSuccess" type="success" class="mb-4">{{ uploadSuccess }}</v-alert>
 
+          <!-- Settings Section - Only show for own profile -->
+          <div v-if="isOwnProfile" class="settings-section mt-6">
+            <v-divider class="mb-4"></v-divider>
+            
+            <!-- Language Setting -->
+            <div class="setting-item mb-4">
+              <div class="d-flex align-center">
+                <v-icon icon="mdi-web" size="small" class="mr-2"></v-icon>
+                <span class="text-body-2">{{ t('navigation.language') }}</span>
+                <v-spacer></v-spacer>
+                <v-menu location="bottom">
+                  <template #activator="{ props }">
+                    <v-btn
+                      v-bind="props"
+                      variant="text"
+                      size="small"
+                      class="text-lowercase"
+                    >
+                      {{ currentLocaleLabel }}
+                      <v-icon icon="mdi-chevron-down" size="small" class="ml-1"></v-icon>
+                    </v-btn>
+                  </template>
+                  <v-list>
+                    <v-list-item
+                      v-for="language in availableLocales"
+                      :key="language.code"
+                      :active="language.code === locale.value"
+                      @click="changeLanguage(language.code)"
+                    >
+                      <v-list-item-title>{{ language.label }}</v-list-item-title>
+                    </v-list-item>
+                  </v-list>
+                </v-menu>
+              </div>
+            </div>
+            
+          </div>
+
           <!-- Push Notifications Settings - Only show for own profile -->
           <div v-if="isOwnProfile" class="push-notifications-section mt-6">
             <v-divider class="mb-4"></v-divider>
@@ -229,6 +267,7 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { userService, challengeService } from '../services/api'
 import { useI18n } from 'vue-i18n'
+import { SUPPORTED_LOCALES, setLocale } from '../i18n'
 import ChallengeCard from './ChallengeCard.vue'
 import ChallengeDetailsDialog from './ChallengeDetailsDialog.vue'
 import FilterPanel from './FilterPanel.vue'
@@ -247,7 +286,17 @@ const props = defineProps({
 
 const router = useRouter()
 const route = useRoute()
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const availableLocales = SUPPORTED_LOCALES
+
+const currentLocaleLabel = computed(() => {
+  return availableLocales.find(lang => lang.code === locale.value)?.label || locale.value
+})
+
+function changeLanguage(code) {
+  setLocale(code)
+}
+
 
 const user = ref(null)
 const challenges = ref([])
@@ -1226,5 +1275,24 @@ onMounted(() => {
   border-top: 2px solid rgba(0, 0, 0, 0.12);
   padding-top: 24px;
   margin-top: 24px;
+}
+
+.settings-section {
+  padding-top: 16px;
+}
+
+.setting-item {
+  padding: 8px 0;
+}
+
+.logout-button {
+  color: rgba(0, 0, 0, 0.5) !important;
+  text-transform: none !important;
+  font-weight: 400;
+}
+
+.logout-button:hover {
+  color: rgba(0, 0, 0, 0.7) !important;
+  background-color: rgba(0, 0, 0, 0.05) !important;
 }
 </style>

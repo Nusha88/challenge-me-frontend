@@ -3,7 +3,7 @@
 const CACHE_NAME = 'challengeme-v2';
 const urlsToCache = [
   // Do not cache "/" to avoid serving stale index.html after deploys
-  '/icons/icon.png',
+  '/icons/icon2.png',
   '/manifest.json'
 ];
 
@@ -65,8 +65,8 @@ self.addEventListener('push', (event) => {
   let notificationData = {
     title: 'New Notification',
     body: 'You have a new notification',
-    icon: '/icons/icon.png',
-    badge: '/icons/icon.png',
+    icon: '/icons/icon2.png',
+    badge: '/icons/icon2.png',
     data: {},
     tag: 'notification'
   };
@@ -102,7 +102,7 @@ self.addEventListener('push', (event) => {
       {
         action: 'open',
         title: 'Open',
-        icon: '/icons/icon.png'
+        icon: '/icons/icon2.png'
       },
       {
         action: 'close',
