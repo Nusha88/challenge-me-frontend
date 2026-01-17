@@ -679,7 +679,7 @@ const fetchChallenges = async () => {
 const handleChallengeClick = (challenge) => {
   // If viewing own profile and user owns the challenge, navigate to edit page
   if (isOwnProfile.value && isChallengeOwner(challenge.owner)) {
-    router.push(`/challenges/edit/${challenge._id}`)
+    router.push(`/missions/edit/${challenge._id}`)
     return
   }
   
@@ -888,7 +888,7 @@ watch(() => props.userId, (newId, oldId) => {
 })
 
 watch(() => route.path, (newPath, oldPath) => {
-  // Reset state when route changes (e.g., from /users/:id to /profile)
+  // Reset state when route changes (e.g., from /heroes/:id to /profile)
   if (newPath !== oldPath) {
     user.value = null
     challenges.value = []

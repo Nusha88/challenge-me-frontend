@@ -551,7 +551,7 @@ function navigateToOwner() {
   // Emit event to notify parent component (e.g., dialog should close)
   emit('owner-navigated')
   
-  router.push(`/users/${ownerId}`)
+  router.push(`/heroes/${ownerId}`)
 }
 </script>
 

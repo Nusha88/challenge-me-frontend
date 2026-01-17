@@ -433,7 +433,7 @@ watch(() => route.path, () => {
           </v-btn>
           <v-btn
             v-if="isLoggedIn"
-            to="/challenges/add"
+            to="/missions/add"
             variant="elevated"
             size="large"
             class="mr-2 cta-button d-none d-md-inline-flex"
@@ -536,7 +536,7 @@ watch(() => route.path, () => {
 
               <v-list-item
                 :active="currentRoute === 'my-challenges'"
-                to="/challenges/my"
+                to="/missions/my"
                 color="primary"
               >
                 <template v-slot:prepend>
@@ -566,7 +566,7 @@ watch(() => route.path, () => {
 
               <v-list-item
                 :active="currentRoute === 'challenges'"
-                to="/challenges"
+                to="/missions"
                 color="primary"
               >
                 <template v-slot:prepend>
@@ -577,7 +577,7 @@ watch(() => route.path, () => {
 
               <v-list-item
                 :active="currentRoute === 'watched-challenges'"
-                to="/challenges/watched"
+                to="/missions/watched"
                 color="primary"
               >
                 <template v-slot:prepend>
@@ -588,7 +588,7 @@ watch(() => route.path, () => {
 
               <v-list-item
                 :active="currentRoute === 'users'"
-                to="/users"
+                to="/heroes"
                 color="primary"
               >
                 <template v-slot:prepend>

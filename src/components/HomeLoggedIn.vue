@@ -16,7 +16,7 @@
         </h1>
         <p v-if="!hasTodayCompletedTasks" class="motivational-text">{{ dailyMotivationalMessage }}</p>
         <p v-else class="motivational-text">{{ dailyMotivationalMessageCompleted }}</p>
-        <button class="inspiration-btn" @click="showInspiration">
+        <button v-if="todaysChallenges.length === 0" class="inspiration-btn" @click="showInspiration">
           <Sparkles :size="16" class="inspiration-btn-icon" />
           {{ t('home.loggedIn.needInspiration') }}
         </button>
@@ -102,23 +102,60 @@
             <DailyChecklist ref="checklistRef" :hide-add-step="isAllCompleted && !checklistLoading && totalItems > 0" />
           </div>
           
-          <!-- Completion Celebration Button -->
-          <div v-if="isAllCompleted && !checklistLoading && totalItems > 0" class="completion-celebration mt-4">
-            <v-btn
-              color="success"
-              size="large"
-              variant="elevated"
-              prepend-icon="mdi-image"
-              @click="generateCompletionImage"
-              :loading="generatingImage"
-              class="celebration-button"
-            >
-              {{ t('home.loggedIn.generateCompletionImage') }}
-            </v-btn>
-          </div>
         </v-card-text>
       </v-card>
     </div>
+    
+    <!-- Completion Celebration Dialog -->
+    <v-dialog 
+  v-model="showCompletionDialog" 
+  max-width="450" 
+  persistent
+  overlay-color="#1A1A2E"
+  overlay-opacity="0.8"
+  transition="dialog-bottom-transition"
+>
+  <v-card class="completion-dialog-card overflow-visible">
+    <div class="glow-bg"></div>
+
+    <v-card-text class="text-center pa-8 pt-12">
+      <div class="completion-icon-wrapper mb-6">
+        <div class="icon-circle">
+          <v-icon size="60" color="white">mdi-rocket-launch</v-icon>
+        </div>
+      </div>
+
+      <h2 class="completion-title mb-3 leading-tight">
+        {{ t('home.loggedIn.completionDialog.title') }}
+      </h2>
+      
+      <p class="completion-message mb-8 px-4">
+        {{ t('home.loggedIn.completionDialog.message') }}
+      </p>
+
+      <v-btn
+        block
+        height="64"
+        class="celebration-button mb-4 text-none"
+        elevation="0"
+        @click="generateCompletionImage"
+        :loading="generatingImage"
+      >
+        <v-icon left class="mr-2">mdi-share-variant</v-icon>
+        {{ t('home.loggedIn.generateCompletionImage') }}
+      </v-btn>
+
+      <v-btn
+        variant="text"
+        @click="showCompletionDialog = false"
+        class="close-button text-none"
+        ripple="false"
+      >
+        {{ t('home.loggedIn.completionDialog.close') }}
+      </v-btn>
+    </v-card-text>
+  </v-card>
+</v-dialog>
   </div>
 </template>
 
@@ -134,6 +171,7 @@ import motivationalMessagesEn from '../data/motivationalMessages.en.json'
 import motivationalMessagesRu from '../data/motivationalMessages.ru.json'
 import motivationalMessagesCompletedEn from '../data/motivationalMessagesCompleted.en.json'
 import motivationalMessagesCompletedRu from '../data/motivationalMessagesCompleted.ru.json'
+import roketImage from '../assets/roket.png'
 
 const { t, locale } = useI18n()
 const router = useRouter()
@@ -149,6 +187,8 @@ const checklistRef = ref(null)
 const checklistLoading = ref(false)
 const generatingImage = ref(false)
 const initialDataLoading = ref(true)
+const showCompletionDialog = ref(false)
+const hasShownCompletionDialog = ref(false)
 
 function readStoredUser() {
   try {
@@ -486,16 +526,16 @@ function navigateToChallenge(challenge) {
   const userId = getCurrentUserId()
   const ownerId = challenge.owner?._id || challenge.owner
   if (ownerId && ownerId.toString() === userId.toString()) {
-    router.push(`/challenges/edit/${challenge._id}`)
+    router.push(`/missions/edit/${challenge._id}`)
   } else {
     // Otherwise navigate to challenge details
-    router.push(`/challenges/${challenge._id}`)
+    router.push(`/missions/${challenge._id}`)
   }
 }
 
 function showInspiration() {
   // Navigate to explore page to see all challenges
-  router.push('/challenges')
+  router.push('/missions')
 }
 
 const todaysChallenges = computed(() => {
@@ -531,6 +571,14 @@ const combinedProgressPercentage = computed(() => {
 const isAllCompleted = computed(() => {
   if (totalItems.value === 0) return false
   return completedItems.value === totalItems.value
+})
+
+// Computed property to control dialog visibility - only show if actually completed
+const shouldShowCompletionDialog = computed(() => {
+  return showCompletionDialog.value && 
+         isAllCompleted.value && 
+         completedItems.value === totalItems.value && 
+         totalItems.value > 0
 })
 
 // Award +50 XP once per day when today's activities reach 100%
@@ -576,9 +624,67 @@ async function tryAwardDailyBonusXp() {
   }
 }
 
-watch(isAllCompleted, (val) => {
+// Function to check and show completion dialog
+function checkAndShowCompletionDialog() {
+  // Strict verification: all items must be completed
+  const completed = completedItems.value
+  const total = totalItems.value
+  const allCompleted = total > 0 && completed === total
+  
+  // Additional checks
+  if (
+    !initialDataLoading.value &&
+    !checklistLoading.value &&
+    allCompleted &&
+    isAllCompleted.value &&
+    total > 0 &&
+    !hasShownCompletionDialog.value
+  ) {
+    setTimeout(() => {
+      // Final check before showing
+      const finalCompleted = completedItems.value
+      const finalTotal = totalItems.value
+      if (finalTotal > 0 && finalCompleted === finalTotal && isAllCompleted.value) {
+        showCompletionDialog.value = true
+        hasShownCompletionDialog.value = true
+      }
+    }, 300)
+  }
+}
+
+watch(isAllCompleted, (val, oldVal) => {
   if (val) {
     tryAwardDailyBonusXp()
+    // Show completion dialog when all tasks are completed (only once per completion)
+    // Only show if transitioning from incomplete to complete
+    if (oldVal === false) {
+      // Wait for next tick to ensure all computed values are updated
+      nextTick(() => {
+        const completed = completedItems.value
+        const total = totalItems.value
+        // Strict check: completed must equal total and both must be > 0
+        if (total > 0 && completed === total && completed === totalItems.value) {
+          checkAndShowCompletionDialog()
+        }
+      })
+    }
+  } else {
+    // Close dialog and reset flag when tasks become incomplete
+    if (showCompletionDialog.value) {
+      showCompletionDialog.value = false
+    }
+    hasShownCompletionDialog.value = false
+  }
+}, { immediate: false })
+
+// Watch completion state and close dialog if tasks become incomplete
+watch([completedItems, totalItems], ([completed, total]) => {
+  // If dialog is open but tasks are no longer all completed, close it immediately
+  if (showCompletionDialog.value) {
+    if (total === 0 || completed !== total) {
+      showCompletionDialog.value = false
+      hasShownCompletionDialog.value = false
+    }
   }
 })
 
@@ -716,215 +822,215 @@ watch(() => route.path, (newPath) => {
 })
 
 async function generateCompletionImage() {
+  showCompletionDialog.value = false
   generatingImage.value = true
   try {
-    // Wait for DOM to be ready
     await nextTick()
-    // Create a temporary container for the image
+    
+    // Создаем контейнер-холст (формат сторис или квадрат)
     const container = document.createElement('div')
-    container.style.position = 'absolute'
-    container.style.left = '-9999px'
-    container.style.width = '800px'
-    container.style.padding = '40px'
-    container.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-    container.style.color = '#ffffff'
-    container.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
-    
-    // Get today's date
-    const todayDate = new Date()
-    const dateStr = todayDate.toLocaleDateString('en-US', { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    Object.assign(container.style, {
+      position: 'absolute',
+      left: '-9999px',
+      width: '600px', // Оптимально для шеринга
+      minHeight: '800px', // Увеличим высоту для композиции
+      padding: '50px',
+      background: `
+        radial-gradient(ellipse at bottom left, rgba(126, 70, 196, 0.4) 0%, transparent 50%),
+        radial-gradient(ellipse at top right, rgba(244, 167, 130, 0.3) 0%, transparent 50%),
+        linear-gradient(135deg, #1A1A2E 0%, #7E46C4 100%)
+      `,
+      color: '#ffffff',
+      fontFamily: '"Plus Jakarta Sans", sans-serif',
+      borderRadius: '0px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '24px',
+      filter: 'drop-shadow(0 0 10px rgba(0,0,0,0.5))',
+      position: 'relative' // Для позиционирования ракеты
     })
-    
-    // Create header
+
+    // НОВАЯ ФИШКА: Иконка ракеты в углу
+    const rocketIcon = document.createElement('img')
+    rocketIcon.src = roketImage
+    Object.assign(rocketIcon.style, {
+      position: 'absolute',
+      top: '20px',
+      right: '20px',
+      width: '100px', // Размер ракеты
+      height: 'auto',
+      zIndex: '10', // Поверх всего
+      filter: 'drop-shadow(0 0 15px rgba(244, 167, 130, 0.5))', // Мягкое свечение
+      transform: 'rotate(15deg)' // Небольшой наклон для динамики
+    })
+    container.appendChild(rocketIcon)
+
+    // НОВАЯ ФИШКА: Декоративные точки/звездочки
+    for (let i = 0; i < 15; i++) { // 15 звездочек
+        const star = document.createElement('div');
+        Object.assign(star.style, {
+            position: 'absolute',
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 100}%`,
+            width: `${Math.random() * 3 + 1}px`, // Разный размер
+            height: `${Math.random() * 3 + 1}px`,
+            background: `rgba(255, 255, 255, ${Math.random() * 0.8 + 0.2})`, // Разная прозрачность
+            borderRadius: '50%',
+            filter: 'blur(0.5px)'
+        });
+        container.appendChild(star);
+    }
+
+
+    // 1. HEADER: Имя и Дата
     const header = document.createElement('div')
     header.style.textAlign = 'center'
-    header.style.marginBottom = '30px'
     
     const title = document.createElement('h1')
-    title.textContent = t('home.loggedIn.completionImage.title', { name: userName.value })
-    title.style.fontSize = '36px'
-    title.style.fontWeight = 'bold'
-    title.style.marginBottom = '10px'
-    title.style.textShadow = '2px 2px 4px rgba(0,0,0,0.3)'
-    
-    const date = document.createElement('p')
-    date.textContent = dateStr
-    date.style.fontSize = '18px'
-    date.style.opacity = '0.9'
-    date.style.margin = '0 0 15px 0'
-    
-    // Add motivational text - select based on date for consistency (same message for the same day)
-    const dayOfYear = Math.floor((todayDate - new Date(todayDate.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24)
-    const messages = locale.value === 'ru' ? motivationalMessagesRu : motivationalMessagesEn
-    const messageIndex = dayOfYear % messages.length
-    const selectedMessage = messages[messageIndex]
-    
-    const motivationalText = document.createElement('p')
-    motivationalText.textContent = selectedMessage
-    motivationalText.style.fontSize = '20px'
-    motivationalText.style.fontWeight = '500'
-    motivationalText.style.fontStyle = 'italic'
-    motivationalText.style.opacity = '0.95'
-    motivationalText.style.margin = '0'
-    motivationalText.style.padding = '15px 20px'
-    motivationalText.style.background = 'rgba(255,255,255,0.15)'
-    motivationalText.style.borderRadius = '12px'
-    motivationalText.style.borderLeft = '4px solid rgba(255,255,255,0.5)'
-    
-    header.appendChild(title)
-    header.appendChild(date)
-    header.appendChild(motivationalText)
-    container.appendChild(header)
-    
-    // Create completed challenges section
-    if (todaysChallenges.value.length > 0) {
-      const challengesSection = document.createElement('div')
-      challengesSection.style.marginBottom = '30px'
-      
-      const challengesTitle = document.createElement('h2')
-      challengesTitle.textContent = t('home.loggedIn.todaysChallenges')
-      // Set explicit letter-spacing to prevent space collapse
-      challengesTitle.style.letterSpacing = 'normal'
-      challengesTitle.style.fontSize = '24px'
-      challengesTitle.style.fontWeight = '600'
-      challengesTitle.style.marginBottom = '15px'
-      challengesTitle.style.borderBottom = '2px solid rgba(255,255,255,0.3)'
-      challengesTitle.style.paddingBottom = '10px'
-      
-      challengesSection.appendChild(challengesTitle)
-      
-      todaysChallenges.value.forEach(challenge => {
-        const item = document.createElement('div')
-        item.style.display = 'flex'
-        item.style.alignItems = 'center'
-        item.style.padding = '12px'
-        item.style.marginBottom = '8px'
-        item.style.background = 'rgba(255,255,255,0.1)'
-        item.style.borderRadius = '8px'
-        
-        const checkmark = document.createElement('span')
-        checkmark.textContent = '✓'
-        checkmark.style.fontSize = '24px'
-        checkmark.style.color = '#4caf50'
-        checkmark.style.marginRight = '12px'
-        checkmark.style.fontWeight = 'bold'
-        
-        const text = document.createElement('span')
-        text.textContent = challenge.title
-        text.style.fontSize = '18px'
-        text.style.flex = '1'
-        
-        item.appendChild(checkmark)
-        item.appendChild(text)
-        challengesSection.appendChild(item)
-      })
-      
-      container.appendChild(challengesSection)
-    }
-    
-    // Create completed checklist section
-    if (checklistRef.value && checklistRef.value.totalSteps > 0) {
-      const checklistSection = document.createElement('div')
-      
-      const checklistTitle = document.createElement('h2')
-      checklistTitle.textContent = t('home.loggedIn.dailyChecklist.title')
-      // Set explicit letter-spacing to prevent space collapse
-      checklistTitle.style.letterSpacing = 'normal'
-      checklistTitle.style.fontSize = '24px'
-      checklistTitle.style.fontWeight = '600'
-      checklistTitle.style.marginBottom = '15px'
-      checklistTitle.style.borderBottom = '2px solid rgba(255,255,255,0.3)'
-      checklistTitle.style.paddingBottom = '10px'
-      
-      checklistSection.appendChild(checklistTitle)
-      
-      // Get checklist items from the component's DOM
-      if (checklistRef.value && checklistRef.value.$el) {
-        const checklistItems = checklistRef.value.$el.querySelectorAll('.step-item') || []
-        checklistItems.forEach((item) => {
-          const stepText = item.querySelector('.step-text')
-          const checkbox = item.querySelector('input[type="checkbox"]')
-          // Only include completed items
-          if (stepText && checkbox && checkbox.checked) {
-            const div = document.createElement('div')
-            div.style.display = 'flex'
-            div.style.alignItems = 'center'
-            div.style.padding = '12px'
-            div.style.marginBottom = '8px'
-            div.style.background = 'rgba(255,255,255,0.1)'
-            div.style.borderRadius = '8px'
-            
-            const checkmark = document.createElement('span')
-            checkmark.textContent = '✓'
-            checkmark.style.fontSize = '24px'
-            checkmark.style.color = '#4caf50'
-            checkmark.style.marginRight = '12px'
-            checkmark.style.fontWeight = 'bold'
-            
-            const text = document.createElement('span')
-            text.textContent = stepText.textContent.trim()
-            text.style.fontSize = '18px'
-            text.style.flex = '1'
-            
-            div.appendChild(checkmark)
-            div.appendChild(text)
-            checklistSection.appendChild(div)
-          }
-        })
-      }
-      
-      container.appendChild(checklistSection)
-    }
-    
-    // Add footer with streak
-    if (streakDays.value > 0) {
-      const footer = document.createElement('div')
-      footer.style.textAlign = 'center'
-      footer.style.marginTop = '30px'
-      footer.style.paddingTop = '20px'
-      footer.style.borderTop = '2px solid rgba(255,255,255,0.3)'
-      
-      const streakText = document.createElement('p')
-      streakText.innerHTML = `🔥 ${streakDays.value} ${t('navigation.streakDays')}`
-      streakText.style.fontSize = '20px'
-      streakText.style.fontWeight = '600'
-      streakText.style.margin = '0'
-      
-      footer.appendChild(streakText)
-      container.appendChild(footer)
-    }
-    
-    // Append to body temporarily
-    document.body.appendChild(container)
-    
-    // Generate image
-    const canvas = await html2canvas(container, {
-      backgroundColor: null,
-      scale: 2,
-      logging: false,
-      useCORS: true
+    title.textContent = t('home.loggedIn.completionImage.title', { name: userName.value }).toUpperCase()
+    Object.assign(title.style, {
+      fontSize: '42px',
+      fontWeight: '900',
+      marginBottom: '8px',
+      background: 'linear-gradient(to right, #ffffff, #F4A782)',
+      WebkitBackgroundClip: 'text',
+      WebkitTextFillColor: 'transparent',
+      textShadow: '0 0 10px rgba(255, 255, 255, 0.3)',
+      zIndex: '1', // Чтобы быть поверх звездочек
+      position: 'relative'
     })
+
+    const dateStr = new Date().toLocaleDateString(locale.value === 'ru' ? 'ru-RU' : 'en-US', { 
+      month: 'long', day: 'numeric', year: 'numeric' 
+    })
+    const dateText = document.createElement('p')
+    dateText.textContent = dateStr
+    Object.assign(dateText.style, { 
+      fontSize: '18px', opacity: '0.6', letterSpacing: '2px', marginBottom: '20px',
+      zIndex: '1', position: 'relative' 
+    })
+
+    header.appendChild(title)
+    header.appendChild(dateText)
+    container.appendChild(header)
+
+    // 2. MOTIVATION BOX (Glassmorphism)
+    const messages = locale.value === 'ru' ? motivationalMessagesRu : motivationalMessagesEn
+    const selectedMessage = messages[Math.floor(Math.random() * messages.length)]
     
-    // Remove temporary container
+    const quoteBox = document.createElement('div')
+    Object.assign(quoteBox.style, {
+      background: 'rgba(255, 255, 255, 0.05)',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      borderRadius: '20px',
+      padding: '24px',
+      textAlign: 'center',
+      fontStyle: 'italic',
+      fontSize: '20px',
+      lineHeight: '1.4',
+      color: '#F4A782',
+      boxShadow: '0 8px 20px rgba(0,0,0,0.2)',
+      zIndex: '1', position: 'relative' 
+    })
+    quoteBox.textContent = `"${selectedMessage}"`
+    container.appendChild(quoteBox)
+
+    // 3. CHALLENGES / STEPS
+    const listContainer = document.createElement('div')
+    listContainer.style.flex = '1'
+    listContainer.style.zIndex = '1'
+    listContainer.style.position = 'relative'
+
+    const allItems = [
+      ...todaysChallenges.value.map(c => c.title),
+      ...(checklistRef.value?.steps?.filter(s => s.completed).map(s => s.text) || [])
+    ]
+
+    allItems.forEach(taskText => {
+      const row = document.createElement('div')
+      Object.assign(row.style, {
+        display: 'flex',
+        alignItems: 'center',
+        background: 'rgba(255, 255, 255, 0.08)',
+        marginBottom: '10px',
+        padding: '16px 20px',
+        borderRadius: '16px',
+        borderLeft: '4px solid #F4A782',
+        boxShadow: '0 4px 10px rgba(0,0,0,0.1)' 
+      })
+
+      const check = document.createElement('span')
+      check.textContent = '✦' 
+      check.style.marginRight = '15px'
+      check.style.color = '#F4A782'
+      check.style.fontSize = '20px'
+
+      const text = document.createElement('span')
+      text.textContent = taskText
+      text.style.fontSize = '18px'
+      text.style.fontWeight = '500'
+
+      row.appendChild(check)
+      row.appendChild(text)
+      listContainer.appendChild(row)
+    })
+    container.appendChild(listContainer)
+
+    // 4. FOOTER: Streak & Logo
+    const footer = document.createElement('div')
+    Object.assign(footer.style, {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: '20px',
+      paddingTop: '30px',
+      borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+      zIndex: '1', position: 'relative' 
+    })
+
+    const streakBadge = document.createElement('div')
+    Object.assign(streakBadge.style, {
+      background: 'linear-gradient(90deg, #7E46C4, #F4A782)',
+      padding: '10px 20px',
+      borderRadius: '50px',
+      fontWeight: '800',
+      fontSize: '20px',
+      boxShadow: '0 4px 15px rgba(126, 70, 196, 0.4)'
+    })
+    streakBadge.innerHTML = `🔥 ${streakDays.value} ${t('navigation.streakDays').toUpperCase()}`
+
+    const brand = document.createElement('div')
+    brand.textContent = 'AWA_APP' // Замени на свое название приложения
+    brand.style.fontWeight = '900'
+    brand.style.letterSpacing = '2px'
+    brand.style.opacity = '0.5'
+
+    footer.appendChild(streakBadge)
+    footer.appendChild(brand)
+    container.appendChild(footer)
+
+    document.body.appendChild(container)
+
+    const canvas = await html2canvas(container, {
+      scale: 2,
+      backgroundColor: null,
+      useCORS: true,
+      logging: false
+    })
+
     document.body.removeChild(container)
-    
-    // Convert to blob and download
+
     canvas.toBlob((blob) => {
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `daily-completion-${formatDateString(new Date())}.png`
-      document.body.appendChild(link)
+      link.download = `victory-${new Date().getTime()}.png`
       link.click()
-      document.body.removeChild(link)
       URL.revokeObjectURL(url)
     }, 'image/png')
+
   } catch (error) {
-    console.error('Error generating completion image:', error)
+    console.error('Generation failed', error)
   } finally {
     generatingImage.value = false
   }
@@ -1437,17 +1543,98 @@ onBeforeUnmount(() => {
   color: #7048E8; /* Выделяем название кнопки твоим фирменным цветом */
 }
 
-.completion-celebration {
-  text-align: center;
-  padding: 1em;
-  background-color: rgba(76, 175, 80, 0.1);
-  border-radius: 8px;
-  border: 2px solid rgba(76, 175, 80, 0.3);
+/* Карта в стиле "Космическое стекло" */
+.completion-dialog-card {
+  /* Темный фон для контраста с яркой кнопкой */
+  background: rgba(26, 26, 46, 0.95) !important; 
+  backdrop-filter: blur(20px);
+  /* Мягкая фиолетовая граница */
+  border: 2px solid rgba(126, 70, 196, 0.3) !important;
+  border-radius: 32px !important;
+  position: relative;
+  overflow: visible !important;
 }
 
+/* Фоновое свечение (Туманность) в новых цветах */
+.glow-bg {
+  position: absolute;
+  top: -60px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 250px;
+  height: 250px;
+  background: radial-gradient(circle, rgba(244, 167, 130, 0.15) 0%, rgba(126, 70, 196, 0.1) 50%, transparent 70%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Обертка иконки (Градиент от фиолетового к персику) */
+.icon-circle {
+  width: 100px;
+  height: 100px;
+  background: linear-gradient(135deg, #7E46C4 0%, #F4A782 100%);
+  border-radius: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  box-shadow: 0 15px 35px rgba(126, 70, 196, 0.4);
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Заголовок */
+.completion-title {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 900;
+  font-size: 1.85rem;
+  color: #FFFFFF;
+  /* Легкое свечение текста в тон персика */
+  text-shadow: 0 0 15px rgba(244, 167, 130, 0.2);
+}
+
+/* Сообщение */
+.completion-message {
+  font-size: 1rem;
+  color: #D1D5DB; 
+  line-height: 1.6;
+}
+
+/* ОБНОВЛЕННАЯ КНОПКА (Твой градиент) */
 .celebration-button {
-  font-weight: 600;
-  text-transform: none;
+  /* Градиент от #7E46C4 к #F4A782 */
+  background: linear-gradient(90deg, #7E46C4 0%, #F4A782 100%) !important;
+  color: white !important;
+  border-radius: 18px !important;
+  font-weight: 800 !important;
+  font-size: 1.1rem !important;
+  text-transform: uppercase;
   letter-spacing: 0.5px;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+  box-shadow: 0 10px 25px rgba(126, 70, 196, 0.3) !important;
+  border: none !important;
+}
+
+.celebration-button:hover {
+  transform: scale(1.03) translateY(-3px);
+  /* Усиливаем свечение при наведении */
+  box-shadow: 0 15px 35px rgba(244, 167, 130, 0.4) !important;
+  filter: brightness(1.1);
+}
+
+/* Кнопка закрытия */
+.close-button {
+  color: rgba(255, 255, 255, 0.5) !important;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.close-button:hover {
+  color: #F4A782 !important; /* Подсвечиваем персиком при наведении */
+}
+
+/* Анимация парения */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
 }
 </style>

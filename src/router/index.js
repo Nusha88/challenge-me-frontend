@@ -22,12 +22,12 @@ const router = createRouter({
       component: RegisterComponent
     },
     {
-      path: '/users',
+      path: '/heroes',
       name: 'users',
       component: UsersList
     },
     {
-      path: '/users/:id',
+      path: '/heroes/:id',
       name: 'user-profile',
       component: () => import('../components/UserComponent.vue')
     },
@@ -52,32 +52,32 @@ const router = createRouter({
       component: () => import('../components/UserComponent.vue')
     },
     {
-      path: '/challenges',
+      path: '/missions',
       name: 'challenges',
       component: AllChallengesComponent
     },
     {
-      path: '/challenges/my',
+      path: '/missions/my',
       name: 'my-challenges',
       component: () => import('../components/MyChallengesComponent.vue')
     },
     {
-      path: '/challenges/add',
+      path: '/missions/add',
       name: 'add-challenge',
       component: AddChallengeComponent
     },
     {
-      path: '/challenges/edit/:id',
+      path: '/missions/edit/:id',
       name: 'edit-challenge',
       component: ChallengeEditPage
     },
     {
-      path: '/challenges/watched',
+      path: '/missions/watched',
       name: 'watched-challenges',
       component: WatchedChallengesComponent
     },
     {
-      path: '/challenges/:id',
+      path: '/missions/:id',
       name: 'view-challenge',
       component: AllChallengesComponent
     },

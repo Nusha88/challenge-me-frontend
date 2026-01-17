@@ -758,7 +758,7 @@ function navigateToMention(comment, reply, nestedReply = null) {
   
   // Check if we're already on the challenge page
   const currentPath = router.currentRoute.value.path
-  const challengePath = `/challenges/${props.challengeId}`
+  const challengePath = `/missions/${props.challengeId}`
   
   if (currentPath === challengePath || currentPath.startsWith(challengePath + '/')) {
     // Already on challenge page, scroll to the comment/reply
@@ -786,7 +786,7 @@ function navigateToUser(userId) {
   // Emit event to notify parent component (e.g., dialog should close)
   emit('user-navigated')
   
-  router.push(`/users/${id}`)
+  router.push(`/heroes/${id}`)
 }
 
 function scrollToComment(commentId, replyId) {

@@ -330,7 +330,7 @@ function navigateToUserProfile(participant) {
   if (userId && typeof userId !== 'number') {
     // Emit event before navigation so parent can close dialog if needed
     emit('participant-clicked')
-    router.push(`/users/${userId}`)
+    router.push(`/heroes/${userId}`)
   }
 }
 </script>

@@ -826,13 +826,13 @@ function clearErrors() {
 
 function goBack() {
   // Navigate to My Challenges page
-  router.push('/challenges/my')
+  router.push('/missions/my')
 }
 
 // Share functionality
 const getShareUrl = () => {
   if (!challenge.value?._id) return ''
-  return `${window.location.origin}/challenges/${challenge.value._id}`
+  return `${window.location.origin}/missions/${challenge.value._id}`
 }
 
 const getShareText = () => {
@@ -1066,7 +1066,7 @@ async function handleSubmit() {
       formData.challengeType,
       formData.completedDays
     )
-    router.push('/challenges/my')
+    router.push('/')
   } catch (error) {
     saveError.value = error.response?.data?.message || t('notifications.updateError')
   } finally {

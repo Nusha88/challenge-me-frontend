@@ -496,6 +496,7 @@
 <script setup>
 import { reactive, ref, watch, computed, nextTick, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import ChallengeImageUpload from './ChallengeImageUpload.vue'
 import ChallengeActions from './ChallengeActions.vue'
@@ -607,6 +608,7 @@ const errors = reactive({
 })
 
 const { t, locale } = useI18n()
+const router = useRouter()
 const { mobile, mdAndUp } = useDisplay()
 
 const challengeTypeLabel = computed(() => {
@@ -1762,6 +1764,8 @@ async function handleParticipantSave() {
     emit('update')
     // Close the modal after successful save
     emit('update:modelValue', false)
+    // Navigate to home page
+    router.push('/')
   } catch (error) {
     console.error('Error saving participant completed days:', error)
     console.error('Error details:', error.response?.data || error.message)
@@ -1796,7 +1800,7 @@ const isWatched = computed(() => {
 // Share functionality
 const getShareUrl = () => {
   if (!props.challenge?._id) return ''
-  return `${window.location.origin}/challenges/${props.challenge._id}`
+  return `${window.location.origin}/missions/${props.challenge._id}`
 }
 
 const getShareText = () => {

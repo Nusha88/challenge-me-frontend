@@ -224,7 +224,7 @@ async function handleNotificationClick(notification) {
     hash = `#comment-${notification.commentId}`
   }
   
-  router.push(`/challenges/${challengeId}${hash}`)
+  router.push(`/missions/${challengeId}${hash}`)
   closeDrawer()
 }
 

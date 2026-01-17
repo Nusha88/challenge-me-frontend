@@ -297,7 +297,7 @@ const getDaysOnSiteNumber = (dateString) => {
 const handleUserClick = (user) => {
   const userId = user._id || user.id
   if (userId) {
-    router.push(`/users/${userId}`)
+    router.push(`/heroes/${userId}`)
   }
 }
 

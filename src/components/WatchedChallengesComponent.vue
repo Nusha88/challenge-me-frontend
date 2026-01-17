@@ -984,7 +984,7 @@ function navigateToUser(user) {
   if (!user) return
   const userId = user._id || user
   if (!userId) return
-  router.push(`/users/${userId}`)
+  router.push(`/heroes/${userId}`)
 }
 
 function navigateToActivityUser(activity) {

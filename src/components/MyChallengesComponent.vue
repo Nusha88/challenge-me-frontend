@@ -257,7 +257,7 @@ const fetchChallenges = async () => {
 const handleChallengeClick = (challenge) => {
   // If user owns the challenge, navigate to edit page
   if (isChallengeOwner(challenge.owner)) {
-    router.push(`/challenges/edit/${challenge._id}`)
+    router.push(`/missions/edit/${challenge._id}`)
     return
   }
   

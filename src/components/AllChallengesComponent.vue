@@ -185,7 +185,7 @@ watch(detailsDialogOpen, value => {
     // Use nextTick to avoid recursive updates
     if (route.params.id) {
       nextTick(() => {
-        router.push('/challenges')
+        router.push('/missions')
       })
     }
   }
@@ -500,7 +500,7 @@ async function openDetails(challenge) {
   
   // Check if user is owner - navigate to edit page
   if (isChallengeOwner(challenge.owner)) {
-    router.push(`/challenges/edit/${challenge._id}`)
+    router.push(`/missions/edit/${challenge._id}`)
     return
   }
   
@@ -519,7 +519,7 @@ async function openDetails(challenge) {
   
   // Update route if not already set to this challenge
   if (route.params.id !== challenge._id) {
-    router.push(`/challenges/${challenge._id}`).finally(() => {
+    router.push(`/missions/${challenge._id}`).finally(() => {
       nextTick(() => {
         detailsDialogOpen.value = true
         isOpeningChallenge.value = false
@@ -550,6 +550,7 @@ async function handleDialogSave(formData) {
       }
     }
     detailsDialogOpen.value = false
+    router.push('/')
   } catch (error) {
     saveError.value = error.response?.data?.message || t('notifications.updateError')
   } finally {

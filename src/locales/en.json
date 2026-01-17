@@ -84,7 +84,12 @@
         "title": "🎉 All Done, {name}!",
         "motivational": "Every small step forward is a victory. Keep going!"
       },
-      "generateCompletionImage": "Generate Completion Image"
+      "generateCompletionImage": "Generate Completion Image",
+      "completionDialog": {
+        "title": "Congratulations!",
+        "message": "You've completed all your daily missions! Generate a victory card to celebrate.",
+        "close": "Maybe later"
+      }
     }
   },
   "common": {
