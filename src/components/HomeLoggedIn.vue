@@ -117,6 +117,17 @@
 >
   <v-card class="completion-dialog-card overflow-visible">
     <div class="glow-bg"></div>
+    
+    <!-- Close button (X) -->
+    <v-btn
+      icon
+      variant="text"
+      @click="closeCompletionDialog"
+      class="dialog-close-btn"
+      size="small"
+    >
+      <v-icon color="white">mdi-close</v-icon>
+    </v-btn>
 
     <v-card-text class="text-center pa-8 pt-12">
       <div class="completion-icon-wrapper mb-6">
@@ -143,15 +154,6 @@
       >
         <v-icon left class="mr-2">mdi-share-variant</v-icon>
         {{ t('home.loggedIn.generateCompletionImage') }}
-      </v-btn>
-
-      <v-btn
-        variant="text"
-        @click="showCompletionDialog = false"
-        class="close-button text-none"
-        ripple="false"
-      >
-        {{ t('home.loggedIn.completionDialog.close') }}
       </v-btn>
     </v-card-text>
   </v-card>
@@ -624,12 +626,55 @@ async function tryAwardDailyBonusXp() {
   }
 }
 
+// Check if dialog was dismissed today
+function getDismissalKey() {
+  const todayStr = new Date().toISOString().slice(0, 10) // UTC YYYY-MM-DD
+  return `completion_dialog_dismissed_${todayStr}`
+}
+
+function hasDismissedToday() {
+  try {
+    return localStorage.getItem(getDismissalKey()) === 'true'
+  } catch {
+    return false
+  }
+}
+
+function dismissDialogToday() {
+  try {
+    localStorage.setItem(getDismissalKey(), 'true')
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function closeCompletionDialog() {
+  dismissDialogToday()
+  showCompletionDialog.value = false
+  hasShownCompletionDialog.value = true
+}
+
 // Function to check and show completion dialog
 function checkAndShowCompletionDialog() {
+  // Don't show if dismissed today
+  if (hasDismissedToday()) {
+    return
+  }
   // Strict verification: all items must be completed
   const completed = completedItems.value
   const total = totalItems.value
   const allCompleted = total > 0 && completed === total
+  
+  console.log('checkAndShowCompletionDialog:', {
+    completed,
+    total,
+    allCompleted,
+    isAllCompleted: isAllCompleted.value,
+    initialDataLoading: initialDataLoading.value,
+    checklistLoading: checklistLoading.value,
+    hasShownCompletionDialog: hasShownCompletionDialog.value,
+    dismissedToday: hasDismissedToday()
+  })
   
   // Additional checks
   if (
@@ -638,13 +683,15 @@ function checkAndShowCompletionDialog() {
     allCompleted &&
     isAllCompleted.value &&
     total > 0 &&
-    !hasShownCompletionDialog.value
+    !hasShownCompletionDialog.value &&
+    !hasDismissedToday()
   ) {
     setTimeout(() => {
       // Final check before showing
       const finalCompleted = completedItems.value
       const finalTotal = totalItems.value
-      if (finalTotal > 0 && finalCompleted === finalTotal && isAllCompleted.value) {
+      if (finalTotal > 0 && finalCompleted === finalTotal && isAllCompleted.value && !hasDismissedToday()) {
+        console.log('Showing completion dialog!')
         showCompletionDialog.value = true
         hasShownCompletionDialog.value = true
       }
@@ -656,35 +703,53 @@ watch(isAllCompleted, (val, oldVal) => {
   if (val) {
     tryAwardDailyBonusXp()
     // Show completion dialog when all tasks are completed (only once per completion)
-    // Only show if transitioning from incomplete to complete
-    if (oldVal === false) {
+    // Only show if transitioning from incomplete to complete and not dismissed today
+    if (oldVal === false && !hasDismissedToday()) {
       // Wait for next tick to ensure all computed values are updated
       nextTick(() => {
         const completed = completedItems.value
         const total = totalItems.value
         // Strict check: completed must equal total and both must be > 0
-        if (total > 0 && completed === total && completed === totalItems.value) {
+        if (total > 0 && completed === total && completed === totalItems.value && !hasDismissedToday()) {
           checkAndShowCompletionDialog()
         }
       })
     }
   } else {
-    // Close dialog and reset flag when tasks become incomplete
+    // Close dialog and reset flag when tasks become incomplete (but not if dismissed today)
     if (showCompletionDialog.value) {
       showCompletionDialog.value = false
     }
-    hasShownCompletionDialog.value = false
+    if (!hasDismissedToday()) {
+      hasShownCompletionDialog.value = false
+    }
   }
 }, { immediate: false })
 
 // Watch completion state and close dialog if tasks become incomplete
-watch([completedItems, totalItems], ([completed, total]) => {
+watch([completedItems, totalItems], ([completed, total], [oldCompleted, oldTotal]) => {
   // If dialog is open but tasks are no longer all completed, close it immediately
   if (showCompletionDialog.value) {
     if (total === 0 || completed !== total) {
       showCompletionDialog.value = false
       hasShownCompletionDialog.value = false
     }
+  }
+  
+  // Check if we just completed all tasks (transition from incomplete to complete)
+  const wasCompleted = oldTotal > 0 && oldCompleted === oldTotal
+  const isNowCompleted = total > 0 && completed === total
+  
+  if (!wasCompleted && isNowCompleted && !initialDataLoading.value && !checklistLoading.value && !hasShownCompletionDialog.value && !hasDismissedToday()) {
+    // User just completed all tasks - show dialog
+    setTimeout(() => {
+      checkAndShowCompletionDialog()
+    }, 500)
+  }
+  
+  // Reset flag when tasks become incomplete so dialog can show again (but not if dismissed today)
+  if (wasCompleted && !isNowCompleted && !hasDismissedToday()) {
+    hasShownCompletionDialog.value = false
   }
 })
 
@@ -769,6 +834,12 @@ watch(checklistRef, () => {
 // Watch for checklist updates
 watch(() => checklistRef.value?.completedSteps, () => {
   updateChecklistLoading()
+  // Check if we should show completion dialog after checklist update
+  nextTick(() => {
+    if (isAllCompleted.value && !hasShownCompletionDialog.value && !hasDismissedToday()) {
+      checkAndShowCompletionDialog()
+    }
+  })
 })
 
 watch(() => checklistRef.value?.loading, (newVal) => {
@@ -786,6 +857,12 @@ onMounted(() => {
     calculateStreak()
     nextTick(() => {
       updateChecklistLoading()
+      // Check if we should show completion dialog after checklist update
+      if (isAllCompleted.value && !hasShownCompletionDialog.value && !hasDismissedToday()) {
+        setTimeout(() => {
+          checkAndShowCompletionDialog()
+        }, 500)
+      }
     })
   })
   window.addEventListener('challenge-updated', () => {
@@ -795,6 +872,14 @@ onMounted(() => {
   window.addEventListener('challenge-completed', () => {
     loadTodaysChallenges()
     calculateStreak()
+    // Check if we should show completion dialog after challenge completion
+    nextTick(() => {
+      if (isAllCompleted.value && !hasShownCompletionDialog.value && !hasDismissedToday()) {
+        setTimeout(() => {
+          checkAndShowCompletionDialog()
+        }, 500)
+      }
+    })
   })
   window.addEventListener('participant-completed-days-updated', () => {
     loadTodaysChallenges()
@@ -822,7 +907,10 @@ watch(() => route.path, (newPath) => {
 })
 
 async function generateCompletionImage() {
+  // Dismiss dialog for today when user generates image
+  dismissDialogToday()
   showCompletionDialog.value = false
+  hasShownCompletionDialog.value = true
   generatingImage.value = true
   try {
     await nextTick()
@@ -943,7 +1031,7 @@ async function generateCompletionImage() {
 
     const allItems = [
       ...todaysChallenges.value.map(c => c.title),
-      ...(checklistRef.value?.steps?.filter(s => s.completed).map(s => s.text) || [])
+      ...(checklistRef.value?.todaySteps?.filter(s => s.done).map(s => s.title) || [])
     ]
 
     allItems.forEach(taskText => {
@@ -1621,15 +1709,20 @@ onBeforeUnmount(() => {
   filter: brightness(1.1);
 }
 
-/* Кнопка закрытия */
-.close-button {
-  color: rgba(255, 255, 255, 0.5) !important;
-  font-weight: 600;
-  margin-top: 8px;
+/* Кнопка закрытия (X) в правом верхнем углу */
+.dialog-close-btn {
+  position: absolute !important;
+  top: 16px !important;
+  right: 16px !important;
+  z-index: 10 !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+  transition: all 0.3s ease !important;
 }
 
-.close-button:hover {
-  color: #F4A782 !important; /* Подсвечиваем персиком при наведении */
+.dialog-close-btn:hover {
+  color: #FFFFFF !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  transform: scale(1.1);
 }
 
 /* Анимация парения */

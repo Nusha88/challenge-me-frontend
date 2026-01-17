@@ -98,7 +98,8 @@ defineExpose({
   completedSteps,
   totalSteps,
   progressPercentage,
-  loading
+  loading,
+  todaySteps // Expose steps for image generation
 })
 
 const loadTodaySteps = async () => {

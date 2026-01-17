@@ -465,7 +465,7 @@ watch(() => route.path, () => {
     <!-- FAB Button for Mobile -->
     <v-btn
       v-if="isLoggedIn"
-      to="/challenges/add"
+      to="/missions/add"
       class="fab-button d-md-none"
       color="primary"
       icon="mdi-plus"
@@ -682,7 +682,7 @@ watch(() => route.path, () => {
 
         <v-list-item
           :active="currentRoute === 'my-challenges'"
-          to="/challenges/my"
+          to="/missions/my"
           color="primary"
           @click="drawerOpen = false"
         >
@@ -714,7 +714,7 @@ watch(() => route.path, () => {
 
         <v-list-item
           :active="currentRoute === 'challenges'"
-          to="/challenges"
+          to="/missions"
           color="primary"
           @click="drawerOpen = false"
         >
@@ -726,7 +726,7 @@ watch(() => route.path, () => {
 
         <v-list-item
           :active="currentRoute === 'watched-challenges'"
-          to="/challenges/watched"
+          to="/missions/watched"
           color="primary"
           @click="drawerOpen = false"
         >
@@ -738,7 +738,7 @@ watch(() => route.path, () => {
 
         <v-list-item
           :active="currentRoute === 'users'"
-          to="/users"
+          to="/heroes"
           color="primary"
           @click="drawerOpen = false"
         >
