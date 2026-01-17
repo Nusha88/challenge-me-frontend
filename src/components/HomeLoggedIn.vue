@@ -9,12 +9,21 @@
   </div>
   <div v-else class="home-logged-in-container">
     <div class="greeting-section">
-      <h1 class="greeting-title">
-        <span class="greeting-text">{{ t('home.loggedIn.greeting', { name: userName }) }}</span>
-        <span class="wave-icon">👋</span>
-      </h1>
-      <p v-if="!hasTodayCompletedTasks" class="motivational-text">{{ dailyMotivationalMessage }}</p>
-      <p v-else class="motivational-text">{{ dailyMotivationalMessageCompleted }}</p>
+      <div class="greeting-content">
+        <h1 class="greeting-title">
+          <span class="greeting-text">{{ t('home.loggedIn.greeting', { name: userName }) }}</span>
+          <span class="wave-icon">👋</span>
+        </h1>
+        <p v-if="!hasTodayCompletedTasks" class="motivational-text">{{ dailyMotivationalMessage }}</p>
+        <p v-else class="motivational-text">{{ dailyMotivationalMessageCompleted }}</p>
+        <button class="inspiration-btn" @click="showInspiration">
+          <Sparkles :size="16" class="inspiration-btn-icon" />
+          {{ t('home.loggedIn.needInspiration') }}
+        </button>
+      </div>
+      <div class="greeting-image">
+        <img src="@/assets/roket.png" alt="Rocket" class="rocket-img" />
+      </div>
     </div>
     
     <!-- Debug: Always show if yesterdayStreakDays > 0 -->
@@ -72,8 +81,21 @@
         </v-card-text>
       </v-card>
       
+      <!-- Empty State for Daily Missions -->
+      <v-card v-else class="todays-card todays-challenges-card">
+        <v-card-text>
+          <div class="todays-challenges-section">
+            <h3 class="section-subtitle">{{ t('home.loggedIn.todaysChallenges') }}</h3>
+            <div class="empty-missions-container">
+              <img src="@/assets/treasure.png" class="empty-icon" alt="Treasure">
+              <p class="empty-text-sub" v-html="t('home.loggedIn.emptyMissions.text')"></p>
+            </div>
+          </div>
+        </v-card-text>
+      </v-card>
+      
       <!-- Today's Checklist Card -->
-      <v-card class="todays-card todays-checklist-card checklist-card">
+      <v-card class="todays-card todays-checklist-card checklist-card" :class="{ 'checklist-card-empty': checklistTotalSteps === 0 }">
         <v-card-text>
           <div class="todays-checklist-section">
             <h3 class="section-subtitle">{{ t('home.loggedIn.dailyChecklist.title') }}</h3>
@@ -105,6 +127,7 @@ import { ref, computed, onMounted, onBeforeUnmount, onActivated, watch, nextTick
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import html2canvas from 'html2canvas'
+import { Sparkles } from 'lucide-vue-next'
 import DailyChecklist from './DailyChecklist.vue'
 import { userService, challengeService } from '../services/api'
 import motivationalMessagesEn from '../data/motivationalMessages.en.json'
@@ -470,6 +493,11 @@ function navigateToChallenge(challenge) {
   }
 }
 
+function showInspiration() {
+  // Navigate to explore page to see all challenges
+  router.push('/challenges')
+}
+
 const todaysChallenges = computed(() => {
   return challenges.value
 })
@@ -758,10 +786,7 @@ async function generateCompletionImage() {
       challengesSection.style.marginBottom = '30px'
       
       const challengesTitle = document.createElement('h2')
-      let challengesText = t('home.loggedIn.todaysChallenges')
-      // Force space after "Today's" - handle both "Today'sChallenges" and "Today's Challenges"
-      challengesText = challengesText.replace(/Today's([A-Z])/g, "Today's $1")
-      challengesTitle.textContent = challengesText
+      challengesTitle.textContent = t('home.loggedIn.todaysChallenges')
       // Set explicit letter-spacing to prevent space collapse
       challengesTitle.style.letterSpacing = 'normal'
       challengesTitle.style.fontSize = '24px'
@@ -806,10 +831,7 @@ async function generateCompletionImage() {
       const checklistSection = document.createElement('div')
       
       const checklistTitle = document.createElement('h2')
-      let checklistText = t('home.loggedIn.dailyChecklist.title')
-      // Force space after "Today's" - handle both "Today'sChecklist" and "Today's Checklist"
-      checklistText = checklistText.replace(/Today's([A-Z])/g, "Today's $1")
-      checklistTitle.textContent = checklistText
+      checklistTitle.textContent = t('home.loggedIn.dailyChecklist.title')
       // Set explicit letter-spacing to prevent space collapse
       checklistTitle.style.letterSpacing = 'normal'
       checklistTitle.style.fontSize = '24px'
@@ -958,22 +980,51 @@ onBeforeUnmount(() => {
 
 .greeting-section {
   width: 100%;
-  max-width: 800px;
   margin-bottom: 2rem;
-  text-align: left;
   display: flex;
-  flex-direction: column;
-  gap: 0.75em;
-  align-self: flex-start;
+  flex-direction: row;
+  gap: 2rem;
+  align-items: center;
+}
+
+.greeting-content {
+  flex: 1;
+  text-align: left;
   padding-left: 20px;
-  /* Градиентная линия через border-image */
   border-left: 4px solid;
   border-image: linear-gradient(to bottom, #7048E8, rgba(112, 72, 232, 0)) 1;
+}
+
+.greeting-image {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rocket-img {
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
 }
 
 @media (max-width: 959px) {
   .greeting-section {
     margin-bottom: 0;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .greeting-content {
+    width: 100%;
+  }
+  
+  .greeting-image {
+    width: 100%;
+  }
+  
+  .rocket-img {
+    max-width: 200px;
   }
 }
 
@@ -1044,7 +1095,6 @@ onBeforeUnmount(() => {
   color: #636E72;
   line-height: 1.4;
   font-style: italic;
-  max-width: 400px;
   margin: 0;
 }
 
@@ -1064,6 +1114,48 @@ onBeforeUnmount(() => {
   .motivational-text {
     font-size: 1.35rem;
   }
+}
+
+.inspiration-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  margin-top: 12px;
+  
+  /* Цвета и шрифт */
+  background: rgba(112, 72, 232, 0.05);
+  color: #7048E8;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  
+  /* Пунктирная граница создает ощущение "скрытого" или "нового" контента */
+  border: 1.5px dashed rgba(112, 72, 232, 0.3);
+  border-radius: 12px;
+  
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.inspiration-btn:hover {
+  background: rgba(112, 72, 232, 0.1);
+  border-color: #7048E8;
+  transform: translateY(-2px);
+  
+  /* Мягкое фиолетовое свечение */
+  box-shadow: 0 4px 12px rgba(112, 72, 232, 0.15);
+}
+
+/* Иконка внутри (если используешь Lucide Sparkles) */
+.inspiration-btn-icon {
+  opacity: 0.8;
+  transition: transform 0.3s ease;
+}
+
+.inspiration-btn:hover .inspiration-btn-icon {
+  transform: rotate(15deg) scale(1.1);
+  opacity: 1;
 }
 
 .streak-display-mobile {
@@ -1151,6 +1243,26 @@ onBeforeUnmount(() => {
   border-radius: 24px !important;
   border: 1px solid rgba(0, 163, 255, 0.08) !important; /* Легкий голубой оттенок для отличия */
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02) !important;
+}
+
+.checklist-card-empty {
+  background: #ffffff !important;
+  border: 2px dashed rgba(112, 72, 232, 0.2) !important; /* Светло-фиолетовый пунктир */
+  border-radius: 24px !important;
+  padding: 24px !important;
+  width: 100% !important;
+  max-width: 400px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+  position: relative !important;
+  transition: all 0.3s ease !important;
+  box-shadow: none !important;
+}
+
+.checklist-card-empty:hover {
+  border-color: rgba(112, 72, 232, 0.4) !important;
+  background: rgba(112, 72, 232, 0.01) !important;
 }
 
 @media (max-width: 959px) {
@@ -1297,6 +1409,32 @@ onBeforeUnmount(() => {
 .challenge-text.completed {
   text-decoration: line-through;
   color: #94A3B8; /* Приглушенный серый */
+}
+
+.empty-missions-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.empty-icon {
+  width: 140px; /* Размер сундука */
+  margin-bottom: 20px;
+  filter: drop-shadow(0 10px 15px rgba(112, 72, 232, 0.1));
+}
+
+.empty-text-sub {
+  color: #94A3B8; /* Мягкий серый цвет */
+  font-size: 0.85rem;
+  max-width: 250px;
+  line-height: 1.5;
+}
+
+.empty-text-sub strong {
+  color: #7048E8; /* Выделяем название кнопки твоим фирменным цветом */
 }
 
 .completion-celebration {

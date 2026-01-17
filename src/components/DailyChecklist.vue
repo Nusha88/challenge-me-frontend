@@ -4,6 +4,7 @@
     <v-alert v-if="error" type="error" class="mb-4" density="compact">{{ error }}</v-alert>
     
     <div v-if="!loading && todaySteps.length === 0" class="empty-state">
+      <Footprints :size="24" class="empty-state-icon" />
       {{ t('home.loggedIn.dailyChecklist.empty') }}
     </div>
     <div v-else-if="!loading" class="checklist-list">
@@ -62,7 +63,7 @@ import { ref, computed, onMounted, defineExpose } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useDisplay } from 'vuetify'
 import { userService } from '../services/api'
-import { Plus, Trash2 } from 'lucide-vue-next'
+import { Plus, Trash2, Footprints } from 'lucide-vue-next'
 
 const props = defineProps({
   hideAddStep: {
@@ -305,5 +306,14 @@ onMounted(() => {
   padding-top: 40px;
   font-style: italic;
   min-height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.empty-state-icon {
+  color: #94A3B8;
+  opacity: 0.7;
 }
 </style>

@@ -53,10 +53,14 @@
       "greeting": "Hello, {name}",
       "motivational": "You're already closer to your goal than yesterday",
       "today": "Today",
-      "todaysChallenges": "Today's Challenges",
+      "todaysChallenges": "Daily Missions",
+      "needInspiration": "Need inspiration? Explore example missions",
+      "emptyMissions": {
+        "text": "Your path is not yet defined. Click <strong>'Start Mission'</strong> to unlock experience treasures!"
+      },
       "dailyChecklist": {
-        "title": "Today's Checklist",
-        "empty": "No steps added yet. Add your first step!",
+        "title": "Daily Steps",
+        "empty": "Write down your first tiny action for today to start building momentum!",
         "addStepPlaceholder": "Enter a step...",
         "addStep": "Add Step",
         "deleteStep": "Delete step",
