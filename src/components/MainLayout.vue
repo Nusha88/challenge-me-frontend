@@ -8,8 +8,8 @@ import NotificationsComponent from './NotificationsComponent.vue'
 import { notificationService, userService, challengeService } from '../services/api'
 import { initializePushNotifications, syncPushSubscriptionToServer } from '../utils/pushNotifications'
 import { getLevelFromXp, getXpForLevel, getXpForNextLevel, getLevelName } from '../utils/levelSystem'
-import { Sparkles, Mountain, BookOpen, Compass, Eye, Trophy, Star, Globe2, Coins } from 'lucide-vue-next'
-import logo2Image from '../assets/logo2.png'
+import { Sparkles, Mountain, BookOpen, Compass, Eye, Trophy, Star, Globe2, Coins, LogOut } from 'lucide-vue-next'
+import awaImage from '../assets/awa.png'
 
 const router = useRouter()
 const route = useRoute()
@@ -61,6 +61,8 @@ const xpForCurrentLevel = computed(() => getXpForLevel(userLevel.value))
 const xpForNextLevel = computed(() => getXpForNextLevel(userLevel.value))
 const xpProgress = computed(() => Math.max(0, userXp.value - xpForCurrentLevel.value))
 const xpNeeded = computed(() => Math.max(0, xpForNextLevel.value - userXp.value))
+const xpDisplayCurrent = computed(() => userXp.value)
+const xpDisplayNeeded = computed(() => xpForNextLevel.value)
 const levelProgressPercentage = computed(() => {
   const range = xpForNextLevel.value - xpForCurrentLevel.value
   if (range <= 0) return 100
@@ -381,90 +383,97 @@ watch(() => route.path, () => {
 <template>
   <v-app>
     <v-app-bar class="app-bar-custom" elevation="0" :fixed="false">
-      <v-app-bar-nav-icon
-        v-if="isLoggedIn"
-        @click="toggleDrawer"
-        class="d-md-none"
-      ></v-app-bar-nav-icon>
-      <router-link 
-        to="/" 
-        class="brand-link"
-        :class="{ 'hide-on-mobile-logged-in': isLoggedIn }"
-      >
-        <img :src="logo2Image" alt="Awa" class="brand-logo" />
-        <span class="brand-title">Awa</span>
-      </router-link>
-      <div class="add-button-mobile-wrapper d-md-none">
-        <v-btn
-          v-if="isLoggedIn"
-          to="/challenges/add"
-          variant="elevated"
-          size="large"
-          class="cta-button"
-          prepend-icon="mdi-plus-circle"
-        >
-          {{ t('navigation.addChallenge') }}
-        </v-btn>
+      <div class="header-content-wrapper">
+        <!-- Left Section: Streak Button -->
+        <div class="header-section header-left">
+          <v-app-bar-nav-icon
+            v-if="isLoggedIn"
+            @click="toggleDrawer"
+            class="d-md-none"
+          ></v-app-bar-nav-icon>
+          <div
+            v-if="isLoggedIn && (displayStreakDays > 0 || (!hasTodayCompletedTasks && yesterdayStreakDays > 0))"
+            class="streak-button d-none d-md-inline-flex"
+            :class="{ 'streak-yesterday': !hasTodayCompletedTasks && yesterdayStreakDays > 0 }"
+          >
+            <i class="mdi mdi-fire"></i>
+            <span>{{ (!hasTodayCompletedTasks && yesterdayStreakDays > 0) ? yesterdayStreakDays : displayStreakDays }} {{ streakDaysText }}</span>
+          </div>
+        </div>
+        
+        <!-- Center Section: Logo -->
+        <div class="header-section header-center">
+          <router-link 
+            to="/" 
+            class="brand-link"
+          >
+            <img :src="awaImage" alt="Awa" class="brand-logo" />
+          </router-link>
+        </div>
+        
+        <!-- Right Section: Buttons -->
+        <div class="header-section header-right">
+          <v-btn
+            v-if="!isLoggedIn && route.path !== '/register'"
+            to="/register"
+            variant="elevated"
+            class="mr-2 sign-up-button"
+            style="color: white;"
+          >
+            {{ t('navigation.register') }}
+          </v-btn>
+          <v-btn
+            v-if="!isLoggedIn && route.path !== '/login'"
+            to="/login"
+            variant="outlined"
+            class="mr-2 login-button"
+            style="border-color: #3C60E8; color: #3C60E8; border-width: 2px;"
+          >
+            {{ t('navigation.login') }}
+          </v-btn>
+          <v-btn
+            v-if="isLoggedIn"
+            to="/challenges/add"
+            variant="elevated"
+            size="large"
+            class="mr-2 cta-button d-none d-md-inline-flex"
+            prepend-icon="mdi-plus-circle"
+          >
+            {{ t('navigation.addChallenge') }}
+          </v-btn>
+          <v-btn
+            v-if="isLoggedIn"
+            variant="text"
+            class="mr-2 notification-button"
+            style="color: rgba(0, 0, 0, 0.87); position: relative;"
+            @click="openNotifications"
+          >
+            <v-icon>mdi-bell</v-icon>
+            <v-badge
+              v-if="unreadNotificationCount > 0"
+              :content="unreadNotificationCount > 99 ? '99+' : unreadNotificationCount"
+              color="error"
+              overlap
+              class="notification-badge"
+            >
+            </v-badge>
+          </v-btn>
+        </div>
       </div>
-      <v-spacer></v-spacer>
-      <v-btn
-        v-if="!isLoggedIn && route.path !== '/register'"
-        to="/register"
-        variant="elevated"
-        class="mr-2 sign-up-button"
-        style="color: white;"
-      >
-        {{ t('navigation.register') }}
-      </v-btn>
-      <v-btn
-        v-if="!isLoggedIn && route.path !== '/login'"
-        to="/login"
-        variant="outlined"
-        class="mr-2 login-button"
-        style="border-color: #3C60E8; color: #3C60E8; border-width: 2px;"
-      >
-        {{ t('navigation.login') }}
-      </v-btn>
-      <div
-        v-if="isLoggedIn && (displayStreakDays > 0 || (!hasTodayCompletedTasks && yesterdayStreakDays > 0))"
-        class="mr-4 streak-button d-none d-md-inline-flex"
-        :class="{ 'streak-yesterday': !hasTodayCompletedTasks && yesterdayStreakDays > 0 }"
-      >
-        <i class="mdi mdi-fire"></i>
-        <span>{{ (!hasTodayCompletedTasks && yesterdayStreakDays > 0) ? yesterdayStreakDays : displayStreakDays }} {{ streakDaysText }}</span>
-      </div>
-      <div
-        v-if="isLoggedIn && (displayStreakDays > 0 || (!hasTodayCompletedTasks && yesterdayStreakDays > 0))"
-        class="streak-divider mr-4 d-none d-md-inline-flex"
-      ></div>
-      <v-btn
-        v-if="isLoggedIn"
-        to="/challenges/add"
-        variant="elevated"
-        size="large"
-        class="mr-2 cta-button d-none d-md-inline-flex"
-        prepend-icon="mdi-plus-circle"
-      >
-        {{ t('navigation.addChallenge') }}
-      </v-btn>
-      <v-btn
-        v-if="isLoggedIn"
-        variant="text"
-        class="mr-2 d-none d-md-inline-flex notification-button"
-        style="color: rgba(0, 0, 0, 0.87); position: relative;"
-        @click="openNotifications"
-      >
-        <v-icon>mdi-bell</v-icon>
-        <v-badge
-          v-if="unreadNotificationCount > 0"
-          :content="unreadNotificationCount > 99 ? '99+' : unreadNotificationCount"
-          color="error"
-          overlap
-          class="notification-badge"
-        >
-        </v-badge>
-      </v-btn>
     </v-app-bar>
+
+    <!-- FAB Button for Mobile -->
+    <v-btn
+      v-if="isLoggedIn"
+      to="/challenges/add"
+      class="fab-button d-md-none"
+      color="primary"
+      icon="mdi-plus"
+      size="large"
+      location="bottom end"
+      app
+    >
+    </v-btn>
 
     <v-main :class="['main-content', { 'public-view': !isLoggedIn, 'with-sidebar': isLoggedIn }]">
       <div class="main-content-wrapper">
@@ -478,7 +487,7 @@ watch(() => route.path, () => {
             <v-list>
               <!-- User Section -->
               <div class="sidebar-user-section pa-3">
-                <div class="d-flex align-center mb-3">
+                <div class="d-flex align-center mb-3 sidebar-user-clickable" @click="router.push('/profile')">
                   <v-avatar size="40" class="sidebar-avatar mr-3">
                     <v-img v-if="userAvatarUrl" :src="userAvatarUrl" :alt="userName || ''" cover></v-img>
                     <span v-else class="sidebar-avatar-initials">{{ getUserInitials(userName) }}</span>
@@ -498,7 +507,7 @@ watch(() => route.path, () => {
                 ></v-progress-linear>
 
                 <div class="d-flex justify-space-between align-center">
-                  <span class="text-caption">{{ xpProgress }} / {{ xpNeeded }} {{ t('navigation.xp') }}</span>
+                  <span class="text-caption">{{ xpDisplayCurrent }} / {{ xpDisplayNeeded }} {{ t('navigation.xp') }}</span>
                   <div class="d-flex align-center">
                     <span class="text-caption mr-1">0</span>
                     <Coins :size="16" style="color: #2E2A47;" />
@@ -591,25 +600,16 @@ watch(() => route.path, () => {
               <v-divider class="my-2"></v-divider>
 
               <v-list-item
-                :active="currentRoute === 'profile'"
-                to="/profile"
-                color="primary"
-              >
-                <v-list-item-title>{{ t('navigation.profile') }}</v-list-item-title>
-              </v-list-item>
-
-            </v-list>
-            
-            <!-- Logout Button - Sticky at Bottom -->
-            <div class="sidebar-logout-section">
-              <v-divider class="mb-2"></v-divider>
-              <v-list-item
                 class="logout-item"
                 @click="logout"
               >
+                <template v-slot:prepend>
+                  <LogOut :size="20" class="logout-icon sidebar-lucide-icon mr-2" />
+                </template>
                 <v-list-item-title class="logout-text">{{ t('navigation.logout') }}</v-list-item-title>
               </v-list-item>
-            </div>
+
+            </v-list>
           </div>
         </v-navigation-drawer>
 
@@ -632,7 +632,7 @@ watch(() => route.path, () => {
         <v-list>
         <!-- User Section -->
         <div class="sidebar-user-section pa-3">
-          <div class="d-flex align-center mb-3">
+          <div class="d-flex align-center mb-3 sidebar-user-clickable" @click="router.push('/profile'); drawerOpen = false">
             <v-avatar size="40" class="sidebar-avatar mr-3">
               <v-img v-if="userAvatarUrl" :src="userAvatarUrl" :alt="userName || ''" cover></v-img>
               <span v-else class="sidebar-avatar-initials">{{ getUserInitials(userName) }}</span>
@@ -652,7 +652,7 @@ watch(() => route.path, () => {
           ></v-progress-linear>
 
           <div class="d-flex justify-space-between align-center">
-            <span class="text-caption">{{ xpProgress }} / {{ xpNeeded }} {{ t('navigation.xp') }}</span>
+            <span class="text-caption">{{ xpDisplayCurrent }} / {{ xpDisplayNeeded }} {{ t('navigation.xp') }}</span>
             <div class="d-flex align-center">
               <span class="text-caption mr-1">0</span>
               <Coins :size="16" style="color: #2E2A47;" />
@@ -751,47 +751,16 @@ watch(() => route.path, () => {
         <v-divider class="my-2"></v-divider>
 
         <v-list-item
-          :active="currentRoute === 'profile'"
-          to="/profile"
-          color="primary"
-          @click="drawerOpen = false"
-        >
-          <v-list-item-title>{{ t('navigation.profile') }}</v-list-item-title>
-        </v-list-item>
-
-        <v-divider class="my-2"></v-divider>
-
-        <v-list-item
-          color="primary"
-          @click="openNotifications(); drawerOpen = false"
+          class="logout-item"
+          @click="logout(); drawerOpen = false"
         >
           <template v-slot:prepend>
-            <v-icon icon="mdi-bell"></v-icon>
+            <LogOut :size="20" class="logout-icon sidebar-lucide-icon mr-2" />
           </template>
-          <v-list-item-title>{{ t('notifications.title') }}</v-list-item-title>
-          <template v-slot:append>
-            <v-chip
-              v-if="unreadNotificationCount > 0"
-              color="error"
-              size="small"
-            >
-              {{ unreadNotificationCount > 99 ? '99+' : unreadNotificationCount }}
-            </v-chip>
-          </template>
+          <v-list-item-title class="logout-text">{{ t('navigation.logout') }}</v-list-item-title>
         </v-list-item>
 
         </v-list>
-        
-        <!-- Logout Button - Sticky at Bottom -->
-        <div class="sidebar-logout-section">
-          <v-divider class="mb-2"></v-divider>
-          <v-list-item
-            class="logout-item"
-            @click="logout(); drawerOpen = false"
-          >
-            <v-list-item-title class="logout-text">{{ t('navigation.logout') }}</v-list-item-title>
-          </v-list-item>
-        </div>
       </div>
     </v-navigation-drawer>
 
@@ -844,15 +813,20 @@ watch(() => route.path, () => {
 .desktop-sidebar {
   position: relative;
   flex-shrink: 0;
-  height: auto;
+  height: 100vh;
   z-index: 1;
   margin-top: 0;
   padding-top: 0;
-  top: 0;
+  top: 0 !important;
   width: auto;
-  background-color: #F4F0FF !important;
+  background-color: #F9F9FB !important;
   border: none !important;
+  border-right: 1px solid rgba(112, 72, 232, 0.05) !important;
   color: #2E2A47;
+}
+
+.desktop-sidebar :deep(.v-navigation-drawer) {
+  top: 0 !important;
 }
 
 .desktop-sidebar :deep(.v-list) {
@@ -861,7 +835,7 @@ watch(() => route.path, () => {
 
 .desktop-sidebar :deep(.v-navigation-drawer__content) {
   padding-top: 0;
-  background-color: #F4F0FF !important;
+  background-color: #F9F9FB !important;
   color: #2E2A47;
   display: flex;
   flex-direction: column;
@@ -870,7 +844,7 @@ watch(() => route.path, () => {
 
 .desktop-sidebar :deep(.v-navigation-drawer__prepend),
 .desktop-sidebar :deep(.v-navigation-drawer__append) {
-  background-color: #F4F0FF !important;
+  background-color: #F9F9FB !important;
 }
 
 .desktop-sidebar :deep(.v-navigation-drawer__border) {
@@ -879,12 +853,12 @@ watch(() => route.path, () => {
 
 .mobile-drawer {
   z-index: 2000;
-  background-color: #F4F0FF !important;
+  background-color: #F9F9FB !important;
   color: #2E2A47;
 }
 
 .mobile-drawer :deep(.v-navigation-drawer__content) {
-  background-color: #F4F0FF !important;
+  background-color: #F9F9FB !important;
   color: #2E2A47;
 }
 
@@ -986,21 +960,11 @@ watch(() => route.path, () => {
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.v-list-item:hover::before {
-  transform: scaleY(1);
-}
-
-.v-list-item:hover {
-  background-color: rgba(124, 77, 255, 0.1) !important;
-  transform: translateX(4px);
-  box-shadow: 0 2px 8px rgba(124, 77, 255, 0.2);
-}
-
 .v-list-item :deep(.v-list-item__prepend) {
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.v-list-item:hover :deep(.v-list-item__prepend) {
+.v-list-item:not(.v-list-item--active):not(.active):hover :deep(.v-list-item__prepend) {
   transform: scale(1.1);
 }
 
@@ -1009,7 +973,7 @@ watch(() => route.path, () => {
   color: #2E2A47;
 }
 
-.v-list-item:hover :deep(.v-icon) {
+.v-list-item:not(.v-list-item--active):not(.active):hover :deep(.v-icon) {
   transform: scale(1.15) rotate(5deg);
   color: #7C4DFF;
 }
@@ -1023,30 +987,66 @@ watch(() => route.path, () => {
   color: #2E2A47;
 }
 
-.v-list-item:hover :deep(.v-list-item-title) {
-  color: #7C4DFF;
-  transform: translateX(2px);
+/* Базовый стиль для всех пунктов меню в сайдбаре */
+.v-list-item {
+  margin: 4px 12px !important; /* Отступы, чтобы пункты не прилипали к краям */
+  border-radius: 12px !important;
+  transition: all 0.3s ease !important;
+  border: 1px solid transparent; /* Подготовка для hover-эффекта */
 }
 
+/* СТИЛЬ АКТИВНОГО ПУНКТА (например, Today) */
+.v-list-item--active,
 .v-list-item.active {
-  background: linear-gradient(90deg, #7C4DFF, #536DFE) !important;
-  color: white !important;
-  transform: translateX(4px);
-  box-shadow: 0 4px 12px rgba(124, 77, 255, 0.3);
+  /* Микро-градиент: от чисто белого к очень нежному фиолетовому */
+  background: linear-gradient(135deg, 
+    #FFFFFF 0%, 
+    rgba(112, 72, 232, 0.08) 100%
+  ) !important;
+  
+  /* Тонкая граница, чтобы пункт казался объемным */
+  border: 1px solid rgba(112, 72, 232, 0.15) !important;
+  
+  /* Мягкая тень для эффекта приподнятости */
+  box-shadow: 0 4px 15px rgba(112, 72, 232, 0.08) !important;
 }
 
-.v-list-item.active::before {
-  transform: scaleY(1);
-  background: linear-gradient(90deg, #7C4DFF, #536DFE);
-}
-
-.v-list-item.active :deep(.v-icon) {
-  transform: scale(1.1);
-  color: white !important;
-}
-
+/* Цвет иконки и текста в активном состоянии */
+.v-list-item--active .v-list-item-title,
 .v-list-item.active :deep(.v-list-item-title) {
-  color: white !important;
+  color: #7048E8 !important;
+  font-weight: 700 !important;
+}
+
+.v-list-item--active .v-icon,
+.v-list-item.active :deep(.v-icon) {
+  color: #7048E8 !important;
+  transform: scale(1.1); /* Легкое увеличение иконки */
+}
+
+/* Вертикальный индикатор (фиолетовая полоска слева) */
+.v-list-item--active::before,
+.v-list-item.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 25%;
+  height: 50%;
+  width: 4px;
+  background: #7048E8;
+  border-radius: 0 4px 4px 0;
+  opacity: 1 !important;
+  display: block !important;
+}
+
+/* Эффект при наведении на неактивные пункты */
+.v-list-item:not(.v-list-item--active):not(.active):hover {
+  background: rgba(0, 0, 0, 0.02) !important;
+  transform: translateX(4px); /* Легкий сдвиг вправо */
+}
+
+.v-list-item:not(.v-list-item--active):not(.active):hover :deep(.v-list-item-title) {
+  color: #7C4DFF;
 }
 
 .v-application {
@@ -1091,21 +1091,20 @@ watch(() => route.path, () => {
 @media (max-width: 959px) {
   .main-content {
     border-radius: 0;
-    margin-top: 64px;
     padding-top: 1em;
   }
 }
 
 .cta-button {
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  background: linear-gradient(135deg, #7048E8 0%, #9066FF 100%) !important;
+  color: white !important;
+  border-radius: 14px !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 15px rgba(112, 72, 232, 0.25) !important;
+  text-transform: none !important;
   padding-left: 24px;
   padding-right: 24px;
-  box-shadow: 0 6px 18px rgba(31, 160, 246, 0.35);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  background: linear-gradient(135deg, #1FA0F6 0%, #A62EE8 100%) !important;
-  color: white !important;
   position: relative;
   overflow: hidden;
 }
@@ -1126,7 +1125,7 @@ watch(() => route.path, () => {
 }
 
 .cta-button :deep(.v-btn__overlay) {
-  background: linear-gradient(135deg, #1FA0F6 0%, #A62EE8 100%) !important;
+  background: linear-gradient(135deg, #7048E8 0%, #9066FF 100%) !important;
   transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -1151,8 +1150,8 @@ watch(() => route.path, () => {
 
 .cta-button:hover {
   transform: translateY(-3px) scale(1.02);
-  box-shadow: 0 12px 28px rgba(31, 160, 246, 0.5);
-  background: linear-gradient(135deg, #A62EE8 0%, #1FA0F6 100%) !important;
+  box-shadow: 0 8px 20px rgba(112, 72, 232, 0.4) !important;
+  background: linear-gradient(135deg, #9066FF 0%, #7048E8 100%) !important;
 }
 
 .cta-button:hover :deep(.v-btn__content) {
@@ -1227,6 +1226,7 @@ watch(() => route.path, () => {
   display: inline-flex;
   align-items: center;
   background-color: transparent;
+  height: 100%;
 }
 
 @media (min-width: 600px) {
@@ -1247,33 +1247,40 @@ watch(() => route.path, () => {
   height: 48px;
   width: auto;
   object-fit: contain;
-  margin-right: 12px;
+  /* Увеличиваем интенсивность и радиус */
+  filter: drop-shadow(0 0 10px rgba(112, 72, 232, 0.6)) 
+          drop-shadow(0 0 20px rgba(181, 114, 255, 0.3));
+  transition: all 0.4s ease;
 }
 
-.brand-title {
-  font-family: 'Montserrat', sans-serif;
-  font-weight: 700;
-  font-size: 26px;
-  letter-spacing: -0.03em;
-  line-height: 1;
-  color: #1E293B;
+.brand-logo:hover {
+  filter: drop-shadow(0 0 15px rgba(112, 72, 232, 0.9));
+  transform: scale(1.05);
+}
+
+.brand-link-centered {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .sidebar-avatar {
-  border: 2px solid rgba(31, 160, 246, 0.2);
-  transition: border-color 0.2s ease;
+  border: 2px solid white;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  background: #7048E8; /* Цвет фона для инициалов */
+  color: white;
 }
 
 .sidebar-avatar-initials {
+  font-weight: 700;
   font-size: 14px;
-  font-weight: 600;
-  color: white;
-  background: linear-gradient(135deg, #1FA0F6 0%, #A62EE8 100%);
+  letter-spacing: 0.5px;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
   height: 100%;
+  color: white;
 }
 
 .level-progress-section {
@@ -1306,16 +1313,18 @@ watch(() => route.path, () => {
 }
 
 .level-progress-bar {
-  border: 1px solid #D0D0D0;
-  border-radius: 4px;
+  background-color: rgba(0, 0, 0, 0.05) !important; /* Цвет дорожки */
 }
 
+/* Стилизация внутренней части v-progress-linear (Vuetify) */
 .level-progress-bar :deep(.v-progress-linear__determinate) {
-  background: linear-gradient(135deg, #1FA0F6 0%, #A62EE8 100%);
+  background: linear-gradient(90deg, #7048E8 0%, #BE4BDB 100%) !important;
+  border-radius: 4px;
+  box-shadow: 0 0 8px rgba(112, 72, 232, 0.4);
 }
 
 .level-progress-bar :deep(.v-progress-linear__background) {
-  background-color: #E0E0E0;
+  background-color: rgba(0, 0, 0, 0.05) !important;
 }
 
 .app-bar-custom {
@@ -1327,6 +1336,10 @@ watch(() => route.path, () => {
   margin: 1em 1em 0 1em;
   border-radius: 16px 16px 0 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.app-bar-custom :deep(.v-toolbar__content) {
+  position: relative;
 }
 
 .app-bar-custom :deep(.v-toolbar__content) {
@@ -1509,27 +1522,30 @@ watch(() => route.path, () => {
 }
 
 .streak-button {
-  background: #FEF3E1 !important;
-  color: #FF6D00 !important;
-  border: none !important;
-  border-radius: 4px !important;
-  padding: 8px 16px !important;
-  font-size: 15px !important;
-  font-weight: 600 !important;
+  font-family: 'Montserrat', sans-serif;
+  background: linear-gradient(135deg, #FFF5F0 0%, #FFEDE3 100%);
+  color: #FF8C42;
+  border: 1px solid rgba(255, 140, 66, 0.3);
+  padding: 8px 16px;
+  border-radius: 14px;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.5px;
   display: flex !important;
   align-items: center !important;
   gap: 8px !important;
-  box-shadow: 0 4px 12px rgba(255, 109, 0, 0.3) !important;
   cursor: default !important;
   text-transform: uppercase !important;
   min-width: auto !important;
   transition: all 0.3s ease !important;
+  box-shadow: none !important;
 }
 
 .streak-button.streak-yesterday {
-  background: #E0E0E0 !important;
-  color: #757575 !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+  background: linear-gradient(135deg, #F5F5F5 0%, #E8E8E8 100%);
+  color: #757575;
+  border: 1px solid rgba(117, 117, 117, 0.3);
+  box-shadow: none !important;
 }
 
 @media (max-width: 959px) {
@@ -1559,8 +1575,68 @@ watch(() => route.path, () => {
   align-self: center;
 }
 
+.header-content-wrapper {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-section {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.header-left {
+  justify-content: flex-start;
+}
+
+.header-center {
+  justify-content: center;
+}
+
+.header-center .brand-link {
+  position: static;
+  transform: none;
+}
+
+.header-right {
+  justify-content: flex-end;
+}
+
+.app-bar-custom :deep(.v-toolbar__content) {
+  padding: 0 16px !important;
+}
+
 .app-bar-custom :deep(.v-toolbar__content) {
   background-color: transparent !important;
+  padding: 0 16px !important;
+}
+
+.header-content-wrapper {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-section {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.header-left {
+  justify-content: flex-start;
+}
+
+.header-center {
+  justify-content: center;
+}
+
+.header-right {
+  justify-content: flex-end;
 }
 
 .app-bar-custom :deep(.v-app-bar-title) {
@@ -1667,20 +1743,14 @@ watch(() => route.path, () => {
 
 /* Sidebar Section Headers */
 .sidebar-section-header {
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #BDBDBD;
-  padding: 12px 16px 8px 16px;
-  margin-top: 8px;
+  /* Styles will be applied via .v-list-subheader */
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
 .sidebar-section-header :deep(.v-list-subheader__text) {
-  color: #BDBDBD;
+  color: #94A3B8 !important;
 }
 
 .sidebar-section-icon {
@@ -1715,15 +1785,54 @@ watch(() => route.path, () => {
   transform: scale(1.15);
 }
 
-.v-list-item.active .sidebar-lucide-icon {
-  color: white;
+.v-list-item.active .sidebar-lucide-icon,
+.v-list-item--active .sidebar-lucide-icon {
+  color: #7048E8 !important;
+  transform: scale(1.1);
 }
 
-/* Sidebar User Section */
+/* Основной контейнер в сайдбаре */
 .sidebar-user-section {
-  background-color: rgba(0, 0, 0, 0.02);
+  background: rgba(112, 72, 232, 0.04); /* Легкий фиолетовый фон */
+  border-radius: 16px;
+  margin: 12px;
+  border: 1px solid rgba(112, 72, 232, 0.08);
+  transition: background 0.3s ease;
+}
+
+/* Интерактивная часть (аватар + имя) */
+.sidebar-user-clickable {
+  cursor: pointer;
+  padding: 4px;
   border-radius: 12px;
-  margin: 8px;
+  transition: background 0.2s ease;
+}
+
+.sidebar-user-clickable:hover {
+  background: rgba(112, 72, 232, 0.05);
+}
+
+/* Текст: Имя и Уровень */
+.sidebar-user-section .text-body-1 {
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+  font-size: 0.95rem !important;
+  color: #1A1A2E;
+  line-height: 1.2;
+}
+
+.sidebar-user-section .text-caption {
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+  font-weight: 600;
+  color: #94A3B8 !important;
+}
+
+/* Контейнер для монет и XP */
+.sidebar-user-section .justify-space-between {
+  margin-top: 4px;
+}
+
+.sidebar-user-section .v-icon {
+  opacity: 0.8;
 }
 
 .full-width-progress {
@@ -1746,18 +1855,18 @@ watch(() => route.path, () => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  min-height: 100vh;
+  position: relative;
 }
 
 .desktop-sidebar .sidebar-content-wrapper > .v-list {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: visible;
 }
 
 .sidebar-logout-section {
   margin-top: auto;
   padding: 8px 0;
-  background-color: #F4F0FF;
+  background-color: #F9F9FB;
 }
 
 .logout-item {
@@ -1769,7 +1878,12 @@ watch(() => route.path, () => {
   font-weight: 400;
 }
 
-.logout-item:hover .logout-text {
+.logout-icon {
+  color: rgba(0, 0, 0, 0.5) !important;
+}
+
+.logout-item:hover .logout-text,
+.logout-item:hover .logout-icon {
   color: rgba(0, 0, 0, 0.7) !important;
 }
 
@@ -1788,17 +1902,59 @@ watch(() => route.path, () => {
 
 .mobile-drawer .sidebar-content-wrapper > .v-list {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: visible;
 }
 
-/* Adjust list item spacing for sections */
-.desktop-sidebar :deep(.v-list-subheader) {
-  padding: 12px 16px 8px 16px;
-  margin-top: 8px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #2E2A47;
-  opacity: 0.8;
+/* Стили для заголовков групп (YOUR JOURNEY, WORLD и т.д.) */
+.v-list-subheader,
+.desktop-sidebar :deep(.v-list-subheader),
+.mobile-drawer :deep(.v-list-subheader) {
+  /* Jakarta Sans для единства стиля */
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+  
+  /* Делаем текст заглавными буквами */
+  text-transform: uppercase !important;
+  
+  /* Увеличиваем межсимвольное расстояние для премиального вида */
+  letter-spacing: 1.2px !important;
+  
+  /* Размер шрифта делаем чуть меньше основного, чтобы не перегружать */
+  font-size: 11px !important;
+  
+  /* Увеличиваем жирность, чтобы текст был читаемым при малом размере */
+  font-weight: 800 !important;
+  
+  /* Цвет: приглушенный, но достаточно контрастный */
+  color: #94A3B8 !important;
+  
+  /* Отступы, чтобы заголовки "дышали" */
+  margin-top: 24px !important;
+  margin-bottom: 8px !important;
+  padding-left: 20px !important;
+  
+  /* Убираем лишнюю высоту по умолчанию */
+  min-height: auto !important;
+  height: auto !important;
+}
+
+/* Дополнительный акцент: точка перед заголовком (опционально) */
+.v-list-subheader::before,
+.desktop-sidebar :deep(.v-list-subheader)::before,
+.mobile-drawer :deep(.v-list-subheader)::before {
+  content: "•";
+  margin-right: 8px;
+  color: rgba(112, 72, 232, 0.4); /* Полупрозрачный фиолетовый */
+}
+
+.sidebar-section-header :deep(.v-list-subheader__text) {
+  color: #94A3B8 !important;
+}
+
+/* FAB Button for Mobile */
+.fab-button {
+  position: fixed !important;
+  bottom: 24px !important;
+  right: 24px !important;
+  z-index: 1000;
 }
 </style> 

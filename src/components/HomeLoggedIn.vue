@@ -1,11 +1,20 @@
 <template>
-  <div class="home-logged-in-container">
+  <div v-if="initialDataLoading" class="home-loading-container">
+    <v-progress-circular
+      indeterminate
+      color="primary"
+      size="64"
+      width="6"
+    ></v-progress-circular>
+  </div>
+  <div v-else class="home-logged-in-container">
     <div class="greeting-section">
       <h1 class="greeting-title">
-        {{ t('home.loggedIn.greeting', { name: userName }) }}
+        <span class="greeting-text">{{ t('home.loggedIn.greeting', { name: userName }) }}</span>
         <span class="wave-icon">👋</span>
       </h1>
-      <p class="motivational-text">{{ t('home.loggedIn.motivational') }}</p>
+      <p v-if="!hasTodayCompletedTasks" class="motivational-text">{{ dailyMotivationalMessage }}</p>
+      <p v-else class="motivational-text">{{ dailyMotivationalMessageCompleted }}</p>
     </div>
     
     <!-- Debug: Always show if yesterdayStreakDays > 0 -->
@@ -18,76 +27,76 @@
       <span>{{ (!hasTodayCompletedTasks && yesterdayStreakDays > 0) ? yesterdayStreakDays : displayStreakDays }} {{ streakDaysText }}</span>
     </div>
     
-    <!-- Today's Card: Challenges + Checklist -->
-    <v-card class="todays-card">
-      <v-card-text>
-        <!-- Combined Progress Bar -->
-        <div v-if="!checklistLoading && totalItems > 0" class="combined-progress-section mb-4">
-          <div class="progress-header">
-            <span class="progress-text">{{ completedItems }} / {{ totalItems }} {{ t('home.loggedIn.dailyChecklist.completed') }}</span>
-            <span class="progress-percentage">{{ combinedProgressPercentage }}%</span>
-          </div>
-          <v-progress-linear
-            :model-value="combinedProgressPercentage"
-            color="primary"
-            height="8"
-            rounded
-            class="progress-bar"
-          ></v-progress-linear>
-        </div>
-        
-        <!-- Today's Challenges Section -->
-        <div v-if="todaysChallenges.length > 0" class="todays-challenges-section">
-          <h3 class="section-subtitle">{{ t('home.loggedIn.todaysChallenges') }}</h3>
-          <div class="todays-challenges-list">
-            <div
-              v-for="challenge in todaysChallenges"
-              :key="challenge._id"
-              class="todays-challenge-item"
-              :class="{ completed: isTodayCompleted(challenge) }"
-              @click="navigateToChallenge(challenge)"
-            >
-              <v-icon 
-                v-if="isTodayCompleted(challenge)"
-                size="small" 
-                class="mr-2 check-icon"
-                color="success"
-              >mdi-check-circle</v-icon>
-              <v-icon 
-                v-else
-                size="small" 
-                class="mr-2"
-              >mdi-flag</v-icon>
-              <span class="challenge-title" :class="{ completed: isTodayCompleted(challenge) }">{{ challenge.title }}</span>
+    <!-- Combined Progress Card -->
+    <div v-if="!checklistLoading && totalItems > 0" class="hero-progress-light">
+      <div class="progress-header">
+        <span class="level-badge">{{ completedItems }} / {{ totalItems }} {{ t('home.loggedIn.dailyChecklist.completed') }}</span>
+        <span class="level-badge">{{ combinedProgressPercentage }}%</span>
+      </div>
+      <div class="progress-track-soft">
+        <div class="progress-fill-vibrant" :style="{ width: combinedProgressPercentage + '%' }"></div>
+      </div>
+    </div>
+    
+    <!-- Today's Cards: Challenges and Checklist -->
+    <div class="todays-cards-wrapper">
+      <!-- Today's Challenges Card -->
+      <v-card v-if="todaysChallenges.length > 0" class="todays-card todays-challenges-card">
+        <v-card-text>
+          <div class="todays-challenges-section">
+            <h3 class="section-subtitle">{{ t('home.loggedIn.todaysChallenges') }}</h3>
+            <div class="todays-challenges-list">
+              <div
+                v-for="challenge in todaysChallenges"
+                :key="challenge._id"
+                class="challenge-card"
+                :class="{ completed: isTodayCompleted(challenge) }"
+                @click="navigateToChallenge(challenge)"
+              >
+                <div class="challenge-icon">
+                  <v-icon 
+                    v-if="isTodayCompleted(challenge)"
+                    size="small"
+                    color="#7048e8"
+                  >mdi-check-circle</v-icon>
+                  <v-icon 
+                    v-else
+                    size="small"
+                    color="#7048e8"
+                  >mdi-flag</v-icon>
+                </div>
+                <span class="challenge-text" :class="{ completed: isTodayCompleted(challenge) }">{{ challenge.title }}</span>
+              </div>
             </div>
           </div>
-        </div>
-        
-        <!-- Divider between sections -->
-        <v-divider v-if="todaysChallenges.length > 0" class="my-4"></v-divider>
-        
-        <!-- Today's Checklist Section -->
-        <div class="todays-checklist-section">
-          <h3 class="section-subtitle">{{ t('home.loggedIn.dailyChecklist.title') }}</h3>
-          <DailyChecklist ref="checklistRef" :hide-add-step="isAllCompleted && !checklistLoading && totalItems > 0" />
-        </div>
-        
-        <!-- Completion Celebration Button -->
-        <div v-if="isAllCompleted && !checklistLoading && totalItems > 0" class="completion-celebration mt-4">
-          <v-btn
-            color="success"
-            size="large"
-            variant="elevated"
-            prepend-icon="mdi-image"
-            @click="generateCompletionImage"
-            :loading="generatingImage"
-            class="celebration-button"
-          >
-            {{ t('home.loggedIn.generateCompletionImage') }}
-          </v-btn>
-        </div>
-      </v-card-text>
-    </v-card>
+        </v-card-text>
+      </v-card>
+      
+      <!-- Today's Checklist Card -->
+      <v-card class="todays-card todays-checklist-card checklist-card">
+        <v-card-text>
+          <div class="todays-checklist-section">
+            <h3 class="section-subtitle">{{ t('home.loggedIn.dailyChecklist.title') }}</h3>
+            <DailyChecklist ref="checklistRef" :hide-add-step="isAllCompleted && !checklistLoading && totalItems > 0" />
+          </div>
+          
+          <!-- Completion Celebration Button -->
+          <div v-if="isAllCompleted && !checklistLoading && totalItems > 0" class="completion-celebration mt-4">
+            <v-btn
+              color="success"
+              size="large"
+              variant="elevated"
+              prepend-icon="mdi-image"
+              @click="generateCompletionImage"
+              :loading="generatingImage"
+              class="celebration-button"
+            >
+              {{ t('home.loggedIn.generateCompletionImage') }}
+            </v-btn>
+          </div>
+        </v-card-text>
+      </v-card>
+    </div>
   </div>
 </template>
 
@@ -100,6 +109,8 @@ import DailyChecklist from './DailyChecklist.vue'
 import { userService, challengeService } from '../services/api'
 import motivationalMessagesEn from '../data/motivationalMessages.en.json'
 import motivationalMessagesRu from '../data/motivationalMessages.ru.json'
+import motivationalMessagesCompletedEn from '../data/motivationalMessagesCompleted.en.json'
+import motivationalMessagesCompletedRu from '../data/motivationalMessagesCompleted.ru.json'
 
 const { t, locale } = useI18n()
 const router = useRouter()
@@ -114,6 +125,7 @@ const loadingChallenges = ref(false)
 const checklistRef = ref(null)
 const checklistLoading = ref(false)
 const generatingImage = ref(false)
+const initialDataLoading = ref(true)
 
 function readStoredUser() {
   try {
@@ -195,6 +207,7 @@ async function calculateStreak() {
     streakDays.value = 0
     yesterdayStreakDays.value = 0
     hasTodayCompletedTasks.value = false
+    initialDataLoading.value = false
     return
   }
 
@@ -272,6 +285,8 @@ async function calculateStreak() {
     streakDays.value = 0
     yesterdayStreakDays.value = 0
     hasTodayCompletedTasks.value = false
+  } finally {
+    initialDataLoading.value = false
   }
 }
 
@@ -547,6 +562,24 @@ const displayStreakDays = computed(() => {
     return yesterdayStreakDays.value
   }
   return streakDays.value
+})
+
+// Get daily motivational message based on date (when no tasks completed)
+const dailyMotivationalMessage = computed(() => {
+  const today = new Date()
+  const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24)
+  const messages = locale.value === 'ru' ? motivationalMessagesRu : motivationalMessagesEn
+  const messageIndex = dayOfYear % messages.length
+  return messages[messageIndex]
+})
+
+// Get daily motivational message when first task is completed
+const dailyMotivationalMessageCompleted = computed(() => {
+  const today = new Date()
+  const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24)
+  const messages = locale.value === 'ru' ? motivationalMessagesCompletedRu : motivationalMessagesCompletedEn
+  const messageIndex = dayOfYear % messages.length
+  return messages[messageIndex]
 })
 
 // Helper function for Russian pluralization of "день"
@@ -885,6 +918,14 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.home-loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+  width: 100%;
+}
+
 .home-logged-in-container {
   width: 100%;
   display: flex;
@@ -918,23 +959,47 @@ onBeforeUnmount(() => {
 .greeting-section {
   width: 100%;
   max-width: 800px;
-  text-align: center;
+  margin-bottom: 2rem;
+  text-align: left;
   display: flex;
   flex-direction: column;
   gap: 0.75em;
+  align-self: flex-start;
+  padding-left: 20px;
+  /* Градиентная линия через border-image */
+  border-left: 4px solid;
+  border-image: linear-gradient(to bottom, #7048E8, rgba(112, 72, 232, 0)) 1;
+}
+
+@media (max-width: 959px) {
+  .greeting-section {
+    margin-bottom: 0;
+  }
 }
 
 .greeting-title {
-  font-size: 1.75rem;
-  font-weight: 700;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 4px;
+  letter-spacing: -0.02em;
   line-height: 1.3;
-  color: rgba(0, 0, 0, 0.87);
-  margin: 0;
   display: flex;
   align-items: center;
-  justify-content: center;
   flex-wrap: wrap;
   gap: 0.5em;
+}
+
+.greeting-text {
+  font-family: 'Outfit', sans-serif;
+  font-style: italic;
+  /* Магия градиента */
+  background: linear-gradient(90deg, #1A1A2E 0%, #7048E8 100%);
+  -webkit-background-clip: text; /* Обрезает фон по форме букв */
+  background-clip: text; /* Стандартное свойство для совместимости */
+  -webkit-text-fill-color: transparent; /* Делает сами буквы прозрачными, чтобы был виден фон-градиент */
+  display: inline-block; /* Необходимо для корректной работы градиента */
+  padding-right: 0.15em; /* Добавляем немного пространства после имени */
 }
 
 @media (min-width: 400px) {
@@ -974,11 +1039,13 @@ onBeforeUnmount(() => {
 }
 
 .motivational-text {
-  font-size: 1rem;
-  line-height: 1.6;
-  color: rgba(0, 0, 0, 0.7);
+  font-size: 0.95rem;
+  font-weight: 300;
+  color: #636E72;
+  line-height: 1.4;
+  font-style: italic;
+  max-width: 400px;
   margin: 0;
-  font-weight: 500;
 }
 
 @media (min-width: 400px) {
@@ -1002,25 +1069,29 @@ onBeforeUnmount(() => {
 .streak-display-mobile {
   width: 100%;
   max-width: 600px;
-  background: #FEF3E1;
-  color: #FF6D00;
-  border-radius: 4px;
-  padding: 12px 20px;
-  font-size: 15px;
-  font-weight: 600;
+  background: linear-gradient(135deg, #FFF5F0 0%, #FFEDE3 100%);
+  color: #FF8C42;
+  border: 1px solid rgba(255, 140, 66, 0.3);
+  padding: 8px 16px;
+  border-radius: 14px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.5px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  box-shadow: 0 4px 12px rgba(255, 109, 0, 0.3);
   text-transform: uppercase;
   transition: all 0.3s ease;
+  box-shadow: none;
 }
 
 .streak-display-mobile.streak-yesterday {
-  background: #E0E0E0;
+  background: linear-gradient(135deg, #F5F5F5 0%, #E8E8E8 100%);
   color: #757575;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(117, 117, 117, 0.3);
+  box-shadow: none;
 }
 
 .streak-display-mobile span {
@@ -1042,16 +1113,56 @@ onBeforeUnmount(() => {
 }
 
 .section-subtitle {
-  font-size: 1rem;
-  font-weight: 600;
-  color: rgba(0, 0, 0, 0.87);
-  margin-bottom: 0.75em;
-  margin-top: 0;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1A1A2E;
+  margin-bottom: 16px;
+  padding-left: 4px;
 }
 
-@media (min-width: 600px) {
-  .section-subtitle {
-    font-size: 1.1rem;
+.todays-cards-wrapper {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  display: flex;
+  flex-direction: row;
+  gap: 1em;
+  flex-wrap: nowrap;
+}
+
+.todays-challenges-card {
+  width: 65%;
+  flex: 0 0 65%;
+  max-width: 65%;
+  background: transparent !important; /* Убираем стандартный фон v-card, если нужно */
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.todays-checklist-card {
+  width: 35%;
+  flex: 0 0 35%;
+  max-width: 35%;
+}
+
+.checklist-card {
+  background: #ffffff !important;
+  border-radius: 24px !important;
+  border: 1px solid rgba(0, 163, 255, 0.08) !important; /* Легкий голубой оттенок для отличия */
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02) !important;
+}
+
+@media (max-width: 959px) {
+  .todays-cards-wrapper {
+    flex-direction: column;
+  }
+  
+  .todays-challenges-card,
+  .todays-checklist-card {
+    width: 100%;
+    flex: 0 0 100%;
+    max-width: 100%;
   }
 }
 
@@ -1063,93 +1174,129 @@ onBeforeUnmount(() => {
   margin-top: 0;
 }
 
-.combined-progress-section {
-  padding: 0.75em;
-  background-color: rgba(255, 255, 255, 0.5);
-  border-radius: 8px;
+.hero-progress-light {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 24px;
+  border: 1px solid rgba(112, 72, 232, 0.1); /* Тонкий контур */
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.03); /* Очень мягкая тень */
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  width: 100%;
 }
 
 .progress-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.5em;
+  margin-bottom: 0;
 }
 
-.progress-text {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: rgba(0, 0, 0, 0.7);
+.level-badge {
+  font-weight: 800;
+  color: #1A1A2E;
+  font-size: 1.2rem;
 }
 
-.progress-percentage {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #42a5f5;
-}
-
-.progress-bar {
-  border-radius: 4px;
+.progress-track-soft {
+  width: 100%;
+  height: 10px;
+  background: #F1F3F5; /* Светлая «канавка» */
+  border-radius: 20px;
   overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); /* Эффект глубины */
 }
 
-@media (min-width: 600px) {
-  .progress-text,
-  .progress-percentage {
-    font-size: 1rem;
-  }
+.progress-fill-vibrant {
+  height: 100%;
+  /* Градиент от фиолетового к розовому — выглядит энергично */
+  background: linear-gradient(90deg, #7048E8 0%, #BE4BDB 100%);
+  border-radius: 20px;
+  box-shadow: 0 2px 10px rgba(112, 72, 232, 0.3);
+  transition: width 0.5s ease-in-out;
 }
 
+/* Сетка для списка карточек */
 .todays-challenges-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75em;
-  background-color: white;
-  border-radius: 8px;
-  padding: 0.75em;
+  gap: 12px;
 }
 
-.todays-challenge-item {
+/* Базовое состояние карточки челленджа */
+.challenge-card {
   display: flex;
   align-items: center;
-  padding: 0.75em;
-  border-radius: 8px;
-  background-color: rgba(0, 0, 0, 0.02);
+  padding: 14px 20px;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid rgba(112, 72, 232, 0.05); /* Очень тонкая граница для четкости */
   cursor: pointer;
-  transition: background-color 0.2s, transform 0.2s;
+  
+  /* Глубокая и мягкая тень */
+  box-shadow: 0 10px 20px rgba(112, 72, 232, 0.03), 
+              0 6px 6px rgba(0, 0, 0, 0.02); 
+              
+  transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
 }
 
-.todays-challenge-item:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-  transform: translateX(4px);
+/* Эффект при наведении — еще больше объема */
+.challenge-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(112, 72, 232, 0.06);
+  border-color: rgba(112, 72, 232, 0.1);
 }
 
-.todays-challenge-item.completed {
+/* Стили для иконки */
+.challenge-icon {
+  width: 36px;
+  height: 36px;
+  background: #F3F0FF; /* Светло-фиолетовый фон иконки */
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16px;
+  transition: background 0.3s ease;
+}
+
+/* Текст челленджа */
+.challenge-text {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #2D3436;
+  transition: color 0.3s ease;
+  flex: 1;
+}
+
+/* Стили для выполненного челленджа (состояние completed) */
+.challenge-card.completed {
+  background: #F8F9FA;
+  border-color: transparent;
+  box-shadow: none;
   opacity: 0.7;
 }
 
-.todays-challenge-item.completed:hover {
-  opacity: 0.9;
+/* Состояние иконки внутри выполненной карточки */
+.challenge-card.completed .challenge-icon {
+  /* Меняем фон подложки на более нейтральный */
+  background: rgba(148, 163, 184, 0.1) !important;
 }
 
-.todays-challenge-item .v-icon {
-  color: #1FA0F6;
+.challenge-card.completed .v-icon {
+  /* Серо-голубой цвет (Slate 400), как у текста */
+  color: #94A3B8 !important;
+  
+  /* Убираем лишнюю яркость/свечение, если оно было */
+  filter: none !important;
+  opacity: 0.8;
 }
 
-.todays-challenge-item .check-icon {
-  color: #4caf50 !important;
-}
-
-.challenge-title {
-  flex: 1;
-  font-size: 0.95rem;
-  color: rgba(0, 0, 0, 0.87);
-  font-weight: 500;
-}
-
-.challenge-title.completed {
+.challenge-text.completed {
   text-decoration: line-through;
-  color: rgba(0, 0, 0, 0.5);
+  color: #94A3B8; /* Приглушенный серый */
 }
 
 .completion-celebration {

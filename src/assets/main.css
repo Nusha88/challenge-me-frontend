@@ -30,3 +30,10 @@ a,
 .v-dialog .v-overlay__content .v-card {
   border-radius: 12px !important;
 }
+
+/* Global font for all buttons */
+.v-btn,
+button {
+  font-family: 'Montserrat', sans-serif !important;
+  font-weight: 600 !important;
+}

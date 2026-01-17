@@ -3,59 +3,55 @@
     <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4"></v-progress-linear>
     <v-alert v-if="error" type="error" class="mb-4" density="compact">{{ error }}</v-alert>
     
-    <div v-if="!loading && todaySteps.length === 0" class="empty-checklist">
-      <p class="empty-text">{{ t('home.loggedIn.dailyChecklist.empty') }}</p>
+    <div v-if="!loading && todaySteps.length === 0" class="empty-state">
+      {{ t('home.loggedIn.dailyChecklist.empty') }}
     </div>
-    <div v-else-if="!loading" class="steps-list">
+    <div v-else-if="!loading" class="checklist-list">
       <div
         v-for="(step, index) in todaySteps"
         :key="index"
-        class="step-item"
+        class="checklist-item"
       >
-        <v-checkbox
-          v-model="step.done"
-          density="compact"
-          hide-details
-          :disabled="step.locked"
-          :aria-label="step.done ? t('home.loggedIn.dailyChecklist.markIncomplete') : t('home.loggedIn.dailyChecklist.markComplete')"
-          @update:model-value="updateStep(index, $event)"
-        />
+        <div
+          class="custom-check"
+          :class="{ checked: step.done }"
+          @click="updateStep(index, !step.done)"
+        >
+          <v-icon v-if="step.done" size="small" color="white">mdi-check</v-icon>
+        </div>
         <span
           class="step-text"
-          :class="{ completed: step.done }"
+          :class="{ 'text-strike': step.done }"
         >
           {{ step.title }}
         </span>
-        <v-btn
+        <div
           v-if="!step.done"
-          icon="mdi-delete"
-          size="small"
-          variant="text"
-          color="error"
+          class="delete-action"
           :title="t('home.loggedIn.dailyChecklist.deleteStep')"
           :aria-label="t('home.loggedIn.dailyChecklist.deleteStep')"
           @click="removeStep(index)"
-        />
+        >
+          <Trash2 :size="16" />
+        </div>
       </div>
     </div>
     
-    <div v-if="!hideAddStep" class="add-step-section">
-      <v-text-field
+    <div v-if="!hideAddStep" class="add-step-wrapper">
+      <input
         v-model="newStepText"
-        :label="t('home.loggedIn.dailyChecklist.addStepPlaceholder')"
-        variant="outlined"
-        :density="mobile ? 'default' : 'compact'"
-        hide-details
-        class="add-step-input"
+        type="text"
+        :placeholder="t('home.loggedIn.dailyChecklist.addStepPlaceholder')"
+        class="step-input"
         @keyup.enter="addStep"
       />
       <v-btn
-        color="primary"
         :disabled="!newStepText.trim()"
-        class="add-step-button mt-1"
+        class="add-step-btn"
+        icon
         @click="addStep"
       >
-        {{ t('home.loggedIn.dailyChecklist.addStep') }}
+        <Plus :size="18" color="white" />
       </v-btn>
     </div>
   </div>
@@ -66,6 +62,7 @@ import { ref, computed, onMounted, defineExpose } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useDisplay } from 'vuetify'
 import { userService } from '../services/api'
+import { Plus, Trash2 } from 'lucide-vue-next'
 
 const props = defineProps({
   hideAddStep: {
@@ -197,190 +194,116 @@ onMounted(() => {
   width: 100%;
 }
 
-.empty-checklist {
-  text-align: center;
-  padding: 2em 1em;
+/* Список элементов */
+.checklist-list {
+  margin-top: 16px;
+  min-height: 150px;
 }
 
-.empty-text {
-  color: rgba(0, 0, 0, 0.6);
-  font-size: 0.95rem;
-  margin: 0;
-}
-
-.progress-section {
-  padding: 0.75em;
-  background-color: rgba(255, 255, 255, 0.5);
-  border-radius: 8px;
-}
-
-.progress-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.5em;
-}
-
-.progress-text {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: rgba(0, 0, 0, 0.7);
-}
-
-.progress-percentage {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #42a5f5;
-}
-
-.progress-bar {
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-@media (min-width: 600px) {
-  .progress-text,
-  .progress-percentage {
-    font-size: 1rem;
-  }
-}
-
-.steps-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75em;
-  margin-bottom: 1.5em;
-  min-height: 60px;
-}
-
-.step-item {
+.checklist-item {
   display: flex;
   align-items: center;
-  gap: 0.75em;
-  padding: 0.5em;
+  padding: 10px 8px;
+  border-bottom: 1px solid #F8F9FA;
+  transition: all 0.2s ease;
+}
+
+.delete-action {
+  cursor: pointer;
+  color: #94A3B8; /* Приглушенный серо-голубой */
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 4px;
   border-radius: 8px;
-  transition: background-color 0.2s;
-}
-
-.step-item:hover {
-  background-color: rgba(0, 0, 0, 0.02);
-}
-
-.step-item .v-btn {
   flex-shrink: 0;
-  min-width: auto;
-  width: auto;
-  height: auto;
-  padding: 0.25em;
-  opacity: 0.7;
-  transition: opacity 0.2s;
-}
-
-.step-item:hover .v-btn {
-  opacity: 1;
-}
-
-/* Custom blue checkbox styling */
-.step-item :deep(.v-checkbox .v-selection-control__input) {
-  color: #1FA0F6;
-  border-radius: 12px;
-}
-
-.step-item :deep(.v-checkbox .v-selection-control__input .v-icon) {
-  color: #1FA0F6;
-}
-
-.step-item :deep(.v-checkbox--checked .v-selection-control__input) {
-  color: #1FA0F6;
-  border-radius: 12px;
-}
-
-.step-item :deep(.v-checkbox--checked .v-selection-control__input .v-icon) {
-  color: #1FA0F6;
-}
-
-.step-item :deep(.v-checkbox .v-selection-control__ripple) {
-  color: #1FA0F6;
-  border-radius: 12px;
-}
-
-.step-item :deep(.v-checkbox .v-selection-control__wrapper) {
-  border-radius: 12px;
-}
-
-.step-text {
-  flex: 1;
-  font-size: 0.95rem;
-  color: rgba(0, 0, 0, 0.87);
-  word-wrap: break-word;
-  transition: all 0.2s;
-}
-
-.step-text.completed {
-  text-decoration: line-through;
-  color: rgba(0, 0, 0, 0.5);
-}
-
-.add-step-section {
+  margin-left: auto;
   display: flex;
-  gap: 0.75em;
-  align-items: flex-start;
-  margin-top: 1em;
-  padding-top: 1em;
-  border-top: 1px solid rgba(0, 0, 0, 0.12);
+  align-items: center;
+  justify-content: center;
 }
 
-.add-step-input {
+.delete-action:hover {
+  color: #EF4444; /* Насыщенный красный при наведении */
+  background: #FEF2F2; /* Нежно-розовая подложка */
+  transform: scale(1.1);
+}
+
+/* Кастомный круглый чекбокс */
+.custom-check {
+  width: 22px;
+  height: 22px;
+  border: 2px solid #E2E8F0;
+  border-radius: 50%; /* Круглый стиль */
+  margin-right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.custom-check.checked {
+  background: #7048E8;
+  border-color: #7048E8;
+}
+
+/* Текст задачи */
+.step-text {
+  font-size: 0.9rem;
+  color: #4A5568;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   flex: 1;
+  word-wrap: break-word;
 }
 
-.add-step-input :deep(.v-field) {
-  min-height: 48px;
-  border-radius: 12px;
+.text-strike {
+  text-decoration: line-through;
+  color: #CBD5E0;
 }
 
-.add-step-input :deep(.v-field__input) {
-  min-height: 48px;
-  font-size: 1rem;
+/* Поле добавления задачи */
+.add-step-wrapper {
+  margin-top: 24px;
+  display: flex;
+  gap: 8px;
+  background: #F8FAFC;
+  padding: 6px;
+  border-radius: 14px;
+  border: 1px solid #E2E8F0;
 }
 
-.add-step-button {
-  border-radius: 12px;
-  text-transform: none;
-  font-weight: 600;
+.step-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  outline: none;
+  color: #1A1A2E;
+  font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
-@media (max-width: 600px) {
-  .add-step-section {
-    flex-direction: column;
-    gap: 1em;
-  }
-  
-  .add-step-input {
-    width: 100%;
-  }
-  
-  .add-step-section .v-btn {
-    width: 100%;
-    height: 48px;
-    font-size: 1rem;
-    border-radius: 12px;
-  }
+.step-input::placeholder {
+  color: #A0AEC0;
+}
 
-  .add-step-input :deep(.v-field) {
-    min-height: 56px;
-    width: 100%;
-  }
+.add-step-btn {
+  background: #7048E8 !important;
+  color: white !important;
+  border-radius: 10px !important;
+  height: 36px !important;
+  width: 36px !important;
+  min-width: 36px !important;
+  padding: 0 !important;
+}
 
-  .add-step-input :deep(.v-field__input) {
-    min-height: 56px;
-    font-size: 1.1rem;
-    padding: 12px 16px;
-    width: 100%;
-  }
-
-  .add-step-input :deep(.v-label) {
-    font-size: 1rem;
-  }
+/* Пустое состояние */
+.empty-state {
+  color: #A0AEC0;
+  font-size: 0.85rem;
+  text-align: center;
+  padding-top: 40px;
+  font-style: italic;
+  min-height: 150px;
 }
 </style>
