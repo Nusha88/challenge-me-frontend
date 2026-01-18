@@ -125,6 +125,12 @@ export const userService = {
   updateTodayChecklist: (tasks) => {
     return api.put('/auth/daily-checklist/today', { tasks })
   },
+  getTomorrowChecklist: () => {
+    return api.get('/auth/daily-checklist/tomorrow')
+  },
+  updateTomorrowChecklist: (tasks) => {
+    return api.put('/auth/daily-checklist/tomorrow', { tasks })
+  },
   getChecklistHistory: () => {
     return api.get('/auth/daily-checklist/history')
   },

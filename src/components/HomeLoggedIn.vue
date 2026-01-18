@@ -36,19 +36,32 @@
       <span>{{ (!hasTodayCompletedTasks && yesterdayStreakDays > 0) ? yesterdayStreakDays : displayStreakDays }} {{ streakDaysText }}</span>
     </div>
     
-    <!-- Combined Progress Card -->
-    <div v-if="!checklistLoading && totalItems > 0" class="hero-progress-light">
-      <div class="progress-header">
-        <span class="level-badge">{{ completedItems }} / {{ totalItems }} {{ t('home.loggedIn.dailyChecklist.completed') }}</span>
-        <span class="level-badge">{{ combinedProgressPercentage }}%</span>
-      </div>
-      <div class="progress-track-soft">
-        <div class="progress-fill-vibrant" :style="{ width: combinedProgressPercentage + '%' }"></div>
-      </div>
-    </div>
+    <!-- Tabs: Today / Tomorrow -->
+    <v-tabs v-model="activeTab" class="home-tabs" bg-color="transparent">
+      <v-tab value="today">{{ t('home.loggedIn.tabs.today') }}</v-tab>
+      <v-tab value="tomorrow">{{ t('home.loggedIn.tabs.tomorrow') }}</v-tab>
+    </v-tabs>
     
-    <!-- Today's Cards: Challenges and Checklist -->
-    <div class="todays-cards-wrapper">
+    <!-- Today Tab Content -->
+    <v-window v-model="activeTab">
+      <v-window-item value="today">
+        <!-- Combined Progress Card -->
+        <div v-if="!checklistLoading && totalItems > 0" class="hero-progress-light">
+          <div class="progress-header">
+            <span class="level-badge">{{ completedItems }} / {{ totalItems }} {{ t('home.loggedIn.dailyChecklist.completed') }}</span>
+            <span class="level-badge">{{ combinedProgressPercentage }}%</span>
+          </div>
+          <div class="progress-track-soft">
+            <div 
+              class="progress-fill-vibrant" 
+              :class="{ 'has-progress': combinedProgressPercentage > 0 }"
+              :style="{ width: combinedProgressPercentage + '%' }"
+            ></div>
+          </div>
+        </div>
+        
+        <!-- Today's Cards: Challenges and Checklist -->
+        <div class="todays-cards-wrapper">
       <!-- Today's Challenges Card -->
       <v-card v-if="todaysChallenges.length > 0" class="todays-card todays-challenges-card">
         <v-card-text>
@@ -105,6 +118,133 @@
         </v-card-text>
       </v-card>
     </div>
+      </v-window-item>
+      
+      <!-- Tomorrow Tab Content -->
+      <v-window-item value="tomorrow">
+        <!-- Combined Progress Card for Tomorrow -->
+        <div v-if="tomorrowTotalItems > 0" class="hero-progress-light">
+          <div class="progress-header">
+            <span class="level-badge">{{ tomorrowCompletedItems }} / {{ tomorrowTotalItems }} {{ t('home.loggedIn.dailyChecklist.completed') }}</span>
+            <span class="level-badge">{{ tomorrowProgressPercentage }}%</span>
+          </div>
+          <div class="progress-track-soft">
+            <div class="progress-fill-vibrant" :style="{ width: tomorrowProgressPercentage + '%' }"></div>
+          </div>
+        </div>
+        
+        <!-- Tomorrow's Cards: Challenges and Steps -->
+        <div class="todays-cards-wrapper">
+          <!-- Tomorrow's Challenges Card -->
+          <v-card v-if="tomorrowsChallenges.length > 0" class="todays-card todays-challenges-card">
+            <v-card-text>
+              <div class="todays-challenges-section">
+                <h3 class="section-subtitle">{{ t('home.loggedIn.todaysChallenges') }}</h3>
+                <div class="todays-challenges-list">
+                  <div
+                    v-for="challenge in tomorrowsChallenges"
+                    :key="challenge._id"
+                    class="challenge-card challenge-card-disabled"
+                  >
+                    <div class="challenge-icon">
+                      <v-icon 
+                        size="small"
+                        color="#94A3B8"
+                      >mdi-flag</v-icon>
+                    </div>
+                    <span class="challenge-text challenge-text-disabled">{{ challenge.title }}</span>
+                  </div>
+                </div>
+              </div>
+            </v-card-text>
+          </v-card>
+          
+          <!-- Empty State for Tomorrow's Missions -->
+          <v-card v-else class="todays-card todays-challenges-card">
+            <v-card-text>
+              <div class="todays-challenges-section">
+                <h3 class="section-subtitle">{{ t('home.loggedIn.todaysChallenges') }}</h3>
+                <div class="empty-missions-container">
+                  <img src="@/assets/treasure.png" class="empty-icon" alt="Treasure">
+                  <p class="empty-text-sub" v-html="t('home.loggedIn.emptyMissions.text')"></p>
+                </div>
+              </div>
+            </v-card-text>
+          </v-card>
+          
+          <!-- Tomorrow's Steps Card -->
+          <v-card class="todays-card todays-checklist-card checklist-card checklist-card-tomorrow">
+            <v-card-text>
+              <div class="todays-checklist-section">
+                <h3 class="section-subtitle">{{ t('home.loggedIn.tomorrowSteps.title') }}</h3>
+                
+                <!-- Empty State -->
+                <div v-if="tomorrowSteps.length === 0" class="tomorrow-steps-empty">
+                  <img :src="tomorrowImage" class="tomorrow-empty-icon" alt="Tomorrow">
+                  <p class="tomorrow-empty-text">{{ t('home.loggedIn.tomorrowSteps.empty.text') }}</p>
+                  <v-btn
+                    v-if="!showTomorrowStepsInput"
+                    class="plan-step-btn"
+                    @click="planNewStep"
+                  >
+                    {{ t('home.loggedIn.tomorrowSteps.empty.button') }}
+                  </v-btn>
+                </div>
+                
+                <!-- Steps List -->
+                <div v-if="tomorrowSteps.length > 0 || showTomorrowStepsInput" class="tomorrow-steps-content">
+                  <div v-if="tomorrowSteps.length > 0" class="checklist-list">
+                    <div
+                      v-for="(step, index) in tomorrowSteps"
+                      :key="index"
+                      class="checklist-item"
+                    >
+                      <input
+                        v-if="editingTomorrowStepIndex === index"
+                        v-model="editingTomorrowStepText"
+                        type="text"
+                        class="step-edit-input"
+                        @keyup.enter="saveTomorrowStepEdit(index)"
+                        @keyup.esc="cancelTomorrowStepEdit"
+                        @blur="saveTomorrowStepEdit(index)"
+                        ref="tomorrowStepInputRef"
+                      />
+                      <span v-else class="step-text" @dblclick="startEditingTomorrowStep(index, step.title)">{{ step.title }}</span>
+                      <div
+                        class="delete-action"
+                        :title="t('home.loggedIn.dailyChecklist.deleteStep')"
+                        @click="removeTomorrowStep(index)"
+                      >
+                        <Trash2 :size="16" />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Add Step Input -->
+                  <div class="add-step-wrapper">
+                    <input
+                      v-model="tomorrowStepText"
+                      type="text"
+                      :placeholder="t('home.loggedIn.dailyChecklist.addStepPlaceholder')"
+                      class="step-input"
+                      @keyup.enter="addTomorrowStep"
+                    />
+                    <v-btn
+                      :disabled="!tomorrowStepText.trim()"
+                      class="add-step-btn"
+                      icon
+                      @click="addTomorrowStep"
+                    >
+                      <Plus :size="18" color="white" />
+                    </v-btn>
+                  </div>
+                </div>
+              </div>
+            </v-card-text>
+          </v-card>
+        </div>
+      </v-window-item>
+    </v-window>
     
     <!-- Completion Celebration Dialog -->
     <v-dialog 
@@ -165,15 +305,13 @@
 import { ref, computed, onMounted, onBeforeUnmount, onActivated, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
-import html2canvas from 'html2canvas'
-import { Sparkles } from 'lucide-vue-next'
+import { Sparkles, Plus, Trash2 } from 'lucide-vue-next'
 import DailyChecklist from './DailyChecklist.vue'
 import { userService, challengeService } from '../services/api'
-import motivationalMessagesEn from '../data/motivationalMessages.en.json'
-import motivationalMessagesRu from '../data/motivationalMessages.ru.json'
 import motivationalMessagesCompletedEn from '../data/motivationalMessagesCompleted.en.json'
 import motivationalMessagesCompletedRu from '../data/motivationalMessagesCompleted.ru.json'
-import roketImage from '../assets/roket.png'
+import tomorrowImage from '../assets/tomorrow.png'
+import { generateCompletionImage as generateImage } from '../utils/imageGenerator'
 
 const { t, locale } = useI18n()
 const router = useRouter()
@@ -191,6 +329,12 @@ const generatingImage = ref(false)
 const initialDataLoading = ref(true)
 const showCompletionDialog = ref(false)
 const hasShownCompletionDialog = ref(false)
+const activeTab = ref('today')
+const showTomorrowStepsInput = ref(false)
+const tomorrowStepText = ref('')
+const tomorrowSteps = ref([])
+const editingTomorrowStepIndex = ref(-1)
+const editingTomorrowStepText = ref('')
 
 function readStoredUser() {
   try {
@@ -427,6 +571,37 @@ function isTodayValidForChallenge(challenge) {
   return dayIndex % 2 === 0
 }
 
+function isTomorrowValidForChallenge(challenge) {
+  // If frequency is not "everyOtherDay", tomorrow is always valid
+  if (challenge.frequency !== 'everyOtherDay') {
+    return true
+  }
+  
+  // For "everyOtherDay" frequency, check if tomorrow is a valid completion day
+  if (!challenge.startDate) {
+    return false
+  }
+  
+  const startDate = new Date(challenge.startDate)
+  const tomorrow = new Date()
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  startDate.setHours(0, 0, 0, 0)
+  tomorrow.setHours(0, 0, 0, 0)
+  
+  // If tomorrow is before start date, it's not valid
+  if (tomorrow < startDate) {
+    return false
+  }
+  
+  // Calculate dayIndex: days from start date
+  // Day 0 (start date) is enabled, day 1 is disabled, day 2 is enabled, etc.
+  const diffTime = tomorrow - startDate
+  const dayIndex = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+  
+  // Tomorrow is valid only if dayIndex is even (dayIndex % 2 === 0)
+  return dayIndex % 2 === 0
+}
+
 function isTodayCompleted(challenge) {
   const userId = getCurrentUserId()
   if (!userId || !challenge.participants) return false
@@ -540,8 +715,141 @@ function showInspiration() {
   router.push('/missions')
 }
 
+async function loadTomorrowSteps() {
+  try {
+    const response = await userService.getTomorrowChecklist()
+    if (response.data?.checklist?.tasks) {
+      tomorrowSteps.value = response.data.checklist.tasks.map(task => ({
+        title: task.title,
+        done: false // Tomorrow's steps should always start as not done
+      }))
+      if (tomorrowSteps.value.length > 0) {
+        showTomorrowStepsInput.value = true
+      }
+    } else {
+      tomorrowSteps.value = []
+    }
+  } catch (err) {
+    console.error('Error loading tomorrow\'s checklist:', err)
+    tomorrowSteps.value = []
+  }
+}
+
+async function saveTomorrowSteps() {
+  try {
+    const tasks = tomorrowSteps.value.map(step => ({
+      title: step.title,
+      done: false // Tomorrow's steps are always not done
+    }))
+    await userService.updateTomorrowChecklist(tasks)
+  } catch (err) {
+    console.error('Error saving tomorrow\'s checklist:', err)
+  }
+}
+
+function planNewStep() {
+  showTomorrowStepsInput.value = true
+}
+
+async function addTomorrowStep() {
+  if (!tomorrowStepText.value.trim()) return
+  
+  tomorrowSteps.value.push({
+    title: tomorrowStepText.value.trim(),
+    done: false
+  })
+  
+  tomorrowStepText.value = ''
+  await saveTomorrowSteps()
+}
+
+async function removeTomorrowStep(index) {
+  tomorrowSteps.value.splice(index, 1)
+  await saveTomorrowSteps()
+}
+
+function startEditingTomorrowStep(index, currentText) {
+  editingTomorrowStepIndex.value = index
+  editingTomorrowStepText.value = currentText
+  nextTick(() => {
+    // Focus the input when it appears
+    const input = document.querySelector(`.tomorrow-steps-content .step-edit-input`)
+    if (input) {
+      input.focus()
+      input.select()
+    }
+  })
+}
+
+async function saveTomorrowStepEdit(index) {
+  if (editingTomorrowStepIndex.value === index && editingTomorrowStepText.value.trim()) {
+    tomorrowSteps.value[index].title = editingTomorrowStepText.value.trim()
+    editingTomorrowStepIndex.value = -1
+    editingTomorrowStepText.value = ''
+    await saveTomorrowSteps()
+  } else {
+    cancelTomorrowStepEdit()
+  }
+}
+
+function cancelTomorrowStepEdit() {
+  editingTomorrowStepIndex.value = -1
+  editingTomorrowStepText.value = ''
+}
+
 const todaysChallenges = computed(() => {
   return challenges.value
+})
+
+// Tomorrow's challenges - same logic as today but for tomorrow
+const tomorrowsChallenges = computed(() => {
+  const userId = getCurrentUserId()
+  const isLoggedIn = !!localStorage.getItem('token')
+  
+  if (!userId || !isLoggedIn) {
+    return []
+  }
+
+  const tomorrow = new Date()
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  tomorrow.setHours(0, 0, 0, 0)
+
+  return challenges.value.filter(challenge => {
+    // Must be active (not finished)
+    if (isChallengeFinished(challenge)) return false
+    
+    // Must be a habit challenge (only habit challenges have daily completion)
+    if (challenge.challengeType !== 'habit') return false
+    
+    // Must have started or start tomorrow (startDate <= tomorrow)
+    if (challenge.startDate) {
+      const startDate = new Date(challenge.startDate)
+      startDate.setHours(0, 0, 0, 0)
+      if (startDate > tomorrow) return false
+    }
+    
+    // Must be a participant (user must have joined the challenge)
+    if (!challenge.participants || challenge.participants.length === 0) {
+      return false
+    }
+    
+    // Check if current user is a participant
+    const isParticipant = challenge.participants.some(p => {
+      const pUserId = p.userId?._id || p.userId || p._id
+      return pUserId && pUserId.toString() === userId.toString()
+    })
+    
+    if (!isParticipant) {
+      return false
+    }
+    
+    // For "everyOtherDay" frequency, check if tomorrow is a valid completion day
+    if (!isTomorrowValidForChallenge(challenge)) {
+      return false
+    }
+    
+    return true
+  })
 })
 
 // Calculate combined progress (challenges + checklist)
@@ -568,6 +876,21 @@ const totalItems = computed(() => {
 const combinedProgressPercentage = computed(() => {
   if (totalItems.value === 0) return 0
   return Math.round((completedItems.value / totalItems.value) * 100)
+})
+
+// Tomorrow's progress (challenges + steps)
+const tomorrowTotalItems = computed(() => {
+  return tomorrowsChallenges.value.length + tomorrowSteps.value.length
+})
+
+const tomorrowCompletedItems = computed(() => {
+  // Tomorrow's items can't be completed yet, so always 0
+  return 0
+})
+
+const tomorrowProgressPercentage = computed(() => {
+  if (tomorrowTotalItems.value === 0) return 0
+  return Math.round((tomorrowCompletedItems.value / tomorrowTotalItems.value) * 100)
 })
 
 const isAllCompleted = computed(() => {
@@ -896,6 +1219,7 @@ onMounted(() => {
 onActivated(() => {
   calculateStreak()
   loadTodaysChallenges()
+  loadTomorrowSteps()
 })
 
 // Watch route changes to recalculate streak when navigating to home
@@ -903,6 +1227,14 @@ watch(() => route.path, (newPath) => {
   if (newPath === '/') {
     calculateStreak()
     loadTodaysChallenges()
+    loadTomorrowSteps()
+  }
+})
+
+// Watch activeTab to load tomorrow's steps when switching to tomorrow tab
+watch(activeTab, (newTab) => {
+  if (newTab === 'tomorrow') {
+    loadTomorrowSteps()
   }
 })
 
@@ -915,208 +1247,20 @@ async function generateCompletionImage() {
   try {
     await nextTick()
     
-    // Создаем контейнер-холст (формат сторис или квадрат)
-    const container = document.createElement('div')
-    Object.assign(container.style, {
-      position: 'absolute',
-      left: '-9999px',
-      width: '600px', // Оптимально для шеринга
-      minHeight: '800px', // Увеличим высоту для композиции
-      padding: '50px',
-      background: `
-        radial-gradient(ellipse at bottom left, rgba(126, 70, 196, 0.4) 0%, transparent 50%),
-        radial-gradient(ellipse at top right, rgba(244, 167, 130, 0.3) 0%, transparent 50%),
-        linear-gradient(135deg, #1A1A2E 0%, #7E46C4 100%)
-      `,
-      color: '#ffffff',
-      fontFamily: '"Plus Jakarta Sans", sans-serif',
-      borderRadius: '0px',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '24px',
-      filter: 'drop-shadow(0 0 10px rgba(0,0,0,0.5))',
-      position: 'relative' // Для позиционирования ракеты
-    })
-
-    // НОВАЯ ФИШКА: Иконка ракеты в углу
-    const rocketIcon = document.createElement('img')
-    rocketIcon.src = roketImage
-    Object.assign(rocketIcon.style, {
-      position: 'absolute',
-      top: '20px',
-      right: '20px',
-      width: '100px', // Размер ракеты
-      height: 'auto',
-      zIndex: '10', // Поверх всего
-      filter: 'drop-shadow(0 0 15px rgba(244, 167, 130, 0.5))', // Мягкое свечение
-      transform: 'rotate(15deg)' // Небольшой наклон для динамики
-    })
-    container.appendChild(rocketIcon)
-
-    // НОВАЯ ФИШКА: Декоративные точки/звездочки
-    for (let i = 0; i < 15; i++) { // 15 звездочек
-        const star = document.createElement('div');
-        Object.assign(star.style, {
-            position: 'absolute',
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-            width: `${Math.random() * 3 + 1}px`, // Разный размер
-            height: `${Math.random() * 3 + 1}px`,
-            background: `rgba(255, 255, 255, ${Math.random() * 0.8 + 0.2})`, // Разная прозрачность
-            borderRadius: '50%',
-            filter: 'blur(0.5px)'
-        });
-        container.appendChild(star);
-    }
-
-
-    // 1. HEADER: Имя и Дата
-    const header = document.createElement('div')
-    header.style.textAlign = 'center'
+    const challenges = todaysChallenges.value.map(c => ({ title: c.title }))
+    const checklistTasks = (checklistRef.value?.todaySteps?.filter(s => s.done) || []).map(s => ({ title: s.title, done: true }))
     
-    const title = document.createElement('h1')
-    title.textContent = t('home.loggedIn.completionImage.title', { name: userName.value }).toUpperCase()
-    Object.assign(title.style, {
-      fontSize: '42px',
-      fontWeight: '900',
-      marginBottom: '8px',
-      background: 'linear-gradient(to right, #ffffff, #F4A782)',
-      WebkitBackgroundClip: 'text',
-      WebkitTextFillColor: 'transparent',
-      textShadow: '0 0 10px rgba(255, 255, 255, 0.3)',
-      zIndex: '1', // Чтобы быть поверх звездочек
-      position: 'relative'
+    await generateImage({
+      userName: userName.value,
+      date: new Date(),
+      challenges: challenges,
+      checklistTasks: checklistTasks,
+      streakDays: streakDays.value,
+      locale: locale.value,
+      t: t,
+      includeMotivationalMessage: true,
+      filenamePrefix: 'victory'
     })
-
-    const dateStr = new Date().toLocaleDateString(locale.value === 'ru' ? 'ru-RU' : 'en-US', { 
-      month: 'long', day: 'numeric', year: 'numeric' 
-    })
-    const dateText = document.createElement('p')
-    dateText.textContent = dateStr
-    Object.assign(dateText.style, { 
-      fontSize: '18px', opacity: '0.6', letterSpacing: '2px', marginBottom: '20px',
-      zIndex: '1', position: 'relative' 
-    })
-
-    header.appendChild(title)
-    header.appendChild(dateText)
-    container.appendChild(header)
-
-    // 2. MOTIVATION BOX (Glassmorphism)
-    const messages = locale.value === 'ru' ? motivationalMessagesRu : motivationalMessagesEn
-    const selectedMessage = messages[Math.floor(Math.random() * messages.length)]
-    
-    const quoteBox = document.createElement('div')
-    Object.assign(quoteBox.style, {
-      background: 'rgba(255, 255, 255, 0.05)',
-      border: '1px solid rgba(255, 255, 255, 0.1)',
-      borderRadius: '20px',
-      padding: '24px',
-      textAlign: 'center',
-      fontStyle: 'italic',
-      fontSize: '20px',
-      lineHeight: '1.4',
-      color: '#F4A782',
-      boxShadow: '0 8px 20px rgba(0,0,0,0.2)',
-      zIndex: '1', position: 'relative' 
-    })
-    quoteBox.textContent = `"${selectedMessage}"`
-    container.appendChild(quoteBox)
-
-    // 3. CHALLENGES / STEPS
-    const listContainer = document.createElement('div')
-    listContainer.style.flex = '1'
-    listContainer.style.zIndex = '1'
-    listContainer.style.position = 'relative'
-
-    const allItems = [
-      ...todaysChallenges.value.map(c => c.title),
-      ...(checklistRef.value?.todaySteps?.filter(s => s.done).map(s => s.title) || [])
-    ]
-
-    allItems.forEach(taskText => {
-      const row = document.createElement('div')
-      Object.assign(row.style, {
-        display: 'flex',
-        alignItems: 'center',
-        background: 'rgba(255, 255, 255, 0.08)',
-        marginBottom: '10px',
-        padding: '16px 20px',
-        borderRadius: '16px',
-        borderLeft: '4px solid #F4A782',
-        boxShadow: '0 4px 10px rgba(0,0,0,0.1)' 
-      })
-
-      const check = document.createElement('span')
-      check.textContent = '✦' 
-      check.style.marginRight = '15px'
-      check.style.color = '#F4A782'
-      check.style.fontSize = '20px'
-
-      const text = document.createElement('span')
-      text.textContent = taskText
-      text.style.fontSize = '18px'
-      text.style.fontWeight = '500'
-
-      row.appendChild(check)
-      row.appendChild(text)
-      listContainer.appendChild(row)
-    })
-    container.appendChild(listContainer)
-
-    // 4. FOOTER: Streak & Logo
-    const footer = document.createElement('div')
-    Object.assign(footer.style, {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginTop: '20px',
-      paddingTop: '30px',
-      borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-      zIndex: '1', position: 'relative' 
-    })
-
-    const streakBadge = document.createElement('div')
-    Object.assign(streakBadge.style, {
-      background: 'linear-gradient(90deg, #7E46C4, #F4A782)',
-      padding: '10px 20px',
-      borderRadius: '50px',
-      fontWeight: '800',
-      fontSize: '20px',
-      boxShadow: '0 4px 15px rgba(126, 70, 196, 0.4)'
-    })
-    streakBadge.innerHTML = `🔥 ${streakDays.value} ${t('navigation.streakDays').toUpperCase()}`
-
-    const brand = document.createElement('div')
-    brand.textContent = 'AWA_APP' // Замени на свое название приложения
-    brand.style.fontWeight = '900'
-    brand.style.letterSpacing = '2px'
-    brand.style.opacity = '0.5'
-
-    footer.appendChild(streakBadge)
-    footer.appendChild(brand)
-    container.appendChild(footer)
-
-    document.body.appendChild(container)
-
-    const canvas = await html2canvas(container, {
-      scale: 2,
-      backgroundColor: null,
-      useCORS: true,
-      logging: false
-    })
-
-    document.body.removeChild(container)
-
-    canvas.toBlob((blob) => {
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `victory-${new Date().getTime()}.png`
-      link.click()
-      URL.revokeObjectURL(url)
-    }, 'image/png')
-
   } catch (error) {
     console.error('Generation failed', error)
   } finally {
@@ -1144,12 +1288,15 @@ onBeforeUnmount(() => {
 
 .home-logged-in-container {
   width: 100%;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   justify-content: flex-start;
   padding: 1.5em 1em;
   gap: 2em;
+  box-sizing: border-box;
+  overflow: visible !important;
 }
 
 @media (min-width: 400px) {
@@ -1354,7 +1501,6 @@ onBeforeUnmount(() => {
 
 .streak-display-mobile {
   width: 100%;
-  max-width: 600px;
   background: linear-gradient(135deg, #FFF5F0 0%, #FFEDE3 100%);
   color: #FF8C42;
   border: 1px solid rgba(255, 140, 66, 0.3);
@@ -1391,8 +1537,7 @@ onBeforeUnmount(() => {
 
 .todays-card {
   width: 100%;
-  max-width: 600px;
-  margin: 0 auto;
+  margin: 0;
   background: linear-gradient(to right, #e3f2fd, #fce4ec) !important;
   border-left: 4px solid #42a5f5;
   box-shadow: 0 2px 8px rgba(66, 165, 245, 0.2) !important;
@@ -1415,6 +1560,13 @@ onBeforeUnmount(() => {
   flex-direction: row;
   gap: 1em;
   flex-wrap: nowrap;
+  box-sizing: border-box;
+  overflow: visible !important;
+  padding-right: 0;
+}
+
+.todays-cards-wrapper :deep(*) {
+  overflow: visible !important;
 }
 
 .todays-challenges-card {
@@ -1430,6 +1582,27 @@ onBeforeUnmount(() => {
   width: 35%;
   flex: 0 0 35%;
   max-width: 35%;
+  box-sizing: border-box;
+  overflow: visible !important;
+  min-width: 0;
+  padding-right: 0 !important;
+  margin-right: 0 !important;
+}
+
+.todays-checklist-card :deep(.v-card) {
+  overflow: visible !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+}
+
+.todays-checklist-card :deep(.v-card-text) {
+  overflow: visible !important;
+  padding: 16px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
 }
 
 .checklist-card {
@@ -1437,6 +1610,32 @@ onBeforeUnmount(() => {
   border-radius: 24px !important;
   border: 1px solid rgba(0, 163, 255, 0.08) !important; /* Легкий голубой оттенок для отличия */
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02) !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+}
+
+.checklist-card :deep(.v-card) {
+  overflow: visible !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  border: 1px solid rgba(0, 163, 255, 0.08) !important;
+}
+
+.checklist-card :deep(.v-card-text) {
+  overflow: visible !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.checklist-card :deep(.daily-checklist-content) {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
 }
 
 .checklist-card-empty {
@@ -1445,7 +1644,6 @@ onBeforeUnmount(() => {
   border-radius: 24px !important;
   padding: 24px !important;
   width: 100% !important;
-  max-width: 400px !important;
   display: flex !important;
   flex-direction: column !important;
   gap: 16px !important;
@@ -1454,12 +1652,20 @@ onBeforeUnmount(() => {
   box-shadow: none !important;
 }
 
+.checklist-card-tomorrow {
+  border: 2px dashed rgba(112, 72, 232, 0.2) !important; /* Светло-фиолетовый пунктир */
+}
+
 .checklist-card-empty:hover {
   border-color: rgba(112, 72, 232, 0.4) !important;
   background: rgba(112, 72, 232, 0.01) !important;
 }
 
 @media (max-width: 959px) {
+  .hero-progress-light {
+    margin-bottom: 1.5em;
+  }
+  
   .todays-cards-wrapper {
     flex-direction: column;
   }
@@ -1470,6 +1676,10 @@ onBeforeUnmount(() => {
     flex: 0 0 100%;
     max-width: 100%;
   }
+  
+  .challenge-card {
+    padding: 10px 14px !important;
+  }
 }
 
 .todays-challenges-section {
@@ -1478,6 +1688,16 @@ onBeforeUnmount(() => {
 
 .todays-checklist-section {
   margin-top: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: visible;
+  padding-right: 0;
+}
+
+.todays-checklist-section :deep(*) {
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .hero-progress-light {
@@ -1490,6 +1710,16 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: 15px;
   width: 100%;
+  max-width: 100%;
+  margin-bottom: 3em;
+  box-sizing: border-box;
+}
+
+/* Reduce margin on mobile */
+@media (max-width: 959px) {
+  .hero-progress-light {
+    margin-bottom: 1.5em;
+  }
 }
 
 .progress-header {
@@ -1510,8 +1740,9 @@ onBeforeUnmount(() => {
   height: 10px;
   background: #F1F3F5; /* Светлая «канавка» */
   border-radius: 20px;
-  overflow: hidden;
+  overflow: visible; /* Allow glow effect to be visible */
   box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); /* Эффект глубины */
+  position: relative;
 }
 
 .progress-fill-vibrant {
@@ -1521,6 +1752,42 @@ onBeforeUnmount(() => {
   border-radius: 20px;
   box-shadow: 0 2px 10px rgba(112, 72, 232, 0.3);
   transition: width 0.5s ease-in-out;
+  position: relative;
+}
+
+/* Тот самый "эффект зажигания" на кончике */
+/* Тот самый "эффект зажигания" на кончике - только когда есть прогресс */
+.progress-fill-vibrant.has-progress::after {
+  content: '';
+  position: absolute;
+  right: -5px; /* Выносим чуть вперед за край полосы */
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 10px;
+  background: #F4A782; /* Твой оранжевый Ignite */
+  border-radius: 50%;
+  
+  /* Создаем эффект свечения */
+  box-shadow: 
+    0 0 10px #F4A782, 
+    0 0 20px #F4A782, 
+    0 0 5px #FFFFFF;
+    
+  /* Добавим легкую пульсацию, чтобы "огонек" казался живым */
+  animation: ignite-pulse 1.5s infinite alternate;
+}
+
+@keyframes ignite-pulse {
+  from {
+    transform: translateY(-50%) scale(1);
+    opacity: 0.8;
+  }
+  to {
+    transform: translateY(-50%) scale(1.3);
+    opacity: 1;
+    box-shadow: 0 0 15px #F4A782, 0 0 25px #F4A782;
+  }
 }
 
 /* Сетка для списка карточек */
@@ -1603,6 +1870,21 @@ onBeforeUnmount(() => {
 .challenge-text.completed {
   text-decoration: line-through;
   color: #94A3B8; /* Приглушенный серый */
+}
+
+/* Disabled challenge card for tomorrow tab */
+.challenge-card-disabled {
+  opacity: 0.6;
+  cursor: not-allowed !important;
+  pointer-events: none;
+}
+
+.challenge-card-disabled .challenge-icon {
+  background: rgba(148, 163, 184, 0.1) !important;
+}
+
+.challenge-text-disabled {
+  color: #94A3B8 !important;
 }
 
 .empty-missions-container {
@@ -1729,5 +2011,198 @@ onBeforeUnmount(() => {
 @keyframes float {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-12px); }
+}
+
+/* Tomorrow Steps Empty State */
+.tomorrow-steps-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 20px;
+  min-height: 200px;
+}
+
+.tomorrow-empty-icon {
+  width: 140px;
+  margin-bottom: 20px;
+  filter: drop-shadow(0 10px 15px rgba(112, 72, 232, 0.1));
+}
+
+.tomorrow-empty-text {
+  color: #94A3B8;
+  font-size: 0.95rem;
+  max-width: 300px;
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
+.plan-step-btn {
+  background: linear-gradient(135deg, #FF8C42 0%, #7048E8 100%) !important;
+  color: white !important;
+  border-radius: 14px !important;
+  font-weight: 700 !important;
+  font-size: 1rem !important;
+  padding: 6px 32px !important;
+  text-transform: none !important;
+  box-shadow: 0 4px 15px rgba(255, 140, 66, 0.25) !important;
+  transition: all 0.3s ease !important;
+}
+
+.plan-step-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(112, 72, 232, 0.35) !important;
+  filter: brightness(1.05);
+}
+
+/* Tomorrow Steps Content */
+.tomorrow-steps-content {
+  width: 100%;
+}
+
+.tomorrow-steps-content .checklist-list {
+  margin-top: 16px;
+  min-height: 50px;
+}
+
+.tomorrow-steps-content .checklist-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 8px;
+  border-bottom: 1px solid #F8F9FA;
+  transition: all 0.2s ease;
+}
+
+.tomorrow-steps-content .step-text {
+  font-size: 0.9rem;
+  color: #4A5568;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  flex: 1;
+  word-wrap: break-word;
+  cursor: text;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.tomorrow-steps-content .step-text:hover {
+  background: rgba(112, 72, 232, 0.05);
+}
+
+.tomorrow-steps-content .step-edit-input {
+  flex: 1;
+  border: 2px solid #7048E8;
+  background: #ffffff;
+  padding: 4px 8px;
+  font-size: 0.9rem;
+  color: #1A1A2E;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  border-radius: 4px;
+  outline: none;
+}
+
+.tomorrow-steps-content .delete-action {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #94A3B8;
+  transition: all 0.2s ease;
+}
+
+.tomorrow-steps-content .delete-action:hover {
+  color: #EF4444;
+  background: #FEF2F2;
+  transform: scale(1.1);
+}
+
+.tomorrow-steps-content .add-step-wrapper {
+  margin-top: 24px;
+  display: flex;
+  gap: 8px;
+  background: #F8FAFC;
+  padding: 6px;
+  border-radius: 14px;
+  border: 1px solid #E2E8F0;
+}
+
+.tomorrow-steps-content .step-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  outline: none;
+  color: #1A1A2E;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+.tomorrow-steps-content .step-input::placeholder {
+  color: #A0AEC0;
+}
+
+.tomorrow-steps-content .add-step-btn {
+  background: #7048E8 !important;
+  color: white !important;
+  border-radius: 10px !important;
+  height: 36px !important;
+  width: 36px !important;
+  min-width: 36px !important;
+  padding: 0 !important;
+}
+
+/* Tabs styling - align left */
+.home-tabs {
+  width: 100%;
+  align-self: flex-start;
+}
+
+.home-tabs :deep(.v-tabs) {
+  justify-content: flex-start;
+}
+
+.home-tabs :deep(.v-tab) {
+  text-align: left;
+  color: #7048E8 !important;
+  border-radius: 12px !important;
+}
+
+/* Ensure v-window uses full width */
+.home-logged-in-container :deep(.v-window) {
+  width: 100%;
+  max-width: 100%;
+  overflow: visible !important;
+}
+
+.home-logged-in-container :deep(.v-window-item) {
+  width: 100%;
+  max-width: 100%;
+  overflow: visible !important;
+}
+
+.home-logged-in-container :deep(.v-window-item__wrapper) {
+  width: 100%;
+  max-width: 100%;
+  overflow: visible !important;
+  padding-right: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Ensure v-cards use full width */
+.home-logged-in-container :deep(.v-card) {
+  width: 100%;
+  max-width: 100%;
+  overflow: visible !important;
+}
+
+.home-logged-in-container :deep(.v-card-text) {
+  width: 100%;
+  box-sizing: border-box;
+  overflow: visible !important;
+  padding: 16px !important;
 }
 </style>

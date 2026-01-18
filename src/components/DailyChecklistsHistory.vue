@@ -1,32 +1,65 @@
 <template>
   <div class="checklists-history">
-    <h1 class="page-title">{{ t('home.loggedIn.checklistHistory.title') }}</h1>
+    <div class="header-section">
+      <h1 class="journal-header">{{ t('home.loggedIn.checklistHistory.title') }}</h1>
+      <p class="journal-subtitle">{{ t('home.loggedIn.checklistHistory.subtitle') }}</p>
+    </div>
     
-    <v-card>
-      <v-card-text>
-        <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4"></v-progress-linear>
-        <v-alert v-if="error" type="error" class="mb-4">{{ error }}</v-alert>
+    <v-progress-linear v-if="loading" indeterminate color="#7E46C4" class="mb-8"></v-progress-linear>
+    <v-alert v-if="error" type="error" variant="tonal" class="mb-4">{{ error }}</v-alert>
+    
+    <div v-if="!loading && checklists.length === 0" class="empty-journal">
+      <div class="empty-icon">✨</div>
+      <p class="empty-text">{{ t('home.loggedIn.checklistHistory.empty') }}</p>
+    </div>
+    
+    <div v-else-if="!loading" class="journal-timeline">
+       <div
+         v-for="checklist in checklists"
+         :key="checklist._id || checklist.date"
+         class="timeline-item"
+         :class="{ 'active': isToday(checklist.date), 'future': isFuture(checklist.date) }"
+       >
+        <div class="timeline-dot"></div>
         
-        <div v-if="!loading && checklists.length === 0" class="empty-state">
-          <p class="empty-text">{{ t('home.loggedIn.checklistHistory.empty') }}</p>
-        </div>
-        
-        <div v-else-if="!loading" class="checklists-list">
-          <div
-            v-for="checklist in checklists"
-            :key="checklist._id || checklist.date"
-            class="checklist-item"
-          >
+        <div class="timeline-content">
+          <div class="day-card" :class="{ 'card-completed': isFull(checklist) }">
             <div class="checklist-header">
               <h3 class="checklist-date">{{ formatDate(checklist.date) }}</h3>
-              <v-chip
-                :color="getCompletionColor(checklist)"
-                size="small"
-                variant="flat"
-              >
+              
+              <div class="ignite-badge" :class="getCompletionStatusClass(checklist)">
                 {{ getCompletionText(checklist) }}
-              </v-chip>
+              </div>
             </div>
+            
+            <!-- Daily Challenges -->
+            <div v-if="getChallengesForDate(checklist.date).length > 0" class="challenges-section">
+              <div
+                v-for="challenge in getChallengesForDate(checklist.date)"
+                :key="challenge._id"
+                class="challenge-item"
+                :class="{ 'completed': isChallengeCompletedOnDate(challenge, checklist.date) }"
+              >
+                <div class="challenge-icon">
+                  <v-icon 
+                    v-if="isChallengeCompletedOnDate(challenge, checklist.date)"
+                    size="small"
+                    color="#7048e8"
+                  >mdi-check-circle</v-icon>
+                  <v-icon 
+                    v-else
+                    size="small"
+                    color="#7048e8"
+                  >mdi-flag</v-icon>
+                </div>
+                <span class="challenge-text" :class="{ completed: isChallengeCompletedOnDate(challenge, checklist.date) }">
+                  {{ challenge.title }}
+                </span>
+              </div>
+            </div>
+            
+            <!-- Divider between challenges and checklist -->
+            <v-divider v-if="getChallengesForDate(checklist.date).length > 0 && checklist.tasks && checklist.tasks.length > 0" class="my-4"></v-divider>
             
             <div v-if="checklist.tasks && checklist.tasks.length > 0" class="tasks-list">
               <div
@@ -34,55 +67,197 @@
                 :key="index"
                 class="task-item"
               >
-                <v-icon
-                  :color="task.done ? 'success' : 'grey'"
-                  size="small"
-                  class="task-icon"
-                >
-                  {{ task.done ? 'mdi-check-circle' : 'mdi-circle-outline' }}
-                </v-icon>
-                <span
-                  class="task-text"
-                  :class="{ completed: task.done }"
-                >
+                <div class="custom-check" :class="{ 'checked': task.done }">
+                  <v-icon v-if="task.done" size="10" color="white">mdi-check</v-icon>
+                </div>
+                
+                <span class="task-text" :class="{ completed: task.done }">
                   {{ task.title }}
                 </span>
               </div>
             </div>
-            <div v-else class="no-tasks">
-              <p class="no-tasks-text">{{ t('home.loggedIn.checklistHistory.noTasks') }}</p>
+
+            <!-- Empty state: show only if no missions and no checklist -->
+            <div v-if="getChallengesForDate(checklist.date).length === 0 && (!checklist.tasks || checklist.tasks.length === 0)" class="no-tasks-state">
+              <p class="no-tasks-text">The page is blank. Start your mission today.</p>
             </div>
+            
+            <!-- Generate Legend Card button - show when all tasks are completed -->
+            <v-btn
+              v-if="isFull(checklist)"
+              block
+              class="generate-art-btn"
+              @click="generateLegendImage(checklist)"
+              :loading="generatingImage"
+            >
+              <v-icon left>mdi-creation</v-icon>
+              Generate Legend Card
+            </v-btn>
           </div>
         </div>
-      </v-card-text>
-    </v-card>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { userService } from '../services/api'
+import { userService, challengeService } from '../services/api'
+import { generateCompletionImage as generateImage } from '../utils/imageGenerator'
 
-const { t } = useI18n()
-
+const { t, locale } = useI18n()
 const checklists = ref([])
+const challenges = ref([])
 const loading = ref(false)
 const error = ref('')
+const generatingImage = ref(false)
+
+const getCurrentUserId = () => {
+  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  return user._id || user.id
+}
+
+const formatDateString = (date) => {
+  const d = new Date(date)
+  d.setHours(0, 0, 0, 0)
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const isToday = (dateString) => {
+  const date = new Date(dateString).setHours(0,0,0,0)
+  const today = new Date().setHours(0,0,0,0)
+  return date === today
+}
+
+const isFuture = (dateString) => {
+  const date = new Date(dateString).setHours(0,0,0,0)
+  const today = new Date().setHours(0,0,0,0)
+  return date > today
+}
+
+const isFull = (checklist) => {
+  const dateChallenges = getChallengesForDate(checklist.date)
+  const completedChallenges = dateChallenges.filter(c => isChallengeCompletedOnDate(c, checklist.date)).length
+  const totalChallenges = dateChallenges.length
+  
+  const completedTasks = checklist.tasks?.filter(t => t.done).length || 0
+  const totalTasks = checklist.tasks?.length || 0
+  
+  const totalCompleted = completedTasks + completedChallenges
+  const totalItems = totalTasks + totalChallenges
+  
+  if (totalItems === 0) return false
+  return totalCompleted === totalItems
+}
+
+const getCompletionStatusClass = (checklist) => {
+  const dateChallenges = getChallengesForDate(checklist.date)
+  const totalTasks = checklist.tasks?.length || 0
+  const totalChallenges = dateChallenges.length
+  const totalItems = totalTasks + totalChallenges
+  
+  if (totalItems === 0) return 'status-empty'
+  return isFull(checklist) ? 'status-complete' : 'status-progress'
+}
 
 const loadChecklists = async () => {
   loading.value = true
   error.value = ''
   try {
-    const response = await userService.getChecklistHistory()
-    checklists.value = response.data?.checklists || []
+    const userId = getCurrentUserId()
+    const [checklistResponse, challengesResponse] = await Promise.all([
+      userService.getChecklistHistory(),
+      userId ? challengeService.getChallengesByUser(userId, { excludePrivate: false }) : Promise.resolve({ data: { challenges: [] } })
+    ])
+    checklists.value = checklistResponse.data?.checklists || []
+    challenges.value = challengesResponse.data?.challenges || []
   } catch (err) {
     console.error('Error loading checklist history:', err)
     error.value = err.response?.data?.message || t('home.loggedIn.checklistHistory.loadError')
     checklists.value = []
+    challenges.value = []
   } finally {
     loading.value = false
   }
+}
+
+const getChallengesForDate = (dateString) => {
+  const targetDate = new Date(dateString)
+  targetDate.setHours(0, 0, 0, 0)
+  const userId = getCurrentUserId()
+  
+  if (!userId || !challenges.value.length) return []
+  
+  return challenges.value.filter(challenge => {
+    // Must be a habit challenge (only habit challenges have daily completion)
+    if (challenge.challengeType !== 'habit') return false
+    
+    // Must have started (startDate <= targetDate)
+    if (challenge.startDate) {
+      const startDate = new Date(challenge.startDate)
+      startDate.setHours(0, 0, 0, 0)
+      if (startDate > targetDate) return false
+    }
+    
+    // Must not be finished before target date
+    if (challenge.endDate) {
+      const endDate = new Date(challenge.endDate)
+      endDate.setHours(0, 0, 0, 0)
+      if (endDate < targetDate) return false
+    }
+    
+    // Must be a participant (user must have joined the challenge)
+    if (!challenge.participants || challenge.participants.length === 0) {
+      return false
+    }
+    
+    // Check if current user is a participant
+    const isParticipant = challenge.participants.some(p => {
+      const pUserId = p.userId?._id || p.userId || p._id
+      return pUserId && pUserId.toString() === userId.toString()
+    })
+    
+    if (!isParticipant) {
+      return false
+    }
+    
+    return true
+  })
+}
+
+const isChallengeCompletedOnDate = (challenge, dateString) => {
+  const userId = getCurrentUserId()
+  if (!userId || !challenge.participants) return false
+  
+  // Find current user's participant entry
+  const participant = challenge.participants.find(p => {
+    const pUserId = p.userId?._id || p.userId || p._id
+    return pUserId && pUserId.toString() === userId.toString()
+  })
+  
+  if (!participant || !participant.completedDays || !Array.isArray(participant.completedDays)) {
+    return false
+  }
+  
+  // Check if target date is in completedDays
+  const targetDateStr = formatDateString(dateString)
+  
+  return participant.completedDays.some(date => {
+    if (!date) return false
+    // Handle both string dates and Date objects
+    let dateStr = String(date)
+    // If it's a full ISO string, extract just the date part
+    if (dateStr.includes('T')) {
+      dateStr = dateStr.split('T')[0]
+    }
+    // Ensure it's in YYYY-MM-DD format (first 10 characters)
+    dateStr = dateStr.substring(0, 10)
+    return dateStr === targetDateStr
+  })
 }
 
 const formatDate = (dateString) => {
@@ -117,12 +292,56 @@ const getCompletionColor = (checklist) => {
 }
 
 const getCompletionText = (checklist) => {
-  if (!checklist.tasks || checklist.tasks.length === 0) {
+  const dateChallenges = getChallengesForDate(checklist.date)
+  const completedChallenges = dateChallenges.filter(c => isChallengeCompletedOnDate(c, checklist.date)).length
+  const totalChallenges = dateChallenges.length
+  
+  const completedTasks = checklist.tasks?.filter(t => t.done).length || 0
+  const totalTasks = checklist.tasks?.length || 0
+  
+  const totalCompleted = completedTasks + completedChallenges
+  const totalItems = totalTasks + totalChallenges
+  
+  if (totalItems === 0) {
     return t('home.loggedIn.checklistHistory.noTasks')
   }
-  const completedCount = checklist.tasks.filter(t => t.done).length
-  const totalCount = checklist.tasks.length
-  return `${completedCount}/${totalCount}`
+  
+  return `${totalCompleted}/${totalItems}`
+}
+
+async function generateLegendImage(checklist) {
+  generatingImage.value = true
+  try {
+    await nextTick()
+    
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    const userName = user?.name || 'Hero'
+    
+    const dateChallenges = getChallengesForDate(checklist.date)
+    const completedChallenges = dateChallenges
+      .filter(c => isChallengeCompletedOnDate(c, checklist.date))
+      .map(c => ({ title: c.title }))
+    
+    const checklistTasks = (checklist.tasks || [])
+      .filter(task => task.done)
+      .map(task => ({ title: task.title, done: true }))
+    
+    await generateImage({
+      userName: userName,
+      date: checklist.date,
+      completedChallenges: completedChallenges,
+      checklistTasks: checklistTasks,
+      streakDays: null, // No streak for historical days
+      locale: locale.value,
+      t: null, // No translation function needed for historical
+      includeMotivationalMessage: false, // No motivational message for historical
+      filenamePrefix: 'legend'
+    })
+  } catch (error) {
+    console.error('Generation failed', error)
+  } finally {
+    generatingImage.value = false
+  }
 }
 
 onMounted(() => {
@@ -131,104 +350,282 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.checklists-history {
-  width: 100%;
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 1em;
-}
-
-.page-title {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: rgba(0, 0, 0, 0.87);
-  margin-bottom: 1.5em;
-}
-
-@media (min-width: 600px) {
-  .page-title {
-    font-size: 2rem;
+  .checklists-history {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2em 1em;
   }
-}
-
-.empty-state {
-  text-align: center;
-  padding: 3em 1em;
-}
-
-.empty-text {
-  color: rgba(0, 0, 0, 0.6);
+  
+  /* Заголовки */
+  .journal-header {
+    font-size: 2.8rem;
+    font-weight: 800;
+    letter-spacing: -1px;
+    margin-bottom: 12px;
+    background: linear-gradient(135deg, #1A1A2E 0%, #7E46C4 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .journal-subtitle {
   font-size: 1rem;
-  margin: 0;
+  font-style: italic;
+  color: rgba(26, 26, 46, 0.5);
+  border-left: 2px solid #F4A782; /* Делаем линию чуть тоньше */
+  padding-left: 15px;
+  margin-top: 10px; /* Отступ от Hero's Journal */
+  margin-bottom: 40px; /* Отступ до начала таймлайна */
+  font-weight: 300;
+}
+  
+  /* Линия таймлайна */
+  .journal-timeline {
+    position: relative;
+  }
+  
+  .journal-timeline::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 10px;
+    width: 2px;
+    height: calc(100% - 20px);
+    background: linear-gradient(to bottom, #7E46C4, #F4A782, transparent);
+  }
+  
+  /* Элемент таймлайна */
+  .timeline-item {
+    position: relative;
+    padding-left: 40px;
+    margin-bottom: 30px;
+  }
+  
+  .timeline-dot {
+    position: absolute;
+    left: -7px;
+    top: 24px;
+    width: 16px;
+    height: 16px;
+    background: #fff;
+    border: 2px solid #7E46C4;
+    transform: rotate(45deg);
+    z-index: 2;
+    transition: all 0.3s ease;
+  }
+  
+  .timeline-item.active .timeline-dot {
+    background: #F4A782;
+    border-color: #F4A782;
+    box-shadow: 0 0 15px rgba(244, 167, 130, 0.6);
+    animation: pulse-glow 2s infinite;
+  }
+  
+  /* Стили для будущих дней */
+  .timeline-item.future .day-card {
+    opacity: 0.7;
+    border: 1px dashed rgba(126, 70, 196, 0.3); /* Пунктир */
+    background: rgba(255, 255, 255, 0.4);
+  }
+  
+  /* Специальный стиль для будущих событий */
+  .timeline-item.future .timeline-dot {
+    border-color: rgba(126, 70, 196, 0.4);
+    box-shadow: none;
+    border-style: dashed;
+    background: transparent;
+  }
+  
+  .timeline-item.future .checklist-date {
+    color: rgba(26, 26, 46, 0.4); /* Бледный заголовок */
+  }
+  
+  /* Эффект "заблокированности" для задач */
+  .timeline-item.future .custom-check {
+    border-color: rgba(126, 70, 196, 0.2);
+    background: rgba(126, 70, 196, 0.05);
+  }
+  
+  .timeline-item.future .task-text {
+    color: rgba(26, 26, 46, 0.3);
+  }
+  
+  /* Бейдж для будущего дня */
+  .timeline-item.future .ignite-badge {
+    background: transparent;
+    border: 1px solid rgba(126, 70, 196, 0.2);
+    color: rgba(126, 70, 196, 0.4);
+  }
+  
+  /* Карточка */
+  .day-card {
+    background: white;
+    border-radius: 20px;
+    padding: 24px;
+    border: 1px solid rgba(126, 70, 196, 0.08);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  .day-card:hover {
+    transform: translateX(10px);
+    box-shadow: 0 10px 30px rgba(126, 70, 196, 0.08);
+  }
+  
+  .checklist-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  
+  /* Бейджи Ignite */
+  .ignite-badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  min-width: 40px;
+  text-align: center;
 }
 
-.checklists-list {
+.status-complete {
+  background: linear-gradient(135deg, #7E46C4, #9D50BB);
+  color: white !important;
+}
+
+.status-progress {
+  background: #F0EBFF;
+  color: #7E46C4;
+}
+  
+  /* Кастомные чекбоксы */
+  .custom-check {
+  width: 14px; /* Уменьшаем с 18px */
+  height: 14px;
+  border: 1.5px solid #7E46C4;
+  transform: rotate(45deg);
+  margin-right: 18px;
   display: flex;
-  flex-direction: column;
-  gap: 1.5em;
-}
-
-.checklist-item {
-  padding: 1em;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  border-radius: 8px;
-  background-color: rgba(0, 0, 0, 0.01);
-}
-
-.checklist-header {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 1em;
-  padding-bottom: 0.75em;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
-}
-
-.checklist-date {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: rgba(0, 0, 0, 0.87);
-  margin: 0;
-}
-
-.tasks-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5em;
-}
-
-.task-item {
-  display: flex;
-  align-items: center;
-  gap: 0.75em;
-  padding: 0.5em 0;
-}
-
-.task-icon {
+  justify-content: center;
   flex-shrink: 0;
+  transition: all 0.2s ease;
 }
 
-.task-text {
-  flex: 1;
-  font-size: 0.95rem;
-  color: rgba(0, 0, 0, 0.87);
-  word-wrap: break-word;
+/* Исправляем галочку внутри */
+.custom-check .v-icon {
+  transform: rotate(-45deg); /* Поворачиваем иконку обратно, чтобы она стояла ровно */
+  font-size: 10px !important;
 }
 
-.task-text.completed {
-  text-decoration: line-through;
-  color: rgba(0, 0, 0, 0.5);
+.custom-check.checked {
+  background: #7E46C4;
+  border-color: #7E46C4;
+}
+  
+  .task-text.completed {
+    text-decoration: line-through;
+    opacity: 0.4;
+  }
+  
+  .task-item {
+  display: flex;
+  align-items: center; /* Центрируем ромб и текст по вертикали */
+  padding: 6px 0;
 }
 
-.no-tasks {
-  padding: 1em 0;
+  .task-text {
+    font-size: 0.95rem;
+    line-height: 1.2;
+    color: #1A1A2E;
+  }
+  
+  /* Challenges Section */
+  .challenges-section {
+    margin-bottom: 16px;
+  }
+  
+  .challenge-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+    transition: all 0.2s ease;
+  }
+  
+  .challenge-icon {
+    width: 32px;
+    height: 32px;
+    background: #F3F0FF;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 12px;
+    transition: background 0.3s ease;
+  }
+  
+  .challenge-item.completed .challenge-icon {
+    background: #E8E2FF;
+  }
+  
+  .challenge-text {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #2D3436;
+    transition: color 0.3s ease;
+  }
+  
+  .challenge-text.completed {
+    text-decoration: line-through;
+    color: #94A3B8;
+  }
+  
+  .challenge-item.completed .challenge-icon .v-icon {
+    color: #94A3B8 !important;
+  }
+.no-tasks-state {
+  padding: 10px 0;
   text-align: center;
 }
 
 .no-tasks-text {
-  color: rgba(0, 0, 0, 0.5);
-  font-size: 0.9rem;
-  margin: 0;
+  color: rgba(0, 0, 0, 0.4);
   font-style: italic;
+  font-size: 0.9rem;
 }
-</style>
+
+  @keyframes pulse-glow {
+    0% { transform: rotate(45deg) scale(1); }
+    50% { transform: rotate(45deg) scale(1.2); }
+    100% { transform: rotate(45deg) scale(1); }
+  }
+  
+  /* Generate Legend Card Button */
+  .generate-art-btn {
+    background: linear-gradient(135deg, #7E46C4 0%, #F4A782 100%) !important;
+    color: white !important;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-radius: 12px;
+    margin-top: 15px;
+    box-shadow: 0 4px 15px rgba(126, 70, 196, 0.4);
+    transition: all 0.3s ease;
+  }
+
+  .generate-art-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(244, 167, 130, 0.5);
+  }
+
+  .achievement-footer {
+    animation: fadeIn 0.5s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  </style>

@@ -317,4 +317,12 @@ onMounted(() => {
   color: #94A3B8;
   opacity: 0.7;
 }
+
+/* Reduce margin/padding for empty state on mobile */
+@media (max-width: 959px) {
+  .empty-state {
+    padding-top: 20px;
+    min-height: 100px;
+  }
+}
 </style>
