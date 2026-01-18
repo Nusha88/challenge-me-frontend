@@ -90,14 +90,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, computed, watch, nextTick } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { challengeService } from '../services/api'
 import { useI18n } from 'vue-i18n'
 import ChallengeCard from './ChallengeCard.vue'
 import ChallengeDetailsDialog from './ChallengeDetailsDialog.vue'
 
 const router = useRouter()
+const route = useRoute()
 const { t } = useI18n()
 
 const challenges = ref([])
@@ -458,9 +459,47 @@ function handleOwnerNavigated() {
   detailsDialogOpen.value = false
 }
 
-onMounted(() => {
-  fetchChallenges()
+async function openChallengeById(challengeId) {
+  if (!challengeId) return
+  
+  // Find challenge in the list
+  const challenge = challenges.value.find(c => c._id === challengeId || c._id?.toString() === challengeId)
+  if (challenge) {
+    selectedChallenge.value = challenge
+    detailsDialogOpen.value = true
+  } else {
+    // If challenge not in list, fetch it
+    try {
+      const { data } = await challengeService.getChallenge(challengeId)
+      selectedChallenge.value = data
+      detailsDialogOpen.value = true
+    } catch (err) {
+      console.error('Error loading challenge:', err)
+    }
+  }
+}
+
+onMounted(async () => {
+  await fetchChallenges()
   loadWatchedChallenges()
+  
+  // Check if there's a challengeId in query params
+  if (route.query.challengeId) {
+    await nextTick()
+    await openChallengeById(route.query.challengeId)
+    // Remove query param from URL
+    router.replace({ path: route.path, query: {} })
+  }
+})
+
+// Watch for route query changes
+watch(() => route.query.challengeId, async (newChallengeId) => {
+  if (newChallengeId) {
+    await nextTick()
+    await openChallengeById(newChallengeId)
+    // Remove query param from URL
+    router.replace({ path: route.path, query: {} })
+  }
 })
 </script>
 

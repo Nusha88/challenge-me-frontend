@@ -309,6 +309,85 @@ const getCompletionText = (checklist) => {
   return `${totalCompleted}/${totalItems}`
 }
 
+// Calculate streak for a specific date
+function calculateStreakForDate(targetDate) {
+  const userId = getCurrentUserId()
+  if (!userId) return 0
+  
+  // Sort checklists by date descending
+  const sortedChecklists = [...checklists.value].sort((a, b) => {
+    return new Date(b.date) - new Date(a.date)
+  })
+  
+  // Filter for habit challenges only
+  const habitChallenges = challenges.value.filter(c => c.challengeType === 'habit')
+  
+  // Helper function to check if a day has completed tasks
+  function checkDayCompletion(date) {
+    const dateStr = formatDateString(date)
+    
+    // Find checklist for this date
+    const checklist = sortedChecklists.find(c => {
+      const checklistDate = new Date(c.date)
+      checklistDate.setHours(0, 0, 0, 0)
+      return checklistDate.getTime() === date.getTime()
+    })
+    
+    // Check if checklist has completed tasks
+    const hasCompletedChecklistTask = checklist && checklist.tasks && checklist.tasks.length > 0
+      ? checklist.tasks.some(task => task.done === true)
+      : false
+    
+    // Check if any challenge was completed on this date
+    let hasCompletedChallenge = false
+    for (const challenge of habitChallenges) {
+      if (!challenge.participants || challenge.participants.length === 0) continue
+      
+      // Find current user's participant entry
+      const participant = challenge.participants.find(p => {
+        const pUserId = p.userId?._id || p.userId || p._id
+        return pUserId && pUserId.toString() === userId.toString()
+      })
+      
+      if (participant && participant.completedDays && Array.isArray(participant.completedDays)) {
+        const hasDate = participant.completedDays.some(completedDate => {
+          if (!completedDate) return false
+          let completedDateStr = String(completedDate)
+          if (completedDateStr.includes('T')) {
+            completedDateStr = completedDateStr.split('T')[0]
+          }
+          completedDateStr = completedDateStr.substring(0, 10)
+          return completedDateStr === dateStr
+        })
+        
+        if (hasDate) {
+          hasCompletedChallenge = true
+          break
+        }
+      }
+    }
+    
+    return hasCompletedChecklistTask || hasCompletedChallenge
+  }
+  
+  // Calculate streak starting from target date
+  let streak = 0
+  let currentDate = new Date(targetDate)
+  currentDate.setHours(0, 0, 0, 0)
+  
+  for (let i = 0; i < 365; i++) {
+    if (checkDayCompletion(currentDate)) {
+      streak++
+    } else {
+      break
+    }
+    currentDate.setDate(currentDate.getDate() - 1)
+    currentDate.setHours(0, 0, 0, 0)
+  }
+  
+  return streak
+}
+
 async function generateLegendImage(checklist) {
   generatingImage.value = true
   try {
@@ -317,24 +396,31 @@ async function generateLegendImage(checklist) {
     const user = JSON.parse(localStorage.getItem('user') || '{}')
     const userName = user?.name || 'Hero'
     
+    // Get all challenges for the date (same format as HomeLoggedIn)
     const dateChallenges = getChallengesForDate(checklist.date)
-    const completedChallenges = dateChallenges
-      .filter(c => isChallengeCompletedOnDate(c, checklist.date))
-      .map(c => ({ title: c.title }))
+    // Map to same format as HomeLoggedIn - just title, generator will filter by completed property
+    const challenges = dateChallenges.map(c => ({ 
+      title: c.title,
+      completed: isChallengeCompletedOnDate(c, checklist.date)
+    }))
     
+    // Get completed checklist tasks (same as HomeLoggedIn)
     const checklistTasks = (checklist.tasks || [])
       .filter(task => task.done)
       .map(task => ({ title: task.title, done: true }))
     
+    // Calculate streak for this historical date
+    const streakDaysValue = calculateStreakForDate(checklist.date)
+    
     await generateImage({
       userName: userName,
       date: checklist.date,
-      completedChallenges: completedChallenges,
+      challenges: challenges, // Same format as HomeLoggedIn
       checklistTasks: checklistTasks,
-      streakDays: null, // No streak for historical days
+      streakDays: streakDaysValue, // Calculate streak for historical date
       locale: locale.value,
-      t: null, // No translation function needed for historical
-      includeMotivationalMessage: false, // No motivational message for historical
+      t: t, // Use translation function to match HomeLoggedIn
+      includeMotivationalMessage: true, // Include motivational message to match HomeLoggedIn
       filenamePrefix: 'legend'
     })
   } catch (error) {

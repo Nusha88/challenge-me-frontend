@@ -386,11 +386,11 @@ watch(() => route.path, () => {
       <div class="header-content-wrapper">
         <!-- Left Section: Streak Button -->
         <div class="header-section header-left">
-          <v-app-bar-nav-icon
-            v-if="isLoggedIn"
-            @click="toggleDrawer"
-            class="d-md-none"
-          ></v-app-bar-nav-icon>
+      <v-app-bar-nav-icon
+        v-if="isLoggedIn"
+        @click="toggleDrawer"
+        class="d-md-none"
+      ></v-app-bar-nav-icon>
           <div
             v-if="isLoggedIn && (displayStreakDays > 0 || (!hasTodayCompletedTasks && yesterdayStreakDays > 0))"
             class="streak-button d-none d-md-inline-flex"
@@ -403,51 +403,51 @@ watch(() => route.path, () => {
         
         <!-- Center Section: Logo -->
         <div class="header-section header-center">
-          <router-link 
-            to="/" 
-            class="brand-link"
+      <router-link 
+        to="/" 
+        class="brand-link"
           >
             <img :src="awaImage" alt="Awa" class="brand-logo" />
           </router-link>
-        </div>
+      </div>
         
         <!-- Right Section: Buttons -->
         <div class="header-section header-right">
-          <v-btn
-            v-if="!isLoggedIn && route.path !== '/register'"
-            to="/register"
-            variant="elevated"
-            class="mr-2 sign-up-button"
-            style="color: white;"
-          >
-            {{ t('navigation.register') }}
-          </v-btn>
-          <v-btn
-            v-if="!isLoggedIn && route.path !== '/login'"
-            to="/login"
-            variant="outlined"
-            class="mr-2 login-button"
-            style="border-color: #3C60E8; color: #3C60E8; border-width: 2px;"
-          >
-            {{ t('navigation.login') }}
-          </v-btn>
-          <v-btn
-            v-if="isLoggedIn"
+      <v-btn
+        v-if="!isLoggedIn && route.path !== '/register'"
+        to="/register"
+        variant="elevated"
+        class="mr-2 sign-up-button"
+        style="color: white;"
+      >
+        {{ t('navigation.register') }}
+      </v-btn>
+      <v-btn
+        v-if="!isLoggedIn && route.path !== '/login'"
+        to="/login"
+        variant="outlined"
+        class="mr-2 login-button"
+        style="border-color: #3C60E8; color: #3C60E8; border-width: 2px;"
+      >
+        {{ t('navigation.login') }}
+      </v-btn>
+      <v-btn
+        v-if="isLoggedIn"
             to="/missions/add"
-            variant="elevated"
-            size="large"
-            class="mr-2 cta-button d-none d-md-inline-flex"
-            prepend-icon="mdi-plus-circle"
-          >
-            {{ t('navigation.addChallenge') }}
-          </v-btn>
-          <v-btn
-            v-if="isLoggedIn"
-            variant="text"
+        variant="elevated"
+        size="large"
+        class="mr-2 cta-button d-none d-md-inline-flex"
+        prepend-icon="mdi-plus-circle"
+      >
+        {{ t('navigation.addChallenge') }}
+      </v-btn>
+      <v-btn
+        v-if="isLoggedIn"
+        variant="text"
             class="mr-2 notification-button"
             style="color: rgba(0, 0, 0, 0.87); position: relative;"
             @click="openNotifications"
-          >
+      >
             <v-icon>mdi-bell</v-icon>
             <v-badge
               v-if="unreadNotificationCount > 0"
@@ -457,14 +457,14 @@ watch(() => route.path, () => {
               class="notification-badge"
             >
             </v-badge>
-          </v-btn>
+      </v-btn>
         </div>
       </div>
     </v-app-bar>
 
     <!-- FAB Button for Mobile -->
-    <v-btn
-      v-if="isLoggedIn"
+      <v-btn
+        v-if="isLoggedIn"
       to="/missions/add"
       class="fab-button d-md-none"
       color="primary"
@@ -473,7 +473,7 @@ watch(() => route.path, () => {
       location="bottom end"
       app
     >
-    </v-btn>
+      </v-btn>
 
     <v-main :class="['main-content', { 'public-view': !isLoggedIn, 'with-sidebar': isLoggedIn }]">
       <div class="main-content-wrapper">
@@ -484,7 +484,7 @@ watch(() => route.path, () => {
           class="d-none d-md-block desktop-sidebar sidebar-column"
         >
           <div class="sidebar-content-wrapper">
-            <v-list>
+          <v-list>
               <!-- User Section -->
               <div class="sidebar-user-section pa-3">
                 <div class="d-flex align-center mb-3 sidebar-user-clickable" @click="router.push('/profile')">
@@ -534,27 +534,27 @@ watch(() => route.path, () => {
                 <v-list-item-title>{{ t('navigation.today') }}</v-list-item-title>
               </v-list-item>
 
-              <v-list-item
-                :active="currentRoute === 'my-challenges'"
+            <v-list-item
+              :active="currentRoute === 'my-challenges'"
                 to="/missions/my"
-                color="primary"
-              >
-                <template v-slot:prepend>
+              color="primary"
+            >
+              <template v-slot:prepend>
                   <Mountain :size="20" class="sidebar-lucide-icon mr-2" />
-                </template>
-                <v-list-item-title>{{ t('navigation.myChallenges') }}</v-list-item-title>
-              </v-list-item>
+              </template>
+              <v-list-item-title>{{ t('navigation.myChallenges') }}</v-list-item-title>
+            </v-list-item>
 
-              <v-list-item
+            <v-list-item
                 :active="currentRoute === 'checklists-history'"
                 to="/checklists/history"
-                color="primary"
-              >
-                <template v-slot:prepend>
+              color="primary"
+            >
+              <template v-slot:prepend>
                   <BookOpen :size="20" class="sidebar-lucide-icon mr-2" />
-                </template>
+              </template>
                 <v-list-item-title>{{ t('navigation.checklistHistory') }}</v-list-item-title>
-              </v-list-item>
+            </v-list-item>
 
               <v-divider class="my-2"></v-divider>
 
@@ -564,16 +564,16 @@ watch(() => route.path, () => {
                 {{ t('navigation.world') }}
               </v-list-subheader>
 
-              <v-list-item
-                :active="currentRoute === 'challenges'"
+            <v-list-item
+              :active="currentRoute === 'challenges'"
                 to="/missions"
-                color="primary"
-              >
-                <template v-slot:prepend>
+              color="primary"
+            >
+              <template v-slot:prepend>
                   <Compass :size="20" class="sidebar-lucide-icon mr-2" />
-                </template>
-                <v-list-item-title>{{ t('navigation.allChallenges') }}</v-list-item-title>
-              </v-list-item>
+              </template>
+              <v-list-item-title>{{ t('navigation.allChallenges') }}</v-list-item-title>
+            </v-list-item>
 
               <v-list-item
                 :active="currentRoute === 'watched-challenges'"
@@ -609,7 +609,7 @@ watch(() => route.path, () => {
                 <v-list-item-title class="logout-text">{{ t('navigation.logout') }}</v-list-item-title>
               </v-list-item>
 
-            </v-list>
+          </v-list>
           </div>
         </v-navigation-drawer>
 
@@ -629,7 +629,7 @@ watch(() => route.path, () => {
       class="d-md-none mobile-drawer"
     >
       <div class="sidebar-content-wrapper">
-        <v-list>
+      <v-list>
         <!-- User Section -->
         <div class="sidebar-user-section pa-3">
           <div class="d-flex align-center mb-3 sidebar-user-clickable" @click="router.push('/profile'); drawerOpen = false">
@@ -760,7 +760,7 @@ watch(() => route.path, () => {
           <v-list-item-title class="logout-text">{{ t('navigation.logout') }}</v-list-item-title>
         </v-list-item>
 
-        </v-list>
+      </v-list>
       </div>
     </v-navigation-drawer>
 

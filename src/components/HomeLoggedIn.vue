@@ -308,6 +308,8 @@ import { useRouter, useRoute } from 'vue-router'
 import { Sparkles, Plus, Trash2 } from 'lucide-vue-next'
 import DailyChecklist from './DailyChecklist.vue'
 import { userService, challengeService } from '../services/api'
+import motivationalMessagesEn from '../data/motivationalMessages.en.json'
+import motivationalMessagesRu from '../data/motivationalMessages.ru.json'
 import motivationalMessagesCompletedEn from '../data/motivationalMessagesCompleted.en.json'
 import motivationalMessagesCompletedRu from '../data/motivationalMessagesCompleted.ru.json'
 import tomorrowImage from '../assets/tomorrow.png'
@@ -705,8 +707,11 @@ function navigateToChallenge(challenge) {
   if (ownerId && ownerId.toString() === userId.toString()) {
     router.push(`/missions/edit/${challenge._id}`)
   } else {
-    // Otherwise navigate to challenge details
-    router.push(`/missions/${challenge._id}`)
+    // Navigate to My Missions page and open dialog with this challenge
+    router.push({
+      path: '/missions/my',
+      query: { challengeId: challenge._id }
+    })
   }
 }
 
@@ -1039,12 +1044,17 @@ watch(isAllCompleted, (val, oldVal) => {
       })
     }
   } else {
-    // Close dialog and reset flag when tasks become incomplete (but not if dismissed today)
+    // Close dialog and reset flags when tasks become incomplete
     if (showCompletionDialog.value) {
       showCompletionDialog.value = false
     }
-    if (!hasDismissedToday()) {
-      hasShownCompletionDialog.value = false
+    // Reset the shown flag so dialog can appear again when tasks are completed again
+    hasShownCompletionDialog.value = false
+    // Clear dismissal so dialog can show again if user completes tasks again
+    try {
+      localStorage.removeItem(getDismissalKey())
+    } catch {
+      // ignore storage errors
     }
   }
 }, { immediate: false })
@@ -1056,6 +1066,12 @@ watch([completedItems, totalItems], ([completed, total], [oldCompleted, oldTotal
     if (total === 0 || completed !== total) {
       showCompletionDialog.value = false
       hasShownCompletionDialog.value = false
+      // Clear dismissal so dialog can show again when tasks are completed again
+      try {
+        localStorage.removeItem(getDismissalKey())
+      } catch {
+        // ignore storage errors
+      }
     }
   }
   
@@ -1070,9 +1086,14 @@ watch([completedItems, totalItems], ([completed, total], [oldCompleted, oldTotal
     }, 500)
   }
   
-  // Reset flag when tasks become incomplete so dialog can show again (but not if dismissed today)
-  if (wasCompleted && !isNowCompleted && !hasDismissedToday()) {
+  // Reset flag and clear dismissal when tasks become incomplete so dialog can show again
+  if (wasCompleted && !isNowCompleted) {
     hasShownCompletionDialog.value = false
+    try {
+      localStorage.removeItem(getDismissalKey())
+    } catch {
+      // ignore storage errors
+    }
   }
 })
 
@@ -1171,10 +1192,10 @@ watch(() => checklistRef.value?.loading, (newVal) => {
   }
 })
 
-onMounted(() => {
+onMounted(async () => {
   updateUser()
-  calculateStreak()
-  loadTodaysChallenges()
+  await calculateStreak()
+  await loadTodaysChallenges()
   window.addEventListener('auth-changed', updateUser)
   window.addEventListener('checklist-updated', () => {
     calculateStreak()
@@ -1210,24 +1231,85 @@ onMounted(() => {
   })
   
   // Initial checklist loading state update
-  nextTick(() => {
-    updateChecklistLoading()
-  })
+  await nextTick()
+  updateChecklistLoading()
+  
+  // Wait for checklist to finish loading
+  let attempts = 0
+  const maxAttempts = 10
+  while ((checklistLoading.value || initialDataLoading.value) && attempts < maxAttempts) {
+    await new Promise(resolve => setTimeout(resolve, 100))
+    attempts++
+  }
+  await nextTick()
+  
+  // Check if all tasks are completed after initial load
+  setTimeout(() => {
+    if (isAllCompleted.value && !hasShownCompletionDialog.value && !hasDismissedToday()) {
+      checkAndShowCompletionDialog()
+    }
+  }, 500)
 })
 
 // Recalculate streak when component is activated (navigated to)
-onActivated(() => {
-  calculateStreak()
-  loadTodaysChallenges()
+onActivated(async () => {
+  await calculateStreak()
+  await loadTodaysChallenges()
   loadTomorrowSteps()
+  // Wait for checklist to finish loading
+  let attempts = 0
+  const maxAttempts = 15
+  while ((checklistLoading.value || initialDataLoading.value) && attempts < maxAttempts) {
+    await new Promise(resolve => setTimeout(resolve, 100))
+    attempts++
+  }
+  await nextTick()
+  // Wait a bit more to ensure all computed values are updated
+  setTimeout(() => {
+    console.log('Component activated, checking completion:', {
+      completed: completedItems.value,
+      total: totalItems.value,
+      isAllCompleted: isAllCompleted.value,
+      hasShown: hasShownCompletionDialog.value,
+      dismissed: hasDismissedToday(),
+      checklistLoading: checklistLoading.value,
+      initialLoading: initialDataLoading.value
+    })
+    if (isAllCompleted.value && !hasShownCompletionDialog.value && !hasDismissedToday()) {
+      checkAndShowCompletionDialog()
+    }
+  }, 1000)
 })
 
 // Watch route changes to recalculate streak when navigating to home
-watch(() => route.path, (newPath) => {
+watch(() => route.path, async (newPath) => {
   if (newPath === '/') {
-    calculateStreak()
-    loadTodaysChallenges()
+    await calculateStreak()
+    await loadTodaysChallenges()
     loadTomorrowSteps()
+    // Wait for checklist to finish loading
+    let attempts = 0
+    const maxAttempts = 15
+    while ((checklistLoading.value || initialDataLoading.value) && attempts < maxAttempts) {
+      await new Promise(resolve => setTimeout(resolve, 100))
+      attempts++
+    }
+    await nextTick()
+    // Wait a bit more to ensure all computed values are updated
+    setTimeout(() => {
+      console.log('Route changed to /, checking completion:', {
+        completed: completedItems.value,
+        total: totalItems.value,
+        isAllCompleted: isAllCompleted.value,
+        hasShown: hasShownCompletionDialog.value,
+        dismissed: hasDismissedToday(),
+        checklistLoading: checklistLoading.value,
+        initialLoading: initialDataLoading.value
+      })
+      if (isAllCompleted.value && !hasShownCompletionDialog.value && !hasDismissedToday()) {
+        checkAndShowCompletionDialog()
+      }
+    }, 1000)
   }
 })
 

@@ -191,111 +191,142 @@ export async function generateCompletionImage(options) {
       container.appendChild(quoteBox)
     }
 
-    // Контент (Миссии)
-    const listContainer = document.createElement('div')
-    Object.assign(listContainer.style, {
-      flex: '1',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '20px',
-      zIndex: '5'
-    })
+     // Контент (Миссии и Шаги)
+     const listContainer = document.createElement('div')
+     Object.assign(listContainer.style, {
+       flex: '1',
+       display: 'flex',
+       flexDirection: 'column',
+       gap: '20px',
+       zIndex: '5'
+     })
 
-    const missionsToShow = completedChallenges.length > 0 
-      ? completedChallenges 
-      : challenges.filter(c => c.completed !== false)
+     const missionsToShow = completedChallenges.length > 0 
+       ? completedChallenges 
+       : challenges.filter(c => c.completed !== false)
 
-    if (missionsToShow.length > 0) {
-      const mSection = document.createElement('div')
-      const mTitle = document.createElement('h2')
-      mTitle.textContent = 'MISSIONS ACCOMPLISHED'
-      Object.assign(mTitle.style, { fontSize: '13px', color: '#F4A782', letterSpacing: '3px', marginBottom: '15px', fontWeight: '800' })
-      mSection.appendChild(mTitle)
+     // Daily Missions section
+     if (missionsToShow.length > 0) {
+       const mSection = document.createElement('div')
+       const mTitle = document.createElement('h2')
+       mTitle.textContent = 'MISSIONS ACCOMPLISHED'
+       Object.assign(mTitle.style, { fontSize: '13px', color: '#F4A782', letterSpacing: '3px', marginBottom: '15px', fontWeight: '800' })
+       mSection.appendChild(mTitle)
 
-      missionsToShow.forEach(m => {
-        const item = document.createElement('div')
-        Object.assign(item.style, {
-          background: 'linear-gradient(90deg, rgba(126, 70, 196, 0.3), transparent)',
-          padding: '12px 18px',
-          borderRadius: '12px',
-          marginBottom: '8px',
-          display: 'flex',
-          alignItems: 'center',
-          border: '1px solid rgba(126, 70, 196, 0.2)'
-        })
-        item.innerHTML = `<span style="color:#F4A782; margin-right:12px; font-size:18px;">✦</span><span style="font-weight:700; font-size:17px;">${m.title || m}</span>`
-        mSection.appendChild(item)
-      })
-      listContainer.appendChild(mSection)
-    }
+       missionsToShow.forEach(m => {
+         const item = document.createElement('div')
+         Object.assign(item.style, {
+           background: 'linear-gradient(90deg, rgba(126, 70, 196, 0.3), transparent)',
+           padding: '12px 18px',
+           borderRadius: '12px',
+           marginBottom: '8px',
+           display: 'flex',
+           alignItems: 'center',
+           border: '1px solid rgba(126, 70, 196, 0.2)'
+         })
+         item.innerHTML = `<span style="color:#F4A782; margin-right:12px; font-size:18px;">✦</span><span style="font-weight:700; font-size:17px;">${m.title || m}</span>`
+         mSection.appendChild(item)
+       })
+       listContainer.appendChild(mSection)
+     }
 
-    container.appendChild(listContainer)
+     // Daily Steps section
+     const completedTasks = checklistTasks.filter(task => task.done !== false)
+     if (completedTasks.length > 0) {
+       const stepsSection = document.createElement('div')
+       const stepsTitle = document.createElement('h2')
+       stepsTitle.textContent = 'DAILY STEPS'
+       Object.assign(stepsTitle.style, { 
+         fontSize: '13px', 
+         color: '#F4A782', 
+         letterSpacing: '3px', 
+         marginBottom: '15px', 
+         fontWeight: '800',
+         marginTop: missionsToShow.length > 0 ? '20px' : '0'
+       })
+       stepsSection.appendChild(stepsTitle)
 
-    // --- ФУТЕР ---
-    const footer = document.createElement('div')
-    Object.assign(footer.style, {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center', // Теперь центрирует по вертикали Ignite и правый блок
-      marginTop: 'auto',
-      paddingTop: '30px',
-      borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-      zIndex: '5'
-    })
+       completedTasks.forEach(task => {
+         const item = document.createElement('div')
+         Object.assign(item.style, {
+           background: 'linear-gradient(90deg, rgba(126, 70, 196, 0.3), transparent)',
+           padding: '12px 18px',
+           borderRadius: '12px',
+           marginBottom: '8px',
+           display: 'flex',
+           alignItems: 'center',
+           border: '1px solid rgba(126, 70, 196, 0.2)'
+         })
+         item.innerHTML = `<span style="color:#F4A782; margin-right:12px; font-size:18px;">✦</span><span style="font-weight:700; font-size:17px;">${task.title || task}</span>`
+         stepsSection.appendChild(item)
+       })
+       listContainer.appendChild(stepsSection)
+     }
 
-    // Левая часть футера: Название бренда
-    const brandName = document.createElement('div')
-    brandName.textContent = 'IGNITE'
-    Object.assign(brandName.style, {
-      fontSize: '26px',
-      fontWeight: '900',
-      color: '#ffffff',
-      letterSpacing: '5px',
-      lineHeight: '1',
-      textShadow: '0 0 20px rgba(126, 70, 196, 0.8)'
-    })
+     container.appendChild(listContainer)
 
-    // Правая часть футера: Слоган и/или Стрик
-    const rightSide = document.createElement('div')
-    Object.assign(rightSide.style, {
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'flex-end', // Выравнивание по правому краю внутри этого блока
-      gap: '6px' // Уменьшил зазор
-    })
+     // --- ФУТЕР ---
+     const footer = document.createElement('div')
+     Object.assign(footer.style, {
+       display: 'flex',
+       justifyContent: streakDays !== null ? 'space-between' : 'flex-start',
+       alignItems: 'flex-start',
+       marginTop: 'auto',
+       paddingTop: '30px',
+       borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+       zIndex: '5'
+     })
 
-    // Стрик (если есть)
-    if (streakDays !== null) {
-      const streakBadge = document.createElement('div')
-      Object.assign(streakBadge.style, {
-        background: 'linear-gradient(135deg, #7E46C4, #F4A782)',
-        padding: '6px 16px',
-        borderRadius: '50px',
-        fontWeight: '900',
-        fontSize: '14px',
-        boxShadow: '0 4px 12px rgba(126, 70, 196, 0.4)'
-      })
-      const streakLabel = t ? t('navigation.streakDays').toUpperCase() : 'DAYS STREAK'
-      streakBadge.innerHTML = `🔥 ${streakDays} ${streakLabel}`
-      rightSide.appendChild(streakBadge)
-    }
+     // Левая часть футера: Название бренда и слоган
+     const leftSide = document.createElement('div')
+     Object.assign(leftSide.style, {
+       display: 'flex',
+       flexDirection: 'column',
+       gap: '6px'
+     })
 
-    // Слоган
-    const slogan = document.createElement('div')
-    slogan.textContent = 'START YOUR MISSION'
-    Object.assign(slogan.style, {
-      fontSize: '10px',
-      fontWeight: '800',
-      color: '#F4A782',
-      letterSpacing: '1.5px'
-    })
+     const brandName = document.createElement('div')
+     brandName.textContent = 'IGNITE'
+     Object.assign(brandName.style, {
+       fontSize: '26px',
+       fontWeight: '900',
+       color: '#ffffff',
+       letterSpacing: '5px',
+       lineHeight: '1',
+       textShadow: '0 0 20px rgba(126, 70, 196, 0.8)'
+     })
 
-    rightSide.appendChild(slogan)
-    
-    footer.appendChild(brandName)
-    footer.appendChild(rightSide)
-    
-    container.appendChild(footer)
+     // Слоган под брендом
+     const slogan = document.createElement('div')
+     slogan.textContent = 'START YOUR MISSION'
+     Object.assign(slogan.style, {
+       fontSize: '10px',
+       fontWeight: '800',
+       color: '#F4A782',
+       letterSpacing: '1.5px'
+     })
+
+     leftSide.appendChild(brandName)
+     leftSide.appendChild(slogan)
+     footer.appendChild(leftSide)
+
+     // Правая часть футера: Стрик (если есть)
+     if (streakDays !== null) {
+       const streakBadge = document.createElement('div')
+       Object.assign(streakBadge.style, {
+         background: 'linear-gradient(135deg, #7E46C4, #F4A782)',
+         padding: '6px 16px',
+         borderRadius: '50px',
+         fontWeight: '900',
+         fontSize: '14px',
+         boxShadow: '0 4px 12px rgba(126, 70, 196, 0.4)'
+       })
+       const streakLabel = t ? t('navigation.streakDays').toUpperCase() : 'DAYS STREAK'
+       streakBadge.innerHTML = `🔥 ${streakDays} ${streakLabel}`
+       footer.appendChild(streakBadge)
+     }
+     
+     container.appendChild(footer)
 
     // Рендеринг
     document.body.appendChild(container)
