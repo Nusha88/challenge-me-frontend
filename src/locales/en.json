@@ -217,6 +217,7 @@
   },
   "challenges": {
     "addTitle": "Start Mission",
+    "motiveText": "Every epic saga begins with a single choice. Define your path, Hero.",
     "title": "Title",
     "description": "Description",
     "startDate": "Start Date",
@@ -240,10 +241,10 @@
       "public": "Public",
       "private": "Private"
     },
-    "typeHabit": "Challenge-Habit",
-    "typeHabitDescription": "Build a consistent habit by repeating an action daily or regularly over time.",
-    "typeResult": "Challenge-Result",
-    "typeResultDescription": "Achieve a specific goal or outcome by the end of the challenge period.",
+    "typeHabit": "Daily Ritual",
+    "typeHabitDescription": "Forge greatness through consistency. Small daily steps build an unbreakable spirit.",
+    "typeResult": "Epic Quest",
+    "typeResultDescription": "Conquer a major milestone. Define a clear objective and reach the finish line.",
     "start": "Start",
     "startOptions": {
       "today": "Today",

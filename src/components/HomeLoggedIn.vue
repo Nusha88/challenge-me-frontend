@@ -1,11 +1,6 @@
 <template>
   <div v-if="initialDataLoading" class="home-loading-container">
-    <v-progress-circular
-      indeterminate
-      color="primary"
-      size="64"
-      width="6"
-    ></v-progress-circular>
+    <IgniteLoader :loading-text="t('home.loggedIn.loading.initial', 'Channelling Power...')" />
   </div>
   <div v-else class="home-logged-in-container">
     <div class="greeting-section">
@@ -88,6 +83,9 @@
                   >mdi-flag</v-icon>
                 </div>
                 <span class="challenge-text" :class="{ completed: isTodayCompleted(challenge) }">{{ challenge.title }}</span>
+                <span class="challenge-progress" :class="{ completed: isTodayCompleted(challenge) }">
+                  {{ getChallengeCompletedDays(challenge) }} / {{ getChallengeTotalDays(challenge) }}
+                </span>
               </div>
             </div>
           </div>
@@ -307,6 +305,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import { Sparkles, Plus, Trash2 } from 'lucide-vue-next'
 import DailyChecklist from './DailyChecklist.vue'
+import IgniteLoader from './IgniteLoader.vue'
 import { userService, challengeService } from '../services/api'
 import motivationalMessagesEn from '../data/motivationalMessages.en.json'
 import motivationalMessagesRu from '../data/motivationalMessages.ru.json'
@@ -636,6 +635,63 @@ function isTodayCompleted(challenge) {
     dateStr = dateStr.substring(0, 10)
     return dateStr === todayStr
   })
+}
+
+function getChallengeCompletedDays(challenge) {
+  const userId = getCurrentUserId()
+  if (!userId || !challenge.participants) return 0
+  
+  // Find current user's participant entry
+  const participant = challenge.participants.find(p => {
+    const pUserId = p.userId?._id || p.userId || p._id
+    return pUserId && pUserId.toString() === userId.toString()
+  })
+  
+  if (!participant || !participant.completedDays || !Array.isArray(participant.completedDays)) {
+    return 0
+  }
+  
+  return participant.completedDays.length
+}
+
+function getChallengeTotalDays(challenge) {
+  if (!challenge.startDate || !challenge.endDate) return 0
+  
+  try {
+    const start = new Date(challenge.startDate)
+    const end = new Date(challenge.endDate)
+    
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 0
+    
+    start.setHours(0, 0, 0, 0)
+    end.setHours(0, 0, 0, 0)
+    
+    // For "every other day" frequency, only count every other day
+    if (challenge.frequency === 'everyOtherDay') {
+      let count = 0
+      const current = new Date(start)
+      let dayIndex = 0
+      
+      while (current <= end) {
+        // Only count enabled days (day 0, 2, 4, 6, etc.)
+        if (dayIndex % 2 === 0) {
+          count++
+        }
+        current.setDate(current.getDate() + 1)
+        dayIndex++
+      }
+      
+      return count
+    }
+    
+    // For other frequencies, count all days
+    const diffTime = end - start
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1
+    
+    return diffDays
+  } catch {
+    return 0
+  }
 }
 
 async function loadTodaysChallenges() {
@@ -1329,7 +1385,11 @@ async function generateCompletionImage() {
   try {
     await nextTick()
     
-    const challenges = todaysChallenges.value.map(c => ({ title: c.title }))
+    const challenges = todaysChallenges.value.map(c => ({ 
+      title: c.title,
+      completedDays: getChallengeCompletedDays(c),
+      totalDays: getChallengeTotalDays(c)
+    }))
     const checklistTasks = (checklistRef.value?.todaySteps?.filter(s => s.done) || []).map(s => ({ title: s.title, done: true }))
     
     await generateImage({
@@ -1926,6 +1986,18 @@ onBeforeUnmount(() => {
   flex: 1;
 }
 
+/* Прогресс челленджа (completedDays/total) */
+.challenge-progress {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #7E46C4;
+  opacity: 0.8;
+  transition: color 0.3s ease, opacity 0.3s ease;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
 /* Стили для выполненного челленджа (состояние completed) */
 .challenge-card.completed {
   background: #F8F9FA;
@@ -1952,6 +2024,11 @@ onBeforeUnmount(() => {
 .challenge-text.completed {
   text-decoration: line-through;
   color: #94A3B8; /* Приглушенный серый */
+}
+
+.challenge-progress.completed {
+  color: #94A3B8;
+  opacity: 0.6;
 }
 
 /* Disabled challenge card for tomorrow tab */

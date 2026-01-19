@@ -5,7 +5,10 @@
       <p class="journal-subtitle">{{ t('home.loggedIn.checklistHistory.subtitle') }}</p>
     </div>
     
-    <v-progress-linear v-if="loading" indeterminate color="#7E46C4" class="mb-8"></v-progress-linear>
+    <div v-if="loading" class="journal-loading-container">
+      <IgniteLoader :loading-text="t('home.loggedIn.checklistHistory.loading', 'Loading your legend...')" />
+    </div>
+    
     <v-alert v-if="error" type="error" variant="tonal" class="mb-4">{{ error }}</v-alert>
     
     <div v-if="!loading && checklists.length === 0" class="empty-journal">
@@ -105,6 +108,7 @@ import { ref, onMounted, computed, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { userService, challengeService } from '../services/api'
 import { generateCompletionImage as generateImage } from '../utils/imageGenerator'
+import IgniteLoader from './IgniteLoader.vue'
 
 const { t, locale } = useI18n()
 const checklists = ref([])
@@ -398,11 +402,59 @@ async function generateLegendImage(checklist) {
     
     // Get all challenges for the date (same format as HomeLoggedIn)
     const dateChallenges = getChallengesForDate(checklist.date)
-    // Map to same format as HomeLoggedIn - just title, generator will filter by completed property
-    const challenges = dateChallenges.map(c => ({ 
-      title: c.title,
-      completed: isChallengeCompletedOnDate(c, checklist.date)
-    }))
+    // Map to same format as HomeLoggedIn - include progress numbers
+    const challenges = dateChallenges.map(c => {
+      const userId = getCurrentUserId()
+      let completedDays = 0
+      
+      // Find current user's participant entry to get completedDays count
+      if (userId && c.participants) {
+        const participant = c.participants.find(p => {
+          const pUserId = p.userId?._id || p.userId || p._id
+          return pUserId && pUserId.toString() === userId.toString()
+        })
+        if (participant && participant.completedDays && Array.isArray(participant.completedDays)) {
+          completedDays = participant.completedDays.length
+        }
+      }
+      
+      // Calculate total days
+      let totalDays = 0
+      if (c.startDate && c.endDate) {
+        try {
+          const start = new Date(c.startDate)
+          const end = new Date(c.endDate)
+          if (!Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime())) {
+            start.setHours(0, 0, 0, 0)
+            end.setHours(0, 0, 0, 0)
+            
+            if (c.frequency === 'everyOtherDay') {
+              let count = 0
+              const current = new Date(start)
+              let dayIndex = 0
+              while (current <= end) {
+                if (dayIndex % 2 === 0) count++
+                current.setDate(current.getDate() + 1)
+                dayIndex++
+              }
+              totalDays = count
+            } else {
+              const diffTime = end - start
+              totalDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1
+            }
+          }
+        } catch {
+          totalDays = 0
+        }
+      }
+      
+      return {
+        title: c.title,
+        completed: isChallengeCompletedOnDate(c, checklist.date),
+        completedDays: completedDays,
+        totalDays: totalDays
+      }
+    })
     
     // Get completed checklist tasks (same as HomeLoggedIn)
     const checklistTasks = (checklist.tasks || [])
@@ -442,6 +494,14 @@ onMounted(() => {
     margin: 0 auto;
     padding: 2em 1em;
   }
+
+.journal-loading-container {
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+}
   
   /* Заголовки */
   .journal-header {

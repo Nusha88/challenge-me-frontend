@@ -222,9 +222,16 @@ export async function generateCompletionImage(options) {
            marginBottom: '8px',
            display: 'flex',
            alignItems: 'center',
+           justifyContent: 'space-between',
            border: '1px solid rgba(126, 70, 196, 0.2)'
          })
-         item.innerHTML = `<span style="color:#F4A782; margin-right:12px; font-size:18px;">✦</span><span style="font-weight:700; font-size:17px;">${m.title || m}</span>`
+         
+         const titleText = m.title || m
+         const progressText = (m.completedDays !== undefined && m.totalDays !== undefined)
+           ? `<span style="color:#7E46C4; font-weight:600; font-size:14px; opacity:0.9; margin-left:12px;">${m.completedDays} / ${m.totalDays}</span>`
+           : ''
+         
+         item.innerHTML = `<div style="display:flex; align-items:center; flex:1;"><span style="color:#F4A782; margin-right:12px; font-size:18px;">✦</span><span style="font-weight:700; font-size:17px;">${titleText}</span></div>${progressText}`
          mSection.appendChild(item)
        })
        listContainer.appendChild(mSection)
