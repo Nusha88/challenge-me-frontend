@@ -56,107 +56,207 @@
           <v-row>
             <v-col cols="12" md="8">
               <div class="form-fields-wrapper">
-                <label class="field-label">{{ t('challenges.title') }}</label>
-                <v-text-field
-                  v-model="form.title"
-                  variant="outlined"
-                  required
-                  class="mb-4"
-                  :error-messages="errors.title"
-                ></v-text-field>
+                <v-row class="mb-4">
+                  <v-col cols="12" md="6">
+                    <label class="field-label">{{ t('challenges.title') }}</label>
+                    <v-text-field
+                      v-model="form.title"
+                      variant="outlined"
+                      required
+                      :error-messages="errors.title"
+                      :placeholder="titlePlaceholder"
+                      :rules="[v => !!v || t('challenges.validation.titleRequired')]"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" md="6">
+                    <label class="field-label">{{ t('challenges.coverPhotoTitle') }}</label>
+                    <v-btn
+                      @click="showImageUpload = !showImageUpload"
+                      :class="['cover-photo-toggle-btn', { 'active': showImageUpload }]"
+                      variant="outlined"
+                      block
+                    >
+                      <v-icon left>mdi-image</v-icon>
+                      {{ t('challenges.coverPhotoTitle') }}
+                    </v-btn>
+                  </v-col>
+                </v-row>
+                
+                <div v-if="showImageUpload" class="mb-4 mobile-upload-section">
+                  <ChallengeImageUpload
+                    v-model="form.imageUrl"
+                    :editable="true"
+                  />
+                </div>
 
                 <label class="field-label">{{ t('challenges.description') }}</label>
                 <v-textarea
                   v-model="form.description"
                   variant="outlined"
                   rows="5"
-                  required
                   class="mb-4"
                   :error-messages="errors.description"
                 ></v-textarea>
 
+                <div class="duration-frequency-row">
                 <div class="duration-selector">
                   <p class="field-label">{{ t('challenges.duration') }}</p>
-                  <div class="duration-toggle-wrapper">
+                  <div v-if="errors.duration" class="error-message mb-2">{{ errors.duration }}</div>
+                  <div class="duration-toggle-wrapper" :class="{ 'error-border': errors.duration }">
+                      <v-btn-toggle
+                        v-model="form.duration"
+                        mandatory
+                        class="custom-chips-group"
+                      >
+                        <v-btn value="7" class="chip-btn">
+                          <span>7 days</span>
+                        </v-btn>
+                        <v-btn value="21" class="chip-btn">
+                          <v-icon left size="18">mdi-fire</v-icon>
+                          <span>21 days</span>
+                        </v-btn>
+                        <v-btn value="30" class="chip-btn">
+                          <span>30 days</span>
+                        </v-btn>
+                        <v-btn value="custom" class="chip-btn custom-choice" @click="toggleCustomSlider">
+                          <v-icon>mdi-plus</v-icon>
+                        </v-btn>
+                      </v-btn-toggle>
+                    </div>
+                    <div v-if="form.duration === 'custom' && showSlider" class="custom-slider-container">
+                      <div class="days-display">{{ customDays }} days</div>
+                      <v-slider
+                        v-model="customDays"
+                        min="1"
+                        max="365"
+                        step="1"
+                        hide-details
+                        class="ignite-slider"
+                      ></v-slider>
+                    </div>
+                  </div>
+
+                  <div v-if="form.challengeType === 'habit'" class="frequency-selector">
+                    <p class="field-label">{{ t('challenges.frequency') }}</p>
+                    <div class="frequency-toggle-wrapper">
+                      <v-btn-toggle
+                        v-model="form.frequency"
+                        mandatory
+                        class="custom-chips-group"
+                      >
+                        <v-btn value="daily" class="chip-btn">
+                          <span>{{ t('challenges.frequencyOptions.daily') }}</span>
+                        </v-btn>
+                        <v-btn value="everyOtherDay" class="chip-btn">
+                          <span>{{ t('challenges.frequencyOptions.everyOtherDay') }}</span>
+                        </v-btn>
+                      </v-btn-toggle>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="start-time-selector">
+                  <p class="field-label">{{ t('challenges.start') }}</p>
+                  
+                  <div class="d-flex align-center gap-3">
                     <v-btn-toggle
-                      v-model="form.duration"
+                      v-model="form.startOption"
                       mandatory
-                      class="custom-chips-group"
+                      class="custom-toggle-group"
                     >
-                      <v-btn value="7" class="chip-btn">
-                        <span>7 days</span>
+                      <v-btn value="today" class="toggle-btn">
+                        <span>{{ t('challenges.startOptions.today') }}</span>
                       </v-btn>
-                      <v-btn value="21" class="chip-btn">
-                        <v-icon left size="18">mdi-fire</v-icon>
-                        <span>21 days</span>
-                      </v-btn>
-                      <v-btn value="30" class="chip-btn">
-                        <span>30 days</span>
-                      </v-btn>
-                      <v-btn value="custom" class="chip-btn custom-choice" @click="toggleCustomSlider">
-                        <v-icon>mdi-plus</v-icon>
+                      
+                      <v-btn value="tomorrow" class="toggle-btn">
+                        <span>{{ t('challenges.startOptions.tomorrow') }}</span>
                       </v-btn>
                     </v-btn-toggle>
+
+                    <v-btn 
+                      @click="showDatePicker = true"
+                      :class="['calendar-btn', { 'is-active': isCustomDate }]"
+                      variant="outlined"
+                    >
+                      <v-icon size="20">mdi-calendar-month-outline</v-icon>
+                      <span v-if="isCustomDate" class="ml-2">{{ formattedDate }}</span>
+                      <span v-else class="ml-2">{{ t('challenges.pickDate') }}</span>
+                    </v-btn>
                   </div>
-                  <div v-if="form.duration === 'custom' && showSlider" class="custom-slider-container">
-                    <div class="days-display">{{ customDays }} days</div>
-                    <v-slider
-                      v-model="customDays"
-                      min="1"
-                      max="365"
-                      step="1"
-                      hide-details
-                      class="ignite-slider"
-                    ></v-slider>
-                  </div>
+                  
+                  <v-dialog v-model="showDatePicker" max-width="400">
+                    <v-date-picker
+                      v-model="form.startDate"
+                      @update:model-value="handleDatePick"
+                    ></v-date-picker>
+                  </v-dialog>
                 </div>
 
-                <ChallengeImageUpload
-                  v-model="form.imageUrl"
-                  :editable="true"
-                />
+                <div class="social-settings-block mt-8">
+                  <div class="social-header d-flex align-center mb-4">
+                    <v-icon color="#7e46c4" class="mr-2">mdi-share-variant-outline</v-icon>
+                    <h3 class="text-h6 font-weight-bold">{{ t('challenges.accessCommunity') }}</h3>
+                  </div>
 
-                <div class="selects-grid mb-4">
+                  <v-item-group v-model="form.privacy" mandatory>
+                    <v-row class="px-3">
+                      <v-col cols="12" md="6" class="pa-2">
+                        <v-item v-slot="{ isSelected, toggle }" value="solo">
+                          <div 
+                            :class="['mode-card', { 'active': isSelected }]" 
+                            @click="toggle"
+                          >
+                            <div class="d-flex align-center justify-space-between mb-2">
+                              <v-icon :color="isSelected ? '#7e46c4' : '#94a3b8'">mdi-lock-outline</v-icon>
+                              <v-icon v-if="isSelected" color="#7e46c4" size="20">mdi-check-circle</v-icon>
+                            </div>
+                            <span class="mode-title">{{ t('challenges.personalPath') }}</span>
+                            <p class="mode-desc">{{ t('challenges.personalPathDesc') }}</p>
+                          </div>
+                        </v-item>
+                      </v-col>
 
-                  <v-select
-                    v-model="form.startOption"
-                    :items="startOptions"
-                    :label="t('challenges.start')"
-                    item-title="title"
-                    item-value="value"
-                    variant="outlined"
-                    :error-messages="errors.startOption"
-                  ></v-select>
+                      <v-col cols="12" md="6" class="pa-2">
+                        <v-item v-slot="{ isSelected, toggle }" value="public">
+                          <div 
+                            :class="['mode-card', { 'active': isSelected }]" 
+                            @click="toggle"
+                          >
+                            <div class="d-flex align-center justify-space-between mb-2">
+                              <v-icon :color="isSelected ? '#7e46c4' : '#94a3b8'">mdi-earth</v-icon>
+                              <v-icon v-if="isSelected" color="#7e46c4" size="20">mdi-check-circle</v-icon>
+                            </div>
+                            <span class="mode-title">{{ t('challenges.commonWorld') }}</span>
+                            <p class="mode-desc">{{ t('challenges.commonWorldDesc') }}</p>
+                          </div>
+                        </v-item>
+                      </v-col>
+                    </v-row>
+                  </v-item-group>
 
-                  <v-select
-                    v-if="form.challengeType === 'habit'"
-                    v-model="form.frequency"
-                    :items="frequencyOptions"
-                    :label="t('challenges.frequency')"
-                    item-title="title"
-                    item-value="value"
-                    variant="outlined"
-                    :error-messages="errors.frequency"
-                  ></v-select>
+                  <v-expand-transition>
+                    <div v-if="form.privacy === 'public'" class="public-preview-box mt-4 pa-5">
+                      <div class="d-flex align-center">
+                        <v-icon color="#7e46c4" size="32" class="mr-3">mdi-sparkles</v-icon>
+                        <div>
+                          <span class="d-block font-weight-bold" style="color: #1a1a2e;">{{ t('challenges.readinessToAnnounce') }}</span>
+                          <span class="text-caption text-grey-darken-1">
+                            {{ t('challenges.shareLinkAfterCreation') }}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <v-divider class="my-4"></v-divider>
 
-                  <v-select
-                    v-model="form.privacy"
-                    :items="privacyOptions"
-                    :label="t('challenges.privacy')"
-                    item-title="title"
-                    item-value="value"
-                    variant="outlined"
-                  ></v-select>
-                </div>
-
-                <!-- Allow Comments Switcher -->
-                <div class="mb-4">
-                  <v-switch
-                    v-model="form.allowComments"
-                    :label="t('challenges.allowComments')"
-                    color="primary"
-                    hide-details
-                  ></v-switch>
+                      <v-checkbox
+                        v-model="form.allowComments"
+                        :label="t('challenges.allowCommentsLabel')"
+                        color="#7e46c4"
+                        hide-details
+                        class="compact-checkbox"
+                      ></v-checkbox>
+                    </div>
+                  </v-expand-transition>
                 </div>
 
                 <div class="actions-container" v-if="form.challengeType === 'result'">
@@ -179,27 +279,45 @@
                     color="primary"
                     size="large"
                     :loading="loading"
-                    :disabled="loading"
-                    class="create-button"
+                    :disabled="loading || !isFormValid"
+                    class="create-mission-btn"
+                    :class="{ 
+                      'disabled-grayscale': !isFormValid,
+                      'create-mission-btn--ready': isFormValid && !loading
+                    }"
                   >
                     {{ t('challenges.create') }}
                   </v-btn>
                 </div>
               </div>
             </v-col>
+            <v-col v-if="showImageUpload" cols="12" md="4" class="desktop-upload-section">
+              <ChallengeImageUpload
+                v-model="form.imageUrl"
+                :editable="true"
+              />
+            </v-col>
           </v-row>
         </v-form>
     </div>
+    
+    <SuccessModal
+      v-model="showSuccessModal"
+      :challenge-id="createdChallengeId"
+      :is-public="form.privacy === 'public'"
+      @add-another="resetForm"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { challengeService } from '../services/api'
 import { useI18n } from 'vue-i18n'
 import ChallengeImageUpload from './ChallengeImageUpload.vue'
 import ChallengeActions from './ChallengeActions.vue'
+import SuccessModal from './SuccessModal.vue'
 import treeImage from '../assets/tree.png'
 
 const router = useRouter()
@@ -212,16 +330,21 @@ const form = ref({
   imageUrl: '',
   duration: '21',
   customDuration: '',
-  privacy: 'public',
+  privacy: 'solo',
   challengeType: 'habit',
   frequency: 'daily',
   startOption: 'today',
   actions: [{ text: '', checked: false, children: [] }],
-  allowComments: true
+  allowComments: true,
+  communityQuest: false
 })
 
 const showSlider = ref(false)
 const customDays = ref(60)
+const showImageUpload = ref(false)
+const showDatePicker = ref(false)
+const showSuccessModal = ref(false)
+const createdChallengeId = ref('')
 
 // Toggle slider when custom button is clicked
 function toggleCustomSlider() {
@@ -244,12 +367,52 @@ watch(() => form.value.duration, (newVal) => {
     showSlider.value = false
     form.value.customDuration = ''
   }
+  // Clear duration error when duration is selected
+  if (errors.value.duration) {
+    errors.value.duration = ''
+  }
+})
+
+// Watch title to clear error
+watch(() => form.value.title, () => {
+  if (errors.value.title) {
+    errors.value.title = ''
+  }
+})
+
+// Watch custom duration to clear error
+watch(() => form.value.customDuration, () => {
+  if (errors.value.duration && form.value.customDuration) {
+    errors.value.duration = ''
+  }
 })
 
 // Sync customDays with form.customDuration
 watch(customDays, (newVal) => {
   form.value.customDuration = String(newVal)
 })
+
+const titlePlaceholder = computed(() => {
+  if (form.value.challengeType === 'habit') {
+    return t('challenges.titlePlaceholder.habit')
+  } else {
+    return t('challenges.titlePlaceholder.result')
+  }
+})
+
+const shareLink = computed(() => {
+  // This will be set after challenge creation, for now use placeholder
+  return 'ignite.app/quest/hero-777'
+})
+
+function copyLink() {
+  navigator.clipboard.writeText(shareLink.value).then(() => {
+    // You can add a snackbar notification here if needed
+    console.log('Link copied to clipboard')
+  }).catch(err => {
+    console.error('Failed to copy link:', err)
+  })
+}
 
 const durationOptions = computed(() => [
   { title: t('challenges.durationOptions.7days'), value: '7' },
@@ -266,10 +429,50 @@ const frequencyOptions = computed(() => [
   { title: t('challenges.frequencyOptions.everyOtherDay'), value: 'everyOtherDay' }
 ])
 
-const startOptions = computed(() => [
-  { title: t('challenges.startOptions.today'), value: 'today' },
-  { title: t('challenges.startOptions.tomorrow'), value: 'tomorrow' }
-])
+// Check if custom date is selected
+const isCustomDate = computed(() => {
+  if (!form.value.startDate) return false
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  
+  const tomorrow = new Date(today)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  
+  const selectedDate = new Date(form.value.startDate)
+  selectedDate.setHours(0, 0, 0, 0)
+  
+  const year = today.getFullYear()
+  const month = String(today.getMonth() + 1).padStart(2, '0')
+  const day = String(today.getDate()).padStart(2, '0')
+  const todayStr = `${year}-${month}-${day}`
+  
+  const tomorrowYear = tomorrow.getFullYear()
+  const tomorrowMonth = String(tomorrow.getMonth() + 1).padStart(2, '0')
+  const tomorrowDay = String(tomorrow.getDate()).padStart(2, '0')
+  const tomorrowStr = `${tomorrowYear}-${tomorrowMonth}-${tomorrowDay}`
+  
+  return form.value.startDate !== todayStr && form.value.startDate !== tomorrowStr
+})
+
+// Format date for display
+const formattedDate = computed(() => {
+  if (!form.value.startDate) return ''
+  const date = new Date(form.value.startDate)
+  return new Intl.DateTimeFormat(locale.value, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  }).format(date)
+})
+
+// Handle date pick from calendar
+function handleDatePick(date) {
+  if (date) {
+    form.value.startDate = date
+    form.value.startOption = 'custom'
+  }
+  showDatePicker.value = false
+}
 
 const privacyOptions = computed(() => [
   { title: t('challenges.privacyOptions.public'), value: 'public' },
@@ -278,6 +481,11 @@ const privacyOptions = computed(() => [
 
 // Watch for startOption changes and update startDate
 watch(() => form.value.startOption, (newValue) => {
+  // Don't update startDate if custom date is already selected
+  if (newValue === 'custom') {
+    return
+  }
+  
   if (newValue) {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -295,7 +503,19 @@ watch(() => form.value.startOption, (newValue) => {
 }, { immediate: true })
 const loading = ref(false)
 const errorMessage = ref('')
-const errors = ref({})
+const errors = ref({
+  title: '',
+  description: '',
+  duration: ''
+})
+
+const isFormValid = computed(() => {
+  const hasTitle = form.value.title && form.value.title.trim() !== ''
+  const hasDuration = form.value.duration && form.value.duration !== ''
+  const hasCustomDuration = form.value.duration !== 'custom' || (form.value.customDuration && form.value.customDuration.trim() !== '')
+  
+  return hasTitle && hasDuration && hasCustomDuration
+})
 
 function getCurrentUserId() {
   const storedUser = localStorage.getItem('user')
@@ -336,21 +556,19 @@ function selectChallengeType(type) {
 function validate() {
   const validationErrors = {}
 
-  if (!form.value.title) {
+  if (!form.value.title || form.value.title.trim() === '') {
     validationErrors.title = t('validation.titleRequired')
-  }
-
-  if (!form.value.description) {
-    validationErrors.description = t('validation.descriptionRequired')
   }
 
   if (!form.value.startOption) {
     validationErrors.startOption = t('validation.startOptionRequired')
   }
 
-  if (form.value.duration === 'custom') {
+  if (!form.value.duration || form.value.duration === '') {
+    validationErrors.duration = t('validation.durationRequired')
+  } else if (form.value.duration === 'custom') {
     if (!form.value.customDuration || form.value.customDuration < 1) {
-      validationErrors.customDuration = t('validation.customDurationRequired')
+      validationErrors.duration = t('validation.customDurationRequired')
     }
   }
 
@@ -443,9 +661,10 @@ async function handleSubmit() {
       startDate: startDate,
       endDate: endDate,
       owner: userId,
-      privacy: form.value.privacy || 'public',
+      privacy: form.value.privacy === 'solo' ? 'private' : (form.value.privacy || 'public'),
       challengeType: form.value.challengeType || 'habit',
-      allowComments: form.value.allowComments !== undefined ? form.value.allowComments : true
+      allowComments: form.value.allowComments !== undefined ? form.value.allowComments : true,
+      communityQuest: form.value.communityQuest || false
     }
     
     if (form.value.imageUrl) {
@@ -465,13 +684,63 @@ async function handleSubmit() {
       challengeData.actions = form.value.actions
     }
 
-    await challengeService.createChallenge(challengeData)
-    router.push('/missions/my')
+    const response = await challengeService.createChallenge(challengeData)
+    
+    // Store the created challenge ID
+    // Backend returns { message, challenge: { _id, ... } }
+    const challengeId = response.data?.challenge?._id || response.data?._id || response.data?.id || ''
+    
+    if (challengeId) {
+      createdChallengeId.value = challengeId
+    }
+    
+    // Show success modal if privacy is public, otherwise navigate
+    if (form.value.privacy === 'public') {
+      await nextTick()
+      showSuccessModal.value = true
+    } else {
+      router.push('/missions/my')
+    }
   } catch (error) {
-    errorMessage.value = error.response?.data?.message || t('notifications.createError')
+    console.error('Error creating challenge:', error)
+    console.error('Error response:', error.response)
+    console.error('Error message:', error.message)
+    console.error('Error stack:', error.stack)
+    errorMessage.value = error.response?.data?.message || error.message || t('notifications.createError')
   } finally {
     loading.value = false
   }
+}
+
+function resetForm() {
+  // Reset form to default values
+  form.value = {
+    title: '',
+    description: '',
+    startDate: '',
+    imageUrl: '',
+    duration: '21',
+    customDuration: '',
+    privacy: 'solo',
+    challengeType: 'habit',
+    frequency: 'daily',
+    startOption: 'today',
+    actions: [{ text: '', checked: false, children: [] }],
+    allowComments: true,
+    communityQuest: false
+  }
+  
+  // Reset other state
+  showSlider.value = false
+  customDays.value = 60
+  showImageUpload.value = false
+  showDatePicker.value = false
+  createdChallengeId.value = ''
+  errorMessage.value = ''
+  errors.value = {}
+  
+  // Scroll to top of form
+  window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 </script>
 
@@ -518,6 +787,8 @@ async function handleSubmit() {
   .tree-image {
     width: 180px;
     opacity: 0.3;
+    top: -20px !important;
+    right: -40px !important;
   }
 }
 
@@ -573,8 +844,27 @@ async function handleSubmit() {
   font-weight: 700;
   color: #1a1a2e;
   margin-bottom: 12px;
-  text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+.duration-frequency-row {
+  display: flex;
+  gap: 24px;
+  margin: 24px 0;
+  align-items: flex-start;
+}
+
+.duration-frequency-row .duration-selector {
+  flex: 1;
+  margin: 0;
+  min-width: 0;
+}
+
+.duration-frequency-row .frequency-selector {
+  flex: 0 0 auto;
+  margin: 0;
+  width: auto;
+  max-width: 300px;
 }
 
 .duration-toggle-wrapper {
@@ -583,6 +873,25 @@ async function handleSubmit() {
   gap: 12px;
   flex-wrap: wrap;
   margin-bottom: 12px;
+}
+
+.frequency-toggle-wrapper {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 600px) {
+  .duration-toggle-wrapper {
+    justify-content: center !important;
+    width: 100% !important;
+  }
+  
+  .duration-toggle-wrapper .custom-chips-group {
+    width: 100% !important;
+    justify-content: center !important;
+  }
 }
 
 .custom-chips-group {
@@ -605,6 +914,36 @@ async function handleSubmit() {
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
   padding: 0 20px !important;
   box-shadow: none !important;
+}
+
+@media (max-width: 600px) {
+  .custom-chips-group .chip-btn {
+    height: 40px !important;
+    padding: 0 12px !important;
+    font-size: 0.85rem !important;
+    border-radius: 10px !important;
+  }
+  
+  .custom-chips-group .chip-btn .v-icon {
+    font-size: 16px !important;
+    margin-right: 4px !important;
+  }
+  
+  .custom-chips-group .custom-choice {
+    min-width: 40px !important;
+    width: 40px !important;
+    height: 40px !important;
+    padding: 0 !important;
+  }
+  
+  .custom-chips-group .custom-choice .v-icon {
+    font-size: 20px !important;
+    margin-right: 0 !important;
+  }
+  
+  .custom-chips-group {
+    gap: 8px !important;
+  }
 }
 
 .custom-chips-group .chip-btn:hover:not(.v-btn--active) {
@@ -632,6 +971,46 @@ async function handleSubmit() {
 .custom-chips-group .custom-choice {
   min-width: 50px !important;
   padding: 0 !important;
+}
+
+.custom-chips-group .custom-choice .v-icon {
+  margin-right: 0 !important;
+}
+
+@media (max-width: 600px) {
+  .duration-frequency-row {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .custom-chips-group {
+    gap: 8px !important;
+    justify-content: center !important;
+  }
+  
+  .custom-chips-group .chip-btn {
+    height: 40px !important;
+    padding: 0 12px !important;
+    font-size: 0.85rem !important;
+    border-radius: 10px !important;
+  }
+  
+  .custom-chips-group .chip-btn .v-icon {
+    font-size: 16px !important;
+    margin-right: 4px !important;
+  }
+  
+  .custom-chips-group .custom-choice {
+    min-width: 40px !important;
+    width: 40px !important;
+    height: 40px !important;
+    padding: 0 !important;
+  }
+  
+  .custom-chips-group .custom-choice .v-icon {
+    font-size: 20px !important;
+    margin-right: 0 !important;
+  }
 }
 
 .custom-slider-container {
@@ -678,6 +1057,75 @@ async function handleSubmit() {
     opacity: 1; 
     transform: translateY(0); 
   }
+}
+
+.start-time-selector {
+  margin-top: 24px;
+  margin-bottom: 24px;
+}
+
+.start-time-selector .field-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.custom-toggle-group {
+  background: #f1f5f9 !important;
+  border-radius: 12px !important;
+  padding: 4px !important;
+  height: 44px !important;
+  display: flex;
+}
+
+.custom-toggle-group .toggle-btn {
+  border: none !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  color: #64748b !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+  flex: 1;
+  transition: all 0.2s ease;
+}
+
+.custom-toggle-group .toggle-btn.v-btn--active {
+  background: #ffffff !important;
+  color: #7e46c4 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+}
+
+.calendar-btn {
+  height: 44px !important;
+  border: 2px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  color: #64748b !important;
+  background: #ffffff !important;
+  text-transform: none !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease;
+  margin-left: 5px !important;
+}
+
+.calendar-btn:hover {
+  border-color: #cbd5e1 !important;
+  background: #f8fafc !important;
+}
+
+.calendar-btn.is-active {
+  border-color: #7e46c4 !important;
+  color: #7e46c4 !important;
+  background: rgba(126, 70, 196, 0.05) !important;
+}
+
+.calendar-btn .v-icon {
+  color: #94a3b8;
+}
+
+.calendar-btn.is-active .v-icon {
+  color: #7e46c4;
 }
 
 .date-pickers {
@@ -869,61 +1317,229 @@ async function handleSubmit() {
   border-radius: 16px !important;
 }
 
+/* Social Settings Block */
+.social-settings-block {
+  padding: 24px;
+  background: rgba(126, 70, 196, 0.03);
+  border: 1px dashed #7e46c4;
+  border-radius: 24px;
+}
+
+.social-settings-block .mode-card {
+  background: #ffffff;
+  border: 2px solid #f1f5f9;
+  border-radius: 16px;
+  padding: 16px;
+  cursor: pointer;
+  height: 100%;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.social-settings-block .mode-card:hover {
+  border-color: #e2e8f0;
+  transform: translateY(-2px);
+}
+
+.social-settings-block .mode-card.active {
+  border-color: #7e46c4;
+  background: #fdfaff;
+  box-shadow: 0 4px 15px rgba(126, 70, 196, 0.1);
+}
+
+.social-settings-block .mode-card.active .mode-title {
+  color: #7e46c4;
+}
+
+.social-settings-block .mode-title {
+  display: block;
+  font-weight: 800;
+  font-size: 1rem;
+  margin-bottom: 4px;
+  color: #1a1a2e;
+}
+
+.social-settings-block .mode-desc {
+  font-size: 0.8rem;
+  line-height: 1.3;
+  color: #64748b;
+  margin: 0;
+}
+
+.social-settings-block .public-preview-box {
+  background: linear-gradient(135deg, rgba(126, 70, 196, 0.05) 0%, rgba(244, 167, 130, 0.05) 100%);
+  border: 1px solid rgba(126, 70, 196, 0.2);
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.social-settings-block .public-preview-box::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: #7e46c4;
+}
+
+.social-settings-block .compact-checkbox :deep(.v-label) {
+  font-size: 0.9rem !important;
+  font-weight: 600 !important;
+  opacity: 1 !important;
+}
+
+.social-settings-block .field-label {
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #94a3b8;
+  letter-spacing: 0.5px;
+}
+
 /* Create button wrapper */
 .create-button-wrapper {
   display: flex;
   justify-content: center;
   width: 100%;
   margin-bottom: 1em;
+  margin-top: 2rem;
 }
 
-/* Create button gradient styling */
-.create-button {
-  border-radius: 24px !important;
-  background: linear-gradient(135deg, #1FA0F6 0%, #2196F3 100%) !important;
-  color: white !important;
-  font-weight: 600;
-  padding: 16px 32px;
-  padding-top: 16px;
-  padding-bottom: 16px;
-  height: auto;
-  width: 50%;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
+/* Create mission button styling */
+.create-mission-btn {
+  background: linear-gradient(135deg, #8a4af3 0%, #7e46c4 100%) !important;
+  color: #ffffff !important;
+  height: 56px !important;
+  border-radius: 16px !important;
+  padding: 0 40px !important;
+  text-transform: uppercase !important;
+  font-weight: 800 !important;
+  font-size: 1.1rem !important;
+  letter-spacing: 1.5px !important;
+  box-shadow: 0 8px 20px rgba(126, 70, 196, 0.35) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  border: none !important;
 }
 
-.create-button::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-  transition: left 0.5s;
+.create-mission-btn:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 12px 28px rgba(126, 70, 196, 0.45) !important;
+  background: linear-gradient(135deg, #965df5 0%, #8a4af3 100%) !important;
 }
 
-.create-button:hover::before {
-  left: 100%;
+.create-mission-btn:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: 0 4px 10px rgba(126, 70, 196, 0.3) !important;
 }
 
-.create-button :deep(.v-btn__overlay) {
-  background: linear-gradient(135deg, #1FA0F6 0%, #2196F3 100%) !important;
+.create-mission-btn.disabled-grayscale {
+  filter: grayscale(100%) !important;
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
 }
 
-.create-button:hover {
-  background: linear-gradient(135deg, #2196F3 0%, #1FA0F6 100%) !important;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(31, 160, 246, 0.4);
+.create-mission-btn.disabled-grayscale:hover {
+  transform: none !important;
+  box-shadow: 0 8px 20px rgba(126, 70, 196, 0.35) !important;
+  background: linear-gradient(135deg, #8a4af3 0%, #7e46c4 100%) !important;
 }
 
-.create-button:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 6px rgba(31, 160, 246, 0.3);
+.error-message {
+  color: #d32f2f;
+  font-size: 0.75rem;
+  font-weight: 500;
 }
 
-.create-button:disabled {
-  opacity: 0.6;
+.duration-toggle-wrapper.error-border {
+  border: 1px solid #d32f2f !important;
+  border-radius: 12px;
+  padding: 4px;
 }
+
+/* Анимация пульсации для готовой к нажатию кнопки */
+@keyframes forge-glow {
+  0% { 
+    box-shadow: 0 8px 20px rgba(126, 70, 196, 0.35), 0 0 0 0 rgba(126, 70, 196, 0.5) !important;
+  }
+  70% { 
+    box-shadow: 0 8px 20px rgba(126, 70, 196, 0.35), 0 0 0 12px rgba(126, 70, 196, 0) !important;
+  }
+  100% { 
+    box-shadow: 0 8px 20px rgba(126, 70, 196, 0.35), 0 0 0 0 rgba(126, 70, 196, 0) !important;
+  }
+}
+
+.create-mission-btn--ready {
+  animation: forge-glow 2s infinite !important;
+}
+
+.title-cover-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.title-field-wrapper {
+  flex: 1;
+  min-width: 0;
+}
+
+.cover-photo-toggle-btn {
+  height: 56px !important;
+  border-radius: 12px !important;
+  text-transform: none !important;
+  font-weight: 600 !important;
+  white-space: nowrap;
+  border: 2px solid #e2e8f0 !important;
+  color: #64748b !important;
+  transition: all 0.3s ease !important;
+}
+
+.cover-photo-toggle-btn:hover {
+  border-color: #7e46c4 !important;
+  color: #7e46c4 !important;
+  background: rgba(126, 70, 196, 0.05) !important;
+}
+
+.cover-photo-toggle-btn.active {
+  border-color: #7e46c4 !important;
+  background: linear-gradient(135deg, #7e46c4 0%, #8a4af3 100%) !important;
+  color: #ffffff !important;
+}
+
+.mobile-upload-section {
+  display: block;
+}
+
+.desktop-upload-section {
+  display: none;
+}
+
+/* Mobile styles */
+@media (max-width: 600px) {
+  .create-mission-btn {
+    width: 100% !important;
+  }
+  
+  .mobile-upload-section {
+    display: block;
+  }
+  
+  .desktop-upload-section {
+    display: none !important;
+  }
+}
+
+/* Desktop styles */
+@media (min-width: 960px) {
+  .mobile-upload-section {
+    display: none !important;
+  }
+  
+  .desktop-upload-section {
+    display: block;
+  }
+}
+
 </style>

@@ -24,8 +24,8 @@
               </div>
             </div>
             <div v-else class="image-placeholder">
-              <v-icon size="48" color="grey">mdi-image-plus</v-icon>
-              <p class="mt-2 text-body-2">{{ uploadingImage ? t('challenges.uploading') : t('challenges.clickToUpload') }}</p>
+              <ImageUp :size="48" class="upload-icon" />
+              <p class="mt-2 text-body-2">{{ uploadingImage ? t('challenges.uploading') : t('challenges.coverPhotoHint') }}</p>
             </div>
           </div>
           <v-btn
@@ -55,6 +55,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { ImageUp } from 'lucide-vue-next'
 
 const props = defineProps({
   modelValue: {
@@ -228,6 +229,10 @@ const handleImageSelection = async (event) => {
   justify-content: center;
   height: 200px;
   color: #666;
+}
+
+.upload-icon {
+  color: #9e9e9e;
 }
 
 .image-preview {

@@ -219,10 +219,17 @@
     "addTitle": "Start Mission",
     "motiveText": "Every epic saga begins with a single choice. Define your path, Hero.",
     "title": "Title",
+    "titlePlaceholder": {
+      "habit": "Enter your new ritual... (e.g. 15 mins of Meditation)",
+      "result": "Define your conquest... (e.g. Run a Marathon)"
+    },
     "description": "Description",
     "startDate": "Start Date",
+    "pickDate": "Pick Date",
     "endDate": "End Date",
     "duration": "Challenge Duration",
+    "coverPhotoTitle": "Cover Photo",
+    "coverPhotoHint": "Drop an image that inspires your journey",
     "customDuration": "Number of days",
     "customDurationHint": "Enter the number of days for your challenge",
     "day": "day",
@@ -241,10 +248,28 @@
       "public": "Public",
       "private": "Private"
     },
+    "accessCommunity": "Access & Community",
+    "personalPath": "Personal Path",
+    "personalPathDesc": "Your progress is hidden from everyone. Only you can see your achievements.",
+    "commonWorld": "Common World",
+    "commonWorldDesc": "Your mission will appear in the Explore feed. Other heroes can support you.",
+    "readinessToAnnounce": "Ready to Announce",
+    "shareLinkAfterCreation": "After creation, you will receive a unique link to invite allies to this quest.",
+    "allowCommentsLabel": "Allow comments (words of support)",
+    "successModal": {
+      "title": "MISSION FORGED!",
+      "message": "Your ritual has officially begun. The first step is the most important. Are you ready?",
+      "inviteAllies": "Invite Allies",
+      "goToFirstTask": "TO FIRST MISSION",
+      "backToDashboard": "Add one more mission"
+    },
     "typeHabit": "Daily Ritual",
     "typeHabitDescription": "Forge greatness through consistency. Small daily steps build an unbreakable spirit.",
     "typeResult": "Epic Quest",
     "typeResultDescription": "Conquer a major milestone. Define a clear objective and reach the finish line.",
+    "validation": {
+      "titleRequired": "Title is required"
+    },
     "start": "Start",
     "startOptions": {
       "today": "Today",
@@ -392,6 +417,7 @@
     "endDateRequired": "End date is required",
     "endAfterStart": "End date must be after start date",
     "customDurationRequired": "Please enter the number of days",
+    "durationRequired": "Duration is required",
     "frequencyRequired": "Frequency is required"
   },
   "notifications": {
