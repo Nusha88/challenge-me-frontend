@@ -19,7 +19,7 @@
     <div v-else-if="!loading" class="journal-timeline">
        <div
          v-for="checklist in checklists"
-         :key="checklist._id || checklist.date"
+         :key="checklist._id || checklist.clientDay || checklist.date"
          class="timeline-item"
          :class="{ 'active': isToday(checklist.date), 'future': isFuture(checklist.date) }"
        >
@@ -28,7 +28,7 @@
         <div class="timeline-content">
           <div class="day-card" :class="{ 'card-completed': isFull(checklist) }">
             <div class="checklist-header">
-              <h3 class="checklist-date">{{ formatDate(checklist.date) }}</h3>
+              <h3 class="checklist-date">{{ formatDate(checklist.clientDay || checklist.date) }}</h3>
               
               <div class="ignite-badge" :class="getCompletionStatusClass(checklist)">
                 {{ getCompletionText(checklist) }}
@@ -36,16 +36,16 @@
             </div>
             
             <!-- Daily Challenges -->
-            <div v-if="getChallengesForDate(checklist.date).length > 0" class="challenges-section">
+            <div v-if="getChallengesForDate(checklist.clientDay || checklist.date).length > 0" class="challenges-section">
               <div
-                v-for="challenge in getChallengesForDate(checklist.date)"
+                v-for="challenge in getChallengesForDate(checklist.clientDay || checklist.date)"
                 :key="challenge._id"
                 class="challenge-item"
-                :class="{ 'completed': isChallengeCompletedOnDate(challenge, checklist.date) }"
+                :class="{ 'completed': isChallengeCompletedOnDate(challenge, checklist.clientDay || checklist.date) }"
               >
                 <div class="challenge-icon">
                   <v-icon 
-                    v-if="isChallengeCompletedOnDate(challenge, checklist.date)"
+                    v-if="isChallengeCompletedOnDate(challenge, checklist.clientDay || checklist.date)"
                     size="small"
                     color="#7048e8"
                   >mdi-check-circle</v-icon>
@@ -55,14 +55,14 @@
                     color="#7048e8"
                   >mdi-flag</v-icon>
                 </div>
-                <span class="challenge-text" :class="{ completed: isChallengeCompletedOnDate(challenge, checklist.date) }">
+                <span class="challenge-text" :class="{ completed: isChallengeCompletedOnDate(challenge, checklist.clientDay || checklist.date) }">
                   {{ challenge.title }}
                 </span>
               </div>
             </div>
             
             <!-- Divider between challenges and checklist -->
-            <v-divider v-if="getChallengesForDate(checklist.date).length > 0 && checklist.tasks && checklist.tasks.length > 0" class="my-4"></v-divider>
+            <v-divider v-if="getChallengesForDate(checklist.clientDay || checklist.date).length > 0 && checklist.tasks && checklist.tasks.length > 0" class="my-4"></v-divider>
             
             <div v-if="checklist.tasks && checklist.tasks.length > 0" class="tasks-list">
               <div
@@ -81,7 +81,7 @@
             </div>
 
             <!-- Empty state: show only if no missions and no checklist -->
-            <div v-if="getChallengesForDate(checklist.date).length === 0 && (!checklist.tasks || checklist.tasks.length === 0)" class="no-tasks-state">
+            <div v-if="getChallengesForDate(checklist.clientDay || checklist.date).length === 0 && (!checklist.tasks || checklist.tasks.length === 0)" class="no-tasks-state">
               <p class="no-tasks-text">The page is blank. Start your mission today.</p>
             </div>
             

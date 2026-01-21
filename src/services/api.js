@@ -110,6 +110,19 @@ export const authService = {
 
 // User service
 export const userService = {
+  _clientDayHeaders: () => {
+    // Send the CLIENT'S local calendar day + timezone offset so backend can select correct "today".
+    const now = new Date()
+    const yyyy = now.getFullYear()
+    const mm = String(now.getMonth() + 1).padStart(2, '0')
+    const dd = String(now.getDate()).padStart(2, '0')
+    const clientDay = `${yyyy}-${mm}-${dd}`
+    const tzOffset = String(now.getTimezoneOffset()) // minutes (same as Date.getTimezoneOffset)
+    return {
+      'x-client-day': clientDay,
+      'x-client-tz-offset': tzOffset
+    }
+  },
   getProfile: () => {
     return api.get('/auth/profile')
   },
@@ -120,19 +133,29 @@ export const userService = {
     return api.get('/auth/users', { params })
   },
   getTodayChecklist: () => {
-    return api.get('/auth/daily-checklist/today')
+    return api.get('/auth/daily-checklist/today', {
+      headers: userService._clientDayHeaders()
+    })
   },
   updateTodayChecklist: (tasks) => {
-    return api.put('/auth/daily-checklist/today', { tasks })
+    return api.put('/auth/daily-checklist/today', { tasks }, {
+      headers: userService._clientDayHeaders()
+    })
   },
   getTomorrowChecklist: () => {
-    return api.get('/auth/daily-checklist/tomorrow')
+    return api.get('/auth/daily-checklist/tomorrow', {
+      headers: userService._clientDayHeaders()
+    })
   },
   updateTomorrowChecklist: (tasks) => {
-    return api.put('/auth/daily-checklist/tomorrow', { tasks })
+    return api.put('/auth/daily-checklist/tomorrow', { tasks }, {
+      headers: userService._clientDayHeaders()
+    })
   },
   getChecklistHistory: () => {
-    return api.get('/auth/daily-checklist/history')
+    return api.get('/auth/daily-checklist/history', {
+      headers: userService._clientDayHeaders()
+    })
   },
   awardDailyBonusXp: () => {
     return api.post('/auth/xp/daily-bonus')

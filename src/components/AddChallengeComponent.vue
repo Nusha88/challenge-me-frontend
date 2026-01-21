@@ -8,7 +8,7 @@
       <img :src="treeImage" alt="Tree" class="tree-image" />
     </div>
     <div class="form-container">
-      <v-form @submit.prevent="handleSubmit">
+        <v-form @submit.prevent="handleSubmit">
           <div class="challenge-type-section mb-4">
             <div class="challenge-type-grid">
               <div
@@ -59,17 +59,16 @@
                 <v-row class="mb-4">
                   <v-col cols="12" md="6">
                     <label class="field-label">{{ t('challenges.title') }}</label>
-                    <v-text-field
-                      v-model="form.title"
-                      variant="outlined"
-                      required
-                      :error-messages="errors.title"
+          <v-text-field
+            v-model="form.title"
+            variant="outlined"
+            required
+            :error-messages="errors.title"
                       :placeholder="titlePlaceholder"
                       :rules="[v => !!v || t('challenges.validation.titleRequired')]"
-                    ></v-text-field>
+          ></v-text-field>
                   </v-col>
-                  <v-col cols="12" md="6">
-                    <label class="field-label">{{ t('challenges.coverPhotoTitle') }}</label>
+                  <v-col cols="12" md="6" class="d-flex align-center mt-2">
                     <v-btn
                       @click="showImageUpload = !showImageUpload"
                       :class="['cover-photo-toggle-btn', { 'active': showImageUpload }]"
@@ -77,7 +76,7 @@
                       block
                     >
                       <v-icon left>mdi-image</v-icon>
-                      {{ t('challenges.coverPhotoTitle') }}
+                      {{ coverMediaTitle }}
                     </v-btn>
                   </v-col>
                 </v-row>
@@ -90,205 +89,400 @@
                 </div>
 
                 <label class="field-label">{{ t('challenges.description') }}</label>
-                <v-textarea
-                  v-model="form.description"
-                  variant="outlined"
-                  rows="5"
-                  class="mb-4"
-                  :error-messages="errors.description"
-                ></v-textarea>
+          <v-textarea
+            v-model="form.description"
+            variant="outlined"
+            rows="5"
+            class="mb-4"
+            :error-messages="errors.description"
+          ></v-textarea>
 
-                <div class="duration-frequency-row">
-                <div class="duration-selector">
-                  <p class="field-label">{{ t('challenges.duration') }}</p>
-                  <div v-if="errors.duration" class="error-message mb-2">{{ errors.duration }}</div>
-                  <div class="duration-toggle-wrapper" :class="{ 'error-border': errors.duration }">
+                <!-- Habit Form Section -->
+                <template v-if="form.challengeType === 'habit'">
+                  <div class="duration-frequency-row">
+                    <div class="duration-selector">
+                      <p class="field-label">{{ t('challenges.duration') }}</p>
+                      <div v-if="errors.duration" class="error-message mb-2">{{ errors.duration }}</div>
+                      <div class="duration-toggle-wrapper" :class="{ 'error-border': errors.duration }">
+                        <v-btn-toggle
+                          v-model="form.duration"
+                          mandatory
+                          class="custom-chips-group"
+                        >
+                          <v-btn value="7" class="chip-btn">
+                            <span>7 days</span>
+                          </v-btn>
+                          <v-btn value="21" class="chip-btn">
+                            <v-icon left size="18">mdi-fire</v-icon>
+                            <span>21 days</span>
+                          </v-btn>
+                          <v-btn value="30" class="chip-btn">
+                            <span>30 days</span>
+                          </v-btn>
+                          <v-btn value="custom" class="chip-btn custom-choice" @click="toggleCustomSlider">
+                            <v-icon>mdi-plus</v-icon>
+                          </v-btn>
+                        </v-btn-toggle>
+                      </div>
+                      <div v-if="form.duration === 'custom' && showSlider" class="custom-slider-container">
+                        <div class="days-display">{{ customDays }} days</div>
+                        <v-slider
+                          v-model="customDays"
+                          min="1"
+                          max="365"
+                          step="1"
+                          hide-details
+                          class="ignite-slider"
+                        ></v-slider>
+                      </div>
+                    </div>
+
+                    <div class="frequency-selector">
+                      <p class="field-label">{{ t('challenges.frequency') }}</p>
+                      <div class="frequency-toggle-wrapper">
+                        <v-btn-toggle
+                          v-model="form.frequency"
+                          mandatory
+                          class="custom-chips-group"
+                        >
+                          <v-btn value="daily" class="chip-btn">
+                            <span>{{ t('challenges.frequencyOptions.daily') }}</span>
+                          </v-btn>
+                          <v-btn value="everyOtherDay" class="chip-btn">
+                            <span>{{ t('challenges.frequencyOptions.everyOtherDay') }}</span>
+                          </v-btn>
+                        </v-btn-toggle>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="start-time-selector">
+                    <p class="field-label">{{ t('challenges.start') }}</p>
+                    
+                    <div class="d-flex align-center gap-3">
                       <v-btn-toggle
-                        v-model="form.duration"
+                        v-model="form.startOption"
                         mandatory
-                        class="custom-chips-group"
+                        class="custom-toggle-group"
                       >
-                        <v-btn value="7" class="chip-btn">
-                          <span>7 days</span>
+                        <v-btn value="today" class="toggle-btn">
+                          <span>{{ t('challenges.startOptions.today') }}</span>
                         </v-btn>
-                        <v-btn value="21" class="chip-btn">
-                          <v-icon left size="18">mdi-fire</v-icon>
-                          <span>21 days</span>
-                        </v-btn>
-                        <v-btn value="30" class="chip-btn">
-                          <span>30 days</span>
-                        </v-btn>
-                        <v-btn value="custom" class="chip-btn custom-choice" @click="toggleCustomSlider">
-                          <v-icon>mdi-plus</v-icon>
+                        
+                        <v-btn value="tomorrow" class="toggle-btn">
+                          <span>{{ t('challenges.startOptions.tomorrow') }}</span>
                         </v-btn>
                       </v-btn-toggle>
+
+                      <v-btn 
+                        @click="showDatePicker = true"
+                        :class="['calendar-btn', { 'is-active': isCustomDate }]"
+                        variant="outlined"
+                      >
+                        <v-icon size="20">mdi-calendar-month-outline</v-icon>
+                        <span v-if="isCustomDate" class="ml-2">{{ formattedDate }}</span>
+                        <span v-else class="ml-2">{{ t('challenges.pickDate') }}</span>
+                      </v-btn>
                     </div>
-                    <div v-if="form.duration === 'custom' && showSlider" class="custom-slider-container">
-                      <div class="days-display">{{ customDays }} days</div>
-                      <v-slider
-                        v-model="customDays"
-                        min="1"
-                        max="365"
-                        step="1"
+                    
+                    <v-dialog v-model="showDatePicker" max-width="400">
+                      <v-date-picker
+                        v-model="form.startDate"
+                        @update:model-value="handleDatePick"
+                      ></v-date-picker>
+                    </v-dialog>
+                  </div>
+
+                  <div class="social-settings-block mt-8">
+                    <div class="social-header d-flex align-center mb-4">
+                      <v-icon color="#7e46c4" class="mr-2">mdi-share-variant-outline</v-icon>
+                      <h3 class="text-h6 font-weight-bold">{{ t('challenges.accessCommunity') }}</h3>
+                    </div>
+
+                    <v-item-group v-model="form.privacy" mandatory>
+                      <v-row class="px-3">
+                        <v-col cols="12" md="6" class="pa-2">
+                          <v-item v-slot="{ isSelected, toggle }" value="solo">
+                            <div 
+                              :class="['mode-card', { 'active': isSelected }]" 
+                              @click="toggle"
+                            >
+                              <div class="d-flex align-center justify-space-between mb-2">
+                                <v-icon :color="isSelected ? '#7e46c4' : '#94a3b8'">mdi-lock-outline</v-icon>
+                                <v-icon v-if="isSelected" color="#7e46c4" size="20">mdi-check-circle</v-icon>
+                              </div>
+                              <span class="mode-title">{{ t('challenges.personalPath') }}</span>
+                              <p class="mode-desc">{{ t('challenges.personalPathDesc') }}</p>
+                            </div>
+                          </v-item>
+                        </v-col>
+
+                        <v-col cols="12" md="6" class="pa-2">
+                          <v-item v-slot="{ isSelected, toggle }" value="public">
+                            <div 
+                              :class="['mode-card', { 'active': isSelected }]" 
+                              @click="toggle"
+                            >
+                              <div class="d-flex align-center justify-space-between mb-2">
+                                <v-icon :color="isSelected ? '#7e46c4' : '#94a3b8'">mdi-earth</v-icon>
+                                <v-icon v-if="isSelected" color="#7e46c4" size="20">mdi-check-circle</v-icon>
+                              </div>
+                              <span class="mode-title">{{ t('challenges.commonWorld') }}</span>
+                              <p class="mode-desc">{{ t('challenges.commonWorldDesc') }}</p>
+                            </div>
+                          </v-item>
+                        </v-col>
+                      </v-row>
+                    </v-item-group>
+
+                    <v-expand-transition>
+                      <div v-if="form.privacy === 'public'" class="public-preview-box mt-4 pa-5">
+                        <div class="d-flex align-center">
+                          <v-icon color="#7e46c4" size="32" class="mr-3">mdi-sparkles</v-icon>
+                          <div>
+                            <span class="d-block font-weight-bold" style="color: #1a1a2e;">{{ t('challenges.readinessToAnnounce') }}</span>
+                            <span class="text-caption text-grey-darken-1">
+                              {{ t('challenges.shareLinkAfterCreation') }}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <v-divider class="my-4"></v-divider>
+
+                        <v-checkbox
+                          v-model="form.allowComments"
+                          :label="t('challenges.allowCommentsLabel')"
+                          color="#7e46c4"
+                          hide-details
+                          class="compact-checkbox"
+                        ></v-checkbox>
+                      </div>
+                    </v-expand-transition>
+                  </div>
+                </template>
+
+                <!-- Result Form Section -->
+                <template v-if="form.challengeType === 'result'">
+                  <div class="milestones-manager mt-6">
+                  <p class="field-label mb-4">{{ t('challenges.milestonesTitle') }}</p>
+                  
+                  <div class="milestones-timeline mb-4">
+                    <div
+                      v-for="(step, index) in form.milestones"
+                      :key="index"
+                      class="milestone-item d-flex align-center pa-3 mb-2"
+                    >
+                      <div class="step-number">{{ index + 1 }}</div>
+            <v-text-field
+                        v-model="step.title"
+                        :placeholder="t('challenges.milestonePlaceholder')"
+                        variant="plain"
                         hide-details
-                        class="ignite-slider"
-                      ></v-slider>
+                        class="ml-3"
+            ></v-text-field>
+                      <v-btn
+                        icon="mdi-close"
+                        variant="text"
+                        size="small"
+                        color="grey"
+                        @click="removeStep(index)"
+                      ></v-btn>
                     </div>
                   </div>
 
-                  <div v-if="form.challengeType === 'habit'" class="frequency-selector">
-                    <p class="field-label">{{ t('challenges.frequency') }}</p>
-                    <div class="frequency-toggle-wrapper">
-                      <v-btn-toggle
-                        v-model="form.frequency"
-                        mandatory
-                        class="custom-chips-group"
+                  <v-btn 
+                    variant="dashed" 
+                    block 
+                    prepend-icon="mdi-flag-plus-outline" 
+                    class="add-step-btn"
+                    @click="addStep"
+                  >
+                    {{ t('challenges.addMilestone') }}
+                  </v-btn>
+                  </div>
+
+                  <div class="deadline-block mt-8">
+                  <p class="field-label mb-4">{{ t('challenges.deadlineTitle') }}</p>
+                  
+                  <v-menu
+                    v-model="deadlineMenu"
+                    :close-on-content-click="false"
+                    transition="scale-transition"
+                    offset-y
+                    min-width="auto"
+                  >
+                    <template v-slot:activator="{ props }">
+                      <div 
+                        v-bind="props" 
+                        class="deadline-selector d-flex align-center pa-4"
+                        :class="{ 'has-date': form.endDate }"
                       >
-                        <v-btn value="daily" class="chip-btn">
-                          <span>{{ t('challenges.frequencyOptions.daily') }}</span>
-                        </v-btn>
-                        <v-btn value="everyOtherDay" class="chip-btn">
-                          <span>{{ t('challenges.frequencyOptions.everyOtherDay') }}</span>
-                        </v-btn>
-                      </v-btn-toggle>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="start-time-selector">
-                  <p class="field-label">{{ t('challenges.start') }}</p>
-                  
-                  <div class="d-flex align-center gap-3">
-                    <v-btn-toggle
-                      v-model="form.startOption"
-                      mandatory
-                      class="custom-toggle-group"
-                    >
-                      <v-btn value="today" class="toggle-btn">
-                        <span>{{ t('challenges.startOptions.today') }}</span>
-                      </v-btn>
-                      
-                      <v-btn value="tomorrow" class="toggle-btn">
-                        <span>{{ t('challenges.startOptions.tomorrow') }}</span>
-                      </v-btn>
-                    </v-btn-toggle>
-
-                    <v-btn 
-                      @click="showDatePicker = true"
-                      :class="['calendar-btn', { 'is-active': isCustomDate }]"
-                      variant="outlined"
-                    >
-                      <v-icon size="20">mdi-calendar-month-outline</v-icon>
-                      <span v-if="isCustomDate" class="ml-2">{{ formattedDate }}</span>
-                      <span v-else class="ml-2">{{ t('challenges.pickDate') }}</span>
-                    </v-btn>
-                  </div>
-                  
-                  <v-dialog v-model="showDatePicker" max-width="400">
-                    <v-date-picker
-                      v-model="form.startDate"
-                      @update:model-value="handleDatePick"
-                    ></v-date-picker>
-                  </v-dialog>
-                </div>
-
-                <div class="social-settings-block mt-8">
-                  <div class="social-header d-flex align-center mb-4">
-                    <v-icon color="#7e46c4" class="mr-2">mdi-share-variant-outline</v-icon>
-                    <h3 class="text-h6 font-weight-bold">{{ t('challenges.accessCommunity') }}</h3>
-                  </div>
-
-                  <v-item-group v-model="form.privacy" mandatory>
-                    <v-row class="px-3">
-                      <v-col cols="12" md="6" class="pa-2">
-                        <v-item v-slot="{ isSelected, toggle }" value="solo">
-                          <div 
-                            :class="['mode-card', { 'active': isSelected }]" 
-                            @click="toggle"
-                          >
-                            <div class="d-flex align-center justify-space-between mb-2">
-                              <v-icon :color="isSelected ? '#7e46c4' : '#94a3b8'">mdi-lock-outline</v-icon>
-                              <v-icon v-if="isSelected" color="#7e46c4" size="20">mdi-check-circle</v-icon>
-                            </div>
-                            <span class="mode-title">{{ t('challenges.personalPath') }}</span>
-                            <p class="mode-desc">{{ t('challenges.personalPathDesc') }}</p>
-                          </div>
-                        </v-item>
-                      </v-col>
-
-                      <v-col cols="12" md="6" class="pa-2">
-                        <v-item v-slot="{ isSelected, toggle }" value="public">
-                          <div 
-                            :class="['mode-card', { 'active': isSelected }]" 
-                            @click="toggle"
-                          >
-                            <div class="d-flex align-center justify-space-between mb-2">
-                              <v-icon :color="isSelected ? '#7e46c4' : '#94a3b8'">mdi-earth</v-icon>
-                              <v-icon v-if="isSelected" color="#7e46c4" size="20">mdi-check-circle</v-icon>
-                            </div>
-                            <span class="mode-title">{{ t('challenges.commonWorld') }}</span>
-                            <p class="mode-desc">{{ t('challenges.commonWorldDesc') }}</p>
-                          </div>
-                        </v-item>
-                      </v-col>
-                    </v-row>
-                  </v-item-group>
-
-                  <v-expand-transition>
-                    <div v-if="form.privacy === 'public'" class="public-preview-box mt-4 pa-5">
-                      <div class="d-flex align-center">
-                        <v-icon color="#7e46c4" size="32" class="mr-3">mdi-sparkles</v-icon>
-                        <div>
-                          <span class="d-block font-weight-bold" style="color: #1a1a2e;">{{ t('challenges.readinessToAnnounce') }}</span>
-                          <span class="text-caption text-grey-darken-1">
-                            {{ t('challenges.shareLinkAfterCreation') }}
+                        <v-icon size="28" color="#7e46c4" class="mr-4">mdi-calendar-check</v-icon>
+                        
+                        <div class="d-flex flex-column text-left">
+                          <span class="date-display">
+                            {{ form.endDate ? formatDate(form.endDate) : t('challenges.deadlinePlaceholder') }}
+                          </span>
+                          <span v-if="form.endDate" class="time-left-hint">
+                            {{ t('challenges.daysLeft') }}: {{ calculateDaysLeft(form.endDate) }}
                           </span>
                         </div>
+                        
+                        <v-spacer></v-spacer>
+                        <v-icon color="#94a3b8">mdi-chevron-right</v-icon>
                       </div>
-                      
-                      <v-divider class="my-4"></v-divider>
+                    </template>
 
-                      <v-checkbox
-                        v-model="form.allowComments"
-                        :label="t('challenges.allowCommentsLabel')"
-                        color="#7e46c4"
-                        hide-details
-                        class="compact-checkbox"
-                      ></v-checkbox>
+                    <v-date-picker
+                      v-model="form.endDate"
+                      color="#7e46c4"
+                      elevation="24"
+                      class="rounded-xl"
+                      @update:model-value="deadlineMenu = false"
+                    ></v-date-picker>
+                  </v-menu>
+                  </div>
+
+                  <div class="difficulty-section mt-8">
+                  <p class="field-label mb-4">{{ t('challenges.difficultyTitle') }}</p>
+                  
+                  <div class="diff-cards-container">
+                    <div 
+                      class="diff-option easy" 
+                      :class="{ active: form.difficulty === 'easy' }"
+                      @click="form.difficulty = 'easy'"
+                    >
+                      <div class="diff-icon">
+                        <v-icon>mdi-leaf</v-icon>
+                      </div>
+                      <div class="diff-content">
+                        <span class="diff-name">{{ t('challenges.difficultyEasy') }}</span>
+                        <span class="diff-xp">+50 XP</span>
+                      </div>
+                      <v-icon class="check-icon" size="20">mdi-check-circle</v-icon>
                     </div>
-                  </v-expand-transition>
-                </div>
 
-                <div class="actions-container" v-if="form.challengeType === 'result'">
-                  <ChallengeActions
-                    v-model="form.actions"
-                  />
-                </div>
+                    <div 
+                      class="diff-option normal" 
+                      :class="{ active: form.difficulty === 'normal' }"
+                      @click="form.difficulty = 'normal'"
+                    >
+                      <div class="diff-icon">
+                        <v-icon>mdi-sword</v-icon>
+                      </div>
+                      <div class="diff-content">
+                        <span class="diff-name">{{ t('challenges.difficultyNormal') }}</span>
+                        <span class="diff-xp">+150 XP</span>
+                      </div>
+                      <v-icon class="check-icon" size="20">mdi-check-circle</v-icon>
+                    </div>
 
-                <v-alert
-                  v-if="errorMessage"
-                  type="error"
-                  class="mb-4"
-                >
-                  {{ errorMessage }}
-                </v-alert>
+                    <div 
+                      class="diff-option heroic" 
+                      :class="{ active: form.difficulty === 'heroic' }"
+                      @click="form.difficulty = 'heroic'"
+                    >
+                      <div class="diff-icon">
+                        <v-icon>mdi-fire</v-icon>
+                      </div>
+                      <div class="diff-content">
+                        <span class="diff-name">{{ t('challenges.difficultyHeroic') }}</span>
+                        <span class="diff-xp">+500 XP</span>
+                      </div>
+                      <v-icon class="check-icon" size="20">mdi-check-circle</v-icon>
+                    </div>
+                  </div>
+                  </div>
 
-                <div class="create-button-wrapper">
-                  <v-btn
-                    type="submit"
-                    color="primary"
-                    size="large"
-                    :loading="loading"
+                  <div class="privacy-selection mt-8">
+                  <p class="field-label mb-4">{{ t('challenges.privacyMode') }}</p>
+                  
+                  <v-row>
+                    <v-col cols="12" sm="6">
+                      <div 
+                        class="privacy-card" 
+                        :class="{ active: form.privacy === 'solo' || form.privacy === 'private' }"
+                        @click="form.privacy = 'private'"
+                      >
+                        <v-icon size="32">mdi-shield-lock-outline</v-icon>
+                        <div class="ml-4">
+                          <span class="d-block font-weight-bold">{{ t('challenges.secretQuest') }}</span>
+                          <span class="text-caption">{{ t('challenges.secretQuestDesc') }}</span>
+                        </div>
+                        <v-spacer></v-spacer>
+                        <v-radio v-model="form.privacy" value="private" color="#7e46c4"></v-radio>
+                      </div>
+                    </v-col>
+
+                    <v-col cols="12" sm="6">
+                      <div 
+                        class="privacy-card" 
+                        :class="{ active: form.privacy === 'public' }"
+                        @click="form.privacy = 'public'"
+                      >
+                        <v-icon size="32">mdi-fountain-pen-tip</v-icon>
+                        <div class="ml-4">
+                          <span class="d-block font-weight-bold">{{ t('challenges.worldChronicle') }}</span>
+                          <span class="text-caption">{{ t('challenges.worldChronicleDesc') }}</span>
+                        </div>
+                        <v-spacer></v-spacer>
+                        <v-radio v-model="form.privacy" value="public" color="#7e46c4"></v-radio>
+                      </div>
+                    </v-col>
+                  </v-row>
+                  </div>
+
+                  <div class="reward-block mt-8">
+                  <p class="field-label mb-4">{{ t('challenges.rewardTitle') }}</p>
+                  
+                  <div class="loot-container pa-1">
+                    <v-text-field
+                      v-model="form.reward"
+                      :placeholder="t('challenges.rewardPlaceholder')"
+                      variant="solo"
+                      flat
+                      bg-color="white"
+                      class="reward-input"
+                      hide-details
+                    >
+                      <template v-slot:prepend-inner>
+                        <div class="reward-icon-box">
+                          <v-icon color="#FFD700">mdi-trophy-variant</v-icon>
+                        </div>
+                      </template>
+                    </v-text-field>
+                  </div>
+                  
+                  <p class="text-caption text-grey-darken-1 mt-2 ml-2">
+                    {{ t('challenges.rewardHint') }}
+                  </p>
+                  </div>
+                </template>
+
+          <v-alert
+            v-if="errorMessage"
+            type="error"
+            class="mb-4"
+          >
+            {{ errorMessage }}
+          </v-alert>
+
+          <div class="create-button-wrapper">
+            <v-btn
+              type="submit"
+              color="primary"
+              size="large"
+              :loading="loading"
                     :disabled="loading || !isFormValid"
                     class="create-mission-btn"
                     :class="{ 
                       'disabled-grayscale': !isFormValid,
                       'create-mission-btn--ready': isFormValid && !loading
                     }"
-                  >
-                    {{ t('challenges.create') }}
-                  </v-btn>
-                </div>
+            >
+              {{ createButtonText }}
+            </v-btn>
+          </div>
               </div>
             </v-col>
             <v-col v-if="showImageUpload" cols="12" md="4" class="desktop-upload-section">
@@ -316,7 +510,6 @@ import { useRouter } from 'vue-router'
 import { challengeService } from '../services/api'
 import { useI18n } from 'vue-i18n'
 import ChallengeImageUpload from './ChallengeImageUpload.vue'
-import ChallengeActions from './ChallengeActions.vue'
 import SuccessModal from './SuccessModal.vue'
 import treeImage from '../assets/tree.png'
 
@@ -335,6 +528,10 @@ const form = ref({
   frequency: 'daily',
   startOption: 'today',
   actions: [{ text: '', checked: false, children: [] }],
+  milestones: [{ title: '' }],
+  endDate: '',
+  reward: '',
+  difficulty: 'normal',
   allowComments: true,
   communityQuest: false
 })
@@ -343,6 +540,7 @@ const showSlider = ref(false)
 const customDays = ref(60)
 const showImageUpload = ref(false)
 const showDatePicker = ref(false)
+const deadlineMenu = ref(false)
 const showSuccessModal = ref(false)
 const createdChallengeId = ref('')
 
@@ -398,6 +596,18 @@ const titlePlaceholder = computed(() => {
   } else {
     return t('challenges.titlePlaceholder.result')
   }
+})
+
+const coverMediaTitle = computed(() => {
+  return form.value.challengeType === 'result'
+    ? t('challenges.epicBannerTitle')
+    : t('challenges.coverPhotoTitle')
+})
+
+const createButtonText = computed(() => {
+  return form.value.challengeType === 'result'
+    ? t('challenges.createResult')
+    : t('challenges.createHabit')
 })
 
 const shareLink = computed(() => {
@@ -541,15 +751,33 @@ function selectChallengeType(type) {
     form.value.duration = '30'
     form.value.startOption = 'today'
     form.value.frequency = '' // Clear frequency for result challenges
+    form.value.privacy = 'private' // Set default privacy for result type
+    form.value.difficulty = 'normal' // Set default difficulty for result type
     // startDate will be set automatically by the watcher
     // Initialize actions with default item if empty
     if (!form.value.actions || form.value.actions.length === 0) {
       form.value.actions = [{ text: '', checked: false, children: [] }]
     }
+    if (!form.value.milestones || form.value.milestones.length === 0) {
+      form.value.milestones = [{ title: '' }]
+    }
   }
   // Clear custom duration if it was set
   if (form.value.duration !== 'custom') {
     form.value.customDuration = ''
+  }
+}
+
+function addStep() {
+  if (!form.value.milestones) form.value.milestones = []
+  form.value.milestones.push({ title: '' })
+}
+
+function removeStep(index) {
+  if (!form.value.milestones) return
+  form.value.milestones.splice(index, 1)
+  if (form.value.milestones.length === 0) {
+    form.value.milestones.push({ title: '' })
   }
 }
 
@@ -596,6 +824,35 @@ function formatDisplayDate(value) {
   } catch (err) {
     return date.toLocaleDateString()
   }
+}
+
+function formatDate(value) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return value
+  }
+  try {
+    const formatter = new Intl.DateTimeFormat(locale.value, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+    return formatter.format(date)
+  } catch (err) {
+    return date.toLocaleDateString()
+  }
+}
+
+function calculateDaysLeft(endDate) {
+  if (!endDate) return 0
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const end = new Date(endDate)
+  end.setHours(0, 0, 0, 0)
+  const diffTime = end - today
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  return diffDays > 0 ? diffDays : 0
 }
 
 function calculateStartDate() {
@@ -653,7 +910,10 @@ async function handleSubmit() {
 
   try {
     const startDate = calculateStartDate()
-    const endDate = calculateEndDate()
+    // Use manually set endDate for result type, otherwise calculate it
+    const endDate = (form.value.challengeType === 'result' && form.value.endDate) 
+      ? form.value.endDate 
+      : calculateEndDate()
     
     const challengeData = {
       title: form.value.title,
@@ -679,9 +939,25 @@ async function handleSubmit() {
     }
     // Don't send frequency for result challenges (it will be null/undefined)
     
-    // Only include actions for result challenges
-    if (form.value.challengeType === 'result' && form.value.actions) {
-      challengeData.actions = form.value.actions
+    // Only include actions and reward for result challenges
+    if (form.value.challengeType === 'result') {
+      const milestones = Array.isArray(form.value.milestones) ? form.value.milestones : []
+      const actionsFromMilestones = milestones
+        .map(m => (m?.title || '').trim())
+        .filter(Boolean)
+        .map(title => ({ text: title, checked: false, children: [] }))
+
+      if (actionsFromMilestones.length) {
+        challengeData.actions = actionsFromMilestones
+      }
+      
+      if (form.value.reward && form.value.reward.trim()) {
+        challengeData.reward = form.value.reward.trim()
+      }
+      
+      if (form.value.difficulty) {
+        challengeData.difficulty = form.value.difficulty
+      }
     }
 
     const response = await challengeService.createChallenge(challengeData)
@@ -726,6 +1002,10 @@ function resetForm() {
     frequency: 'daily',
     startOption: 'today',
     actions: [{ text: '', checked: false, children: [] }],
+    milestones: [{ title: '' }],
+    endDate: '',
+    reward: '',
+    difficulty: 'normal',
     allowComments: true,
     communityQuest: false
   }
@@ -735,6 +1015,7 @@ function resetForm() {
   customDays.value = 60
   showImageUpload.value = false
   showDatePicker.value = false
+  deadlineMenu.value = false
   createdChallengeId.value = ''
   errorMessage.value = ''
   errors.value = {}
@@ -1514,6 +1795,296 @@ function resetForm() {
 
 .desktop-upload-section {
   display: none;
+}
+
+.milestones-manager .milestone-item {
+  background: #f8faff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  transition: 0.2s;
+}
+
+.milestones-manager .milestone-item :deep(.v-input) {
+  margin: 0 !important;
+  align-self: center;
+}
+
+.milestones-manager .milestone-item :deep(.v-field) {
+  align-items: center !important;
+}
+
+.milestones-manager .milestone-item :deep(.v-field__input) {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+}
+
+.milestones-manager .milestone-item :deep(.v-field__field) {
+  align-items: center !important;
+}
+
+.milestones-manager .milestone-item:hover {
+  border-color: #7e46c4;
+}
+
+.milestones-manager .milestone-item .step-number {
+  background: #7e46c4;
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.75rem;
+  flex: 0 0 auto;
+  margin-right: 12px;
+}
+
+.milestones-manager .add-step-btn {
+  border: 2px dashed #cbd5e1 !important;
+  color: #64748b !important;
+  text-transform: none !important;
+  height: 48px !important;
+  border-radius: 12px !important;
+}
+
+.milestones-manager .add-step-btn:hover {
+  border-color: #7e46c4 !important;
+  color: #7e46c4 !important;
+  background: rgba(126, 70, 196, 0.02);
+}
+
+.deadline-selector {
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.deadline-selector:hover {
+  border-color: #7e46c4;
+  background: rgba(126, 70, 196, 0.02);
+  transform: translateY(-2px);
+}
+
+.deadline-selector.has-date {
+  border-color: #7e46c4;
+  background: linear-gradient(90deg, #ffffff 0%, #fdfaff 100%);
+}
+
+.deadline-selector .date-display {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #1a1a2e;
+}
+
+.deadline-selector .time-left-hint {
+  font-size: 0.8rem;
+  color: #7e46c4;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+:deep(.v-date-picker) {
+  .v-date-picker-month__day--selected .v-btn {
+    background: #7e46c4 !important;
+  }
+}
+
+.privacy-card {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.privacy-card .v-icon {
+  color: #94a3b8;
+  transition: 0.25s;
+}
+
+.privacy-card:hover {
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+}
+
+.privacy-card.active {
+  border-color: #7e46c4;
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(126, 70, 196, 0.1);
+}
+
+.privacy-card.active .v-icon {
+  color: #7e46c4;
+}
+
+.privacy-card.active span.font-weight-bold {
+  color: #7e46c4;
+}
+
+.privacy-card :deep(.v-selection-control) {
+  justify-content: flex-end;
+}
+
+.loot-container {
+  background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%);
+  border-radius: 20px;
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
+}
+
+.loot-container .reward-input :deep(.v-field) {
+  border-radius: 18px !important;
+}
+
+.loot-container .reward-input :deep(.v-field--focused) .reward-icon-box {
+  transform: scale(1.1) rotate(-10deg);
+}
+
+.reward-icon-box {
+  background: rgba(255, 215, 0, 0.1);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  transition: transform 0.3s ease;
+  margin-right: 8px;
+}
+
+.reward-input :deep(input) {
+  font-weight: 600 !important;
+  color: #1a1a2e !important;
+}
+
+.reward-input :deep(input::placeholder) {
+  font-weight: 400;
+  font-style: italic;
+  opacity: 0.6;
+}
+
+.diff-cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.diff-option {
+  display: flex;
+  align-items: center;
+  padding: 16px 20px;
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.diff-option .diff-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16px;
+  transition: 0.3s;
+  background: #fff;
+}
+
+.diff-option .diff-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.diff-option .diff-content .diff-name {
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: 0.95rem;
+  color: #1a1a2e;
+}
+
+.diff-option .diff-content .diff-xp {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.diff-option .check-icon {
+  margin-left: auto;
+  opacity: 0;
+  transition: 0.3s;
+  color: inherit;
+}
+
+.diff-option.active {
+  transform: translateX(8px);
+  background: white;
+}
+
+.diff-option.active .check-icon {
+  opacity: 1;
+}
+
+.diff-option.active.easy {
+  border-color: #4caf50;
+}
+
+.diff-option.active.easy .diff-icon {
+  background: #e8f5e9;
+  color: #4caf50;
+}
+
+.diff-option.active.easy .diff-name,
+.diff-option.active.easy .diff-xp {
+  color: #4caf50;
+}
+
+.diff-option.active.normal {
+  border-color: #7e46c4;
+}
+
+.diff-option.active.normal .diff-icon {
+  background: #f3e5f5;
+  color: #7e46c4;
+}
+
+.diff-option.active.normal .diff-name,
+.diff-option.active.normal .diff-xp {
+  color: #7e46c4;
+}
+
+.diff-option.active.heroic {
+  border-color: #ff5252;
+  background: #fff5f5;
+  animation: shake 0.5s ease-in-out;
+}
+
+.diff-option.active.heroic .diff-icon {
+  background: #ffebee;
+  color: #ff5252;
+}
+
+.diff-option.active.heroic .diff-name,
+.diff-option.active.heroic .diff-xp {
+  color: #ff5252;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(8px); }
+  25% { transform: translateX(12px); }
+  75% { transform: translateX(4px); }
 }
 
 /* Mobile styles */
