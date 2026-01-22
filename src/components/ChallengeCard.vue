@@ -3,7 +3,8 @@
     class="challenge-card"
     :class="{ 
       'owner-challenge': isOwner,
-      'finished-challenge': isFinished
+      'finished-challenge': isFinished,
+      [challenge.challengeType]: challenge.challengeType
     }"
     @click="$emit('click', challenge)"
   >
@@ -18,50 +19,58 @@
       <v-icon size="small" class="mr-1">mdi-close-circle</v-icon>
       {{ t('challenges.failed') }}
     </div>
-    <!-- Header with image and title -->
-    <div class="challenge-header">
-      <div class="challenge-image-container">
-        <img
-          v-if="challenge.imageUrl"
-          :src="challenge.imageUrl"
-          :alt="challenge.title"
-          class="challenge-image"
-        />
-        <v-icon
-          v-else
-          size="48"
-          color="grey-lighten-1"
-          class="challenge-image-placeholder"
-        >
-          mdi-image-outline
-        </v-icon>
-      </div>
-      <div class="challenge-header-content">
-        <div class="challenge-title-row">
-        <span class="text-h6 mb-1">{{ challenge.title }}</span>
-          <v-icon
-            v-if="challenge.privacy === 'private'"
-            size="small"
-            color="grey-darken-1"
-            class="privacy-icon"
-            :title="t('challenges.privacyOptions.private')"
-          >
-            mdi-lock
-          </v-icon>
-        </div>
-        <div class="challenge-duration text-caption text-medium-emphasis mb-1">
-          {{ formatDateRange(challenge.startDate, challenge.endDate) }}
-        </div>
-        <v-chip
-          v-if="challenge.challengeType"
-          :color="challenge.challengeType === 'habit' ? 'success' : 'warning'"
-          size="small"
-          class="challenge-type-chip"
-        >
-          {{ challenge.challengeType === 'habit' ? t('challenges.typeHabit') : t('challenges.typeResult') }}
-        </v-chip>
+    
+    <div class="card-header" :class="challenge.challengeType">
+      <v-icon 
+        :color="challenge.challengeType === 'habit' ? 'success' : 'primary'"
+        class="type-icon"
+      >
+        {{ challenge.challengeType === 'habit' ? 'mdi-repeat' : 'mdi-sword-cross' }}
+      </v-icon>
+
+      <div class="type-label" :class="challenge.challengeType">
+        {{ challenge.challengeType === 'habit' ? t('challenges.typeHabitLabel') : t('challenges.typeResultLabel') }}
       </div>
     </div>
+    
+    <!-- Header with image and title -->
+    <div class="challenge-header" :class="challenge.challengeType">
+      <div class="challenge-image-container">
+        <img v-if="challenge.imageUrl" :src="challenge.imageUrl" class="challenge-image" />
+        <v-icon v-else size="32" color="grey-lighten-1">{{ challenge.challengeType === 'habit' ? 'mdi-cached' : 'mdi-sword' }}</v-icon>
+      </div>
+      
+      <div class="challenge-header-content">
+        <div class="challenge-title-row">
+          <span class="text-subtitle-1 font-weight-bold">{{ challenge.title }}</span>
+          <v-icon v-if="challenge.privacy === 'private'" size="14" class="ml-1">mdi-lock</v-icon>
+        </div>
+        
+        <div v-if="challenge.challengeType === 'result'" class="difficulty-badge mt-1">
+          <v-icon size="12" color="orange">mdi-fire</v-icon>
+          <span class="text-caption ml-1">Heroic</span>
+        </div>
+      </div>
+    </div>
+
+    <v-card-text v-if="challenge.challengeType === 'result' && challenge.actions" class="pt-2 pb-0">
+      <div class="milestones-preview">
+        <div 
+          v-for="action in challenge.actions.slice(0, 2)" 
+          :key="action.id"
+          class="milestone-item"
+          :class="{ 'done': action.checked }"
+        >
+          <v-icon size="16" :color="action.checked ? 'success' : 'grey'">
+            {{ action.checked ? 'mdi-check-circle' : 'mdi-circle-outline' }}
+          </v-icon>
+          <span class="ml-2 text-caption truncate">{{ action.text }}</span>
+        </div>
+        <div v-if="challenge.actions.length > 2" class="text-caption text-grey ml-6">
+          + ещё {{ challenge.actions.length - 2 }}
+        </div>
+      </div>
+    </v-card-text>
     
     <v-card-text class="flex-grow-1 pt-3 pb-0">
       <p class="mb-0 text-body-2 challenge-description">{{ challenge.description }}</p>
@@ -565,21 +574,7 @@ function navigateToOwner() {
   width: 100%;
   position: relative;
   overflow: hidden;
-}
-
-.challenge-card.owner-challenge {
-  background: linear-gradient(135deg, rgba(31, 160, 246, 0.12) 0%, rgba(166, 46, 232, 0.12) 100%);
-}
-
-.challenge-card.finished-challenge {
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.03) 0%, rgba(0, 0, 0, 0.06) 100%);
-}
-
-.challenge-card.finished-challenge.owner-challenge {
-  background: linear-gradient(135deg, 
-    rgba(31, 160, 246, 0.06) 0%, 
-    rgba(166, 46, 232, 0.06) 50%,
-    rgba(0, 0, 0, 0.04) 100%);
+  border: 1px solid transparent; /* Добавляем прозрачную рамку */
 }
 
 .challenge-card:hover {
@@ -589,6 +584,68 @@ function navigateToOwner() {
 
 .challenge-card.owner-challenge:hover {
   box-shadow: 0 4px 12px rgba(31, 160, 246, 0.3);
+}
+
+/* Различие стилей карточек */
+/* Квест: выглядит более "премиально" */
+.challenge-card.result {
+  background-color: #f5f0ff !important; /* Светло-фиолетовый фон */
+  border-color: #e9d8fd !important; /* Фиолетовая рамка */
+  border-left: 4px solid #A62EE8; /* Фиолетовый акцент */
+}
+
+/* Ритуал: выглядит более спокойным */
+.challenge-card.habit {
+  background-color: #f0fff4 !important; /* Светло-зеленый фон */
+  border-color: #c6f6d5 !important; /* Зеленая рамка */
+  border-left: 4px solid #4CAF50; /* Зеленый акцент */
+  min-height: 100px; /* Компактные для ритуалов */
+}
+
+.challenge-card.finished-challenge {
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.03) 0%, rgba(0, 0, 0, 0.06) 100%);
+}
+
+/* Override finished background for habit/result types */
+.challenge-card.finished-challenge.habit {
+  background-color: #f0fff4 !important;
+}
+
+.challenge-card.finished-challenge.result {
+  background-color: #f5f0ff !important;
+}
+
+.card-header {
+  position: relative;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.type-icon {
+  font-size: 20px;
+}
+
+.type-label {
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+.type-label.habit {
+  color: #4CAF50;
+  border: 1px solid #4CAF50;
+}
+
+.type-label.result {
+  color: #A62EE8;
+  border: 1px solid #A62EE8;
 }
 
 .challenge-header {
@@ -604,6 +661,11 @@ function navigateToOwner() {
     gap: 16px;
     padding: 16px;
   }
+}
+
+/* Стили заголовка */
+.challenge-header.result .challenge-image-container {
+  border: 2px solid #A62EE8; /* Фиолетовая рамка для эпиков */
 }
 
 .challenge-image-container {
@@ -650,6 +712,10 @@ function navigateToOwner() {
   flex-wrap: wrap;
 }
 
+.challenge-title-row .text-subtitle-1 {
+  line-height: 1.2;
+}
+
 .privacy-icon {
   flex-shrink: 0;
   opacity: 0.7;
@@ -657,6 +723,43 @@ function navigateToOwner() {
 
 .challenge-duration {
   margin-top: 4px;
+}
+
+/* Бейджик сложности */
+.difficulty-badge {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 165, 0, 0.1);
+  padding: 2px 8px;
+  border-radius: 10px;
+  width: fit-content;
+  color: #ff9800;
+  font-weight: bold;
+}
+
+/* Превью милстоунов */
+.milestones-preview {
+  background: rgba(0, 0, 0, 0.03);
+  padding: 8px;
+  border-radius: 8px;
+  margin-top: 4px;
+}
+
+.milestone-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.milestone-item.done span {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .challenge-meta-container {
@@ -671,8 +774,18 @@ function navigateToOwner() {
   border-top: 1px solid rgba(0, 0, 0, 0.08);
 }
 
+/* Обновленный прогресс-бар */
+.progress-bar-container :deep(.v-progress-linear) {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+}
+
 .progress-bar-container :deep(.v-progress-linear__determinate) {
   background: linear-gradient(135deg, #1FA0F6 0%, #A62EE8 100%) !important;
+}
+
+/* Если это Эпик, делаем прогресс золотым/фиолетовым */
+.result .progress-bar-container :deep(.v-progress-linear__determinate) {
+  background: linear-gradient(90deg, #A62EE8 0%, #FFD700 100%) !important;
 }
 
 .upcoming-badge {

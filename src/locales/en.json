@@ -283,8 +283,10 @@
       "backToDashboard": "Add one more mission"
     },
     "typeHabit": "Daily Ritual",
+    "typeHabitLabel": "RITUAL",
     "typeHabitDescription": "Forge greatness through consistency. Small daily steps build an unbreakable spirit.",
     "typeResult": "Epic Quest",
+    "typeResultLabel": "QUEST",
     "typeResultDescription": "Conquer a major milestone. Define a clear objective and reach the finish line.",
     "validation": {
       "titleRequired": "Title is required"
@@ -341,6 +343,7 @@
     "failed": "Failed",
     "listTitle": "Explore",
     "myListTitle": "My Missions",
+    "activeAdventures": "active adventures",
     "createdByMe": "Created by me",
     "activityActive": "Active",
     "activityFinished": "Finished",

@@ -283,8 +283,10 @@
       "backToDashboard": "Добавить еще одну миссию"
     },
     "typeHabit": "Ежедневный Ритуал",
+    "typeHabitLabel": "РИТУАЛ",
     "typeHabitDescription": "Куй величие через постоянство. Маленькие ежедневные шаги строят несокрушимый дух.",
     "typeResult": "Эпический Квест",
+    "typeResultLabel": "КВЕСТ",
     "typeResultDescription": "Покори важную веху. Определи четкую цель и достигни финишной черты.",
     "validation": {
       "titleRequired": "Название обязательно"
@@ -341,6 +343,7 @@
     "failed": "Не выполнено",
     "listTitle": "Все вызовы",
     "myListTitle": "Мои вызовы",
+    "activeAdventures": "активных приключений",
     "createdByMe": "Создано мной",
     "activityActive": "Активные",
     "activityFinished": "Завершенные",

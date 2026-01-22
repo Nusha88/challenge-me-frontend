@@ -1,6 +1,9 @@
 <template>
   <div class="my-challenges">
-    <h1 class="mb-4 mb-md-6 page-title">{{ t('challenges.myListTitle') }} ({{ totalChallenges }})</h1>
+    <div class="mb-4 mb-md-6">
+      <h1 class="page-title">{{ t('challenges.myListTitle') }}</h1>
+      <p class="page-subtitle">{{ activeChallenges.length }} {{ t('challenges.activeAdventures') }}</p>
+    </div>
 
     <v-card>
       <v-card-text>
@@ -513,11 +516,23 @@ watch(() => route.query.challengeId, async (newChallengeId) => {
   font-size: 1.75rem;
   font-weight: 600;
   color: rgba(0, 0, 0, 0.87);
+  margin-bottom: 4px;
+}
+
+.page-subtitle {
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: #64748b;
+  margin: 0;
 }
 
 @media (min-width: 600px) {
   .page-title {
     font-size: 2rem;
+  }
+  
+  .page-subtitle {
+    font-size: 1rem;
   }
 }
 
