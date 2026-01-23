@@ -70,7 +70,10 @@
                 :class="{ completed: isTodayCompleted(challenge) }"
                 @click="navigateToChallenge(challenge)"
               >
-                <div class="challenge-icon">
+                <div 
+                  class="challenge-icon" 
+                  @click.stop="toggleTodayCompletion(challenge, !isTodayCompleted(challenge))"
+                >
                   <v-icon 
                     v-if="isTodayCompleted(challenge)"
                     size="small"
@@ -82,7 +85,9 @@
                     color="#7048e8"
                   >mdi-flag</v-icon>
                 </div>
-                <span class="challenge-text" :class="{ completed: isTodayCompleted(challenge) }">{{ challenge.title }}</span>
+                <span class="challenge-text" :class="{ completed: isTodayCompleted(challenge) }">
+                  {{ challenge.title }}
+                </span>
                 <span class="challenge-progress" :class="{ completed: isTodayCompleted(challenge) }">
                   {{ getChallengeCompletedDays(challenge) }} / {{ getChallengeTotalDays(challenge) }}
                 </span>
@@ -109,7 +114,18 @@
       <v-card class="todays-card todays-checklist-card checklist-card" :class="{ 'checklist-card-empty': checklistTotalSteps === 0 }">
         <v-card-text>
           <div class="todays-checklist-section">
-            <h3 class="section-subtitle">{{ t('home.loggedIn.dailyChecklist.title') }}</h3>
+            <div class="d-flex align-center justify-space-between mb-2">
+              <h3 class="section-subtitle mb-0">{{ t('home.loggedIn.dailyChecklist.title') }}</h3>
+              <v-btn
+                v-if="unfinishedStepsCount > 0"
+                size="small"
+                variant="text"
+                class="copy-to-tomorrow-btn"
+                @click="copyUnfinishedStepsToTomorrow"
+              >
+                {{ t('home.loggedIn.dailyChecklist.copyToTomorrow') }} | {{ unfinishedStepsCount }}
+              </v-btn>
+            </div>
             <DailyChecklist ref="checklistRef" :hide-add-step="isAllCompleted && !checklistLoading && totalItems > 0" />
           </div>
           
@@ -771,6 +787,80 @@ function navigateToChallenge(challenge) {
   }
 }
 
+async function toggleTodayCompletion(challenge, checked) {
+  const userId = getCurrentUserId()
+  if (!userId || !challenge.participants) return
+  
+  // Find current user's participant entry
+  const participant = challenge.participants.find(p => {
+    const pUserId = p.userId?._id || p.userId || p._id
+    return pUserId && pUserId.toString() === userId.toString()
+  })
+  
+  if (!participant) return
+  
+  // Get current completedDays array
+  const currentCompletedDays = Array.isArray(participant.completedDays) 
+    ? [...participant.completedDays] 
+    : []
+  
+  // Format today's date
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const todayStr = formatDateString(today)
+  
+  // Create new completedDays array
+  let newCompletedDays = [...currentCompletedDays]
+  
+  if (checked) {
+    // Add today if not already present
+    const hasToday = newCompletedDays.some(date => {
+      if (!date) return false
+      let dateStr = String(date)
+      if (dateStr.includes('T')) {
+        dateStr = dateStr.split('T')[0]
+      }
+      dateStr = dateStr.substring(0, 10)
+      return dateStr === todayStr
+    })
+    
+    if (!hasToday) {
+      newCompletedDays.push(todayStr)
+    }
+  } else {
+    // Remove today if present
+    newCompletedDays = newCompletedDays.filter(date => {
+      if (!date) return true
+      let dateStr = String(date)
+      if (dateStr.includes('T')) {
+        dateStr = dateStr.split('T')[0]
+      }
+      dateStr = dateStr.substring(0, 10)
+      return dateStr !== todayStr
+    })
+  }
+  
+  try {
+    // Update via API
+    await challengeService.updateParticipantCompletedDays(challenge._id, userId, newCompletedDays)
+    
+    // Update local challenge data
+    if (participant) {
+      participant.completedDays = newCompletedDays
+    }
+    
+    // Reload challenges to get updated data
+    await loadTodaysChallenges()
+    await calculateStreak()
+    
+    // Dispatch event to notify other components
+    window.dispatchEvent(new Event('participant-completed-days-updated'))
+    window.dispatchEvent(new Event('challenge-updated'))
+  } catch (error) {
+    console.error('Error toggling completion:', error)
+  }
+}
+
 function showInspiration() {
   // Navigate to explore page to see all challenges
   router.push('/missions')
@@ -856,6 +946,40 @@ async function saveTomorrowStepEdit(index) {
 function cancelTomorrowStepEdit() {
   editingTomorrowStepIndex.value = -1
   editingTomorrowStepText.value = ''
+}
+
+async function copyUnfinishedStepsToTomorrow() {
+  if (!checklistRef.value || !checklistRef.value.todaySteps) return
+  
+  // Get unfinished steps (only steps, not missions)
+  const unfinishedSteps = checklistRef.value.todaySteps.filter(step => !step.done)
+  
+  if (unfinishedSteps.length === 0) return
+  
+  // Load tomorrow's steps first if not already loaded
+  if (tomorrowSteps.value.length === 0) {
+    await loadTomorrowSteps()
+  }
+  
+  // Add unfinished steps to tomorrow's checklist
+  for (const step of unfinishedSteps) {
+    // Check if step already exists in tomorrow's list
+    const exists = tomorrowSteps.value.some(tomorrowStep => tomorrowStep.title === step.title)
+    if (!exists) {
+      tomorrowSteps.value.push({
+        title: step.title,
+        done: false
+      })
+    }
+  }
+  
+  // Save tomorrow's steps
+  await saveTomorrowSteps()
+  
+  // Show tomorrow tab if not already visible
+  if (activeTab.value !== 'tomorrow') {
+    activeTab.value = 'tomorrow'
+  }
 }
 
 const todaysChallenges = computed(() => {
@@ -957,6 +1081,12 @@ const tomorrowProgressPercentage = computed(() => {
 const isAllCompleted = computed(() => {
   if (totalItems.value === 0) return false
   return completedItems.value === totalItems.value
+})
+
+// Count unfinished steps (not missions)
+const unfinishedStepsCount = computed(() => {
+  if (!checklistRef.value || !checklistRef.value.todaySteps) return 0
+  return checklistRef.value.todaySteps.filter(step => !step.done).length
 })
 
 // Computed property to control dialog visibility - only show if actually completed
@@ -1694,6 +1824,19 @@ onBeforeUnmount(() => {
   padding-left: 4px;
 }
 
+.copy-to-tomorrow-btn {
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  color: #7048E8 !important;
+  text-transform: none !important;
+  padding: 4px 12px !important;
+  min-width: auto !important;
+}
+
+.copy-to-tomorrow-btn:hover {
+  background: rgba(112, 72, 232, 0.08) !important;
+}
+
 .todays-cards-wrapper {
   width: 100%;
   max-width: 100%;
@@ -1974,6 +2117,12 @@ onBeforeUnmount(() => {
   justify-content: center;
   margin-right: 16px;
   transition: background 0.3s ease;
+  cursor: pointer;
+}
+
+.challenge-icon:hover {
+  background: #E8E0FF; /* Более яркий фиолетовый при наведении */
+  transform: scale(1.1);
 }
 
 /* Текст челленджа */
@@ -1984,6 +2133,7 @@ onBeforeUnmount(() => {
   color: #2D3436;
   transition: color 0.3s ease;
   flex: 1;
+  cursor: pointer;
 }
 
 /* Прогресс челленджа (completedDays/total) */
@@ -1996,6 +2146,7 @@ onBeforeUnmount(() => {
   transition: color 0.3s ease, opacity 0.3s ease;
   margin-left: auto;
   white-space: nowrap;
+  cursor: pointer;
 }
 
 /* Стили для выполненного челленджа (состояние completed) */

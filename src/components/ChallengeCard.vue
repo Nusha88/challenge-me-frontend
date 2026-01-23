@@ -28,8 +28,16 @@
         {{ challenge.challengeType === 'habit' ? 'mdi-repeat' : 'mdi-sword-cross' }}
       </v-icon>
 
-      <div class="type-label" :class="challenge.challengeType">
-        {{ challenge.challengeType === 'habit' ? t('challenges.typeHabitLabel') : t('challenges.typeResultLabel') }}
+      <div class="type-label-wrapper">
+        <v-icon 
+          v-if="challenge.privacy === 'private'"
+          size="12"
+          color="grey-darken-1"
+          class="privacy-icon-header"
+        >mdi-lock</v-icon>
+        <div class="type-label" :class="challenge.challengeType">
+          {{ challenge.challengeType === 'habit' ? t('challenges.typeHabitLabel') : t('challenges.typeResultLabel') }}
+        </div>
       </div>
     </div>
     
@@ -43,12 +51,6 @@
       <div class="challenge-header-content">
         <div class="challenge-title-row">
           <span class="text-subtitle-1 font-weight-bold">{{ challenge.title }}</span>
-          <v-icon v-if="challenge.privacy === 'private'" size="14" class="ml-1">mdi-lock</v-icon>
-        </div>
-        
-        <div v-if="challenge.challengeType === 'result'" class="difficulty-badge mt-1">
-          <v-icon size="12" color="orange">mdi-fire</v-icon>
-          <span class="text-caption ml-1">Heroic</span>
         </div>
       </div>
     </div>
@@ -72,7 +74,28 @@
       </div>
     </v-card-text>
     
-    <v-card-text class="flex-grow-1 pt-3 pb-0">
+    <v-card-text v-if="challenge.challengeType === 'habit'" class="pt-2 pb-0">
+      <div v-if="streakDays > 0 && isTodayCompleted" class="streak-preview streak-completed">
+        <div class="streak-item">
+          <v-icon size="16" color="success">mdi-fire</v-icon>
+          <span class="ml-2 text-caption streak-text streak-text-completed">{{ streakDays }} {{ t('navigation.streakDays').toUpperCase() }}</span>
+        </div>
+      </div>
+      <div v-else-if="streakDays > 0 && !isTodayCompleted" class="streak-badge streak-status-warning" @click.stop="completeDay">
+        <Flame :size="16" class="fire-icon-warning flicker-animation" />
+        <span class="ml-2 text-caption streak-text-warning">{{ streakDays }}</span>
+        <span class="ml-2 text-caption keep-fire-text">{{ t('challenges.keepFireAlive') }}</span>
+      </div>
+      <div v-else class="streak-badge empty" @click.stop="completeDay">
+        <Flame :size="16" class="fire-icon-empty" />
+        <span class="text-grey">{{ t('challenges.igniteFirstDay') }}</span>
+      </div>
+    </v-card-text>
+    
+    <v-card-text 
+      v-if="challenge.challengeType !== 'result' || !challenge.actions || challenge.actions.length === 0"
+      class="flex-grow-1 pt-3 pb-0"
+    >
       <p class="mb-0 text-body-2 challenge-description">{{ challenge.description }}</p>
     </v-card-text>
     
@@ -199,6 +222,8 @@
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import { challengeService } from '../services/api'
+import { Flame } from 'lucide-vue-next'
 
 const props = defineProps({
   challenge: {
@@ -231,7 +256,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['click', 'join', 'leave', 'watch', 'unwatch', 'owner-navigated'])
+const emit = defineEmits(['click', 'join', 'leave', 'watch', 'unwatch', 'owner-navigated', 'update'])
 
 // Local watchers count that can be updated in real-time
 const localWatchersCount = ref(props.challenge.watchersCount ?? 0)
@@ -485,6 +510,174 @@ const progressPercentage = computed(() => {
   return Math.min(100, Math.max(0, percentage))
 })
 
+// Calculate streak for habit challenges
+const streakDays = computed(() => {
+  if (props.challenge.challengeType !== 'habit') return 0
+  if (!props.currentUserId || !props.challenge.participants) return 0
+  
+  // Find current user's participant entry
+  const participant = props.challenge.participants.find(p => {
+    const userId = p.userId?._id || p.userId || p._id
+    return userId && userId.toString() === props.currentUserId.toString()
+  })
+  
+  if (!participant || !participant.completedDays || !Array.isArray(participant.completedDays)) return 0
+  
+  // Helper function to format date string
+  function formatDateString(date) {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+  
+  // Normalize completedDays to date strings
+  const completedDateStrings = participant.completedDays
+    .map(date => {
+      if (!date) return null
+      let dateStr = String(date)
+      if (dateStr.includes('T')) {
+        dateStr = dateStr.split('T')[0]
+      }
+      return dateStr.substring(0, 10)
+    })
+    .filter(Boolean)
+  
+  if (completedDateStrings.length === 0) return 0
+  
+  // Sort dates descending (most recent first)
+  const sortedDates = [...completedDateStrings].sort((a, b) => b.localeCompare(a))
+  
+  // Start from today or the most recent completed day
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const todayStr = formatDateString(today)
+  
+  // Check if today is completed, if not start from yesterday
+  let startDate = new Date(today)
+  if (!completedDateStrings.includes(todayStr)) {
+    startDate.setDate(startDate.getDate() - 1)
+  }
+  
+  // Calculate streak by counting consecutive days backwards
+  let streak = 0
+  let currentDate = new Date(startDate)
+  
+  for (let i = 0; i < 365; i++) {
+    const dateStr = formatDateString(currentDate)
+    if (completedDateStrings.includes(dateStr)) {
+      streak++
+    } else {
+      break
+    }
+    currentDate.setDate(currentDate.getDate() - 1)
+    currentDate.setHours(0, 0, 0, 0)
+  }
+  
+  return streak
+})
+
+// Check if today is completed for this challenge
+const isTodayCompleted = computed(() => {
+  if (props.challenge.challengeType !== 'habit') return false
+  if (!props.currentUserId || !props.challenge.participants) return false
+  
+  // Find current user's participant entry
+  const participant = props.challenge.participants.find(p => {
+    const userId = p.userId?._id || p.userId || p._id
+    return userId && userId.toString() === props.currentUserId.toString()
+  })
+  
+  if (!participant || !participant.completedDays || !Array.isArray(participant.completedDays)) return false
+  
+  // Format today's date
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const todayStr = formatDateString(today)
+  
+  // Check if today's date is in completedDays
+  return participant.completedDays.some(date => {
+    if (!date) return false
+    let dateStr = String(date)
+    if (dateStr.includes('T')) {
+      dateStr = dateStr.split('T')[0]
+    }
+    dateStr = dateStr.substring(0, 10)
+    return dateStr === todayStr
+  })
+})
+
+// Helper function to format date string
+function formatDateString(date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+// Complete challenge for today
+async function completeDay() {
+  if (props.challenge.challengeType !== 'habit') return
+  if (!props.currentUserId || !props.challenge.participants) return
+  
+  // Find current user's participant entry
+  const participant = props.challenge.participants.find(p => {
+    const userId = p.userId?._id || p.userId || p._id
+    return userId && userId.toString() === props.currentUserId.toString()
+  })
+  
+  if (!participant) return
+  
+  // Get current completedDays array
+  const currentCompletedDays = Array.isArray(participant.completedDays) 
+    ? [...participant.completedDays] 
+    : []
+  
+  // Format today's date
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const todayStr = formatDateString(today)
+  
+  // Check if today is already completed
+  const hasToday = currentCompletedDays.some(date => {
+    if (!date) return false
+    let dateStr = String(date)
+    if (dateStr.includes('T')) {
+      dateStr = dateStr.split('T')[0]
+    }
+    dateStr = dateStr.substring(0, 10)
+    return dateStr === todayStr
+  })
+  
+  if (hasToday) return // Already completed
+  
+  // Add today to completedDays
+  const newCompletedDays = [...currentCompletedDays, todayStr]
+  
+  try {
+    // Update via API
+    await challengeService.updateParticipantCompletedDays(
+      props.challenge._id,
+      props.currentUserId,
+      newCompletedDays
+    )
+    
+    // Update local challenge data
+    if (participant) {
+      participant.completedDays = newCompletedDays
+    }
+    
+    // Dispatch event to notify other components
+    window.dispatchEvent(new Event('participant-completed-days-updated'))
+    window.dispatchEvent(new Event('challenge-updated'))
+    
+    // Emit update event to parent
+    emit('update')
+  } catch (error) {
+    console.error('Error completing challenge:', error)
+  }
+}
+
 // Helper functions
 function formatDateRange(start, end) {
   const startFormatted = formatDate(start)
@@ -627,15 +820,25 @@ function navigateToOwner() {
   font-size: 20px;
 }
 
+.type-label-wrapper {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.privacy-icon-header {
+  flex-shrink: 0;
+}
+
 .type-label {
   font-size: 10px;
   font-weight: 900;
   letter-spacing: 1px;
   padding: 2px 6px;
   border-radius: 4px;
-  position: absolute;
-  top: 12px;
-  right: 12px;
 }
 
 .type-label.habit {
@@ -735,6 +938,7 @@ function navigateToOwner() {
   width: fit-content;
   color: #ff9800;
   font-weight: bold;
+  margin-left: 4px;
 }
 
 /* Превью милстоунов */
@@ -754,6 +958,112 @@ function navigateToOwner() {
 .milestone-item.done span {
   text-decoration: line-through;
   opacity: 0.6;
+}
+
+/* Превью стрика для ритуалов */
+.streak-preview {
+  background: rgba(255, 140, 66, 0.08);
+  padding: 8px;
+  border-radius: 8px;
+  margin-top: 4px;
+  display: flex;
+  justify-content: center;
+}
+
+.streak-preview.streak-completed {
+  background: rgba(76, 175, 80, 0.1);
+}
+
+.streak-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.streak-text {
+  color: #ff9800 !important;
+  font-weight: 800 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.streak-text-completed {
+  color: #4caf50 !important;
+}
+
+/* Streak badge base styles */
+.streak-badge {
+  border-radius: 8px;
+  padding: 8px;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Empty streak badge */
+.streak-badge.empty {
+  background: rgba(0, 0, 0, 0.03);
+  border: 1.5px dashed rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+}
+
+/* Warning streak badge - streak at risk */
+.streak-status-warning {
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.5);
+  box-shadow: 0 0 10px rgba(255, 193, 7, 0.2);
+  cursor: pointer;
+}
+
+.streak-badge.empty:hover {
+  background: rgba(255, 152, 0, 0.1); /* Цвет огня, но очень прозрачный */
+  border-style: solid;
+  border-color: rgba(255, 152, 0, 0.5);
+}
+
+.streak-badge.empty .fire-icon-empty {
+  animation: pulse-gray 2s infinite ease-in-out;
+  color: #9e9e9e;
+  flex-shrink: 0;
+}
+
+/* Анимация пульсации */
+@keyframes pulse-gray {
+  0% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.1); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 0.5; }
+}
+
+/* Flicker animation for warning fire icon */
+.flicker-animation {
+  animation: fire-flicker 1.2s infinite alternate;
+}
+
+@keyframes fire-flicker {
+  from { opacity: 0.5; filter: drop-shadow(0 0 2px orange); }
+  to { opacity: 1; filter: drop-shadow(0 0 8px yellow); }
+}
+
+.fire-icon-warning {
+  color: #ff9800;
+  flex-shrink: 0;
+}
+
+.streak-text-warning {
+  color: #ff9800 !important;
+  font-weight: 800 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.keep-fire-text {
+  color: #ff9800 !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .truncate {
@@ -895,10 +1205,11 @@ function navigateToOwner() {
 
 .challenge-description {
   display: -webkit-box;
-  -webkit-line-clamp: 5;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-clamp: 2;
   line-height: 1.5;
   max-height: calc(1.5em * 5);
 }

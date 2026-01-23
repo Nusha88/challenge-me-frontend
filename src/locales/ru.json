@@ -70,7 +70,8 @@
         "stepPending": "В ожидании",
         "completed": "выполнено",
         "loadError": "Не удалось загрузить чеклист",
-        "saveError": "Не удалось сохранить чеклист"
+        "saveError": "Не удалось сохранить чеклист",
+        "copyToTomorrow": "Скопировать на завтра"
       },
       "checklistHistory": {
         "title": "Дневник героя",
@@ -285,6 +286,8 @@
     "typeHabit": "Ежедневный Ритуал",
     "typeHabitLabel": "РИТУАЛ",
     "typeHabitDescription": "Куй величие через постоянство. Маленькие ежедневные шаги строят несокрушимый дух.",
+    "igniteFirstDay": "ЗАЖГИ ПЕРВЫЙ ДЕНЬ",
+    "keepFireAlive": "НЕ ДАЙ ОГНЮ ПОГАСНУТЬ",
     "typeResult": "Эпический Квест",
     "typeResultLabel": "КВЕСТ",
     "typeResultDescription": "Покори важную веху. Определи четкую цель и достигни финишной черты.",
