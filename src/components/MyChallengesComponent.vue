@@ -46,6 +46,30 @@
             </div>
           </div>
 
+          <!-- Upcoming Challenges -->
+          <div v-if="upcomingChallenges.length > 0" :class="{ 'upcoming-section': activeChallenges.length > 0 }">
+            <h2 class="section-title mb-4" :class="{ 'mt-8': activeChallenges.length > 0 }">{{ t('challenges.upcoming') }}</h2>
+            <div class="challenges-grid">
+              <ChallengeCard
+                v-for="challenge in upcomingChallenges"
+                :key="challenge._id"
+                :challenge="challenge"
+                :current-user-id="currentUserId"
+                :show-join-button="false"
+                :joining-id="joiningId"
+                :leaving-id="leavingId"
+                :watching-id="watchingId"
+                :is-watched="isWatched(challenge)"
+                @click="handleChallengeClick"
+                @join="joinChallenge"
+                @leave="leaveChallenge"
+                @watch="watchChallenge"
+                @unwatch="unwatchChallenge"
+                @owner-navigated="handleOwnerNavigated"
+              />
+            </div>
+          </div>
+
           <!-- Finished Challenges -->
           <div v-if="finishedChallenges.length > 0" :class="{ 'finished-section': activeChallenges.length > 0 }">
             <h2 class="section-title mb-4" :class="{ 'mt-8': activeChallenges.length > 0 }">{{ t('challenges.activityFinished') }}</h2>
@@ -173,9 +197,39 @@ const filteredChallenges = computed(() => {
   return challenges.value
 })
 
+// Helper function to check if challenge is upcoming
+function isChallengeUpcoming(challenge) {
+  if (!challenge.startDate) return false
+  try {
+    const startDate = new Date(challenge.startDate)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    startDate.setHours(0, 0, 0, 0)
+    return startDate > today
+  } catch {
+    return false
+  }
+}
+
 // Separate active and finished challenges
 const activeChallenges = computed(() => {
-  return filteredChallenges.value.filter(challenge => !isChallengeFinished(challenge))
+  return filteredChallenges.value.filter(challenge => {
+    if (isChallengeFinished(challenge)) return false
+    if (isChallengeUpcoming(challenge)) return false
+    return true
+  })
+})
+
+const upcomingChallenges = computed(() => {
+  return filteredChallenges.value.filter(challenge => {
+    if (isChallengeFinished(challenge)) return false
+    if (!challenge.startDate) return false
+    const startDate = new Date(challenge.startDate)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    startDate.setHours(0, 0, 0, 0)
+    return startDate > today
+  })
 })
 
 const finishedChallenges = computed(() => {

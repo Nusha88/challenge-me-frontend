@@ -72,6 +72,7 @@
               >
                 <div 
                   class="challenge-icon" 
+                  :class="{ 'has-hover': !isTodayCompleted(challenge) }"
                   @click.stop="toggleTodayCompletion(challenge, !isTodayCompleted(challenge))"
                 >
                   <v-icon 
@@ -79,11 +80,18 @@
                     size="small"
                     color="#7048e8"
                   >mdi-check-circle</v-icon>
-                  <v-icon 
-                    v-else
-                    size="small"
-                    color="#7048e8"
-                  >mdi-flag</v-icon>
+                  <template v-else>
+                    <v-icon 
+                      size="small"
+                      color="#7048e8"
+                      class="flag-icon"
+                    >mdi-flag</v-icon>
+                    <v-icon 
+                      size="small"
+                      color="#7048e8"
+                      class="check-icon-hover"
+                    >mdi-check-circle</v-icon>
+                  </template>
                 </div>
                 <span class="challenge-text" :class="{ completed: isTodayCompleted(challenge) }">
                   {{ challenge.title }}
@@ -2118,11 +2126,36 @@ onBeforeUnmount(() => {
   margin-right: 16px;
   transition: background 0.3s ease;
   cursor: pointer;
+  position: relative;
 }
 
 .challenge-icon:hover {
   background: #E8E0FF; /* Более яркий фиолетовый при наведении */
   transform: scale(1.1);
+}
+
+/* Hover effect: transform flag to check icon */
+.challenge-icon.has-hover {
+  position: relative;
+}
+
+.challenge-icon.has-hover .flag-icon {
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+
+.challenge-icon.has-hover .check-icon-hover {
+  position: absolute;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.challenge-icon.has-hover:hover .flag-icon {
+  opacity: 0;
+}
+
+.challenge-icon.has-hover:hover .check-icon-hover {
+  opacity: 1;
 }
 
 /* Текст челленджа */

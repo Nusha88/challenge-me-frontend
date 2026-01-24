@@ -4,20 +4,19 @@
     :class="{ 
       'owner-challenge': isOwner,
       'finished-challenge': isFinished,
+      'card-legendary': isFinished && isSuccessful,
+      'card-upcoming': isUpcoming,
       [challenge.challengeType]: challenge.challengeType
     }"
     @click="$emit('click', challenge)"
   >
-    <div v-if="isUpcoming" class="upcoming-badge">
-      {{ t('challenges.upcoming') }}
-    </div>
-    <div v-else-if="isFinished && isSuccessful" class="finished-badge success-badge">
-      <v-icon size="small" class="mr-1">mdi-check-circle</v-icon>
-      {{ t('challenges.successful') }}
-    </div>
-    <div v-else-if="isFinished && !isSuccessful" class="finished-badge failed-badge">
-      <v-icon size="small" class="mr-1">mdi-close-circle</v-icon>
-      {{ t('challenges.failed') }}
+    <img v-if="isFinished && isSuccessful" :src="successImage" class="status-badge-image" alt="Successful" />
+    <img v-else-if="isFinished && !isSuccessful" :src="failedImage" class="status-badge-image" alt="Failed" />
+    
+    <div v-if="isUpcoming" class="fog-overlay">
+      <img :src="upcomingImage" class="status-badge-image" alt="Upcoming" />
+      <v-icon class="lock-icon">mdi-lock</v-icon>
+      <span class="upcoming-text">{{ t('challenges.willStartIn', { days: daysUntilStart }) }}</span>
     </div>
     
     <div class="card-header" :class="challenge.challengeType">
@@ -55,7 +54,7 @@
       </div>
     </div>
 
-    <v-card-text v-if="challenge.challengeType === 'result' && challenge.actions" class="pt-2 pb-0">
+    <v-card-text v-if="!isFinished && challenge.challengeType === 'result' && challenge.actions" class="pt-2 pb-0">
       <div class="milestones-preview">
         <div 
           v-for="action in challenge.actions.slice(0, 2)" 
@@ -74,7 +73,7 @@
       </div>
     </v-card-text>
     
-    <v-card-text v-if="challenge.challengeType === 'habit'" class="pt-2 pb-0">
+    <v-card-text v-if="!isFinished && !isUpcoming && challenge.challengeType === 'habit'" class="pt-2 pb-0">
       <div v-if="streakDays > 0 && isTodayCompleted" class="streak-preview streak-completed">
         <div class="streak-item">
           <v-icon size="16" color="success">mdi-fire</v-icon>
@@ -93,13 +92,23 @@
     </v-card-text>
     
     <v-card-text 
-      v-if="challenge.challengeType !== 'result' || !challenge.actions || challenge.actions.length === 0"
+      v-if="!isFinished && (challenge.challengeType !== 'result' || !challenge.actions || challenge.actions.length === 0)"
       class="flex-grow-1 pt-3 pb-0"
     >
       <p class="mb-0 text-body-2 challenge-description">{{ challenge.description }}</p>
     </v-card-text>
     
-    <v-card-actions v-if="showJoinButton || currentUserId" class="py-2 px-4">
+    <v-card-actions v-if="isFinished && currentUserId" class="py-2 px-4 finished-stats">
+      <div v-if="challenge.challengeType === 'habit'" class="finished-stat">
+        <span class="stat-label">{{ t('challenges.maxStreak') }}:</span>
+        <span class="stat-value">{{ maxStreak }} {{ t('challenges.days') }}</span>
+      </div>
+      <div v-else-if="challenge.challengeType === 'result'" class="finished-stat">
+        <span class="stat-label">{{ t('challenges.efficiency') }}:</span>
+        <span class="stat-value">{{ efficiencyPercentage }}%</span>
+      </div>
+    </v-card-actions>
+    <v-card-actions v-else-if="showJoinButton || currentUserId" class="py-2 px-4">
       <v-btn
         v-if="canJoin"
         color="primary"
@@ -168,7 +177,7 @@
         </div>
       </v-card-subtitle>
       
-      <div v-if="challenge.participants && challenge.participants.length > 0" class="participants-container mb-2 px-4">
+      <div v-if="!isFinished && challenge.participants && challenge.participants.length > 0" class="participants-container mb-2 px-4">
         <div
           v-for="participant in displayedParticipants(challenge.participants)"
           :key="participant.userId?._id || participant.userId || participant._id || participant"
@@ -196,7 +205,7 @@
     
     <!-- Progress Bar - Stuck to bottom -->
     <div v-if="challenge.challengeType" class="progress-bar-container">
-      <div class="d-flex justify-space-between mb-1 px-4">
+      <div v-if="!isFinished" class="d-flex justify-space-between mb-1 px-4">
         <span class="text-caption">
           <template v-if="challenge.challengeType === 'result'">
             {{ t('challenges.progressActions', { done: progressDone, total: progressTotal }) }}
@@ -224,6 +233,9 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { challengeService } from '../services/api'
 import { Flame } from 'lucide-vue-next'
+import upcomingImage from '../assets/upcoming.png'
+import successImage from '../assets/success.png'
+import failedImage from '../assets/failed.png'
 
 const props = defineProps({
   challenge: {
@@ -367,6 +379,22 @@ const isUpcoming = computed(() => {
     return startDate > today
   } catch {
     return false
+  }
+})
+
+// Calculate days until challenge starts
+const daysUntilStart = computed(() => {
+  if (!props.challenge.startDate || !isUpcoming.value) return 0
+  try {
+    const startDate = new Date(props.challenge.startDate)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    startDate.setHours(0, 0, 0, 0)
+    const diffTime = startDate - today
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    return diffDays
+  } catch {
+    return 0
   }
 })
 
@@ -615,6 +643,84 @@ function formatDateString(date) {
   return `${year}-${month}-${day}`
 }
 
+// Calculate maximum streak for finished habit challenges
+const maxStreak = computed(() => {
+  if (props.challenge.challengeType !== 'habit') return 0
+  if (!props.currentUserId || !props.challenge.participants) return 0
+  
+  // Find current user's participant entry
+  const participant = props.challenge.participants.find(p => {
+    const userId = p.userId?._id || p.userId || p._id
+    return userId && userId.toString() === props.currentUserId.toString()
+  })
+  
+  if (!participant || !participant.completedDays || !Array.isArray(participant.completedDays)) return 0
+  
+  // Normalize completedDays to date strings
+  const completedDateStrings = participant.completedDays
+    .map(date => {
+      if (!date) return null
+      let dateStr = String(date)
+      if (dateStr.includes('T')) {
+        dateStr = dateStr.split('T')[0]
+      }
+      return dateStr.substring(0, 10)
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b)) // Sort ascending
+  
+  if (completedDateStrings.length === 0) return 0
+  
+  // Find all consecutive streaks and return the maximum
+  let maxStreak = 1
+  let currentStreak = 1
+  
+  for (let i = 1; i < completedDateStrings.length; i++) {
+    const prevDate = new Date(completedDateStrings[i - 1])
+    const currDate = new Date(completedDateStrings[i])
+    
+    prevDate.setHours(0, 0, 0, 0)
+    currDate.setHours(0, 0, 0, 0)
+    
+    // Check if dates are consecutive
+    const diffTime = currDate - prevDate
+    const diffDays = diffTime / (1000 * 60 * 60 * 24)
+    
+    if (diffDays === 1) {
+      currentStreak++
+      maxStreak = Math.max(maxStreak, currentStreak)
+    } else {
+      currentStreak = 1
+    }
+  }
+  
+  return maxStreak
+})
+
+// Calculate efficiency percentage for finished quest challenges
+const efficiencyPercentage = computed(() => {
+  if (props.challenge.challengeType !== 'result') return 0
+  if (!props.challenge.actions || !Array.isArray(props.challenge.actions)) return 0
+  
+  let total = 0
+  let completed = 0
+  
+  props.challenge.actions.forEach(action => {
+    total++ // Count parent action
+    if (action.checked) completed++
+    
+    if (action.children && Array.isArray(action.children)) {
+      action.children.forEach(child => {
+        total++
+        if (child.checked) completed++
+      })
+    }
+  })
+  
+  if (total === 0) return 0
+  return Math.round((completed / total) * 100)
+})
+
 // Complete challenge for today
 async function completeDay() {
   if (props.challenge.challengeType !== 'habit') return
@@ -739,6 +845,10 @@ function getParticipantAvatarStyle(participant) {
   if (avatarUrl) {
     return {}
   }
+  // For finished challenges, use grey background instead of colored
+  if (isFinished.value) {
+    return { backgroundColor: '#bdbdbd' }
+  }
   return { backgroundColor: getParticipantColor(participant) }
 }
 
@@ -796,16 +906,29 @@ function navigateToOwner() {
 }
 
 .challenge-card.finished-challenge {
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.03) 0%, rgba(0, 0, 0, 0.06) 100%);
+  background: #f5f5f5 !important;
+  border: 2px dashed #bdbdbd !important;
 }
 
 /* Override finished background for habit/result types */
 .challenge-card.finished-challenge.habit {
-  background-color: #f0fff4 !important;
+  background-color: #f5f5f5 !important;
+  border: 2px dashed #bdbdbd !important;
 }
 
 .challenge-card.finished-challenge.result {
-  background-color: #f5f0ff !important;
+  background-color: #f5f5f5 !important;
+  border: 2px dashed #bdbdbd !important;
+}
+
+/* Make images black and white for finished challenges */
+.challenge-card.finished-challenge .challenge-image {
+  filter: grayscale(100%);
+}
+
+/* Make participant avatars black and white for finished challenges */
+.challenge-card.finished-challenge .participant-avatar-img {
+  filter: grayscale(100%);
 }
 
 .card-header {
@@ -1098,46 +1221,83 @@ function navigateToOwner() {
   background: linear-gradient(90deg, #A62EE8 0%, #FFD700 100%) !important;
 }
 
-.upcoming-badge {
+.status-badge-image {
   position: absolute;
-  top: -4px;
-  right: -4px;
-  background: linear-gradient(135deg, #1FA0F6 0%, #A62EE8 100%);
-  color: white;
-  padding: 6px 12px;
-  border-radius: 0 0 0 4px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  top: 55px;
+  right: -5px;
+  width: 139px;
+  height: auto;
   z-index: 10;
-  box-shadow: 0 2px 8px rgba(31, 160, 246, 0.3);
-  white-space: nowrap;
-  display: flex;
-  align-items: center;
+  object-fit: contain;
 }
 
-.finished-badge {
+.card-legendary {
+  position: relative;
+  overflow: hidden;
+  border: 2px solid #ffd700 !important;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+  background: linear-gradient(135deg, #ffffff 0%, #fcf6ba 50%, #bf953f 100%);
+}
+
+/* Эффект блика */
+.card-legendary::after {
+  content: "";
   position: absolute;
-  top: -4px;
-  right: -4px;
-  color: white;
-  padding: 6px 12px;
-  border-radius: 0 0 0 4px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  z-index: 10;
-  white-space: nowrap;
+  top: -150%;
+  left: -150%;
+  width: 300%;
+  height: 300%;
+  background: linear-gradient(
+    45deg,
+    rgba(255,255,255,0) 0%,
+    rgba(255,255,255,0.1) 45%,
+    rgba(255,255,255,0.5) 50%,
+    rgba(255,255,255,0.1) 55%,
+    rgba(255,255,255,0) 100%
+  );
+  transform: rotate(30deg);
+  transition: all 0.5s;
+  pointer-events: none;
+}
+
+.card-legendary:hover::after {
+  top: -50%;
+  left: -50%;
+}
+
+.card-upcoming {
+  position: relative;
+  filter: grayscale(1);
+  opacity: 0.8;
+  border: 2px dashed rgba(255, 255, 255, 0.15);
+  background: rgba(30, 30, 46, 0.4); /* Глубокий темный фон */
+}
+
+.card-upcoming .fog-overlay {
+  position: absolute;
+  inset: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(6px);
+  z-index: 10;
 }
 
-.success-badge {
-  background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
-  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+.lock-icon {
+  font-size: 40px;
+  color: #6366f1; /* Индиго/Фиолетовый под твой стиль */
+  filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.5));
+  margin-bottom: 8px;
 }
 
-.failed-badge {
-  background: linear-gradient(135deg, #F44336 0%, #C62828 100%);
-  box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
+.upcoming-text {
+  color: #6366f1;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-align: center;
+  filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.4));
 }
 
 .participants-container {
@@ -1191,6 +1351,30 @@ function navigateToOwner() {
   cursor: pointer;
   color: #1976d2;
   transition: opacity 0.2s, text-decoration 0.2s;
+}
+
+/* Finished challenge stats */
+.finished-stats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.finished-stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+}
+
+.finished-stat .stat-label {
+  color: rgba(0, 0, 0, 0.6);
+  font-weight: 500;
+}
+
+.finished-stat .stat-value {
+  color: rgba(0, 0, 0, 0.87);
+  font-weight: 700;
 }
 
 .owner-name-link:hover {
