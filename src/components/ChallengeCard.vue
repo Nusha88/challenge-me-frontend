@@ -546,7 +546,7 @@ const streakDays = computed(() => {
   if (completedDateStrings.length === 0) return 0
   
   // Sort dates descending (most recent first)
-  const sortedDates = [...completedDateStrings].sort((a, b) => b.localeCompare(a))
+  const sortedDates = completedDateStrings.slice().sort((a, b) => b.localeCompare(a))
   
   // Start from today or the most recent completed day
   const today = new Date()
