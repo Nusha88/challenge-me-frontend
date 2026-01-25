@@ -505,7 +505,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { challengeService } from '../services/api'
 import { useI18n } from 'vue-i18n'
@@ -588,6 +588,97 @@ watch(() => form.value.customDuration, () => {
 // Sync customDays with form.customDuration
 watch(customDays, (newVal) => {
   form.value.customDuration = String(newVal)
+})
+
+// Load restart challenge data on mount
+onMounted(() => {
+  const restartData = sessionStorage.getItem('restartChallengeData')
+  if (restartData) {
+    try {
+      const data = JSON.parse(restartData)
+      
+      // Set basic fields
+      if (data.title) form.value.title = data.title
+      if (data.description) form.value.description = data.description
+      if (data.imageUrl) {
+        form.value.imageUrl = data.imageUrl
+        showImageUpload.value = true
+      }
+      if (data.challengeType) {
+        form.value.challengeType = data.challengeType
+      }
+      if (data.privacy) {
+        form.value.privacy = data.privacy === 'private' ? 'solo' : data.privacy
+      }
+      if (data.frequency) form.value.frequency = data.frequency
+      if (data.reward) form.value.reward = data.reward
+      if (data.difficulty) form.value.difficulty = data.difficulty
+      if (data.allowComments !== undefined) form.value.allowComments = data.allowComments
+      
+      // Handle start date - for restart, always default to today
+      // The watcher will set the startDate automatically when startOption is set
+      form.value.startOption = 'today'
+      
+      // Handle duration calculation from startDate and endDate
+      if (data.startDate && data.endDate) {
+        const start = new Date(data.startDate)
+        const end = new Date(data.endDate)
+        const diffTime = end - start
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1 // +1 because both start and end are inclusive
+        
+        // Check if it matches standard durations
+        if (diffDays === 7) {
+          form.value.duration = '7'
+        } else if (diffDays === 21) {
+          form.value.duration = '21'
+        } else if (diffDays === 30) {
+          form.value.duration = '30'
+        } else {
+          // Use custom duration
+          form.value.duration = 'custom'
+          form.value.customDuration = String(diffDays)
+          customDays.value = diffDays
+          showSlider.value = true
+        }
+      } else if (data.duration) {
+        // If duration is provided directly
+        if (['7', '21', '30'].includes(data.duration)) {
+          form.value.duration = data.duration
+        } else {
+          form.value.duration = 'custom'
+          form.value.customDuration = String(data.duration)
+          customDays.value = parseInt(data.duration) || 60
+          showSlider.value = true
+        }
+      }
+      
+      // Handle endDate for result type
+      if (data.endDate && form.value.challengeType === 'result') {
+        const endDate = new Date(data.endDate)
+        const year = endDate.getFullYear()
+        const month = String(endDate.getMonth() + 1).padStart(2, '0')
+        const day = String(endDate.getDate()).padStart(2, '0')
+        form.value.endDate = `${year}-${month}-${day}`
+      }
+      
+      // Handle actions/milestones for result type
+      if (form.value.challengeType === 'result' && data.actions && Array.isArray(data.actions) && data.actions.length > 0) {
+        form.value.milestones = data.actions.map(action => ({
+          title: action.text || action.title || ''
+        })).filter(m => m.title.trim() !== '')
+        
+        if (form.value.milestones.length === 0) {
+          form.value.milestones = [{ title: '' }]
+        }
+      }
+      
+      // Clear sessionStorage after loading
+      sessionStorage.removeItem('restartChallengeData')
+    } catch (error) {
+      console.error('Error loading restart challenge data:', error)
+      sessionStorage.removeItem('restartChallengeData')
+    }
+  }
 })
 
 const titlePlaceholder = computed(() => {

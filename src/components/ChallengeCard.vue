@@ -6,8 +6,10 @@
       'finished-challenge': isFinished,
       'card-legendary': isFinished && isSuccessful,
       'card-upcoming': isUpcoming,
+      'quest-bg-card': challenge.challengeType === 'result' && !isFinished && !isUpcoming && challenge.imageUrl,
       [challenge.challengeType]: challenge.challengeType
     }"
+    :style="challenge.challengeType === 'result' && !isFinished && !isUpcoming && challenge.imageUrl ? { backgroundImage: `url(${challenge.imageUrl})` } : {}"
     @click="$emit('click', challenge)"
   >
     <img v-if="isFinished && isSuccessful" :src="successImage" class="status-badge-image" alt="Successful" />
@@ -28,6 +30,12 @@
       </v-icon>
 
       <div class="type-label-wrapper">
+        <span 
+          v-if="showCoopBadge" 
+          class="badge-coop"
+        >
+          {{ coopBadgeText }}
+        </span>
         <v-icon 
           v-if="challenge.privacy === 'private'"
           size="12"
@@ -41,7 +49,7 @@
     </div>
     
     <!-- Header with image and title -->
-    <div class="challenge-header" :class="challenge.challengeType">
+    <div v-if="challenge.challengeType !== 'result' || isFinished || isUpcoming || !challenge.imageUrl" class="challenge-header" :class="challenge.challengeType">
       <div class="challenge-image-container">
         <img v-if="challenge.imageUrl" :src="challenge.imageUrl" class="challenge-image" />
         <v-icon v-else size="32" color="grey-lighten-1">{{ challenge.challengeType === 'habit' ? 'mdi-cached' : 'mdi-sword' }}</v-icon>
@@ -53,25 +61,12 @@
         </div>
       </div>
     </div>
+    
+    <!-- Title at bottom for active quest cards with background image -->
+    <div v-if="challenge.challengeType === 'result' && !isFinished && !isUpcoming && challenge.imageUrl" class="quest-title-bottom">
+      <span class="text-subtitle-1 font-weight-bold">{{ challenge.title }}</span>
+    </div>
 
-    <v-card-text v-if="!isFinished && challenge.challengeType === 'result' && challenge.actions" class="pt-2 pb-0">
-      <div class="milestones-preview">
-        <div 
-          v-for="action in challenge.actions.slice(0, 2)" 
-          :key="action.id"
-          class="milestone-item"
-          :class="{ 'done': action.checked }"
-        >
-          <v-icon size="16" :color="action.checked ? 'success' : 'grey'">
-            {{ action.checked ? 'mdi-check-circle' : 'mdi-circle-outline' }}
-          </v-icon>
-          <span class="ml-2 text-caption truncate">{{ action.text }}</span>
-        </div>
-        <div v-if="challenge.actions.length > 2" class="text-caption text-grey ml-6">
-          + ещё {{ challenge.actions.length - 2 }}
-        </div>
-      </div>
-    </v-card-text>
     
     <v-card-text v-if="!isFinished && !isUpcoming && challenge.challengeType === 'habit'" class="pt-2 pb-0">
       <div v-if="streakDays > 0 && isTodayCompleted" class="streak-preview streak-completed">
@@ -91,12 +86,6 @@
       </div>
     </v-card-text>
     
-    <v-card-text 
-      v-if="!isFinished && (challenge.challengeType !== 'result' || !challenge.actions || challenge.actions.length === 0)"
-      class="flex-grow-1 pt-3 pb-0"
-    >
-      <p class="mb-0 text-body-2 challenge-description">{{ challenge.description }}</p>
-    </v-card-text>
     
     <v-card-actions v-if="isFinished && currentUserId" class="py-2 px-4 finished-stats">
       <div v-if="challenge.challengeType === 'habit'" class="finished-stat">
@@ -108,7 +97,7 @@
         <span class="stat-value">{{ efficiencyPercentage }}%</span>
       </div>
     </v-card-actions>
-    <v-card-actions v-else-if="showJoinButton || currentUserId" class="py-2 px-4">
+    <v-card-actions v-else-if="(showJoinButton || currentUserId) && (challenge.challengeType !== 'result' || isFinished || isUpcoming || !challenge.imageUrl)" class="py-2 px-4">
       <v-btn
         v-if="canJoin"
         color="primary"
@@ -155,27 +144,40 @@
     </v-card-actions>
     
     <!-- Created by and Participants - Above progress bar -->
-    <div class="challenge-meta-container">
-      <v-card-subtitle v-if="challenge.owner" class="mb-2 pa-0 px-4 d-flex align-center justify-space-between">
-        <template v-if="isOwner">
-          <span>{{ t('challenges.createdByMe') }}</span>
-        </template>
-        <template v-else>
-          <span class="created-by-text">
-            {{ t('challenges.createdBy').split('{name}')[0] }}
-            <span 
-              class="owner-name-link" 
-              @click.stop="navigateToOwner"
-            >
-              {{ challenge.owner.name || t('common.unknown') }}
+    <div v-if="challenge.challengeType !== 'result' || isFinished || isUpcoming || !challenge.imageUrl" class="challenge-meta-container">
+      <v-card-subtitle v-if="!isFinished || isSuccessful" class="mb-2 pa-0 px-4 d-flex align-center justify-space-between">
+        <template v-if="challenge.owner">
+          <template v-if="isOwner">
+            <span>{{ t('challenges.createdByMe') }}</span>
+          </template>
+          <template v-else>
+            <span class="created-by-text">
+              {{ t('challenges.createdBy').split('{name}')[0] }}
+              <span 
+                class="owner-name-link" 
+                @click.stop="navigateToOwner"
+              >
+                {{ challenge.owner.name || t('common.unknown') }}
+              </span>
             </span>
-          </span>
+          </template>
         </template>
         <div v-if="watchersCount !== undefined" class="watchers-count d-flex align-center">
           <v-icon size="small" class="mr-1">mdi-eye</v-icon>
           <span>{{ watchersCount }}</span>
         </div>
       </v-card-subtitle>
+      <div v-if="isFinished && !isSuccessful && currentUserId" class="restart-section mb-2 pa-0 px-4 d-flex justify-center">
+        <v-btn
+          size="small"
+          variant="outlined"
+          color="primary"
+          @click.stop="restartChallenge"
+          class="restart-btn"
+        >
+          {{ t('challenges.restart') }}
+        </v-btn>
+      </div>
       
       <div v-if="!isFinished && challenge.participants && challenge.participants.length > 0" class="participants-container mb-2 px-4">
         <div
@@ -204,7 +206,7 @@
     </div>
     
     <!-- Progress Bar - Stuck to bottom -->
-    <div v-if="challenge.challengeType" class="progress-bar-container">
+    <div v-if="challenge.challengeType && (challenge.challengeType !== 'result' || isFinished || isUpcoming || !challenge.imageUrl)" class="progress-bar-container">
       <div v-if="!isFinished" class="d-flex justify-space-between mb-1 px-4">
         <span class="text-caption">
           <template v-if="challenge.challengeType === 'result'">
@@ -219,9 +221,10 @@
       <v-progress-linear
         :model-value="progressPercentage"
         color="primary"
-        height="6"
+        height="10"
         rounded
         class="mx-0"
+        :class="challenge.challengeType"
       ></v-progress-linear>
     </div>
   </v-card>
@@ -430,6 +433,30 @@ const canLeave = computed(() => {
 
 const participantCount = computed(() => {
   return props.challenge.participants ? props.challenge.participants.length : 0
+})
+
+const showCoopBadge = computed(() => {
+  return participantCount.value > 1
+})
+
+const coopBadgeText = computed(() => {
+  if (!showCoopBadge.value || !props.currentUserId) return ''
+  
+  if (isOwner.value) {
+    return t('challenges.myParty')
+  } else {
+    // Check if current user is a participant
+    const isParticipant = (props.challenge.participants || []).some(participant => {
+      const userId = participant.userId?._id || participant.userId || participant._id || participant
+      return userId && userId.toString() === props.currentUserId.toString()
+    })
+    
+    if (isParticipant) {
+      return t('challenges.inParty')
+    }
+  }
+  
+  return ''
 })
 
 function handleWatchClick() {
@@ -865,6 +892,30 @@ function navigateToOwner() {
   
   router.push(`/heroes/${ownerId}`)
 }
+
+function restartChallenge() {
+  // Navigate to add challenge page with pre-filled data from the failed challenge
+  const challengeData = {
+    title: props.challenge.title,
+    description: props.challenge.description || '',
+    challengeType: props.challenge.challengeType || 'habit',
+    imageUrl: props.challenge.imageUrl || '',
+    privacy: props.challenge.privacy || 'public',
+    frequency: props.challenge.frequency || 'daily',
+    actions: props.challenge.actions || [],
+    reward: props.challenge.reward || '',
+    difficulty: props.challenge.difficulty || 'normal',
+    allowComments: props.challenge.allowComments !== undefined ? props.challenge.allowComments : true,
+    startDate: props.challenge.startDate || '',
+    endDate: props.challenge.endDate || ''
+  }
+  
+  // Store challenge data in sessionStorage to pre-fill the form
+  sessionStorage.setItem('restartChallengeData', JSON.stringify(challengeData))
+  
+  // Navigate to add challenge page
+  router.push('/missions/add')
+}
 </script>
 
 <style scoped>
@@ -943,6 +994,10 @@ function navigateToOwner() {
   font-size: 20px;
 }
 
+.finished-challenge .type-icon {
+  color: #9e9e9e !important;
+}
+
 .type-label-wrapper {
   position: absolute;
   top: 12px;
@@ -950,6 +1005,18 @@ function navigateToOwner() {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.badge-coop {
+  background: transparent;
+  color: #3b82f6;
+  border: 1px solid #3b82f6;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: bold;
+  margin-right: 4px;
 }
 
 .privacy-icon-header {
@@ -972,6 +1039,11 @@ function navigateToOwner() {
 .type-label.result {
   color: #A62EE8;
   border: 1px solid #A62EE8;
+}
+
+.finished-challenge .type-label {
+  color: #9e9e9e !important;
+  border-color: #9e9e9e !important;
 }
 
 .challenge-header {
@@ -1212,13 +1284,19 @@ function navigateToOwner() {
   background-color: rgba(0, 0, 0, 0.05) !important;
 }
 
-.progress-bar-container :deep(.v-progress-linear__determinate) {
-  background: linear-gradient(135deg, #1FA0F6 0%, #A62EE8 100%) !important;
+/* Green gradient for rituals (habits) */
+.challenge-card.habit .progress-bar-container :deep(.v-progress-linear__determinate) {
+  background: linear-gradient(90deg, #4CAF50 0%, #81C784 100%) !important;
 }
 
-/* Если это Эпик, делаем прогресс золотым/фиолетовым */
-.result .progress-bar-container :deep(.v-progress-linear__determinate) {
-  background: linear-gradient(90deg, #A62EE8 0%, #FFD700 100%) !important;
+/* Purple gradient for quests (results) */
+.challenge-card.result .progress-bar-container :deep(.v-progress-linear__determinate) {
+  background: linear-gradient(90deg, #A62EE8 0%, #CE93D8 100%) !important;
+}
+
+/* Default gradient (fallback) */
+.progress-bar-container :deep(.v-progress-linear__determinate) {
+  background: linear-gradient(90deg, #1976d2 0%, #42a5f5 100%) !important;
 }
 
 .status-badge-image {
@@ -1358,6 +1436,11 @@ function navigateToOwner() {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 12px;
+}
+
+.restart-btn {
+  margin-left: auto;
 }
 
 .finished-stat {
@@ -1456,6 +1539,66 @@ function navigateToOwner() {
 
 .card-action-button {
   border-radius: 12px !important;
+}
+
+/* Quest card with background image */
+.quest-bg-card {
+  position: relative;
+  min-height: 250px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.quest-bg-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.3) 50%, rgba(0, 0, 0, 0.7) 100%);
+  z-index: 1;
+}
+
+.quest-bg-card .card-header {
+  position: relative;
+  z-index: 2;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(4px);
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  margin: 8px 8px 0 8px;
+  padding: 8px 12px;
+}
+
+.quest-bg-card .card-header .type-icon,
+.quest-bg-card .card-header .type-label {
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.quest-bg-card .card-header .privacy-icon-header {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.quest-title-bottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 16px;
+  z-index: 2;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.4) 50%, transparent 100%);
+}
+
+.quest-title-bottom .text-subtitle-1 {
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  line-height: 1.3;
 }
 </style>
 

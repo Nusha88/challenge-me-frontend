@@ -1,33 +1,52 @@
 <template>
   <div class="my-challenges">
     <div class="mb-4 mb-md-6">
-      <h1 class="page-title">{{ t('challenges.myListTitle') }}</h1>
-      <p class="page-subtitle">{{ activeChallenges.length }} {{ t('challenges.activeAdventures') }}</p>
+      <h1 class="page-title">{{ t('challenges.myActiveMissions', { count: activeChallenges.length }) }}</h1>
     </div>
 
-    <v-card>
-      <v-card-text>
-        <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4"></v-progress-linear>
+    <div>
+      <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4"></v-progress-linear>
 
-        <v-alert v-if="error" type="error" class="mb-4">
-          {{ error }}
-        </v-alert>
+      <v-alert v-if="error" type="error" class="mb-4">
+        {{ error }}
+      </v-alert>
 
-        <v-alert v-else-if="!loading && challenges.length === 0" type="info">
-          {{ t('challenges.noMyChallenges') }}
-        </v-alert>
+      <v-alert v-else-if="!loading && challenges.length === 0" type="info">
+        {{ t('challenges.noMyChallenges') }}
+      </v-alert>
 
-        <v-alert v-else-if="!loading && filteredChallenges.length === 0" type="info">
-          {{ t('challenges.noMyChallenges') }}
-        </v-alert>
+      <v-alert v-else-if="!loading && filteredChallenges.length === 0" type="info">
+        {{ t('challenges.noMyChallenges') }}
+      </v-alert>
 
-        <div v-else>
+      <div v-else>
           <!-- Active Challenges -->
           <div v-if="activeChallenges.length > 0">
-            <h2 class="section-title mb-4">{{ t('challenges.activityActive') }}</h2>
-            <div class="challenges-grid">
+            <!-- Quests (2 per row) -->
+            <div v-if="activeQuests.length > 0" class="quests-grid mb-6">
               <ChallengeCard
-                v-for="challenge in activeChallenges"
+                v-for="challenge in activeQuests"
+                :key="challenge._id"
+                :challenge="challenge"
+                :current-user-id="currentUserId"
+                :show-join-button="false"
+                :joining-id="joiningId"
+                :leaving-id="leavingId"
+                :watching-id="watchingId"
+                :is-watched="isWatched(challenge)"
+                @click="handleChallengeClick"
+                @join="joinChallenge"
+                @leave="leaveChallenge"
+                @watch="watchChallenge"
+                @unwatch="unwatchChallenge"
+                @owner-navigated="handleOwnerNavigated"
+              />
+            </div>
+            
+            <!-- Rituals (3 per row) -->
+            <div v-if="activeRituals.length > 0" class="rituals-grid">
+              <ChallengeCard
+                v-for="challenge in activeRituals"
                 :key="challenge._id"
                 :challenge="challenge"
                 :current-user-id="currentUserId"
@@ -72,8 +91,7 @@
 
           <!-- Finished Challenges -->
           <div v-if="finishedChallenges.length > 0" :class="{ 'finished-section': activeChallenges.length > 0 }">
-            <h2 class="section-title mb-4" :class="{ 'mt-8': activeChallenges.length > 0 }">{{ t('challenges.activityFinished') }}</h2>
-            <div class="challenges-grid">
+            <div class="challenges-grid" :class="{ 'mt-8': activeChallenges.length > 0 }">
           <ChallengeCard
                 v-for="challenge in finishedChallenges"
             :key="challenge._id"
@@ -94,8 +112,7 @@
             </div>
           </div>
         </div>
-      </v-card-text>
-    </v-card>
+    </div>
 
     <!-- Challenge Details Dialog -->
     <ChallengeDetailsDialog
@@ -218,6 +235,14 @@ const activeChallenges = computed(() => {
     if (isChallengeUpcoming(challenge)) return false
     return true
   })
+})
+
+const activeQuests = computed(() => {
+  return activeChallenges.value.filter(challenge => challenge.challengeType === 'result')
+})
+
+const activeRituals = computed(() => {
+  return activeChallenges.value.filter(challenge => challenge.challengeType === 'habit')
 })
 
 const upcomingChallenges = computed(() => {
@@ -608,6 +633,46 @@ watch(() => route.query.challengeId, async (newChallengeId) => {
 
 @media (min-width: 960px) {
   .challenges-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Quests grid - 2 per row */
+.quests-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  padding: 8px 0;
+  width: 100%;
+}
+
+@media (min-width: 600px) {
+  .quests-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+    padding: 16px 0;
+  }
+}
+
+/* Rituals grid - 3 per row */
+.rituals-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  padding: 8px 0;
+  width: 100%;
+}
+
+@media (min-width: 600px) {
+  .rituals-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+    padding: 16px 0;
+  }
+}
+
+@media (min-width: 960px) {
+  .rituals-grid {
     grid-template-columns: repeat(3, 1fr);
   }
 }
