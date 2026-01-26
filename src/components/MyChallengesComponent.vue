@@ -5,9 +5,9 @@
     </div>
 
     <div>
-      <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4"></v-progress-linear>
+      <IgniteLoader v-if="loading" :loading-text="t('challenges.loading', 'Loading missions...')" />
 
-      <v-alert v-if="error" type="error" class="mb-4">
+      <v-alert v-if="error && !loading" type="error" class="mb-4">
         {{ error }}
       </v-alert>
 
@@ -140,6 +140,7 @@ import { challengeService } from '../services/api'
 import { useI18n } from 'vue-i18n'
 import ChallengeCard from './ChallengeCard.vue'
 import ChallengeDetailsDialog from './ChallengeDetailsDialog.vue'
+import IgniteLoader from './IgniteLoader.vue'
 
 const router = useRouter()
 const route = useRoute()

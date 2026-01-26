@@ -2,9 +2,18 @@
   <div class="all-challenges">
     <h1 class="mb-4 mb-md-6 page-title">{{ t('challenges.listTitle') }} ({{ totalChallenges }})</h1>
 
+        
+    <!-- Main Ritual Hero Card -->
+    <MainRitualCard
+      v-if="mainRitual"
+      :challenge="mainRitual"
+      :current-user-id="currentUserId"
+      :joining="joiningId === mainRitual._id"
+      @join="joinChallenge"
+    />
+
     <!-- Filter Panel -->
     <FilterPanel v-model="filters" @search="handleFilterSearch" />
-
     <v-card>
       <v-card-text>
         <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4"></v-progress-linear>
@@ -19,7 +28,7 @@
 
         <div v-else class="challenges-grid">
           <ChallengeCard
-            v-for="challenge in filteredChallenges"
+            v-for="challenge in filteredChallenges.filter(c => !mainRitual || c._id !== mainRitual._id)"
             :key="challenge._id"
             :challenge="challenge"
             :current-user-id="currentUserId"
@@ -72,6 +81,7 @@ import { challengeService } from '../services/api'
 import ChallengeDetailsDialog from './ChallengeDetailsDialog.vue'
 import FilterPanel from './FilterPanel.vue'
 import ChallengeCard from './ChallengeCard.vue'
+import MainRitualCard from './MainRitualCard.vue'
 import { useI18n } from 'vue-i18n'
 
 const router = useRouter()
@@ -92,7 +102,7 @@ const hasMore = ref(true)
 // Filter state
 const filters = ref({
   title: null,
-  type: null,
+  type: 'all',
   owner: null,
   popularity: null,
   creationDate: null
@@ -101,6 +111,19 @@ const filters = ref({
 // Challenges are already filtered by the backend, so use them directly
 const filteredChallenges = computed(() => {
   return challenges.value
+})
+
+// Find the main ritual (most popular habit challenge)
+const mainRitual = computed(() => {
+  const habitChallenges = challenges.value.filter(c => c.challengeType === 'habit')
+  if (habitChallenges.length === 0) return null
+  
+  // Find the challenge with the most participants
+  return habitChallenges.reduce((prev, current) => {
+    const prevCount = prev?.participants?.length || 0
+    const currentCount = current?.participants?.length || 0
+    return currentCount > prevCount ? current : prev
+  }, habitChallenges[0])
 })
 
 const totalChallenges = computed(() => {
@@ -715,13 +738,7 @@ function handleOwnerNavigated() {
 <style scoped>
 .all-challenges {
   width: 100%;
-  padding: 0 8px;
-}
-
-@media (min-width: 600px) {
-  .all-challenges {
-    padding: 0 16px;
-  }
+  padding: 24px;
 }
 
 .challenges-grid {
@@ -768,7 +785,10 @@ function handleOwnerNavigated() {
 }
 
 .page-title {
-  font-size: 1.5rem;
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.87);
+  margin-bottom: 4px;
 }
 
 @media (min-width: 600px) {
