@@ -22,17 +22,19 @@
     </div>
     
     <div class="card-header" :class="challenge.challengeType">
-      <v-icon 
-        :color="challenge.challengeType === 'habit' ? 'success' : 'primary'"
+        <v-icon
+        :color="challenge.challengeType === 'habit' ? '#2C7A7B' : 'primary'"
         class="type-icon"
+        :style="challenge.challengeType === 'habit' ? { color: '#2C7A7B' } : {}"
       >
         {{ challenge.challengeType === 'habit' ? 'mdi-repeat' : 'mdi-sword-cross' }}
-      </v-icon>
+        </v-icon>
 
       <div class="type-label-wrapper">
         <span 
           v-if="showCoopBadge" 
           class="badge-coop"
+          :class="{ 'badge-coop-finished': isFinished }"
         >
           {{ coopBadgeText }}
         </span>
@@ -44,7 +46,7 @@
         >mdi-lock</v-icon>
         <div class="type-label" :class="challenge.challengeType">
           {{ challenge.challengeType === 'habit' ? t('challenges.typeHabitLabel') : t('challenges.typeResultLabel') }}
-        </div>
+      </div>
       </div>
     </div>
     
@@ -71,7 +73,7 @@
     <v-card-text v-if="!isFinished && !isUpcoming && challenge.challengeType === 'habit'" class="pt-2 pb-0">
       <div v-if="streakDays > 0 && isTodayCompleted" class="streak-preview streak-completed">
         <div class="streak-item">
-          <v-icon size="16" color="success">mdi-fire</v-icon>
+          <v-icon size="16" :style="{ color: '#2C7A7B' }">mdi-fire</v-icon>
           <span class="ml-2 text-caption streak-text streak-text-completed">{{ streakDays }} {{ t('navigation.streakDays').toUpperCase() }}</span>
         </div>
       </div>
@@ -147,10 +149,10 @@
     <div v-if="challenge.challengeType !== 'result' || isFinished || isUpcoming || !challenge.imageUrl" class="challenge-meta-container">
       <v-card-subtitle v-if="!isFinished || isSuccessful" class="mb-2 pa-0 px-4 d-flex align-center justify-space-between">
         <template v-if="challenge.owner">
-          <template v-if="isOwner">
+        <template v-if="isOwner">
             <span>{{ t('challenges.createdByMe') }}</span>
-          </template>
-          <template v-else>
+        </template>
+        <template v-else>
             <span class="created-by-text">
               {{ t('challenges.createdBy').split('{name}')[0] }}
               <span 
@@ -160,7 +162,7 @@
                 {{ challenge.owner.name || t('common.unknown') }}
               </span>
             </span>
-          </template>
+        </template>
         </template>
         <div v-if="watchersCount !== undefined" class="watchers-count d-flex align-center">
           <v-icon size="small" class="mr-1">mdi-eye</v-icon>
@@ -317,8 +319,8 @@ const isFinished = computed(() => {
   // For result challenges, check if all actions are done
   if (props.challenge.challengeType === 'result') {
     if (!props.challenge.actions || !Array.isArray(props.challenge.actions) || props.challenge.actions.length === 0) {
-      return false
-    }
+    return false
+  }
     
     // Check if all actions and their children are checked
     const allActionsDone = props.challenge.actions.every(action => {
@@ -950,9 +952,9 @@ function restartChallenge() {
 
 /* Ритуал: выглядит более спокойным */
 .challenge-card.habit {
-  background-color: #f0fff4 !important; /* Светло-зеленый фон */
-  border-color: #c6f6d5 !important; /* Зеленая рамка */
-  border-left: 4px solid #4CAF50; /* Зеленый акцент */
+  background-color: #F0FFFA !important; /* Светло-бирюзовый фон */
+  border-color: #00CED1 !important; /* Бирюзовая рамка */
+  border-left: 4px solid #00CED1; /* Бирюзовый акцент */
   min-height: 100px; /* Компактные для ритуалов */
 }
 
@@ -1019,6 +1021,11 @@ function restartChallenge() {
   margin-right: 4px;
 }
 
+.badge-coop.badge-coop-finished {
+  color: #9e9e9e;
+  border-color: #9e9e9e;
+}
+
 .privacy-icon-header {
   flex-shrink: 0;
 }
@@ -1032,8 +1039,8 @@ function restartChallenge() {
 }
 
 .type-label.habit {
-  color: #4CAF50;
-  border: 1px solid #4CAF50;
+  color: #2C7A7B;
+  border: 1px solid #00CED1;
 }
 
 .type-label.result {
@@ -1166,7 +1173,7 @@ function restartChallenge() {
 }
 
 .streak-preview.streak-completed {
-  background: rgba(76, 175, 80, 0.1);
+  background: rgba(0, 206, 209, 0.1);
 }
 
 .streak-item {
@@ -1183,7 +1190,7 @@ function restartChallenge() {
 }
 
 .streak-text-completed {
-  color: #4caf50 !important;
+  color: #2C7A7B !important;
 }
 
 /* Streak badge base styles */
@@ -1284,9 +1291,9 @@ function restartChallenge() {
   background-color: rgba(0, 0, 0, 0.05) !important;
 }
 
-/* Green gradient for rituals (habits) */
+/* Turquoise gradient for rituals (habits) */
 .challenge-card.habit .progress-bar-container :deep(.v-progress-linear__determinate) {
-  background: linear-gradient(90deg, #4CAF50 0%, #81C784 100%) !important;
+  background: linear-gradient(90deg, #00CED1 0%, #48D1CC 100%) !important;
 }
 
 /* Purple gradient for quests (results) */
