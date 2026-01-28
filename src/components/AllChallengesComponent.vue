@@ -1,9 +1,7 @@
 <template>
-  <div class="all-challenges">
-    <h1 class="mb-4 mb-md-6 page-title">{{ t('challenges.listTitle') }} ({{ totalChallenges }})</h1>
+<div class="all-challenges">
+    <h1 class="mb-4 mb-md-8 page-title">{{ t('challenges.listTitle') }} ({{ totalChallenges }})</h1>
 
-        
-    <!-- Main Ritual Hero Card -->
     <MainRitualCard
       v-if="mainRitual"
       :challenge="mainRitual"
@@ -12,46 +10,48 @@
       @join="joinChallenge"
     />
 
-    <!-- Filter Panel -->
     <FilterPanel v-model="filters" @search="handleFilterSearch" />
-    <v-card>
-      <v-card-text>
-        <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4"></v-progress-linear>
 
-        <v-alert v-if="errorMessage" type="error" class="mb-4">
-          {{ errorMessage }}
-        </v-alert>
+    <div class="content-section">
+      <div v-if="loading && !loadingMore" class="challenges-grid">
+  <v-skeleton-loader
+    v-for="n in 6"
+    :key="n"
+    type="card, list-item-two-line"
+    class="skeleton-card"
+  ></v-skeleton-loader>
+</div>
 
-        <v-alert v-else-if="!filteredChallenges.length && !loading" type="info">
-          {{ t('challenges.noChallenges') }}
-        </v-alert>
-
-        <div v-else class="challenges-grid">
-          <ChallengeCard
-            v-for="challenge in filteredChallenges.filter(c => !mainRitual || c._id !== mainRitual._id)"
-            :key="challenge._id"
-            :challenge="challenge"
-            :current-user-id="currentUserId"
-            :show-join-button="true"
-            :joining-id="joiningId"
-            :leaving-id="leavingId"
-            :watching-id="watchingId"
-            :is-watched="isWatched(challenge)"
-            @click="openDetails"
-            @join="joinChallenge"
-            @leave="leaveChallenge"
-            @watch="watchChallenge"
-            @unwatch="unwatchChallenge"
-            @owner-navigated="handleOwnerNavigated"
-          />
-        </div>
-        
-        <!-- Loading More Indicator -->
-        <div v-if="loadingMore" class="text-center py-4">
-          <v-progress-circular indeterminate color="primary" size="32"></v-progress-circular>
-        </div>
-      </v-card-text>
-    </v-card>
+      <transition-group v-else name="staggered-fade" tag="div" class="challenges-grid">
+        <ChallengeCard
+          v-for="challenge in gridChallenges"
+          :key="challenge._id"
+          :challenge="challenge"
+          :current-user-id="currentUserId"
+          :show-join-button="true"
+          :joining-id="joiningId"
+          :leaving-id="leavingId"
+          :watching-id="watchingId"
+          all-challenges="true"
+          :is-watched="isWatched(challenge)"
+          @click="openDetails"
+          @join="joinChallenge"
+          @leave="leaveChallenge"
+          @watch="watchChallenge"
+          @unwatch="unwatchChallenge"
+          @owner-navigated="handleOwnerNavigated"
+        />
+      </transition-group>
+      
+      <div v-if="loadingMore" class="challenges-grid mt-6">
+  <v-skeleton-loader
+    v-for="n in 3"
+    :key="'more-' + n"
+    type="card"
+    class="skeleton-card"
+  ></v-skeleton-loader>
+</div>
+    </div>
 
     <ChallengeDetailsDialog
       v-model="detailsDialogOpen"
@@ -503,7 +503,8 @@ const loadMoreChallenges = async () => {
 }
 
 const handleScroll = () => {
-  if (loadingMore.value || !hasMore.value) {
+  // Если уже грузим или страниц больше нет — выходим
+  if (loading.value || loadingMore.value || !hasMore.value) {
     return
   }
   
@@ -511,8 +512,9 @@ const handleScroll = () => {
   const windowHeight = window.innerHeight
   const documentHeight = document.documentElement.scrollHeight
   
-  // Load more when user is within 200px of the bottom
-  if (scrollTop + windowHeight >= documentHeight - 200) {
+  // Порог срабатывания: за 400px до конца страницы
+  // Это позволит пользователю не видеть лоадер, если интернет быстрый
+  if (scrollTop + windowHeight >= documentHeight - 400) {
     loadMoreChallenges()
   }
 }
@@ -620,7 +622,15 @@ async function handleDialogDelete(challengeId) {
     deleteLoading.value = false
   }
 }
-
+// Замени существующий gridChallenges на этот computed
+const gridChallenges = computed(() => {
+  if (!challenges.value) return []
+  // Если есть mainRitual, исключаем его из общей сетки, чтобы не дублировать
+  if (mainRitual.value) {
+    return challenges.value.filter(c => c._id !== mainRitual.value._id)
+  }
+  return challenges.value
+})
 
 async function openChallengeById(challengeId) {
   if (!challengeId) return
@@ -738,75 +748,75 @@ function handleOwnerNavigated() {
 <style scoped>
 .all-challenges {
   width: 100%;
-  padding: 24px;
+  max-width: 1400px; /* Ограничиваем ширину для больших мониторов */
+  margin: 0 auto;
+  padding: 16px;
+}
+
+/* Заголовок страницы */
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: #1a202c;
+  display: flex;
+  align-items: center;
+}
+
+/* Секция контента без рамок */
+.content-section {
+  position: relative;
+  min-height: 400px;
 }
 
 .challenges-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-  padding: 8px 0;
-  width: 100%;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px; /* Увеличили зазор для "маневра" карточек */
+  padding: 20px 4px; /* Чтобы поднятая карточка не обрезалась сверху */
 }
 
-@media (min-width: 600px) {
-  .challenges-grid {
-    gap: 24px;
-    padding: 16px 0;
+/* Анимация появления карточек */
+.staggered-fade-enter-active,
+.staggered-fade-leave-active {
+  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.staggered-fade-enter-from {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.staggered-fade-leave-to {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+
+.challenges-grid > * {
+  transition: all 0.3s ease-in-out !important;
+}
+
+/* Мобильные фиксы */
+@media (max-width: 600px) {
+  .all-challenges {
+    padding: 12px;
   }
-}
-
-
-
-@media (min-width: 768px) {
+  
   .challenges-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr; /* На мобильных строго в одну колонку */
+    gap: 16px;
   }
-}
-
-@media (min-width: 1200px) {
-  .challenges-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-.dialog-title {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.privacy-icon {
-  flex-shrink: 0;
-}
-
-.challenge-type-chip {
-  width: fit-content;
-}
-
-.page-title {
-  font-size: 1.75rem;
-  font-weight: 600;
-  color: rgba(0, 0, 0, 0.87);
-  margin-bottom: 4px;
-}
-
-@media (min-width: 600px) {
+  
   .page-title {
-    font-size: 2rem;
+    font-size: 1.25rem;
   }
 }
 
-.date-pickers {
-  display: grid;
-  gap: 16px;
-}
-
-@media (min-width: 600px) {
-  .date-pickers {
+/* Планшеты */
+@media (min-width: 601px) and (max-width: 1024px) {
+  .challenges-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
-
-
 </style>

@@ -32,7 +32,7 @@
 
       <div class="type-label-wrapper">
         <span 
-          v-if="showCoopBadge" 
+          v-if="showCoopBadge && !allChallenges" 
           class="badge-coop"
           :class="{ 'badge-coop-finished': isFinished }"
         >
@@ -70,7 +70,7 @@
     </div>
 
     
-    <v-card-text v-if="!isFinished && !isUpcoming && challenge.challengeType === 'habit'" class="pt-2 pb-0">
+    <v-card-text v-if="isParticipant && !isFinished && !isUpcoming && challenge.challengeType === 'habit'" class="pt-2 pb-0">
       <div v-if="streakDays > 0 && isTodayCompleted" class="streak-preview streak-completed">
         <div class="streak-item">
           <v-icon size="16" :style="{ color: '#2C7A7B' }">mdi-fire</v-icon>
@@ -181,7 +181,7 @@
         </v-btn>
       </div>
       
-      <div v-if="!isFinished && challenge.participants && challenge.participants.length > 0" class="participants-container mb-2 px-4">
+      <div v-if="!allChallenges && !isFinished && challenge.participants && challenge.participants.length > 0" class="participants-container mb-2 px-4">
         <div
           v-for="participant in displayedParticipants(challenge.participants)"
           :key="participant.userId?._id || participant.userId || participant._id || participant"
@@ -270,8 +270,11 @@ const props = defineProps({
   isWatched: {
     type: Boolean,
     default: false
-  }
-})
+  },
+  allChallenges: {
+    type: Boolean,
+    default: false
+  }})
 
 const emit = defineEmits(['click', 'join', 'leave', 'watch', 'unwatch', 'owner-navigated', 'update'])
 
@@ -921,21 +924,42 @@ function restartChallenge() {
 </script>
 
 <style scoped>
+/* Стили в ChallengeCard.vue */
+
+/* Основная карточка */
 .challenge-card {
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+  overflow: hidden; /* Обрезает зум картинки */
   display: flex;
   flex-direction: column;
   height: 100%;
-  width: 100%;
-  position: relative;
-  overflow: hidden;
-  border: 1px solid transparent; /* Добавляем прозрачную рамку */
 }
 
+/* Контейнер для картинки (нужно явно задать высоту) */
+.card-image-wrapper {
+  overflow: hidden;
+  position: relative;
+  height: 200px; /* Установи нужную тебе высоту картинки */
+  width: 100%;
+}
+
+/* Сама картинка */
+.card-image-wrapper :deep(.v-img) {
+  transition: transform 0.5s ease-in-out !important;
+  height: 100%;
+  width: 100%;
+}
+
+/* Эффект зума при наведении на ВСЮ карточку */
+.challenge-card:hover .card-image-wrapper :deep(.v-img) {
+  transform: scale(1.1);
+}
+
+/* Приподнимаем карточку */
 .challenge-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-8px);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.12) !important;
+  z-index: 2;
 }
 
 .challenge-card.owner-challenge:hover {
@@ -1060,6 +1084,7 @@ function restartChallenge() {
   padding-bottom: 12px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
+
 
 @media (min-width: 600px) {
   .challenge-header {

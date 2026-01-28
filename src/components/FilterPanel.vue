@@ -1,111 +1,131 @@
 <template>
-  <v-card variant="flat" class="filter-card pa-4 mb-6">
+  <v-card variant="flat" class="filter-wrapper pa-0 mb-8 bg-transparent">
     
-    <div class="search-row d-flex align-center gap-4">
+    <div class="toolbar-main d-flex align-center gap-3">
+      
       <v-text-field
         :model-value="modelValue.title"
         @update:model-value="updateFilter('title', $event)"
         :placeholder="t('filters.searchPlaceholder', 'Find your next adventure...')"
-        variant="outlined"
-        density="compact"
+        variant="solo"
+        flat
+        density="comfortable"
         hide-details
-        rounded="lg"
-        class="search-bar"
+        rounded="xl"
+        class="search-bar elevation-1"
         bg-color="white"
         @keyup.enter="handleSearch"
       >
         <template #prepend-inner>
-          <v-icon size="small" color="grey-lighten-1">mdi-magnify</v-icon>
+          <v-icon color="grey-lighten-1">mdi-magnify</v-icon>
+        </template>
+        
+        <template #append-inner>
+          <v-btn
+            icon
+            variant="text"
+            size="small"
+            :color="showAdvanced ? 'teal-accent-4' : 'grey-lighten-1'"
+            :class="{ 'rotate-180': showAdvanced }"
+            @mousedown.stop 
+    @click.stop="showAdvanced = !showAdvanced"
+          >
+            <v-icon>mdi-tune-variant</v-icon>
+          </v-btn>
         </template>
       </v-text-field>
 
-      <v-btn
-        variant="text"
-        :color="showAdvanced ? 'primary' : 'grey-darken-1'"
-        prepend-icon="mdi-tune-variant"
-        class="text-none advanced-btn"
-        @click="showAdvanced = !showAdvanced"
-        rounded="lg"
-      >
-        {{ t('filters.advanced') }}
-      </v-btn>
-    </div>
-
-    <div class="chips-container d-flex align-center mt-4">
       <v-btn-toggle
         :model-value="modelValue.type || 'all'"
         @update:model-value="updateFilter('type', $event)"
         mandatory
-        variant="outlined"
-        divided
-        class="type-toggle"
+        variant="flat"
+        class="type-toggle-group elevation-1 d-none d-md-flex"
       >
-        <v-btn value="all" size="small" class="px-4">{{ t('filters.all') }}</v-btn>
-        <v-btn value="result" size="small" class="px-4">
-          <v-icon start size="16" color="deep-purple-accent-2">mdi-sword</v-icon>
+        <v-btn value="all" class="type-btn all-active">All</v-btn>
+        
+        <v-btn value="result" class="type-btn quest-active">
+          <v-icon start size="18">mdi-sword</v-icon>
           {{ t('challenges.typeResult') }}
         </v-btn>
-        <v-btn value="habit" size="small" class="px-4">
-          <v-icon start size="16" color="teal-accent-4">mdi-cached</v-icon>
+
+        <v-btn value="habit" class="type-btn ritual-active">
+          <v-icon start size="18">mdi-cached</v-icon>
           {{ t('challenges.typeHabit') }}
         </v-btn>
-        <v-btn value="party" size="small" class="px-4">
-          <v-icon start size="16" color="blue">mdi-account-group</v-icon>
+
+        <v-btn value="party" class="type-btn party-active">
+          <v-icon start size="18">mdi-account-group</v-icon>
           {{ t('filters.inParty') }}
         </v-btn>
       </v-btn-toggle>
 
-      <v-spacer></v-spacer>
+      <v-fade-transition>
+        <v-btn
+          v-if="hasActiveFilters"
+          icon="mdi-filter-off-outline"
+          variant="tonal"
+          color="error"
+          size="small"
+          @click="clearFilters"
+          class="ml-2"
+        ></v-btn>
+      </v-fade-transition>
+    </div>
 
-      <v-btn
-        v-if="hasActiveFilters"
-        variant="text"
-        color="grey"
-        size="small"
-        class="text-none"
-        @click="clearFilters"
+    <div class="d-flex d-md-none mt-4 overflow-x-auto pb-2">
+       <v-btn-toggle
+        :model-value="modelValue.type || 'all'"
+        @update:model-value="updateFilter('type', $event)"
+        mandatory
+        variant="flat"
+        class="type-toggle-group elevation-1"
       >
-        {{ t('filters.clear') }}
-      </v-btn>
+        <v-btn value="all" size="small">All</v-btn>
+        <v-btn value="result" size="small">Quest</v-btn>
+        <v-btn value="habit" size="small">Ritual</v-btn>
+        <v-btn value="party" size="small">Party</v-btn>
+      </v-btn-toggle>
     </div>
 
     <v-expand-transition>
-      <div v-show="showAdvanced" class="pt-4">
-        <v-divider class="mb-4"></v-divider>
-        <div class="advanced-grid">
-          <v-select
-            :model-value="modelValue.owner"
-            @update:model-value="updateFilter('owner', $event)"
-            :items="ownerOptions"
-            :label="t('filters.owner')"
-            variant="filled"
-            density="compact"
-            hide-details
-            flat
-          ></v-select>
+      <div v-show="showAdvanced" class="mt-3">
+        <v-card variant="flat" class="advanced-panel pa-6 border">
+          <div class="advanced-grid">
+            <v-select
+              :model-value="modelValue.owner"
+              :items="ownerOptions"
+              label="Created by"
+              variant="outlined"
+              density="comfortable"
+              rounded="lg"
+              hide-details
+              @update:model-value="updateFilter('owner', $event)"
+            ></v-select>
 
-          <v-select
-            :model-value="modelValue.popularity"
-            @update:model-value="updateFilter('popularity', $event)"
-            :items="popularityOptions"
-            :label="t('filters.popularity')"
-            variant="filled"
-            density="compact"
-            hide-details
-            flat
-          ></v-select>
+            <v-select
+              :model-value="modelValue.popularity"
+              :items="popularityOptions"
+              label="Sort by"
+              variant="outlined"
+              density="comfortable"
+              rounded="lg"
+              hide-details
+              @update:model-value="updateFilter('popularity', $event)"
+            ></v-select>
 
-          <v-select
-            :model-value="modelValue.creationDate"
-            @update:model-value="updateFilter('creationDate', $event)"
-            :items="creationDateOptions"
-            :label="t('filters.creationDate')"
-            variant="filled"
-            density="compact"
-            hide-details
-            flat
-          ></v-select>
-        </div>
+            <v-select
+              :model-value="modelValue.creationDate"
+              :items="creationDateOptions"
+              label="Timeframe"
+              variant="outlined"
+              density="comfortable"
+              rounded="lg"
+              hide-details
+              @update:model-value="updateFilter('creationDate', $event)"
+            ></v-select>
+          </div>
+        </v-card>
       </div>
     </v-expand-transition>
   </v-card>
@@ -161,114 +181,114 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.filter-card {
-  background: #fdfdff !important; /* Очень легкий оттенок, чтобы отделить от фона страницы */
-  border: 1px solid rgba(0, 0, 0, 0.05) !important;
-  border-radius: 16px !important;
+/* Общая обертка */
+.toolbar-main {
+  height: 56px;
 }
 
-/* Главная строка поиска */
-.main-filter-row {
-  display: flex;
-  gap: 16px;
+/* Улучшаем стабильность поиска */
+.search-bar {
+  /* Увеличим базовую ширину, чтобы расширение было не таким резким */
+  max-width: 500px; 
+  width: 100%;
+  border: none;
+  transition: none !important; /* Убираем transition, если кнопка продолжает "убегать" */
+}
+
+/* Если очень хочется оставить анимацию, используй это: */
+.search-bar:focus-within {
+  max-width: 500px;
+  /* Анимация должна быть мгновенной для mousedown событий */
+  transition: max-width 0.1s ease-out; 
+}
+
+/* Фиксируем позицию иконки, чтобы она не дрожала */
+.search-bar :deep(.v-field__append-inner) {
   align-items: center;
+  padding-top: 0;
+  margin-top: 0;
+  height: 100%;
+}
+/* Активный стиль для кнопки "All" */
+.all-active.v-btn--active {
+  background: #2D3748 !important; /* Глубокий темный цвет */
+  box-shadow: 0 4px 12px rgba(45, 55, 72, 0.2) !important;
 }
 
-.search-input {
-  flex: 1;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.05) !important;
+/* Общее правило для текста активных кнопок (уже есть, просто убедись) */
+.type-btn.v-btn--active {
+  color: white !important;
 }
 
-/* Фикс высоты поиска */
-.search-input :deep(.v-field__input) {
-  min-height: 40px !important;
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-  font-size: 0.9rem;
+/* Стили переключателя типов */
+.type-toggle-group {
+  background: white !important;
+  border-radius: 28px !important;
+  height: 48px !important;
+  padding: 4px;
+  border: 1px solid rgba(0,0,0,0.05) !important;
 }
 
-.search-input :deep(.v-field__outline) {
-  --v-field-border-opacity: 0.1;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 8px;
-}
-
-.advanced-btn {
-  height: 40px !important;
-  font-weight: 600;
-}
-
-/* Стили чипсов (кнопок типов) */
-.type-toggle {
-  height: 36px !important;
-  border-radius: 10px !important;
-  border: 1px solid rgba(0, 0, 0, 0.08) !important;
-  background: white;
-}
-
-.type-toggle :deep(.v-btn) {
+.type-btn {
   border: none !important;
+  border-radius: 24px !important;
   text-transform: none !important;
-  font-weight: 500;
-  letter-spacing: 0;
-  color: #666;
+  font-weight: 700 !important;
+  letter-spacing: 0.3px;
+  color: #718096 !important;
+  transition: all 0.2s ease !important;
+  min-width: 100px !important;
 }
 
-/* Цвет активной кнопки в табах */
-.type-toggle :deep(.v-btn--active) {
-  background-color: rgba(0, 0, 0, 0.03) !important;
-  color: var(--v-primary-base) !important;
+/* Активные состояния для разных типов */
+.type-btn.v-btn--active {
+  color: white !important;
 }
 
-.filter-chip {
+.quest-active.v-btn--active {
+  background: #A855F7 !important; /* Фиолетовый */
+  box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3) !important;
+}
+
+.ritual-active.v-btn--active {
+  background: #4FD1C5 !important; /* Бирюзовый */
+  box-shadow: 0 4px 12px rgba(79, 209, 197, 0.3) !important;
+}
+
+.party-active.v-btn--active {
+  background: #3B82F6 !important; /* Синий */
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;
+}
+
+/* Продвинутая панель */
+.advanced-panel {
+  background: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(10px);
   border-radius: 20px !important;
-  margin-right: 8px;
-  border: 1px solid rgba(0,0,0,0.1) !important;
-  text-transform: none !important;
-  letter-spacing: normal;
-  font-weight: 600;
-}
-
-/* Цвета из твоего логотипа и концепта */
-.active-type.quest-btn {
-  background-color: #A855F7 !important; /* Квестовый фиолетовый */
-  color: white !important;
-}
-
-.active-type.ritual-btn {
-  background-color: #4FD1C5 !important; /* Бирюзовый кристалл */
-  color: white !important;
-}
-
-.active-type.party-btn {
-  background-color: #3B82F6 !important; /* Синий для пати */
-  color: white !important;
-}
-
-/* Стили продвинутой панели */
-.advanced-card {
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.5);
-  border: 1px dashed rgba(0,0,0,0.1);
+  border-color: rgba(0,0,0,0.05) !important;
 }
 
 .advanced-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  gap: 20px;
 }
 
-.gap-4 {
-  gap: 16px;
+/* Анимации */
+.rotate-180 {
+  transform: rotate(180deg);
 }
 
-@media (max-width: 900px) {
+.gap-3 { gap: 12px; }
+
+@media (max-width: 960px) {
   .advanced-grid { grid-template-columns: 1fr; }
-  .main-filter-row { flex-direction: column; align-items: stretch; }
+  .search-bar { max-width: 100%; }
+}
+@media (max-width: 600px) {
+  .search-bar {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
 }
 </style>
