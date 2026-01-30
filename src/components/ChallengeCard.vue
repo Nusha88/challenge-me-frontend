@@ -70,7 +70,7 @@
     </div>
 
     
-    <v-card-text v-if="isParticipant && !isFinished && !isUpcoming && challenge.challengeType === 'habit'" class="pt-2 pb-0">
+    <v-card-text v-if="!allChallenges && !isFinished && !isUpcoming && challenge.challengeType === 'habit'" class="pt-2 pb-0">
       <div v-if="streakDays > 0 && isTodayCompleted" class="streak-preview streak-completed">
         <div class="streak-item">
           <v-icon size="16" :style="{ color: '#2C7A7B' }">mdi-fire</v-icon>

@@ -1,6 +1,9 @@
 <template>
 <div class="all-challenges">
-    <h1 class="mb-4 mb-md-8 page-title">{{ t('challenges.listTitle') }} ({{ totalChallenges }})</h1>
+    <div class="mb-4 mb-md-6">
+      <h1 class="page-title">{{ t('challenges.listTitle') }} ({{ totalChallenges }})</h1>
+    </div>
+
 
     <MainRitualCard
       v-if="mainRitual"
@@ -754,14 +757,13 @@ function handleOwnerNavigated() {
 }
 
 /* Заголовок страницы */
-.page-title {
-  font-size: 1.5rem;
-  font-weight: 800;
-  letter-spacing: -0.5px;
-  color: #1a202c;
-  display: flex;
-  align-items: center;
+  .page-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.87);
+  margin-bottom: 4px;
 }
+
 
 /* Секция контента без рамок */
 .content-section {

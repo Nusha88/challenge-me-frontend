@@ -589,7 +589,9 @@ watch(() => route.query.challengeId, async (newChallengeId) => {
 <style scoped>
 .my-challenges {
   width: 100%;
-  padding: 24px;
+  max-width: 1400px; /* Ограничиваем ширину для больших мониторов */
+  margin: 0 auto;
+  padding: 16px;
 }
 
 .page-title {
