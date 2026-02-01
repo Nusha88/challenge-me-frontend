@@ -1,42 +1,42 @@
 <template>
   <v-dialog 
-    :model-value="modelValue" 
-    :max-width="mobile ? '100%' : (mdAndUp ? '1200' : '95%')"
-    :fullscreen="mobile"
-    @update:modelValue="handleVisibility"
+    v-model="dialogModel"
+    max-width="800"
+    scrollable
+    transition="dialog-bottom-transition"
+    @update:model-value="handleVisibility"
   >
-    <v-card v-if="challenge" class="dialog-card">
-      <v-card-title class="dialog-header">
-        <div class="dialog-title">
-          <span>{{ t('challenges.detailsTitle') }}</span>
-          <v-chip
-            v-if="challenge.challengeType"
-            :color="challengeTypeColor"
+    <v-card v-if="challenge" class="challenge-details-card rounded-xl overflow-hidden">
+      <!-- Header with Image -->
+      <v-img
+        :src="challenge.imageUrl || 'https://images.unsplash.com/photo-149485981460c-3834b3a25b5c?auto=format&fit=crop&q=80&w=1200'"
+        height="280"
+        cover
+        class="align-end text-white header-image"
+      >
+        <!-- Top Right Corner Icons -->
+        <div class="header-actions">
+          <!-- Settings Button for Owners -->
+          <v-btn
+            v-if="isOwner"
+            icon="mdi-pencil"
+            variant="text"
             size="small"
-          >
-            {{ challengeTypeLabel }}
-          </v-chip>
-        </div>
-        <div class="d-flex align-center gap-2">
-        <v-icon
-          v-if="challenge.privacy === 'private'"
-          color="grey-darken-1"
-          size="24"
-          class="privacy-icon"
-        >
-          mdi-lock
-        </v-icon>
+            color="white"
+            @click.stop="router.push(`/missions/edit/${challenge._id}`)"
+            class="action-btn settings-btn"
+          ></v-btn>
           <!-- Share Menu -->
           <v-menu location="bottom end">
             <template #activator="{ props: menuProps }">
               <v-btn
                 variant="text"
                 size="small"
+                color="white"
                 v-bind="menuProps"
-                class="share-btn"
-                prepend-icon="mdi-share-variant"
-              >
-                {{ t('challenges.share.share') }}</v-btn>
+                class="action-btn share-btn"
+                icon="mdi-share-variant"
+              ></v-btn>
             </template>
             <v-list>
               <v-list-item @click="copyLink">
@@ -59,266 +59,116 @@
             icon="mdi-close"
             variant="text"
             size="small"
-            @click="handleVisibility(false)"
-            class="close-btn"
+            color="white"
+            @click.stop="handleVisibility(false)"
+            class="action-btn close-btn"
           ></v-btn>
         </div>
-      </v-card-title>
 
-      <v-card-text class="dialog-content">
-        <template v-if="isOwner">
-          <v-form @submit.prevent="handleSubmit">
-            <div class="dates-row mb-4">
-              <p class="start-date-text">
-                <strong>{{ t('challenges.startDate') }}:</strong> {{ formatDisplayDate(editForm.startDate) }}
-              </p>
-              <p class="end-date-text">
-                <strong>{{ t('challenges.endDate') }}:</strong> {{ formatDisplayDate(editForm.endDate) }}
-              </p>
-            </div>
-
-            <!-- Calendar for habit challenges -->
-            <div v-if="challenge.challengeType === 'habit' && editForm.startDate && editForm.endDate" class="habit-calendar mb-4">
-              <div v-if="challenge.privacy !== 'private' && canViewPersonalProgress" class="calendar-mode-toggle mb-3">
-                <v-btn-toggle
-                  v-model="calendarViewMode"
-                  mandatory
-                  class="calendar-toggle-group"
-                  color="primary"
-                  variant="outlined"
-                >
-                  <v-btn value="personal">{{ t('challenges.myProgress') }}</v-btn>
-                  <v-btn value="team">{{ t('challenges.teamProgress') }}</v-btn>
-                </v-btn-toggle>
-              </div>
-              <v-card variant="outlined">
-                <v-card-title class="text-h6">
-                  {{ t('challenges.challengeCalendar') }}
-                </v-card-title>
-                <v-card-text>
-                  <template v-if="challenge.privacy === 'private' || (canViewPersonalProgress && calendarViewMode === 'personal')">
-                    <ChallengeCalendar
-                      :start-date="editForm.startDate"
-                      :end-date="editForm.endDate"
-                      v-model="editForm.completedDays"
-                      :editable="true"
-                      :frequency="editForm.frequency"
-                      @update:model-value="handleOwnerCompletedDaysUpdate"
-                    />
-                  </template>
-                  <template v-else>
-                    <TeamCalendarView
-                      :start-date="editForm.startDate"
-                      :end-date="editForm.endDate"
-                      :participants="challenge.participants || []"
-                    :frequency="editForm.frequency"
-                    @participant-clicked="handleParticipantClick"
-                    />
-                  </template>
-                </v-card-text>
-              </v-card>
-            </div>
-
-            <ChallengeImageUpload
-              v-model="editForm.imageUrl"
-              :editable="true"
-            />
-
-            <v-text-field
-              v-model="editForm.title"
-              :label="t('challenges.title')"
-              variant="outlined"
-              required
-              class="mb-4"
-              :error-messages="titleErrorMessages"
-              :counter="20"
-              maxlength="20"
-            ></v-text-field>
-
-            <v-textarea
-              v-model="editForm.description"
-              :label="t('challenges.description')"
-              variant="outlined"
-              rows="5"
-              required
-              class="mb-4"
-              :error-messages="errors.description"
-            ></v-textarea>
-
-            <template v-if="challenge.challengeType === 'habit'">
-              <div class="frequency-privacy-row mb-4">
-                <v-select
-                  v-model="editForm.privacy"
-                  :items="privacyOptions"
-                  :label="t('challenges.privacy')"
-                  item-title="title"
-                  item-value="value"
-                  variant="outlined"
-                ></v-select>
-                <v-select
-                  v-model="editForm.frequency"
-                  :items="frequencyOptions"
-                  :label="t('challenges.frequency')"
-                  item-title="title"
-                  item-value="value"
-                  variant="outlined"
-                  :error-messages="errors.frequency"
-                ></v-select>
-              </div>
-
-              <div class="duration-row mb-4">
-                <v-select
-                  v-model="editForm.duration"
-                  :items="durationOptions"
-                  :label="t('challenges.duration')"
-                  item-title="title"
-                  item-value="value"
-                  variant="outlined"
-                  :error-messages="errors.duration"
-                  class="duration-select"
-                ></v-select>
-
-              </div>
-            </template>
-
-            <template v-else>
-              <div class="duration-privacy-row mb-4">
-                <v-select
-                  v-model="editForm.privacy"
-                  :items="privacyOptions"
-                  :label="t('challenges.privacy')"
-                  item-title="title"
-                  item-value="value"
-                  variant="outlined"
-                  class="privacy-select"
-                ></v-select>
-
-                <v-select
-                  v-model="editForm.duration"
-                  :items="durationOptions"
-                  :label="t('challenges.duration')"
-                  item-title="title"
-                  item-value="value"
-                  variant="outlined"
-                  :error-messages="errors.duration"
-                  class="duration-select"
-                ></v-select>
-              </div>
-
-              <ChallengeActions
-                v-model="editForm.actions"
-              />
-            </template>
-
-            <!-- Allow Comments Switcher -->
-            <div v-if="!isFinished" class="mb-4">
-              <v-switch
-                v-model="editForm.allowComments"
-                :label="t('challenges.allowComments')"
-                color="primary"
-                hide-details
-              ></v-switch>
-            </div>
-
-            <!-- Comments Component -->
-            <div v-if="!isFinished" class="mb-4">
-              <CommentsComponent
-                :challenge-id="challenge._id"
-                :allow-comments="editForm.allowComments"
-                :current-user-id="currentUserId"
-                :is-owner="true"
-                :challenge-start-date="editForm.startDate"
-                :challenge-owner="challenge.owner"
-                :challenge-participants="challenge.participants || []"
-                @comment-added="handleCommentAdded"
-                @comment-deleted="handleCommentDeleted"
-                @user-navigated="handleUserNavigated"
-              />
-            </div>
-
-            <v-alert v-if="saveError" type="error" class="mb-4">
-              {{ saveError }}
-            </v-alert>
-
-            <v-card-actions class="buttons-area">
-              <div class="buttons-container">
-              <v-btn 
-                  type="submit" 
-                  variant="flat"
-                  color="primary" 
-                  :loading="saveLoading" 
-                  :disabled="saveLoading || deleteLoading || !isFormValid"
-                  class="action-button save-button"
+        <div class="header-overlay">
+          <div class="header-content px-6 py-4">
+            <div class="d-flex align-center gap-2 mb-2">
+              <v-chip
+                size="x-small"
+                :color="challenge.challengeType === 'habit' ? 'teal-accent-3' : 'deep-purple-accent-2'"
+                class="font-weight-black text-uppercase"
+                variant="elevated"
               >
-                  {{ t('challenges.update') }}
-              </v-btn>
-                <div class="secondary-buttons-row">
-              <v-btn 
-                variant="outlined" 
-                @click="handleCancel" 
-                :disabled="saveLoading || deleteLoading"
-                    class="action-button cancel-button secondary-button"
+                {{ challenge.challengeType === 'habit' ? t('challenges.typeHabitLabel') : t('challenges.typeResultLabel') }}
+              </v-chip>
+              <v-icon
+                v-if="challenge.privacy === 'private'"
+                color="white"
+                size="16"
+                class="ml-1"
               >
-                {{ t('challenges.cancel') }}
-              </v-btn>
-              <v-btn 
-                    variant="outlined" 
-                    color="error" 
-                    @click="handleDelete" 
-                    :disabled="saveLoading || deleteLoading"
-                    :loading="deleteLoading"
-                    class="action-button delete-button secondary-button"
-              >
-                    {{ t('challenges.delete') }}
-              </v-btn>
-                </div>
-              </div>
-            </v-card-actions>
-          </v-form>
-        </template>
+                mdi-lock
+              </v-icon>
+            </div>
+            
+            <h2 class="text-h4 font-weight-bold mb-2 challenge-title">
+              {{ challenge.title }}
+            </h2>
 
-        <template v-else>
-          <h2 class="challenge-title-display mb-4">{{ challenge.title }}</h2>
-          
-          <div class="dates-row mb-4">
-            <p class="start-date-text">
-              <strong>{{ t('challenges.startDate') }}:</strong> {{ formatDisplayDate(challenge.startDate) }}
-            </p>
-            <p class="end-date-text">
-              <strong>{{ t('challenges.endDate') }}:</strong> {{ formatDisplayDate(challenge.endDate) }}
-            </p>
+            <div class="d-flex align-center date-info opacity-90">
+              <v-icon size="16" class="mr-2">mdi-calendar-clock</v-icon>
+              <span class="text-caption">
+                {{ formatDisplayDate(challenge.startDate) }} — {{ formatDisplayDate(challenge.endDate) }}
+              </span>
+            </div>
           </div>
+        </div>
+      </v-img>
 
-          <!-- Calendar for habit challenges -->
-          <div v-if="challenge.challengeType === 'habit' && challenge.startDate && challenge.endDate" class="habit-calendar mb-4">
-            <div v-if="challenge.privacy !== 'private' && canViewPersonalProgress" class="calendar-mode-toggle mb-3">
-              <v-btn-toggle
-                v-model="calendarViewMode"
-                mandatory
-                class="calendar-toggle-group"
-                color="primary"
-                variant="outlined"
-              >
-                <v-btn value="personal">{{ t('challenges.myProgress') }}</v-btn>
-                <v-btn value="team">{{ t('challenges.teamProgress') }}</v-btn>
-              </v-btn-toggle>
-            </div>
-            <v-card variant="outlined">
-              <v-card-title class="text-h6">
-                {{ t('challenges.challengeCalendar') }}
-              </v-card-title>
-              <v-card-text>
-                <template v-if="challenge.privacy === 'private' || (canViewPersonalProgress && calendarViewMode === 'personal')">
-                  <ChallengeCalendar
-                    :start-date="challenge.startDate"
-                    :end-date="challenge.endDate"
-                    :model-value="localCurrentUserCompletedDays.length > 0 ? localCurrentUserCompletedDays : currentUserCompletedDays"
-                    :editable="isCurrentUserParticipant"
-                    :frequency="challenge.frequency"
-                    @update:model-value="handleParticipantCalendarChange"
-                  />
-                </template>
-                <template v-else>
+      <!-- Tabs -->
+      <v-card-text class="pa-0 bg-grey-lighten-4">
+        <v-tabs v-model="tab" grow bg-color="white" color="primary">
+          <v-tab value="progress">{{ t('challenges.progress') }}</v-tab>
+          <v-tab value="details">{{ t('challenges.about') }}</v-tab>
+          <v-tab value="community">{{ t('challenges.diary') }}</v-tab>
+        </v-tabs>
+
+        <v-window v-model="tab" class="pa-6">
+          <!-- Progress Tab -->
+          <v-window-item value="progress">
+            <template v-if="challenge.challengeType === 'habit' && challenge.startDate && challenge.endDate">
+              <v-card variant="flat" class="pa-4 rounded-lg border mb-4">
+                <div class="d-flex justify-space-between align-center mb-4">
+                  <span class="text-subtitle-1 font-weight-bold">{{ t('challenges.challengeCalendar') }}</span>
+                  <v-chip size="small" variant="tonal" color="primary">
+                    {{ currentDayText }}
+                  </v-chip>
+                </div>
+                
+                <!-- Calendar Mode Toggle for Team View -->
+                <div v-if="challenge.privacy !== 'private' && canViewPersonalProgress" class="calendar-mode-toggle mb-4">
+                  <v-btn-toggle
+                    v-model="calendarViewMode"
+                    mandatory
+                    class="calendar-toggle-group"
+                    color="primary"
+                    variant="outlined"
+                    density="compact"
+                  >
+                    <v-btn value="personal">{{ t('challenges.myProgress') }}</v-btn>
+                    <v-btn value="team">{{ t('challenges.teamProgress') }}</v-btn>
+                  </v-btn-toggle>
+                </div>
+
+                <!-- Calendar Grid -->
+                <div v-if="challenge.privacy === 'private' || (canViewPersonalProgress && calendarViewMode === 'personal')" class="calendar-wrapper">
+
+                  <div class="calendar-grid">
+                    <div 
+                      v-for="day in calendarDays" 
+                      :key="day.date"
+                      class="day-cell"
+                      :class="getDayClass(day)"
+                      @click="toggleDay(day)"
+                    >
+                      <span class="day-number">{{ day.number }}</span>
+                      <div v-if="day.isCompleted" class="status-dot"></div>
+                    </div>
+                  </div>
+
+                  <div class="calendar-legend d-flex flex-wrap gap-4 mt-6">
+                    <div class="legend-item">
+                      <span class="dot completed"></span>
+                      {{ t('challenges.completed') }}
+                    </div>
+                    <div class="legend-item">
+                      <span class="dot missed"></span>
+                      {{ t('challenges.missed') }}
+                    </div>
+                    <div class="legend-item">
+                      <span class="dot today"></span>
+                      {{ t('challenges.today') }}
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Team Calendar View -->
+                <div v-else>
                   <TeamCalendarView
                     :start-date="challenge.startDate"
                     :end-date="challenge.endDate"
@@ -326,86 +176,104 @@
                     :frequency="challenge.frequency"
                     @participant-clicked="handleParticipantClick"
                   />
-                </template>
-              </v-card-text>
+                </div>
+              </v-card>
+            </template>
+            <template v-else-if="challenge.challengeType === 'result'">
+              <v-card variant="flat" class="pa-4 rounded-lg border">
+                <div class="d-flex justify-space-between align-center mb-4">
+                  <span class="text-subtitle-1 font-weight-bold">{{ t('challenges.progress') }}</span>
+                  <v-chip size="small" variant="tonal" color="primary">
+                    {{ progressPercentage }}%
+                  </v-chip>
+                </div>
+                <v-progress-linear
+                  :model-value="progressPercentage"
+                  color="primary"
+                  height="24"
+                  rounded
+                  class="mb-4"
+                ></v-progress-linear>
+                <ChallengeActions
+                  :model-value="challenge.actions || []"
+                  :readonly="!isOwner"
+                />
+              </v-card>
+            </template>
+          </v-window-item>
+
+          <!-- About Tab -->
+          <v-window-item value="details">
+            <div class="about-section pa-4">
+              <v-row dense class="mb-6">
+                <v-col cols="4" v-for="item in missionStats" :key="item.label">
+                  <v-card variant="tonal" class="pa-3 text-center rounded-lg" :color="item.color">
+                    <v-icon :icon="item.icon" size="20" class="mb-1"></v-icon>
+                    <div class="text-caption text-uppercase font-weight-bold" style="font-size: 0.65rem">
+                      {{ item.label }}
+                    </div>
+                    <div class="text-body-2 font-weight-black">{{ item.value }}</div>
+                  </v-card>
+                </v-col>
+              </v-row>
+
+              <h3 class="text-h6 font-weight-bold mb-2">{{ t('challenges.description') }}</h3>
+              <p class="text-body-2 text-grey-darken-2 mb-6">
+                {{ challenge.description }}
+              </p>
+
+              <v-divider class="mb-6"></v-divider>
+
+              <div class="d-flex align-center bg-grey-lighten-4 pa-3 rounded-xl">
+                <v-avatar size="40" :image="challenge.owner?.avatarUrl" class="mr-3">
+                  <span v-if="!challenge.owner?.avatarUrl">{{ getOwnerInitial() }}</span>
+                </v-avatar>
+                <div>
+                  <div class="text-caption text-grey">{{ t('challenges.createdByLabel') }}</div>
+                  <div class="text-body-2 font-weight-bold">{{ challenge.owner?.name || t('common.unknown') }}</div>
+                </div>
+                <v-spacer></v-spacer>
+                <v-btn 
+                  variant="text" 
+                  size="small" 
+                  color="primary"
+                  @click="navigateToOwner"
+                >
+                  {{ t('challenges.viewProfile') }}
+                </v-btn>
+              </div>
+            </div>
+          </v-window-item>
+
+          <!-- Diary Tab -->
+          <v-window-item value="community">
+            <v-card variant="flat" class="pa-4 rounded-lg border">
+              <h3 class="text-subtitle-1 font-weight-bold mb-4">{{ t('challenges.diary') }}</h3>
+              <div v-if="!isFinished">
+                <CommentsComponent
+                  :challenge-id="challenge._id"
+                  :allow-comments="isOwner ? editForm.allowComments : (challenge.allowComments !== undefined ? challenge.allowComments : true)"
+                  :current-user-id="currentUserId"
+                  :is-owner="isOwner"
+                  :challenge-start-date="isOwner ? editForm.startDate : challenge.startDate"
+                  :challenge-owner="challenge.owner"
+                  :challenge-participants="challenge.participants || []"
+                  @comment-added="handleCommentAdded"
+                  @comment-deleted="handleCommentDeleted"
+                  @user-navigated="handleUserNavigated"
+                />
+              </div>
+              <v-alert v-else type="info">
+                {{ t('challenges.finishedChallengeComments') }}
+              </v-alert>
             </v-card>
-          </div>
-
-          <ChallengeImageUpload
-            :model-value="challenge.imageUrl"
-            :editable="false"
-          />
-          
-          <p class="mb-2"><strong>{{ t('challenges.description') }}:</strong> {{ challenge.description }}</p>
-
-          <!-- Privacy and Duration -->
-          <div class="mb-4">
-            <p class="mb-2">
-              <strong>{{ t('challenges.privacy') }}:</strong> {{ getPrivacyLabel(challenge.privacy) }}
-            </p>
-            <p class="mb-2">
-              <strong>{{ t('challenges.duration') }}:</strong> {{ getDurationLabel(challenge) }}
-            </p>
-            <p v-if="challenge.challengeType === 'habit' && challenge.frequency" class="mb-2">
-              <strong>{{ t('challenges.frequency') }}:</strong> {{ getFrequencyLabel(challenge.frequency) }}
-            </p>
-          </div>
-
-          <!-- Actions for result challenges (read-only for non-owners) -->
-          <ChallengeActions
-            v-if="challenge.challengeType === 'result'"
-            :model-value="challenge.actions || []"
-            :readonly="true"
-          />
-
-          <!-- Comments Component -->
-          <div v-if="!isFinished" class="mb-4">
-            <CommentsComponent
-              :challenge-id="challenge._id"
-              :allow-comments="challenge.allowComments !== undefined ? challenge.allowComments : true"
-              :current-user-id="currentUserId"
-              :is-owner="isOwner"
-              :challenge-start-date="challenge.startDate"
-              :challenge-owner="challenge.owner"
-              :challenge-participants="challenge.participants || []"
-              @comment-added="handleCommentAdded"
-              @comment-deleted="handleCommentDeleted"
-              @user-navigated="handleUserNavigated"
-            />
-          </div>
-
-          <v-alert
-            v-if="isParticipant"
-            type="success"
-            class="mt-4"
-          >
-            {{ t('challenges.joinSuccess') }}
-          </v-alert>
-
-          <v-alert
-            v-else-if="showJoinButton"
-            type="info"
-            class="mt-4"
-          >
-            {{ t('challenges.joinInfo') }}
-          </v-alert>
-        </template>
+          </v-window-item>
+        </v-window>
       </v-card-text>
 
-      <div v-if="!isOwner && challenge.owner" class="created-by-section">
-        <p class="created-by-text">
-          {{ t('challenges.createdBy', { name: challenge.owner.name || t('common.unknown') }) }}
-        </p>
-      </div>
-
-      <v-card-actions v-if="!isOwner" class="buttons-area">
-        <v-btn 
-          variant="outlined" 
-          @click="handleClose"
-          class="action-button cancel-button"
-        >
-          {{ t('common.close') }}
-        </v-btn>
+      <v-divider></v-divider>
+      <v-card-actions class="pa-4 bg-white">
+        <v-btn variant="text" @click="handleClose">{{ t('common.close') }}</v-btn>
         <v-spacer></v-spacer>
         <v-btn
           v-if="!isOwner && isWatched && !isFinished"
@@ -413,7 +281,6 @@
           color="primary"
           :loading="watchingId === challenge._id"
           @click="handleUnwatch"
-          class="action-button"
         >
           {{ t('challenges.unwatch') }}
         </v-btn>
@@ -423,39 +290,37 @@
           color="primary"
           :loading="watchingId === challenge._id"
           @click="handleWatch"
-          class="action-button"
         >
           {{ t('challenges.watch') }}
         </v-btn>
         <v-btn
-          v-if="showJoinButton"
-          variant="flat"
-          color="primary"
-          :loading="joinLoading"
-          @click="emitJoin"
-          class="action-button save-button"
-        >
-          {{ t('challenges.join') }}
-        </v-btn>
-        <v-btn
           v-if="showLeaveButton"
-          variant="outlined"
           color="error"
+          variant="text"
           :loading="leaveLoading"
           @click="emitLeave"
-          class="action-button"
         >
-          {{ t('challenges.leave') }}
+          {{ t('challenges.giveUp') }}
+        </v-btn>
+        <v-btn
+          v-if="showJoinButton"
+          color="primary"
+          variant="elevated"
+          class="px-8 rounded-pill"
+          :loading="joinLoading"
+          @click="emitJoin"
+        >
+          {{ t('challenges.joinMission') }}
         </v-btn>
         <v-btn
           v-if="isCurrentUserParticipant && challenge.challengeType === 'habit'"
-          variant="flat"
           color="primary"
+          variant="elevated"
+          class="px-8 rounded-pill"
           :loading="participantSaveLoading"
           @click="handleParticipantSave"
-          class="action-button save-button"
         >
-          {{ t('common.save') }}
+          {{ t('challenges.saveProgress') }}
         </v-btn>
       </v-card-actions>
     </v-card>
@@ -500,7 +365,6 @@ import { useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import ChallengeImageUpload from './ChallengeImageUpload.vue'
 import ChallengeActions from './ChallengeActions.vue'
-import ChallengeCalendar from './ChallengeCalendar.vue'
 import CommentsComponent from './CommentsComponent.vue'
 import TeamCalendarView from './TeamCalendarView.vue'
 import { challengeService } from '../services/api'
@@ -559,9 +423,14 @@ const isInitializing = ref(true)
 const participantSaveLoading = ref(false)
 const snackbar = ref(false)
 const snackbarText = ref('')
-let dateRangeObserver = null
-const calendarViewMode = ref('personal') // 'personal' или 'team'
-let isStylingDateRange = false // Flag to prevent recursive calls
+const calendarViewMode = ref('personal')
+const tab = ref('progress')
+
+// Dialog model for v-model binding
+const dialogModel = computed({
+  get: () => props.modelValue,
+  set: (value) => handleVisibility(value)
+})
 
 // Get current user ID
 function getCurrentUserId() {
@@ -611,24 +480,11 @@ const { t, locale } = useI18n()
 const router = useRouter()
 const { mobile, mdAndUp } = useDisplay()
 
-const challengeTypeLabel = computed(() => {
-  if (!props.challenge?.challengeType) return ''
-  return props.challenge.challengeType === 'habit' 
-    ? t('challenges.typeHabit') 
-    : t('challenges.typeResult')
-})
-
-const challengeTypeColor = computed(() => {
-  if (!props.challenge?.challengeType) return 'secondary'
-  return props.challenge.challengeType === 'habit' ? 'success' : 'warning'
-})
-
 const titleErrorMessages = computed(() => {
   return errors.title || ''
 })
 
 const isFormValid = computed(() => {
-  // Check for validation errors
   return !errors.title && !errors.description && !errors.duration && !errors.frequency &&
     editForm.title && editForm.description && editForm.duration
 })
@@ -638,11 +494,9 @@ const progressDone = computed(() => {
   if (!props.challenge) return 0
   
   if (props.challenge.challengeType === 'result') {
-    // For result challenges: count checked actions
     const actions = props.isOwner ? editForm.actions : (props.challenge.actions || [])
     return actions.filter(a => a.checked).length
   } else {
-    // For habit challenges: calculate days passed from start to today
     const startDate = props.isOwner ? editForm.startDate : props.challenge.startDate
     if (!startDate) return 0
     
@@ -659,11 +513,9 @@ const progressDone = computed(() => {
   }
 })
 
-// Check if challenge is finished
 const isFinished = computed(() => {
   if (!props.challenge) return false
   
-  // Check if endDate is in the past
   const endDate = props.isOwner ? editForm.endDate : props.challenge.endDate
   if (endDate) {
     try {
@@ -679,23 +531,17 @@ const isFinished = computed(() => {
     }
   }
   
-  // For result challenges, check if all actions are done
   if (props.challenge.challengeType === 'result') {
     const actions = props.isOwner ? editForm.actions : (props.challenge.actions || [])
     if (!actions || !Array.isArray(actions) || actions.length === 0) {
       return false
     }
     
-    // Check if all actions and their children are checked
     const allActionsDone = actions.every(action => {
-      // Parent action must be checked
       if (!action.checked) return false
-      
-      // All children must be checked (if any exist)
       if (action.children && Array.isArray(action.children) && action.children.length > 0) {
         return action.children.every(child => child.checked)
       }
-      
       return true
     })
     
@@ -711,11 +557,9 @@ const progressTotal = computed(() => {
   if (!props.challenge) return 0
   
   if (props.challenge.challengeType === 'result') {
-    // For result challenges: total actions count
     const actions = props.isOwner ? editForm.actions : (props.challenge.actions || [])
-    return Math.max(1, actions.length) // At least 1 to avoid division by zero
+    return Math.max(1, actions.length)
   } else {
-    // For habit challenges: total days from start to end
     const startDate = props.isOwner ? editForm.startDate : props.challenge.startDate
     const endDate = props.isOwner ? editForm.endDate : props.challenge.endDate
     const frequency = props.isOwner ? editForm.frequency : props.challenge.frequency
@@ -727,14 +571,12 @@ const progressTotal = computed(() => {
     start.setHours(0, 0, 0, 0)
     end.setHours(0, 0, 0, 0)
     
-    // For "every other day" frequency, only count every other day
     if (frequency === 'everyOtherDay') {
       let count = 0
       const current = new Date(start)
       let dayIndex = 0
       
       while (current <= end) {
-        // Only count enabled days (day 0, 2, 4, 6, etc.)
         if (dayIndex % 2 === 0) {
           count++
         }
@@ -742,33 +584,175 @@ const progressTotal = computed(() => {
         dayIndex++
       }
       
-      return Math.max(1, count) // At least 1 to avoid division by zero
+      return Math.max(1, count)
     }
     
-    // For other frequencies, count all days
     const diffTime = end - start
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1
-    return Math.max(1, diffDays) // At least 1 to avoid division by zero
+    return Math.max(1, diffDays)
   }
 })
 
 const progressPercentage = computed(() => {
   if (progressTotal.value === 0) return 0
   const percentage = Math.round((progressDone.value / progressTotal.value) * 100)
-  return Math.min(100, Math.max(0, percentage)) // Clamp between 0 and 100
+  return Math.min(100, Math.max(0, percentage))
 })
 
+// Calendar grid computed properties
+const calendarDays = computed(() => {
+  if (!props.challenge || props.challenge.challengeType !== 'habit') return []
+  if (!props.challenge.startDate || !props.challenge.endDate) return []
+  
+  const start = new Date(props.challenge.startDate)
+  const end = new Date(props.challenge.endDate)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  
+  const completedDays = localCurrentUserCompletedDays.value.length > 0 
+    ? localCurrentUserCompletedDays.value 
+    : currentUserCompletedDays.value
+  
+  const days = []
+  const current = new Date(start)
+  current.setHours(0, 0, 0, 0)
+  end.setHours(0, 0, 0, 0)
+  
+  let dayNumber = 1
+  while (current <= end) {
+    const dateStr = current.toISOString().slice(0, 10)
+    const isCompleted = completedDays.includes(dateStr)
+    const isToday = current.getTime() === today.getTime()
+    const isLocked = current > today
+    
+    days.push({
+      date: dateStr,
+      number: dayNumber,
+      isCompleted,
+      isToday,
+      isLocked,
+      isMissed: !isCompleted && !isLocked && current < today
+    })
+    
+    current.setDate(current.getDate() + 1)
+    dayNumber++
+  }
+  
+  return days
+})
+
+const completedDaysCount = computed(() => {
+  return calendarDays.value.filter(d => d.isCompleted).length
+})
+
+const totalDays = computed(() => {
+  return calendarDays.value.length
+})
+
+const currentDayText = computed(() => {
+  if (!props.challenge || !props.challenge.startDate) return ''
+  const start = new Date(props.challenge.startDate)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  start.setHours(0, 0, 0, 0)
+  
+  if (today < start) return t('challenges.notStarted')
+  
+  const diffTime = today - start
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1
+  return `${t('challenges.day')} ${diffDays} ${t('challenges.of')} ${totalDays.value}`
+})
+
+// Mission stats for About tab
+const missionStats = computed(() => {
+  if (!props.challenge) return []
+  
+  const stats = []
+  
+  if (props.challenge.challengeType === 'habit') {
+    // For habit challenges: show duration, frequency, participants
+    stats.push({
+      label: t('challenges.duration'),
+      value: getDurationLabel(props.challenge),
+      icon: 'mdi-calendar-range',
+      color: 'teal'
+    })
+    
+    stats.push({
+      label: t('challenges.frequency'),
+      value: props.challenge.frequency ? getFrequencyLabel(props.challenge.frequency) : t('challenges.frequencyOptions.daily'),
+      icon: 'mdi-repeat',
+      color: 'blue'
+    })
+    
+    stats.push({
+      label: t('challenges.participants'),
+      value: (props.challenge.participants?.length || 0).toString(),
+      icon: 'mdi-account-group',
+      color: 'purple'
+    })
+  } else {
+    // For result challenges: show duration, actions, participants
+    stats.push({
+      label: t('challenges.duration'),
+      value: getDurationLabel(props.challenge),
+      icon: 'mdi-calendar-range',
+      color: 'deep-purple'
+    })
+    
+    const actionsCount = props.challenge.actions?.length || 0
+    stats.push({
+      label: t('challenges.actions'),
+      value: actionsCount.toString(),
+      icon: 'mdi-check-circle',
+      color: 'orange'
+    })
+    
+    stats.push({
+      label: t('challenges.participants'),
+      value: (props.challenge.participants?.length || 0).toString(),
+      icon: 'mdi-account-group',
+      color: 'purple'
+    })
+  }
+  
+  return stats
+})
+
+function getDayClass(day) {
+  return {
+    'is-completed': day.isCompleted,
+    'is-missed': day.isMissed,
+    'is-today': day.isToday,
+    'is-locked': day.isLocked
+  }
+}
+
+async function toggleDay(day) {
+  if (day.isLocked || !isCurrentUserParticipant.value) return
+  
+  const completedDays = localCurrentUserCompletedDays.value.length > 0 
+    ? [...localCurrentUserCompletedDays.value]
+    : [...currentUserCompletedDays.value]
+  
+  const index = completedDays.indexOf(day.date)
+  if (index > -1) {
+    completedDays.splice(index, 1)
+  } else {
+    completedDays.push(day.date)
+  }
+  
+  localCurrentUserCompletedDays.value = completedDays.sort()
+}
+
 // Get current user's completedDays from their participant entry
-// Use local ref for optimistic updates, fallback to prop when local is empty
 const currentUserCompletedDays = computed(() => {
-  // If we have local updates, use them for instant UI feedback
   if (localCurrentUserCompletedDays.value.length > 0) {
     return localCurrentUserCompletedDays.value
   }
   
   if (!props.challenge || !props.challenge.participants || !currentUserId.value) return []
   
-  // Find current user's participant entry
   const participant = props.challenge.participants.find(p => {
     const userId = p.userId?._id || p.userId || p._id
     return userId && userId.toString() === currentUserId.value.toString()
@@ -792,36 +776,7 @@ const currentUserCompletedDays = computed(() => {
     .filter(Boolean)
     .sort()
   
-  // DO NOT modify reactive state inside computed property - this causes recursive updates!
-  // The local ref will be updated by a watcher instead
-  
   return days
-})
-
-// Get all team completed days (aggregate from all participants)
-const teamCompletedDays = computed(() => {
-  if (!props.challenge || !props.challenge.participants) return []
-  
-  const allDays = new Set()
-  
-  props.challenge.participants.forEach(participant => {
-    if (participant.completedDays && Array.isArray(participant.completedDays)) {
-      participant.completedDays.forEach(day => {
-        if (day) {
-          try {
-            const dateStr = String(day).slice(0, 10)
-            if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-              allDays.add(dateStr)
-            }
-          } catch {
-            // Skip invalid dates
-          }
-        }
-      })
-    }
-  })
-  
-  return Array.from(allDays).sort()
 })
 
 // Check if current user is a participant
@@ -838,251 +793,6 @@ const isCurrentUserParticipant = computed(() => {
 const canViewPersonalProgress = computed(() => {
   return props.isOwner || isCurrentUserParticipant.value
 })
-
-// Allowed dates function - only allow dates from today onwards (up to end date)
-// Dates between startDate and today are disabled
-function allowedDates(date) {
-  if (!date || !editForm.startDate || !editForm.endDate) return false
-  
-  try {
-    const checkDate = new Date(date)
-    const start = new Date(editForm.startDate)
-    const end = new Date(editForm.endDate)
-    const today = new Date()
-    
-    if (Number.isNaN(checkDate.getTime()) || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-      return false
-    }
-    
-    // Set all dates to midnight for accurate comparison
-    start.setHours(0, 0, 0, 0)
-    end.setHours(0, 0, 0, 0)
-    checkDate.setHours(0, 0, 0, 0)
-    today.setHours(0, 0, 0, 0)
-    
-    // Only allow dates from today onwards, but within the challenge date range
-    // Disable dates between startDate and today (exclusive)
-    return checkDate >= today && checkDate >= start && checkDate <= end
-  } catch {
-    return false
-  }
-}
-
-// Generate array of all dates in range for styling
-const datesInRange = computed(() => {
-  if (!editForm.startDate || !editForm.endDate) return []
-  
-  try {
-    const start = new Date(editForm.startDate)
-    const end = new Date(editForm.endDate)
-    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return []
-    
-    const dates = []
-    const current = new Date(start)
-    current.setHours(0, 0, 0, 0)
-    end.setHours(0, 0, 0, 0)
-    
-    while (current <= end) {
-      const year = current.getFullYear()
-      const month = String(current.getMonth() + 1).padStart(2, '0')
-      const day = String(current.getDate()).padStart(2, '0')
-      dates.push(`${year}-${month}-${day}`)
-      current.setDate(current.getDate() + 1)
-    }
-    
-    return dates
-  } catch {
-    return []
-  }
-})
-
-// Function to check if a date is within the challenge date range
-function isDateInRange(date) {
-  if (!date) return false
-  return datesInRange.value.includes(String(date).slice(0, 10))
-}
-
-// Function to style dates in the challenge range with orange background
-function styleDateRange() {
-  // Prevent recursive calls
-  if (isStylingDateRange) return
-  if (!editForm.startDate || !editForm.endDate || datesInRange.value.length === 0) return
-  
-  isStylingDateRange = true
-  
-  // Temporarily disconnect observer to prevent loops
-  if (dateRangeObserver) {
-    dateRangeObserver.disconnect()
-  }
-  
-  // Use multiple timeouts to catch calendar at different render stages
-  const attemptStyle = () => {
-    const datePickers = document.querySelectorAll('.habit-date-picker')
-    if (datePickers.length === 0) return false
-    
-    let foundAny = false
-    
-    datePickers.forEach(picker => {
-      // Find all day cells - try multiple selectors
-      let dayCells = picker.querySelectorAll('.v-date-picker-month__day')
-      if (dayCells.length === 0) {
-        dayCells = picker.querySelectorAll('[role="gridcell"]')
-      }
-      if (dayCells.length === 0) {
-        dayCells = picker.querySelectorAll('td')
-      }
-      
-      dayCells.forEach(dayCell => {
-        const button = dayCell.querySelector('button')
-        if (!button) return
-        
-        // Skip disabled buttons
-        if (button.disabled || button.hasAttribute('disabled') || button.classList.contains('v-btn--disabled')) {
-          return
-        }
-        
-        // Try to get date from various sources
-        let dateStr = null
-        
-        // Method 1: aria-label on button
-        const buttonAria = button.getAttribute('aria-label')
-        if (buttonAria) {
-          const match = buttonAria.match(/\d{4}-\d{2}-\d{2}/)
-          if (match) dateStr = match[0]
-        }
-        
-        // Method 2: aria-label on day cell
-        if (!dateStr) {
-          const cellAria = dayCell.getAttribute('aria-label')
-          if (cellAria) {
-            const match = cellAria.match(/\d{4}-\d{2}-\d{2}/)
-            if (match) dateStr = match[0]
-          }
-        }
-        
-        // Method 3: data-date on day cell
-        if (!dateStr) {
-          dateStr = dayCell.getAttribute('data-date')
-        }
-        
-        // Method 4: data-date on button
-        if (!dateStr) {
-          dateStr = button.getAttribute('data-date')
-        }
-        
-        // Method 5: Check all data attributes
-        if (!dateStr) {
-          Array.from(dayCell.attributes).forEach(attr => {
-            if (attr.name.startsWith('data-') && /^\d{4}-\d{2}-\d{2}$/.test(attr.value)) {
-              dateStr = attr.value
-            }
-          })
-        }
-        
-        if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return
-        
-        // Check if date is in our range array
-        if (datesInRange.value.includes(dateStr)) {
-          foundAny = true
-          dayCell.setAttribute('data-in-range', 'true')
-          button.setAttribute('data-in-range', 'true')
-          button.classList.add('date-in-range')
-          // Force orange background using multiple methods
-          button.style.setProperty('background-color', 'rgba(255, 152, 0, 0.4)', 'important')
-          // Also add inline style as backup
-          if (!button.style.cssText.includes('background-color')) {
-            button.style.cssText += 'background-color: rgba(255, 152, 0, 0.4) !important;'
-          }
-        } else {
-          dayCell.removeAttribute('data-in-range')
-          button.removeAttribute('data-in-range')
-          button.classList.remove('date-in-range')
-          // Only remove if not selected
-          if (!dayCell.classList.contains('v-date-picker-month__day--selected')) {
-            button.style.removeProperty('background-color')
-          }
-        }
-      })
-    })
-    
-    return foundAny
-  }
-  
-  // Try multiple times with delays
-  setTimeout(() => {
-    attemptStyle()
-    // Reconnect observer after styling is complete
-    if (dateRangeObserver && editForm.startDate && editForm.endDate) {
-      const datePickers = document.querySelectorAll('.habit-date-picker')
-      datePickers.forEach(picker => {
-        dateRangeObserver.observe(picker, {
-          childList: true,
-          subtree: true,
-          attributes: false // Don't watch attributes to avoid loops
-        })
-      })
-    }
-    isStylingDateRange = false
-  }, 100)
-  setTimeout(() => {
-    attemptStyle()
-    isStylingDateRange = false
-  }, 300)
-  setTimeout(() => {
-    attemptStyle()
-    isStylingDateRange = false
-  }, 600)
-  setTimeout(() => {
-    attemptStyle()
-    // Final reconnect
-    if (dateRangeObserver && editForm.startDate && editForm.endDate) {
-      const datePickers = document.querySelectorAll('.habit-date-picker')
-      datePickers.forEach(picker => {
-        dateRangeObserver.observe(picker, {
-          childList: true,
-          subtree: true,
-          attributes: false
-        })
-      })
-    }
-    isStylingDateRange = false
-  }, 1000)
-}
-
-// Handler for calendar updates
-function onCalendarUpdate() {
-  nextTick(() => {
-    setTimeout(() => styleDateRange(), 100)
-  })
-}
-
-// Watch for date range changes to update styling
-// Don't watch datesInRange.value directly - it's computed from startDate/endDate
-watch(
-  () => [editForm.startDate, editForm.endDate, props.modelValue],
-  () => {
-    if (props.modelValue && editForm.startDate && editForm.endDate) {
-      // Use nextTick to avoid recursive updates during render
-      nextTick(() => {
-        if (datesInRange.value.length > 0) {
-      styleDateRange()
-        }
-      })
-    }
-  }
-)
-
-// Watch for calendar month changes to update styling
-watch(
-  () => editForm.completedDays,
-  () => {
-    if (props.modelValue && editForm.startDate && editForm.endDate) {
-      nextTick(() => {
-        styleDateRange()
-      })
-    }
-  }
-)
 
 const frequencyOptions = computed(() => [
   { title: t('challenges.frequencyOptions.daily'), value: 'daily' },
@@ -1104,12 +814,10 @@ const durationOptions = computed(() => {
     { title: t('challenges.durationOptions.90days'), value: '90' }
   ]
   
-  // If current duration is not in standard list, add it as last option
   const currentDuration = editForm.duration
   if (currentDuration && currentDuration !== 'custom') {
     const standardValues = standardOptions.map(opt => opt.value)
     if (!standardValues.includes(currentDuration)) {
-      // Calculate days from duration value
       const days = parseInt(currentDuration)
       if (!isNaN(days) && days > 0) {
         return [
@@ -1128,9 +836,7 @@ function calculateDuration(startDate, endDate) {
   const start = new Date(startDate)
   const end = new Date(endDate)
   const diffTime = Math.abs(end - start)
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1 // +1 to include both start and end days
-  
-  // Return the actual number of days (not 'custom')
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
   return String(diffDays)
 }
 
@@ -1146,7 +852,6 @@ function calculateEndDateFromDuration(startDate, duration) {
   endDate.setDate(endDate.getDate() + days - 1)
   endDate.setHours(0, 0, 0, 0)
   
-  // Format date as YYYY-MM-DD
   const year = endDate.getFullYear()
   const month = String(endDate.getMonth() + 1).padStart(2, '0')
   const day = String(endDate.getDate()).padStart(2, '0')
@@ -1161,13 +866,11 @@ onMounted(() => {
 watch(
   () => props.challenge,
   (value, oldValue) => {
-    // Only reset if challenge actually changed (by ID)
     const valueId = value?._id || value?.id
     const oldValueId = oldValue?._id || oldValue?.id
     
-    // Reset local completedDays when challenge changes
     if (valueId !== oldValueId) {
-    localCurrentUserCompletedDays.value = []
+      localCurrentUserCompletedDays.value = []
     }
     
     if (value) {
@@ -1187,7 +890,7 @@ watch(
     editForm.frequency = value.frequency || ''
     editForm.privacy = value.privacy || 'public'
     editForm.allowComments = value.allowComments !== undefined ? value.allowComments : true
-    // Initialize actions for result challenges
+    
     if (value.challengeType === 'result') {
       editForm.actions = value.actions && value.actions.length > 0
         ? value.actions.map(a => ({ 
@@ -1201,14 +904,11 @@ watch(
     } else {
       editForm.actions = []
     }
-    // Initialize completedDays for habit challenges (only for owner)
-    // Get from owner's participant entry if available, otherwise from challenge level (backward compatibility)
+    
     if (value.challengeType === 'habit' && props.isOwner) {
-      // Only initialize if isInitializing is true (prevents overwriting user selections)
       if (isInitializing.value) {
         let ownerCompletedDays = []
         
-        // Try to get from owner's participant entry first
         if (value.participants && currentUserId.value) {
           const ownerParticipant = value.participants.find(p => {
             const userId = p.userId?._id || p.userId || p._id
@@ -1220,7 +920,6 @@ watch(
           }
         }
         
-        // Fallback to challenge level completedDays (backward compatibility)
         if (ownerCompletedDays.length === 0 && value.completedDays && Array.isArray(value.completedDays)) {
           ownerCompletedDays = value.completedDays
         }
@@ -1248,7 +947,6 @@ watch(
       isInitializing.value = false
     }
     
-    // Calculate duration from start and end dates
     const calculatedDuration = calculateDuration(editForm.startDate, editForm.endDate)
     editForm.duration = calculatedDuration
     
@@ -1260,151 +958,39 @@ watch(
 watch(
   () => props.modelValue,
   (value, oldValue) => {
-    // Only act if value actually changed
     if (value === oldValue) return
     
     if (!value) {
       resetForm()
       deleteConfirmDialog.value = false
       isInitializing.value = true
-      // Reset local completedDays when dialog closes
       localCurrentUserCompletedDays.value = []
     } else {
-      // Reset initialization flag when dialog opens so completedDays can be loaded
       isInitializing.value = true
-      // Force re-initialization of completedDays when dialog opens
-      // Use nextTick to avoid conflicts with other watchers
       if (props.challenge?.challengeType === 'habit' && props.challenge?.completedDays) {
         nextTick(() => {
-          // Only update if still initializing (prevent overwriting from other watchers)
           if (isInitializing.value) {
-          editForm.completedDays = Array.isArray(props.challenge.completedDays)
-            ? props.challenge.completedDays
-                .filter(d => {
-                  if (!d) return false
-                  try {
-                    const dateStr = String(d).slice(0, 10)
-                    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false
-                    const date = new Date(dateStr)
-                    return !Number.isNaN(date.getTime())
-                  } catch {
-                    return false
-                  }
-                })
-                .map(d => String(d).slice(0, 10))
-                .filter(Boolean)
-                .sort()
-            : []
-          isInitializing.value = false
+            editForm.completedDays = Array.isArray(props.challenge.completedDays)
+              ? props.challenge.completedDays
+                  .filter(d => {
+                    if (!d) return false
+                    try {
+                      const dateStr = String(d).slice(0, 10)
+                      if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false
+                      const date = new Date(dateStr)
+                      return !Number.isNaN(date.getTime())
+                    } catch {
+                      return false
+                    }
+                  })
+                  .map(d => String(d).slice(0, 10))
+                  .filter(Boolean)
+                  .sort()
+              : []
+            isInitializing.value = false
           }
         })
       }
-    }
-  }
-)
-
-// Also watch for challenge changes when dialog is open
-watch(
-  () => [props.modelValue, props.challenge],
-  ([dialogOpen, challenge], [oldDialogOpen, oldChallenge]) => {
-    // Only act if something actually changed
-    const challengeId = challenge?._id || challenge?.id
-    const oldChallengeId = oldChallenge?._id || oldChallenge?.id
-    if (dialogOpen === oldDialogOpen && challengeId === oldChallengeId) return
-    
-    // When dialog opens and challenge is set, ensure completedDays are loaded
-    // Only run if isInitializing is still true (prevent conflicts with other watchers)
-    if (dialogOpen && challenge?.challengeType === 'habit' && isInitializing.value) {
-      // Use nextTick to avoid conflicts with other watchers
-      nextTick(() => {
-        // Double-check isInitializing is still true (another watcher might have set it)
-        if (isInitializing.value && challenge.completedDays && Array.isArray(challenge.completedDays)) {
-        editForm.completedDays = challenge.completedDays
-          .filter(d => {
-            if (!d) return false
-            try {
-              const dateStr = String(d).slice(0, 10)
-              if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false
-              const date = new Date(dateStr)
-              return !Number.isNaN(date.getTime())
-            } catch {
-              return false
-            }
-          })
-          .map(d => String(d).slice(0, 10))
-          .filter(Boolean)
-          .sort()
-        isInitializing.value = false
-      }
-      })
-    }
-    // Style date range when dialog opens
-    if (dialogOpen && challenge?.challengeType === 'habit' && editForm.startDate && editForm.endDate) {
-      // Set up MutationObserver to watch for calendar DOM changes
-      nextTick(() => {
-        setTimeout(() => {
-          const datePickers = document.querySelectorAll('.habit-date-picker')
-          datePickers.forEach(picker => {
-            // Clean up existing observer
-            if (dateRangeObserver) {
-              dateRangeObserver.disconnect()
-            }
-            
-            // Create new observer
-            // Only watch for childList changes, not attributes to avoid loops
-            dateRangeObserver = new MutationObserver((mutations) => {
-              // Only react to actual DOM structure changes, not style/attribute changes
-              const hasStructuralChanges = mutations.some(mutation => 
-                mutation.type === 'childList' && mutation.addedNodes.length > 0
-              )
-              if (hasStructuralChanges && !isStylingDateRange) {
-                // Use a debounce to prevent rapid-fire calls
-                setTimeout(() => {
-                  if (!isStylingDateRange) {
-              styleDateRange()
-                  }
-                }, 200)
-              }
-            })
-            
-            // Observe the calendar for changes (only childList, not attributes)
-            dateRangeObserver.observe(picker, {
-              childList: true,
-              subtree: true,
-              attributes: false // Don't watch attributes to prevent loops
-            })
-            
-            // Initial styling attempts
-            styleDateRange()
-          })
-        }, 100)
-      })
-    } else {
-      // Clean up observer when dialog closes
-      if (dateRangeObserver) {
-        dateRangeObserver.disconnect()
-        dateRangeObserver = null
-      }
-    }
-  }
-)
-
-watch(
-  () => props.deleteLoading,
-  (newValue, oldValue) => {
-    // Close confirmation dialog when delete completes (loading goes from true to false)
-    if (oldValue === true && newValue === false) {
-      deleteConfirmDialog.value = false
-    }
-  }
-)
-
-watch(
-  () => editForm.title,
-  (newValue) => {
-    // Truncate if somehow exceeds 20 characters (e.g., from paste)
-    if (newValue && newValue.length > 20) {
-      editForm.title = newValue.substring(0, 20)
     }
   }
 )
@@ -1420,6 +1006,24 @@ watch(
       if (newEndDate) {
         editForm.endDate = newEndDate
       }
+    }
+  }
+)
+
+watch(
+  () => editForm.title,
+  (newValue) => {
+    if (newValue && newValue.length > 20) {
+      editForm.title = newValue.substring(0, 20)
+    }
+  }
+)
+
+watch(
+  () => props.deleteLoading,
+  (newValue, oldValue) => {
+    if (oldValue === true && newValue === false) {
+      deleteConfirmDialog.value = false
     }
   }
 )
@@ -1460,7 +1064,6 @@ function handleClose() {
 }
 
 function handleParticipantClick() {
-  // Close dialog when participant is clicked
   emit('update:modelValue', false)
 }
 
@@ -1479,48 +1082,38 @@ function handleDelete() {
 function confirmDelete() {
   if (props.challenge?._id) {
     emit('delete', props.challenge._id)
-    // Dialog will close automatically when deleteLoading becomes false (handled by watcher)
   }
 }
 
 function handleSubmit() {
   if (!validate()) return
   
-  // Create form data, excluding frontend-only fields
   const { duration, customDuration, ...formData } = editForm
   
-  // Include challengeType from the challenge prop (it's not editable)
   if (props.challenge?.challengeType) {
     formData.challengeType = props.challenge.challengeType
   }
   
-  // Only include completedDays for owner (participants use separate endpoint)
   if (formData.challengeType === 'habit' && props.isOwner) {
-    // Ensure completedDays exists and is an array
     if (!Array.isArray(formData.completedDays)) {
       formData.completedDays = []
     }
     
-    // Format and validate dates - be more lenient with date formats
     formData.completedDays = formData.completedDays
       .map(d => {
         if (!d) return null
         try {
-          // Handle different date formats
           let dateStr = String(d)
           
-          // If it's already in YYYY-MM-DD format, use it
           if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
             return dateStr
           }
           
-          // Try to parse as Date and format
           const date = new Date(dateStr)
           if (Number.isNaN(date.getTime())) {
             return null
           }
           
-          // Format as YYYY-MM-DD
           const year = date.getFullYear()
           const month = String(date.getMonth() + 1).padStart(2, '0')
           const day = String(date.getDate()).padStart(2, '0')
@@ -1531,17 +1124,14 @@ function handleSubmit() {
       })
       .filter(d => {
         if (!d) return false
-        // Final validation
         if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return false
         const date = new Date(d)
         return !Number.isNaN(date.getTime())
       })
       .sort()
   } else if (formData.challengeType === 'habit' && !props.isOwner) {
-    // For participants, don't send completedDays (they use separate endpoint)
     delete formData.completedDays
   } else if (formData.challengeType === 'result') {
-    // Clear completedDays for result challenges
     formData.completedDays = []
   }
   
@@ -1560,7 +1150,7 @@ function validate() {
   }
 
   if (!editForm.duration) {
-    errors.duration = t('validation.startOptionRequired') // Reuse existing validation message
+    errors.duration = t('validation.startOptionRequired')
   }
 
   if (props.challenge?.challengeType === 'habit' && !editForm.frequency) {
@@ -1584,43 +1174,6 @@ function formatDisplayDate(value) {
   } catch (err) {
     return date.toLocaleDateString()
   }
-}
-
-function formatDateRange(start, end) {
-  const startFormatted = formatDisplayDate(start)
-  const endFormatted = formatDisplayDate(end)
-  if (startFormatted && endFormatted) {
-    return t('challenges.dateRange', { start: startFormatted, end: endFormatted })
-  }
-  return startFormatted || endFormatted || ''
-}
-
-// Generate a consistent color for a participant based on their ID or name
-function getParticipantColor(participant) {
-  // Handle new structure: participant.userId or old structure: participant directly
-  const userId = participant.userId?._id || participant.userId || participant._id || participant
-  const name = participant.userId?.name || participant.name || ''
-  const seed = userId?.toString() || name
-  
-  // Generate a hash from the seed
-  let hash = 0
-  for (let i = 0; i < seed.length; i++) {
-    hash = seed.charCodeAt(i) + ((hash << 5) - hash)
-  }
-  
-  // Generate a color from the hash
-  const hue = Math.abs(hash % 360)
-  const saturation = 60 + (Math.abs(hash) % 20) // 60-80%
-  const lightness = 50 + (Math.abs(hash) % 15) // 50-65%
-  
-  return `hsl(${hue}, ${saturation}%, ${lightness}%)`
-}
-
-// Get the first letter of participant's name
-function getParticipantInitial(participant) {
-  // Handle new structure: participant.userId or old structure: participant directly
-  const name = participant.userId?.name || participant.name || t('common.unknown')
-  return name.charAt(0).toUpperCase()
 }
 
 function getPrivacyLabel(value) {
@@ -1652,30 +1205,26 @@ function getFrequencyLabel(value) {
   return frequencyMap[value] || value
 }
 
-function getParticipantAvatarUrl(participant) {
-  return participant.userId?.avatarUrl || participant.avatarUrl || null
+function getOwnerInitial() {
+  if (!props.challenge?.owner?.name) return '?'
+  return props.challenge.owner.name.charAt(0).toUpperCase()
 }
 
-function getParticipantAvatarStyle(participant) {
-  const avatarUrl = getParticipantAvatarUrl(participant)
-  if (avatarUrl) {
-    return {}
-  }
-  return { backgroundColor: getParticipantColor(participant) }
+function navigateToOwner() {
+  if (!props.challenge?.owner?._id && !props.challenge?.owner) return
+  const ownerId = props.challenge.owner._id || props.challenge.owner
+  router.push(`/heroes/${ownerId}`)
 }
 
 function handleCommentAdded() {
-  // Refresh challenge data if needed
   emit('update')
 }
 
 function handleCommentDeleted() {
-  // Refresh challenge data if needed
   emit('update')
 }
 
 function handleUserNavigated() {
-  // Close dialog when user navigates to a profile
   handleVisibility(false)
 }
 
@@ -1685,13 +1234,10 @@ async function handleOwnerCompletedDaysUpdate(completedDays) {
     return
   }
   
-  // Update local form data
   editForm.completedDays = completedDays
   
-  // Optimistically update local ref immediately for instant UI feedback
   localCurrentUserCompletedDays.value = [...completedDays]
   
-  // Save to owner's participant entry
   try {
     const response = await challengeService.updateParticipantCompletedDays(
       props.challenge._id,
@@ -1699,7 +1245,6 @@ async function handleOwnerCompletedDaysUpdate(completedDays) {
       completedDays
     )
 
-    // Update stored user XP if backend returned it
     if (response?.data?.user) {
       try {
         const stored = localStorage.getItem('user')
@@ -1711,21 +1256,18 @@ async function handleOwnerCompletedDaysUpdate(completedDays) {
         // ignore
       }
     }
-    // Emit update event to refresh challenge data from server
     emit('update')
   } catch (error) {
     console.error('Error updating owner completed days:', error)
-    // Revert optimistic update on error
     emit('update')
   }
 }
 
-// Handle participant calendar changes (store locally, don't auto-save)
+// Handle participant calendar changes
 function handleParticipantCalendarChange(completedDays) {
   if (!props.challenge || !currentUserId.value || !isCurrentUserParticipant.value) {
     return
   }
-  // Store changes locally
   localCurrentUserCompletedDays.value = [...completedDays]
 }
 
@@ -1748,7 +1290,6 @@ async function handleParticipantSave() {
       completedDays
     )
 
-    // Update stored user XP if backend returned it
     if (response?.data?.user) {
       try {
         const stored = localStorage.getItem('user')
@@ -1760,23 +1301,14 @@ async function handleParticipantSave() {
         // ignore
       }
     }
-    // Emit update event to refresh challenge data from server
     emit('update')
-    // Close the modal after successful save
     emit('update:modelValue', false)
-    // Navigate to home page
     router.push('/')
   } catch (error) {
     console.error('Error saving participant completed days:', error)
-    console.error('Error details:', error.response?.data || error.message)
   } finally {
     participantSaveLoading.value = false
   }
-}
-
-// Handle participant completedDays update (kept for backward compatibility)
-async function handleParticipantCompletedDaysUpdate(completedDays) {
-  await handleParticipantSave()
 }
 
 // Load watched challenges
@@ -1816,7 +1348,6 @@ const copyLink = async () => {
     snackbar.value = true
   } catch (err) {
     console.error('Failed to copy link:', err)
-    // Fallback for older browsers
     const textArea = document.createElement('textarea')
     textArea.value = url
     document.body.appendChild(textArea)
@@ -1846,7 +1377,6 @@ async function handleWatch() {
   try {
     await challengeService.watchChallenge(props.challenge._id, currentUserId.value)
     await loadWatchedChallenges()
-    // Close dialog and reload challenges
     emit('update:modelValue', false)
     emit('update')
   } catch (error) {
@@ -1865,7 +1395,6 @@ async function handleUnwatch() {
   try {
     await challengeService.unwatchChallenge(props.challenge._id, currentUserId.value)
     await loadWatchedChallenges()
-    // Close dialog and reload challenges
     emit('update:modelValue', false)
     emit('update')
   } catch (error) {
@@ -1878,173 +1407,181 @@ async function handleUnwatch() {
 </script>
 
 <style scoped>
-.dialog-content {
-  padding: 16px !important;
-  overflow-y: auto;
-  flex: 1;
-  min-height: 0;
+/* Header Image */
+.header-image {
+  position: relative;
 }
 
-@media (min-width: 600px) {
-  .dialog-content {
-    padding: 24px !important;
-  }
+/* Header Actions - Top Right Corner */
+.header-actions {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(4px);
+  border-radius: 24px;
+  padding: 4px;
 }
 
-@media (min-width: 960px) {
-  .dialog-content {
-    padding: 28px !important;
-  }
+.action-btn {
+  color: white !important;
+  min-width: 36px !important;
+  width: 36px !important;
+  height: 36px !important;
 }
 
-.dialog-card {
+.action-btn:hover {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Header Overlay */
+.header-overlay {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.2) 40%,
+    rgba(0, 0, 0, 0.8) 100%
+  );
+}
+
+.header-content {
+  width: 100%;
+  backdrop-filter: blur(2px);
+}
+
+.challenge-title {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+}
+
+.date-info {
+  font-family: 'Roboto', sans-serif;
+  letter-spacing: 0.5px;
+}
+
+/* Tabs */
+:deep(.v-tabs) {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+:deep(.v-tab) {
+  text-transform: none !important;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+/* Calendar Grid */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 12px;
+  max-width: 450px;
+  margin: 0 auto;
+}
+
+.day-cell {
+  aspect-ratio: 1;
   display: flex;
   flex-direction: column;
-  max-height: 90vh;
-  overflow: hidden;
-  border-radius: 12px !important;
-}
-
-/* Target the card inside the dialog overlay - multiple selectors for different Vuetify versions */
-:deep(.v-dialog .v-overlay__content .v-card),
-:deep(.v-dialog .v-overlay__content > .v-card),
-:deep(.v-overlay__content .v-card.dialog-card) {
-  border-radius: 12px !important;
-  overflow: hidden;
-}
-
-.dialog-header {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background-color: rgb(var(--v-theme-surface));
-  padding: 8px 12px !important;
-  border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
-  flex-shrink: 0;
+  justify-content: center;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  border: 2px solid transparent;
 }
 
-@media (min-width: 600px) {
-  .dialog-header {
-    padding: 16px 20px !important;
-  }
+.day-cell.is-completed {
+  background: #ecfdf5;
+  color: #059669;
 }
 
-@media (min-width: 960px) {
-  .dialog-header {
-    padding: 20px 24px !important;
-  }
+.day-cell.is-missed {
+  background: #fef2f2;
+  color: #dc2626;
 }
 
-.close-btn {
-  margin-left: 8px;
-  flex-shrink: 0;
+.day-cell.is-today {
+  border-color: #0d9488;
+  color: #0d9488;
+  font-weight: 700;
+  box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.2);
 }
 
-.share-btn {
-  flex-shrink: 0;
-  min-width: auto;
-  padding: 4px 8px !important;
+.day-cell.is-locked {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f8fafc;
+}
+
+.day-cell:hover:not(.is-locked) {
+  transform: scale(1.1);
+  filter: brightness(0.95);
+}
+
+.status-dot {
+  width: 4px;
+  height: 4px;
+  background: currentColor;
+  border-radius: 50%;
+  margin-top: 2px;
+}
+
+.calendar-legend {
   font-size: 0.75rem;
+  color: #64748b;
+  justify-content: center;
 }
 
-.share-btn :deep(.v-btn__prepend) {
-  margin-inline-end: 4px;
-}
-
-@media (min-width: 600px) {
-  .share-btn {
-    padding: 6px 12px !important;
-    font-size: 0.875rem;
-  }
-  
-  .share-btn :deep(.v-btn__prepend) {
-    margin-inline-end: 6px;
-  }
-}
-
-.dialog-header > .d-flex {
-  flex-shrink: 0;
-  gap: 2px;
-}
-
-@media (min-width: 600px) {
-  .dialog-header > .d-flex {
-    gap: 8px;
-  }
-}
-
-.privacy-icon {
-  font-size: 18px !important;
-}
-
-@media (min-width: 600px) {
-  .privacy-icon {
-    font-size: 24px !important;
-  }
-}
-
-.close-btn {
-  padding: 4px !important;
-}
-
-@media (min-width: 600px) {
-  .close-btn {
-    padding: 8px !important;
-  }
-}
-
-.dialog-title {
+.legend-item {
   display: flex;
   align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  flex: 1;
-  min-width: 0;
+  margin-right: 16px;
 }
 
-@media (min-width: 600px) {
-  .dialog-title {
-  gap: 12px;
-  }
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
 }
 
-.dialog-title span {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  line-height: 1.2;
+.dot.completed {
+  background: #059669;
 }
 
-@media (min-width: 600px) {
-  .dialog-title span {
-    font-size: 1.25rem;
-  }
+.dot.missed {
+  background: #dc2626;
 }
 
-@media (min-width: 960px) {
-  .dialog-title span {
-    font-size: 1.5rem;
-  }
+.dot.today {
+  border: 2px solid #0d9488;
 }
 
-.dialog-title :deep(.v-chip) {
-  height: 20px;
-  font-size: 0.6875rem;
-  padding: 0 6px;
+.calendar-wrapper {
+  padding: 0;
 }
 
-@media (min-width: 600px) {
-  .dialog-title :deep(.v-chip) {
-    height: 24px;
-    font-size: 0.75rem;
-    padding: 0 8px;
-  }
+.calendar-header {
+  margin-bottom: 16px;
 }
 
-.privacy-icon {
-  flex-shrink: 0;
+.days-counter {
+  font-size: 0.875rem;
 }
 
 .frequency-privacy-row {
@@ -2053,47 +1590,9 @@ async function handleUnwatch() {
   gap: 16px;
 }
 
-.frequency-privacy-row.single-column {
-  grid-template-columns: 1fr;
-}
-
 @media (min-width: 600px) {
-  .frequency-privacy-row:not(.single-column) {
+  .frequency-privacy-row {
     grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-.dates-row {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-@media (min-width: 600px) {
-  .dates-row {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    gap: 16px;
-  }
-}
-
-.start-date-text,
-.end-date-text {
-  font-size: 0.875rem;
-  color: rgba(0, 0, 0, 0.6);
-  margin: 0;
-  flex: 0 0 auto;
-}
-
-.end-date-text {
-  text-align: left;
-}
-
-@media (min-width: 600px) {
-  .end-date-text {
-    text-align: right;
   }
 }
 
@@ -2103,307 +1602,18 @@ async function handleUnwatch() {
   gap: 16px;
 }
 
-@media (min-width: 600px) {
-  .duration-row {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-.habit-calendar {
-  width: 100%;
-}
-
-.habit-calendar :deep(.v-card--variant-outlined) {
-  border-radius: 12px;
-}
-
-.habit-calendar :deep(.v-card-text) {
-  padding: 12px;
-  width: 100%;
-}
-
-@media (min-width: 600px) {
-  .habit-calendar :deep(.v-card-text) {
-    padding: 16px;
-  }
-}
-
-.habit-calendar :deep(.calendar-wrapper) {
-  width: 100%;
-}
-
 .duration-privacy-row {
   display: grid;
   grid-template-columns: 1fr;
   gap: 16px;
 }
 
-.duration-privacy-row .privacy-select {
-  grid-column: 1;
-  grid-row: 1;
-}
-
-.duration-privacy-row .duration-select {
-  grid-column: 1;
-  grid-row: 2;
-}
-
 @media (min-width: 600px) {
   .duration-privacy-row {
     grid-template-columns: 1fr 1fr;
   }
-  
-  .duration-privacy-row .privacy-select {
-    grid-column: 1;
-    grid-row: 1;
-  }
-  
-  .duration-privacy-row .duration-select {
-    grid-column: 2;
-    grid-row: 1;
-  }
 }
 
-.challenge-title-display {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: rgba(0, 0, 0, 0.87);
-  margin: 0;
-  line-height: 1.3;
-  word-break: break-word;
-}
-
-@media (min-width: 600px) {
-  .challenge-title-display {
-    font-size: 1.75rem;
-  }
-}
-
-@media (min-width: 960px) {
-  .challenge-title-display {
-    font-size: 2rem;
-  }
-}
-
-.created-by-section {
-  padding: 12px 24px;
-  border-top: 1px solid rgba(0, 0, 0, 0.12);
-}
-
-.created-by-text {
-  margin: 0;
-  font-size: 0.875rem;
-  color: rgba(0, 0, 0, 0.6);
-  text-align: center;
-}
-
-.buttons-area,
-:deep(.v-card-actions.buttons-area) {
-  border-top: 1px solid rgba(0, 0, 0, 0.12);
-  padding: 12px 16px !important;
-  margin-top: 0;
-  border-radius: 0 0 4px 4px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  flex-shrink: 0;
-  position: sticky;
-  bottom: 0;
-  background-color: rgb(var(--v-theme-surface));
-  z-index: 10;
-  justify-content: center !important;
-}
-
-@media (min-width: 600px) {
-  .buttons-area,
-  :deep(.v-card-actions.buttons-area) {
-    padding: 16px 20px !important;
-    gap: 12px;
-    justify-content: flex-start !important;
-  }
-}
-
-@media (min-width: 960px) {
-  .buttons-area,
-  :deep(.v-card-actions.buttons-area) {
-    padding: 16px 24px !important;
-  }
-}
-
-.buttons-container {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-@media (min-width: 600px) {
-  .buttons-container {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-  }
-}
-
-.secondary-buttons-row {
-  display: flex;
-  gap: 8px;
-  width: 100%;
-}
-
-@media (min-width: 600px) {
-  .secondary-buttons-row {
-    width: auto;
-    margin-left: 0;
-    order: -1;
-  }
-  
-  .save-button {
-    order: 1;
-  }
-}
-
-@media (max-width: 599px) {
-  .buttons-area .v-spacer {
-    display: none;
-  }
-}
-
-.action-button {
-  font-weight: 600;
-  text-transform: none;
-  letter-spacing: 0.5px;
-  height: 40px;
-  padding: 0 24px;
-  border-radius: 24px !important;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.save-button {
-  width: 100%;
-  min-width: 120px;
-}
-
-@media (min-width: 600px) {
-  .save-button {
-    width: auto;
-  }
-}
-
-.secondary-button {
-  flex: 1;
-  min-width: 100px;
-  height: 36px;
-  padding: 0 16px;
-  font-size: 0.875rem;
-}
-
-@media (min-width: 600px) {
-  .secondary-button {
-    flex: 0 0 auto;
-    min-width: 90px;
-  }
-}
-
-.delete-button.secondary-button {
-  border-color: rgba(211, 47, 47, 0.5) !important;
-  color: #d32f2f !important;
-}
-
-.delete-button.secondary-button:hover:not(:disabled) {
-  background-color: rgba(211, 47, 47, 0.08) !important;
-  border-color: #d32f2f !important;
-  transform: translateY(-1px);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 4px rgba(211, 47, 47, 0.2);
-}
-
-.save-button {
-  background: linear-gradient(135deg, #1FA0F6 0%, #2196F3 100%) !important;
-  color: white !important;
-  box-shadow: 0 2px 4px rgba(31, 160, 246, 0.2);
-  position: relative;
-  overflow: hidden;
-}
-
-.save-button::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-  transition: left 0.5s;
-}
-
-.save-button:hover:not(:disabled)::before {
-  left: 100%;
-}
-
-.save-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, #2196F3 0%, #1FA0F6 100%) !important;
-  box-shadow: 0 4px 12px rgba(31, 160, 246, 0.4);
-  transform: translateY(-2px);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.save-button:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: 0 2px 6px rgba(31, 160, 246, 0.3);
-}
-
-.save-button :deep(.v-btn__overlay) {
-  background: linear-gradient(135deg, #1FA0F6 0%, #2196F3 100%) !important;
-}
-
-.cancel-button {
-  border-width: 2px;
-  border-color: rgba(31, 160, 246, 0.5) !important;
-  color: #1FA0F6 !important;
-}
-
-.cancel-button:hover:not(:disabled) {
-  background-color: rgba(31, 160, 246, 0.08) !important;
-  border-color: #1FA0F6 !important;
-  transform: translateY(-2px);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(31, 160, 246, 0.2);
-}
-
-.participants-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-}
-
-.participant-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-weight: 600;
-  font-size: 16px;
-  cursor: default;
-  transition: transform 0.2s ease;
-  overflow: hidden;
-}
-
-.participant-avatar-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 50%;
-}
-
-.participant-avatar:hover {
-  transform: scale(1.1);
-}
 .calendar-mode-toggle {
   display: flex;
   justify-content: center;
@@ -2416,4 +1626,24 @@ async function handleUnwatch() {
   padding: 4px;
 }
 
+/* About Section Styles */
+.about-section {
+  line-height: 1.6;
+}
+
+.about-section h3 {
+  letter-spacing: -0.5px;
+  color: #1a202c;
+}
+
+/* Effect for stats cards */
+.v-card--variant-tonal {
+  opacity: 0.9;
+  transition: transform 0.2s;
+}
+
+.v-card--variant-tonal:hover {
+  transform: translateY(-2px);
+  opacity: 1;
+}
 </style>

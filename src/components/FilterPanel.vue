@@ -10,7 +10,7 @@
         variant="solo"
         flat
         density="comfortable"
-        hide-details
+          hide-details
         rounded="xl"
         class="search-bar elevation-1"
         bg-color="white"
@@ -19,7 +19,7 @@
         <template #prepend-inner>
           <v-icon color="grey-lighten-1">mdi-magnify</v-icon>
         </template>
-        
+
         <template #append-inner>
           <v-btn
             icon
@@ -114,16 +114,15 @@
               @update:model-value="updateFilter('popularity', $event)"
             ></v-select>
 
-            <v-select
-              :model-value="modelValue.creationDate"
-              :items="creationDateOptions"
-              label="Timeframe"
-              variant="outlined"
-              density="comfortable"
-              rounded="lg"
+            <v-switch
+              :model-value="modelValue.showUpcoming !== false"
+              @update:model-value="updateFilter('showUpcoming', $event)"
+              :label="t('filters.showUpcoming', 'Show Upcoming')"
+              color="primary"
               hide-details
-              @update:model-value="updateFilter('creationDate', $event)"
-            ></v-select>
+              density="comfortable"
+              class="show-upcoming-switch"
+            ></v-switch>
           </div>
         </v-card>
       </div>
@@ -155,13 +154,9 @@ const popularityOptions = computed(() => [
   { title: t('filters.popularityMost'), value: 'most' },
   { title: t('filters.popularityLeast'), value: 'least' }
 ])
-const creationDateOptions = computed(() => [
-  { title: t('filters.creationDateToday'), value: 'today' },
-  { title: t('filters.creationDateWeek'), value: 'week' }
-])
 
 const hasActiveFilters = computed(() => {
-  return props.modelValue.title || props.modelValue.owner || (props.modelValue.type && props.modelValue.type !== 'all')
+  return props.modelValue.title || props.modelValue.owner || (props.modelValue.type && props.modelValue.type !== 'all') || props.modelValue.popularity
 })
 
 function updateFilter(key, value) {
@@ -169,7 +164,7 @@ function updateFilter(key, value) {
 }
 
 function clearFilters() {
-  emit('update:modelValue', { title: null, type: 'all', owner: null, popularity: null, creationDate: null })
+  emit('update:modelValue', { title: null, type: 'all', owner: null, popularity: null, showUpcoming: true })
 }
 
 function handleSearch() { emit('search') }

@@ -1,5 +1,10 @@
 <template>
-  <v-card class="main-ritual-hero mb-8" theme="dark">
+  <v-card 
+    class="main-ritual-hero mb-8" 
+    theme="dark"
+    @click="$emit('click', challenge)"
+    style="cursor: pointer;"
+  >
     <v-img
       :src="challenge?.imageUrl || 'https://images.unsplash.com/photo-149485981460c-3834b3a25b5c?auto=format&fit=crop&q=80&w=1200'"
       cover
@@ -50,10 +55,10 @@
               color="teal-accent-4"
               size="large"
               rounded="xl"
-              class="px-8 join-btn"
+              class="px-8 ml-3 join-btn"
               elevation="8"
               :loading="joining"
-              @click="handleJoin"
+              @click.stop="handleJoin"
             >
               {{ t('challenges.acceptChallenge') }}
             </v-btn>
@@ -85,7 +90,7 @@ const props = defineProps({
   joining: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['join'])
+const emit = defineEmits(['join', 'click'])
 const { t } = useI18n()
 
 const participantCount = computed(() => props.challenge?.participants?.length || 0)
@@ -190,7 +195,7 @@ function handleJoin() { if (props.challenge) emit('join', props.challenge) }
 /* --- Стили для мобильных (max-width: 600px) --- */
 @media (max-width: 600px) {
   .main-ritual-hero {
-    height: 340px !important; /* Фиксируем высоту, чтобы не "раздувало" */
+    height: 282px !important; /* Фиксируем высоту, чтобы не "раздувало" */
     border-radius: 16px !important;
   }
 
@@ -241,7 +246,7 @@ function handleJoin() { if (props.challenge) emit('join', props.challenge) }
 /* --- Совсем маленькие экраны (max-width: 400px) --- */
 @media (max-width: 400px) {
   .main-ritual-hero {
-    height: 300px !important;
+    height: 235px !important;
   }
   
   .text-h3 {

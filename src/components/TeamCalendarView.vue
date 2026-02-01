@@ -1,83 +1,120 @@
 <template>
   <div class="team-calendar-view">
-    <div class="calendar-wrapper">
-      <div class="challenge-calendar" :class="{ 'has-scroll': needsScroll }">
+    <v-card variant="flat" class="team-pulse-card pa-6 mb-8 rounded-xl bg-teal-lighten-5">
+      <div class="d-flex align-center justify-space-between mb-2">
+        <div>
+          <div class="text-overline text-teal-darken-1 mb-n1">{{ t('challenges.teamProgress') }}</div>
+          <div class="text-h4 font-weight-black text-teal-darken-2">
+            {{ teamAveragePercentage }}%
+          </div>
+        </div>
+        <v-avatar size="64" color="white" class="elevation-2">
+          <v-icon color="teal" size="32">mdi-account-group</v-icon>
+        </v-avatar>
+      </div>
+      <v-progress-linear
+        :model-value="teamAveragePercentage"
+        color="teal-darken-1"
+        height="12"
+        rounded
+        class="mb-2"
+      />
+      <div class="text-caption text-teal-darken-1">
+        {{ totalCompletedTasks }} {{ t('challenges.tasksCompletedByTeam') }}
+      </div>
+    </v-card>
+
+    <div class="calendar-wrapper mb-8">
+      <h4 class="text-subtitle-1 font-weight-bold mb-4 px-1">{{ t('challenges.teamActivityMap') }}</h4>
+      <div class="calendar-grid">
         <div
           v-for="(day, index) in days"
           :key="index"
-          class="day-circle"
+          class="day-cell"
           :class="{
-            'day-marked': day.marked,
-            'day-today': day.isToday,
-            'day-disabled': day.disabled,
-            'day-in-range': day.inRange,
-            'day-missed': day.missed
+            'is-completed': day.marked,
+            'is-missed': day.missed,
+            'is-today': day.isToday,
+            'is-locked': day.disabled
           }"
         >
-          <span class="day-number">
-            {{ formatDay(day.date) }}
-            <span v-if="day.marked" class="day-check">✔</span>
-          </span>
+          <span class="day-number">{{ formatDay(day.date) }}</span>
+          <div v-if="day.marked" class="status-dot"></div>
           <div v-if="day.participantCount > 0" class="participant-count">
             {{ day.participantCount }}
           </div>
         </div>
       </div>
 
-      <div class="calendar-legend">
+      <div class="calendar-legend d-flex flex-wrap gap-4 mt-6">
         <div class="legend-item">
-          <span class="legend-dot legend-marked"></span>
-          <span>{{ t('challenges.calendarLegend.completed') }}</span>
+          <span class="dot completed"></span>
+          {{ t('challenges.completed') }}
         </div>
-
         <div class="legend-item">
-          <span class="legend-dot legend-missed"></span>
-          <span>{{ t('challenges.calendarLegend.missed') }}</span>
+          <span class="dot missed"></span>
+          {{ t('challenges.missed') }}
         </div>
-
         <div class="legend-item">
-          <span class="legend-dot legend-today"></span>
-          <span>{{ t('challenges.calendarLegend.today') }}</span>
-        </div>
-
-        <div class="legend-item">
-          <span class="legend-dot legend-disabled"></span>
-          <span>{{ t('challenges.calendarLegend.unavailable') }}</span>
+          <span class="dot today"></span>
+          {{ t('challenges.today') }}
         </div>
       </div>
     </div>
 
-    <div v-if="participantsWithStats.length > 0" class="participants-progress">
-      <h4 class="participants-title">
-        {{ t('challenges.participants') }} ({{ participantsWithStats.length }})
+    <div v-if="participantsWithStats.length > 0" class="participants-section">
+      <h4 class="text-subtitle-1 font-weight-bold mb-4 px-1">
+        {{ t('challenges.teamLeaders') }} ({{ participantsWithStats.length }})
       </h4>
-      <div class="participants-list">
-        <div
+      
+      <div class="participants-grid">
+        <v-card
           v-for="participant in participantsWithStats"
           :key="participant.id"
-          class="participant-item"
+          variant="flat"
+          class="participant-card mb-3 rounded-xl border transition-swing"
           @click="navigateToUserProfile(participant)"
         >
-          <div class="participant-info">
-            <div
-              class="participant-avatar"
-              :style="getParticipantAvatarStyle(participant)"
+          <div class="d-flex align-center pa-4">
+            <v-avatar 
+              size="48" 
+              :color="getParticipantColor(participant)" 
+              class="mr-4 elevation-1"
             >
-              <img
-                v-if="getParticipantAvatarUrl(participant)"
-                :src="getParticipantAvatarUrl(participant)"
-                :alt="participant.name || t('common.unknown')"
-                class="participant-avatar-img"
+              <v-img v-if="getParticipantAvatarUrl(participant)" :src="getParticipantAvatarUrl(participant)" />
+              <span v-else class="text-white font-weight-bold">{{ getParticipantInitial(participant) }}</span>
+            </v-avatar>
+
+            <div class="flex-grow-1">
+              <div class="d-flex justify-space-between align-center mb-1">
+                <span class="font-weight-bold text-truncate" style="max-width: 150px">
+                  {{ participant.name || t('common.unknown') }}
+                </span>
+                <span class="text-caption font-weight-black" :class="`text-${getProgressColor(participant)}`">
+                  {{ participant.completedCount }}/{{ participant.totalDuration }}
+                </span>
+              </div>
+              
+              <v-progress-linear
+                :model-value="(participant.completedCount / participant.totalDuration) * 100"
+                :color="getProgressColor(participant)"
+                height="6"
+                rounded
               />
-              <span v-else>{{ getParticipantInitial(participant) }}</span>
+              
+              <div class="d-flex gap-1 mt-2 justify-start">
+                <div 
+                  v-for="(day, idx) in getLastDaysForParticipant(participant, 10)" 
+                  :key="idx"
+                  class="mini-dot"
+                  :class="{ 'active': day.completed, 'missed': day.missed }"
+                ></div>
+              </div>
             </div>
-            <span class="participant-name">{{ participant.name || t('common.unknown') }}</span>
+
+            <v-icon color="grey-lighten-1" class="ml-2">mdi-chevron-right</v-icon>
           </div>
-          <div class="participant-stats">
-            <span class="completed-count">{{ participant.completedCount }}/{{ participant.totalDuration }}</span>
-            <span class="stats-label">{{ t('challenges.calendarLegend.completed') }}</span>
-          </div>
-        </div>
+        </v-card>
       </div>
     </div>
   </div>
@@ -282,6 +319,48 @@ const participantsWithStats = computed(() => {
   })
 })
 
+// Calculate team average percentage
+const teamAveragePercentage = computed(() => {
+  if (!participantsWithStats.value.length) return 0
+  const total = participantsWithStats.value.reduce((acc, p) => {
+    if (p.totalDuration === 0) return acc
+    return acc + (p.completedCount / p.totalDuration)
+  }, 0)
+  return Math.round((total / participantsWithStats.value.length) * 100)
+})
+
+// Calculate total completed tasks
+const totalCompletedTasks = computed(() => {
+  return participantsWithStats.value.reduce((acc, p) => acc + p.completedCount, 0)
+})
+
+// Get progress color based on percentage
+function getProgressColor(participant) {
+  if (participant.totalDuration === 0) return 'grey'
+  const pct = (participant.completedCount / participant.totalDuration) * 100
+  if (pct >= 80) return 'teal'
+  if (pct >= 50) return 'orange'
+  return 'grey'
+}
+
+// Get last days for participant (for mini dots)
+function getLastDaysForParticipant(participant, count) {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  
+  return days.value.slice(-count).map(day => {
+    const dayDate = new Date(day.date)
+    dayDate.setHours(0, 0, 0, 0)
+    const isCompleted = participant.completedDays.includes(day.dateStr)
+    const isMissed = dayDate < today && !isCompleted && !day.disabled
+    
+    return {
+      completed: isCompleted,
+      missed: isMissed
+    }
+  })
+}
+
 function formatDateString(date) {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -340,318 +419,205 @@ function navigateToUserProfile(participant) {
   width: 100%;
 }
 
+.team-pulse-card {
+  border: 1px solid rgba(13, 148, 136, 0.1);
+}
+
 .calendar-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  align-items: flex-start;
   width: 100%;
-  margin-bottom: 16px;
+  padding: 0;
 }
 
-@media (min-width: 768px) {
-  .calendar-wrapper {
-    flex-direction: row;
-    gap: 24px;
-    margin-bottom: 24px;
-  }
-}
-
-.challenge-calendar {
+/* Calendar Grid - Same as personal calendar */
+.calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 8px;
-  padding: 12px 0;
-  flex: 1;
-  width: 100%;
+  gap: 12px;
+  max-width: 450px;
+  margin: 0 auto;
 }
 
-.challenge-calendar.has-scroll {
-  max-height: calc(4 * 44px + 3 * 8px);
-  overflow-y: auto;
-}
-
-@media (min-width: 600px) {
-  .challenge-calendar {
-    gap: 12px;
-    padding: 16px 0;
-  }
-  
-  .challenge-calendar.has-scroll {
-    max-height: calc(4 * 44px + 3 * 12px);
-  }
-}
-
-.day-circle {
-  width: 100%;
+.day-cell {
   aspect-ratio: 1;
-  max-width: 44px;
-  border-radius: 50%;
-  background-color: rgba(255, 152, 0, 0.2);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: default;
   transition: all 0.2s ease;
-  border: 2px solid transparent;
   position: relative;
-  animation: fadeIn 0.3s ease-in;
-  margin: 0 auto;
-  cursor: default;
+  border: 2px solid transparent;
 }
 
-@media (min-width: 600px) {
-  .day-circle {
-    max-width: 60px;
-  }
+/* States - Same as personal calendar */
+.day-cell.is-completed {
+  background: #ecfdf5;
+  color: #059669;
 }
 
-.day-circle.day-marked {
-  background-color: #4caf50;
-  color: black;
-  box-shadow: 0 0 6px rgba(76, 175, 80, 0.6);
+.day-cell.is-missed {
+  background: #fef2f2;
+  color: #dc2626;
 }
 
-.day-circle.day-today {
-  border-color: #2196f3;
-  border-width: 2px;
-  box-shadow: 0 0 6px rgba(33, 150, 243, 0.6);
+.day-cell.is-today {
+  border-color: #0d9488;
+  color: #0d9488;
+  font-weight: 700;
+  box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.2);
 }
 
-.day-circle.day-disabled {
-  opacity: 0.7;
-  cursor: default;
-  background-color: #e0e0e0;
-}
-
-.day-circle.day-marked.day-disabled {
-  background-color: #4caf50;
-  opacity: 0.8;
-}
-
-.day-circle.day-missed.day-disabled {
-  background-color: #f44336;
-  opacity: 0.8;
-}
-
-.day-circle.day-missed {
-  background-color: #ef5350;
-  border: 2px solid #c62828;
+.day-cell.is-locked {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f8fafc;
 }
 
 .day-number {
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 500;
-  color: #333;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
 }
 
-.day-circle.day-marked .day-number {
-  color: black !important;
+.day-cell.is-completed .day-number {
+  color: #059669;
 }
 
-.day-circle.day-disabled .day-number {
-  color: #999;
+.day-cell.is-missed .day-number {
+  color: #dc2626;
 }
 
-.day-circle.day-marked.day-disabled .day-number {
-  color: black !important;
+.day-cell.is-today .day-number {
+  color: #0d9488;
+  font-weight: 700;
 }
 
-.day-circle.day-missed .day-number {
-  color: white;
+.day-cell.is-locked .day-number {
+  color: #64748b;
 }
 
-.day-circle.day-marked.day-missed {
-  background-color: #4caf50;
+/* Status dot - Same as personal calendar */
+.status-dot {
+  width: 4px;
+  height: 4px;
+  background: currentColor;
+  border-radius: 50%;
+  margin-top: 2px;
 }
 
-.day-check {
-  font-size: 11px;
-  color: #1b5e20;
-}
-
+/* Participant count badge */
 .participant-count {
   position: absolute;
   bottom: 2px;
   right: 2px;
-  font-size: 9px;
-  font-weight: 600;
-  color: #1b5e20;
-  background-color: rgba(255, 255, 255, 0.8);
+  font-size: 8px;
+  font-weight: 700;
+  color: white;
+  background-color: #0d9488;
   border-radius: 50%;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
+  border: 1px solid white;
 }
 
+.day-cell.is-completed .participant-count {
+  background-color: #059669;
+}
+
+.day-cell.is-missed .participant-count {
+  background-color: #dc2626;
+}
+
+/* Calendar Legend - Same as personal calendar */
 .calendar-legend {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding-top: 10px;
-  min-width: 140px;
-  width: 100%;
-}
-
-@media (min-width: 768px) {
-  .calendar-legend {
-    width: auto;
-  }
+  font-size: 0.75rem;
+  color: #64748b;
+  justify-content: center;
+  margin-top: 24px;
 }
 
 .legend-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: #444;
+  margin-right: 16px;
 }
 
-.legend-dot {
-  width: 16px;
-  height: 16px;
+.dot {
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  display: inline-block;
-  border: 2px solid transparent;
+  margin-right: 6px;
 }
 
-.legend-marked {
-  background-color: #4caf50;
+.dot.completed {
+  background: #059669;
 }
 
-.legend-missed {
-  background-color: #f44336;
+.dot.missed {
+  background: #dc2626;
 }
 
-.legend-today {
-  border-color: #2196f3;
-  background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+.dot.today {
+  border: 2px solid #0d9488;
 }
 
-.legend-disabled {
-  background-color: #e0e0e0;
-}
-
-.participants-progress {
+/* Participants Section */
+.participants-section {
   margin-top: 24px;
-  padding-top: 24px;
-  border-top: 1px solid rgba(0, 0, 0, 0.12);
 }
 
-.participants-title {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 16px;
-  color: #333;
-}
-
-.participants-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  max-height: 320px;
-  overflow-y: auto;
-  padding-right: 4px;
-}
-
-.participants-list::-webkit-scrollbar {
-  width: 6px;
-}
-
-.participants-list::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
-}
-
-.participants-list::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 3px;
-}
-
-.participants-list::-webkit-scrollbar-thumb:hover {
-  background: #555;
-}
-
-.participant-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px;
-  background-color: #f5f5f5;
-  border-radius: 8px;
+.participant-card {
+  transition: all 0.2s ease;
+  background: white !important;
+  border: 1px solid #f1f5f9 !important;
   cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.1s ease;
 }
 
-.participant-item:hover {
-  background-color: #e8e8e8;
-  transform: translateX(2px);
+.participant-card:hover {
+  transform: translateX(4px);
+  border-color: #0d9488 !important;
+  background: #f0fdfa !important;
 }
 
-.participant-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.mini-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  background: #f1f5f9;
 }
 
-.participant-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-weight: 600;
-  font-size: 16px;
-  overflow: hidden;
+.mini-dot.active {
+  background: #0d9488;
 }
 
-.participant-avatar-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 50%;
+.mini-dot.missed {
+  background: #fee2e2;
 }
 
-.participant-name {
-  font-size: 14px;
-  font-weight: 500;
-  color: #333;
-}
-
-.participant-stats {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+.gap-1 {
   gap: 4px;
 }
 
-.completed-count {
-  font-size: 18px;
-  font-weight: 600;
-  color: #4caf50;
+/* Styling scroll for participants list */
+.participants-grid {
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 8px;
 }
 
-.stats-label {
-  font-size: 12px;
-  color: #666;
+.participants-grid::-webkit-scrollbar {
+  width: 4px;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.8);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+.participants-grid::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 10px;
 }
 </style>

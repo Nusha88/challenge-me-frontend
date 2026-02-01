@@ -169,7 +169,7 @@
           <span>{{ watchersCount }}</span>
         </div>
       </v-card-subtitle>
-      <div v-if="isFinished && !isSuccessful && currentUserId" class="restart-section mb-2 pa-0 px-4 d-flex justify-center">
+      <div v-if="isFinished && !isSuccessful && currentUserId && isOwner" class="restart-section mb-2 pa-0 px-4 d-flex justify-center">
         <v-btn
           size="small"
           variant="outlined"
@@ -572,99 +572,144 @@ const progressPercentage = computed(() => {
 
 // Calculate streak for habit challenges
 const streakDays = computed(() => {
-  if (props.challenge.challengeType !== 'habit') return 0
-  if (!props.currentUserId || !props.challenge.participants) return 0
-  
-  // Find current user's participant entry
-  const participant = props.challenge.participants.find(p => {
-    const userId = p.userId?._id || p.userId || p._id
-    return userId && userId.toString() === props.currentUserId.toString()
-  })
-  
-  if (!participant || !participant.completedDays || !Array.isArray(participant.completedDays)) return 0
-  
-  // Helper function to format date string
-  function formatDateString(date) {
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
-  }
-  
-  // Normalize completedDays to date strings
-  const completedDateStrings = participant.completedDays
-    .map(date => {
-      if (!date) return null
-      let dateStr = String(date)
-      if (dateStr.includes('T')) {
-        dateStr = dateStr.split('T')[0]
+  try {
+    if (props.challenge.challengeType !== 'habit') return 0
+    if (!props.currentUserId || !props.challenge.participants) return 0
+    
+    // Find current user's participant entry
+    const participant = props.challenge.participants.find(p => {
+      try {
+        const userId = p.userId?._id || p.userId || p._id
+        return userId && userId.toString() === props.currentUserId.toString()
+      } catch (e) {
+        return false
       }
-      return dateStr.substring(0, 10)
     })
-    .filter(Boolean)
-  
-  if (completedDateStrings.length === 0) return 0
-  
-  // Sort dates descending (most recent first)
-  const sortedDates = completedDateStrings.slice().sort((a, b) => b.localeCompare(a))
-  
-  // Start from today or the most recent completed day
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const todayStr = formatDateString(today)
-  
-  // Check if today is completed, if not start from yesterday
-  let startDate = new Date(today)
-  if (!completedDateStrings.includes(todayStr)) {
-    startDate.setDate(startDate.getDate() - 1)
-  }
-  
-  // Calculate streak by counting consecutive days backwards
-  let streak = 0
-  let currentDate = new Date(startDate)
-  
-  for (let i = 0; i < 365; i++) {
-    const dateStr = formatDateString(currentDate)
-    if (completedDateStrings.includes(dateStr)) {
-      streak++
-    } else {
-      break
+    
+    if (!participant || !participant.completedDays || !Array.isArray(participant.completedDays)) return 0
+    
+    // Helper function to format date string
+    function formatDateString(date) {
+      try {
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        return `${year}-${month}-${day}`
+      } catch (e) {
+        return null
+      }
     }
-    currentDate.setDate(currentDate.getDate() - 1)
-    currentDate.setHours(0, 0, 0, 0)
+    
+    // Normalize completedDays to date strings
+    const completedDateStrings = participant.completedDays
+      .map(date => {
+        try {
+          if (!date) return null
+          let dateStr = String(date)
+          if (dateStr.includes('T')) {
+            dateStr = dateStr.split('T')[0]
+          }
+          return dateStr.substring(0, 10)
+        } catch (e) {
+          return null
+        }
+      })
+      .filter(Boolean)
+    
+    if (completedDateStrings.length === 0) return 0
+    
+    // Sort dates descending (most recent first)
+    const sortedDates = completedDateStrings.slice().sort((a, b) => {
+      try {
+        return b.localeCompare(a)
+      } catch (e) {
+        return 0
+      }
+    })
+    
+    // Start from today or the most recent completed day
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const todayStr = formatDateString(today)
+    
+    if (!todayStr) return 0
+    
+    // Check if today is completed, if not start from yesterday
+    let startDate = new Date(today)
+    if (!completedDateStrings.includes(todayStr)) {
+      startDate.setDate(startDate.getDate() - 1)
+    }
+    
+    // Calculate streak by counting consecutive days backwards
+    let streak = 0
+    let currentDate = new Date(startDate)
+    
+    for (let i = 0; i < 365; i++) {
+      try {
+        const dateStr = formatDateString(currentDate)
+        if (!dateStr) break
+        if (completedDateStrings.includes(dateStr)) {
+          streak++
+        } else {
+          break
+        }
+        currentDate.setDate(currentDate.getDate() - 1)
+        currentDate.setHours(0, 0, 0, 0)
+      } catch (e) {
+        break
+      }
+    }
+    
+    return streak
+  } catch (error) {
+    console.error('Error calculating streak:', error)
+    return 0
   }
-  
-  return streak
 })
 
 // Check if today is completed for this challenge
 const isTodayCompleted = computed(() => {
-  if (props.challenge.challengeType !== 'habit') return false
-  if (!props.currentUserId || !props.challenge.participants) return false
-  
-  // Find current user's participant entry
-  const participant = props.challenge.participants.find(p => {
-    const userId = p.userId?._id || p.userId || p._id
-    return userId && userId.toString() === props.currentUserId.toString()
-  })
-  
-  if (!participant || !participant.completedDays || !Array.isArray(participant.completedDays)) return false
-  
-  // Format today's date
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const todayStr = formatDateString(today)
-  
-  // Check if today's date is in completedDays
-  return participant.completedDays.some(date => {
-    if (!date) return false
-    let dateStr = String(date)
-    if (dateStr.includes('T')) {
-      dateStr = dateStr.split('T')[0]
-    }
-    dateStr = dateStr.substring(0, 10)
-    return dateStr === todayStr
-  })
+  try {
+    if (props.challenge.challengeType !== 'habit') return false
+    if (!props.currentUserId || !props.challenge.participants) return false
+    
+    // Find current user's participant entry
+    const participant = props.challenge.participants.find(p => {
+      try {
+        const userId = p.userId?._id || p.userId || p._id
+        return userId && userId.toString() === props.currentUserId.toString()
+      } catch (e) {
+        return false
+      }
+    })
+    
+    if (!participant || !participant.completedDays || !Array.isArray(participant.completedDays)) return false
+    
+    // Format today's date
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const todayStr = formatDateString(today)
+    
+    if (!todayStr) return false
+    
+    // Check if today's date is in completedDays
+    return participant.completedDays.some(date => {
+      try {
+        if (!date) return false
+        let dateStr = String(date)
+        if (dateStr.includes('T')) {
+          dateStr = dateStr.split('T')[0]
+        }
+        dateStr = dateStr.substring(0, 10)
+        return dateStr === todayStr
+      } catch (e) {
+        return false
+      }
+    })
+  } catch (error) {
+    console.error('Error checking if today is completed:', error)
+    return false
+  }
 })
 
 // Helper function to format date string
@@ -677,56 +722,83 @@ function formatDateString(date) {
 
 // Calculate maximum streak for finished habit challenges
 const maxStreak = computed(() => {
-  if (props.challenge.challengeType !== 'habit') return 0
-  if (!props.currentUserId || !props.challenge.participants) return 0
-  
-  // Find current user's participant entry
-  const participant = props.challenge.participants.find(p => {
-    const userId = p.userId?._id || p.userId || p._id
-    return userId && userId.toString() === props.currentUserId.toString()
-  })
-  
-  if (!participant || !participant.completedDays || !Array.isArray(participant.completedDays)) return 0
-  
-  // Normalize completedDays to date strings
-  const completedDateStrings = participant.completedDays
-    .map(date => {
-      if (!date) return null
-      let dateStr = String(date)
-      if (dateStr.includes('T')) {
-        dateStr = dateStr.split('T')[0]
+  try {
+    if (props.challenge.challengeType !== 'habit') return 0
+    if (!props.currentUserId || !props.challenge.participants) return 0
+    
+    // Find current user's participant entry
+    const participant = props.challenge.participants.find(p => {
+      try {
+        const userId = p.userId?._id || p.userId || p._id
+        return userId && userId.toString() === props.currentUserId.toString()
+      } catch (e) {
+        return false
       }
-      return dateStr.substring(0, 10)
     })
-    .filter(Boolean)
-    .sort((a, b) => a.localeCompare(b)) // Sort ascending
-  
-  if (completedDateStrings.length === 0) return 0
-  
-  // Find all consecutive streaks and return the maximum
-  let maxStreak = 1
-  let currentStreak = 1
-  
-  for (let i = 1; i < completedDateStrings.length; i++) {
-    const prevDate = new Date(completedDateStrings[i - 1])
-    const currDate = new Date(completedDateStrings[i])
     
-    prevDate.setHours(0, 0, 0, 0)
-    currDate.setHours(0, 0, 0, 0)
+    if (!participant || !participant.completedDays || !Array.isArray(participant.completedDays)) return 0
     
-    // Check if dates are consecutive
-    const diffTime = currDate - prevDate
-    const diffDays = diffTime / (1000 * 60 * 60 * 24)
+    // Normalize completedDays to date strings
+    const completedDateStrings = participant.completedDays
+      .map(date => {
+        try {
+          if (!date) return null
+          let dateStr = String(date)
+          if (dateStr.includes('T')) {
+            dateStr = dateStr.split('T')[0]
+          }
+          return dateStr.substring(0, 10)
+        } catch (e) {
+          return null
+        }
+      })
+      .filter(Boolean)
+      .sort((a, b) => {
+        try {
+          return a.localeCompare(b)
+        } catch (e) {
+          return 0
+        }
+      }) // Sort ascending
     
-    if (diffDays === 1) {
-      currentStreak++
-      maxStreak = Math.max(maxStreak, currentStreak)
-    } else {
-      currentStreak = 1
+    if (completedDateStrings.length === 0) return 0
+    
+    // Find all consecutive streaks and return the maximum
+    let maxStreak = 1
+    let currentStreak = 1
+    
+    for (let i = 1; i < completedDateStrings.length; i++) {
+      try {
+        const prevDate = new Date(completedDateStrings[i - 1])
+        const currDate = new Date(completedDateStrings[i])
+        
+        if (isNaN(prevDate.getTime()) || isNaN(currDate.getTime())) {
+          continue
+        }
+        
+        prevDate.setHours(0, 0, 0, 0)
+        currDate.setHours(0, 0, 0, 0)
+        
+        // Check if dates are consecutive
+        const diffTime = currDate - prevDate
+        const diffDays = diffTime / (1000 * 60 * 60 * 24)
+        
+        if (diffDays === 1) {
+          currentStreak++
+          maxStreak = Math.max(maxStreak, currentStreak)
+        } else {
+          currentStreak = 1
+        }
+      } catch (e) {
+        continue
+      }
     }
+    
+    return maxStreak
+  } catch (error) {
+    console.error('Error calculating max streak:', error)
+    return 0
   }
-  
-  return maxStreak
 })
 
 // Calculate efficiency percentage for finished quest challenges
@@ -917,6 +989,11 @@ function restartChallenge() {
   
   // Store challenge data in sessionStorage to pre-fill the form
   sessionStorage.setItem('restartChallengeData', JSON.stringify(challengeData))
+  
+  // Store the old challenge ID so we can remove it from finished list after restart
+  if (props.challenge._id) {
+    sessionStorage.setItem('restartedChallengeId', props.challenge._id)
+  }
   
   // Navigate to add challenge page
   router.push('/missions/add')

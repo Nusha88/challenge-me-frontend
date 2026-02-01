@@ -1,16 +1,25 @@
 <template>
-<div class="all-challenges">
+  <div class="all-challenges">
     <div class="mb-4 mb-md-6">
       <h1 class="page-title">{{ t('challenges.listTitle') }} ({{ totalChallenges }})</h1>
     </div>
 
 
+    <!-- Main Ritual Card with Skeleton -->
+    <div v-if="loadingMainRitual" class="main-ritual-skeleton mb-8">
+      <v-skeleton-loader
+        type="image, article"
+        height="400"
+        class="main-ritual-skeleton-loader"
+      ></v-skeleton-loader>
+    </div>
     <MainRitualCard
-      v-if="mainRitual"
+      v-else-if="mainRitual"
       :challenge="mainRitual"
       :current-user-id="currentUserId"
       :joining="joiningId === mainRitual._id"
       @join="joinChallenge"
+      @click="openDetails"
     />
 
     <FilterPanel v-model="filters" @search="handleFilterSearch" />
@@ -56,6 +65,31 @@
 </div>
     </div>
 
+    <!-- Upcoming Challenges Section -->
+    <div v-if="upcomingChallenges.length > 0 && filters.showUpcoming !== false" class="upcoming-section mt-8">
+      <h2 class="section-title mb-4">{{ t('challenges.upcoming') }}</h2>
+      <div class="challenges-grid">
+          <ChallengeCard
+          v-for="challenge in upcomingChallenges"
+            :key="challenge._id"
+            :challenge="challenge"
+            :current-user-id="currentUserId"
+            :show-join-button="true"
+            :joining-id="joiningId"
+          :leaving-id="leavingId"
+          :watching-id="watchingId"
+          all-challenges="true"
+          :is-watched="isWatched(challenge)"
+            @click="openDetails"
+            @join="joinChallenge"
+          @leave="leaveChallenge"
+          @watch="watchChallenge"
+          @unwatch="unwatchChallenge"
+          @owner-navigated="handleOwnerNavigated"
+          />
+        </div>
+    </div>
+
     <ChallengeDetailsDialog
       v-model="detailsDialogOpen"
       :challenge="selectedChallenge"
@@ -91,7 +125,9 @@ const router = useRouter()
 const route = useRoute()
 
 const challenges = ref([])
+const allHabitChallenges = ref([]) // Store all habit challenges for main ritual selection
 const loading = ref(false)
+const loadingMainRitual = ref(false)
 const loadingMore = ref(false)
 const errorMessage = ref('')
 const currentUserId = ref(getCurrentUserId())
@@ -108,7 +144,7 @@ const filters = ref({
   type: 'all',
   owner: null,
   popularity: null,
-  creationDate: null
+  showUpcoming: true // Default to showing upcoming challenges
 })
 
 // Challenges are already filtered by the backend, so use them directly
@@ -118,15 +154,15 @@ const filteredChallenges = computed(() => {
 
 // Find the main ritual (most popular habit challenge)
 const mainRitual = computed(() => {
-  const habitChallenges = challenges.value.filter(c => c.challengeType === 'habit')
-  if (habitChallenges.length === 0) return null
+  // Use allHabitChallenges which contains all habit challenges, not just paginated ones
+  if (allHabitChallenges.value.length === 0) return null
   
   // Find the challenge with the most participants
-  return habitChallenges.reduce((prev, current) => {
+  return allHabitChallenges.value.reduce((prev, current) => {
     const prevCount = prev?.participants?.length || 0
     const currentCount = current?.participants?.length || 0
     return currentCount > prevCount ? current : prev
-  }, habitChallenges[0])
+  }, allHabitChallenges.value[0])
 })
 
 const totalChallenges = computed(() => {
@@ -398,6 +434,9 @@ async function joinChallenge(challenge) {
     // Refresh challenges list (keep current page)
     await fetchChallenges(currentPage.value, false)
     
+    // Refresh all habit challenges to update main ritual
+    await fetchAllHabitChallenges()
+    
     // Refresh the selected challenge if dialog is open
     if (selectedChallenge.value?._id === challenge._id) {
       // Fetch fresh challenge data to get updated participants list
@@ -472,8 +511,7 @@ async function fetchChallenges(page = 1, append = false) {
       ...(filters.value.title && { title: filters.value.title }),
       ...(filters.value.type && { type: filters.value.type }),
       ...(filters.value.owner && { owner: filters.value.owner }),
-      ...(filters.value.popularity && { popularity: filters.value.popularity }),
-      ...(filters.value.creationDate && { creationDate: filters.value.creationDate })
+      ...(filters.value.popularity && { popularity: filters.value.popularity })
     }
     
     const { data } = await challengeService.getAllChallenges(filterParams)
@@ -526,13 +564,7 @@ async function openDetails(challenge) {
   // Prevent recursive calls
   if (isOpeningChallenge.value) return
   
-  // Check if user is owner - navigate to edit page
-  if (isChallengeOwner(challenge.owner)) {
-    router.push(`/missions/edit/${challenge._id}`)
-    return
-  }
-  
-  // Otherwise open modal for non-owners
+  // Always open details dialog for all users (owners can navigate to edit from dialog)
   isOpeningChallenge.value = true
   saveError.value = ''
   
@@ -628,11 +660,33 @@ async function handleDialogDelete(challengeId) {
 // Замени существующий gridChallenges на этот computed
 const gridChallenges = computed(() => {
   if (!challenges.value) return []
+  
+  let filtered = [...challenges.value]
+  
   // Если есть mainRitual, исключаем его из общей сетки, чтобы не дублировать
   if (mainRitual.value) {
-    return challenges.value.filter(c => c._id !== mainRitual.value._id)
+    filtered = filtered.filter(c => c._id !== mainRitual.value._id)
   }
-  return challenges.value
+  
+  // Always filter out upcoming challenges from main grid (they'll be shown separately at the bottom)
+  filtered = filtered.filter(c => !isChallengeUpcoming(c))
+  
+  return filtered
+})
+
+// Separate upcoming challenges computed property
+const upcomingChallenges = computed(() => {
+  if (!challenges.value) return []
+  
+  // Get all upcoming challenges
+  let upcoming = challenges.value.filter(c => isChallengeUpcoming(c))
+  
+  // Exclude mainRitual if it's upcoming (it's already shown in MainRitualCard)
+  if (mainRitual.value && isChallengeUpcoming(mainRitual.value)) {
+    upcoming = upcoming.filter(c => c._id !== mainRitual.value._id)
+  }
+  
+  return upcoming
 })
 
 async function openChallengeById(challengeId) {
@@ -696,11 +750,33 @@ watch(() => filters.value.popularity, () => {
   fetchChallenges(1, false)
 })
 
-watch(() => filters.value.creationDate, () => {
-  fetchChallenges(1, false)
+watch(() => filters.value.showUpcoming, () => {
+  // No need to refetch, just filter client-side
 })
 
+// Fetch all habit challenges to find the main ritual
+async function fetchAllHabitChallenges() {
+  loadingMainRitual.value = true
+  try {
+    // Fetch all habit challenges with a high limit to get the most popular ones
+    const { data } = await challengeService.getAllChallenges({
+      type: 'habit',
+      excludeFinished: true,
+      limit: 100, // Fetch more to find the most popular
+      page: 1
+    })
+    allHabitChallenges.value = data?.challenges || []
+  } catch (error) {
+    console.error('Error fetching habit challenges for main ritual:', error)
+    allHabitChallenges.value = []
+  } finally {
+    loadingMainRitual.value = false
+  }
+}
+
 onMounted(async () => {
+  // Fetch all habit challenges first to determine main ritual
+  await fetchAllHabitChallenges()
   await fetchChallenges(1, false)
   loadWatchedChallenges()
   window.addEventListener('scroll', handleScroll)
@@ -754,7 +830,7 @@ function handleOwnerNavigated() {
   max-width: 1400px; /* Ограничиваем ширину для больших мониторов */
   margin: 0 auto;
   padding: 16px;
-}
+  }
 
 /* Заголовок страницы */
   .page-title {
@@ -821,4 +897,32 @@ function handleOwnerNavigated() {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.87);
+  margin-bottom: 16px;
+}
+
+@media (min-width: 600px) {
+  .section-title {
+    font-size: 1.5rem;
+  }
+}
+
+.upcoming-section {
+  border-top: 2px solid rgba(0, 0, 0, 0.12);
+  padding-top: 24px;
+  margin-top: 24px;
+}
+
+.main-ritual-skeleton {
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.main-ritual-skeleton-loader {
+  border-radius: 20px;
+  }
 </style>

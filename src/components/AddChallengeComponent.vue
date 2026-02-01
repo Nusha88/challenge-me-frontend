@@ -1061,6 +1061,21 @@ async function handleSubmit() {
       createdChallengeId.value = challengeId
     }
     
+    // If this is a restarted challenge, delete the old one
+    const restartedChallengeId = sessionStorage.getItem('restartedChallengeId')
+    if (restartedChallengeId) {
+      try {
+        await challengeService.deleteChallenge(restartedChallengeId)
+        // Clear the sessionStorage after successful deletion
+        sessionStorage.removeItem('restartedChallengeId')
+      } catch (error) {
+        console.error('Error deleting restarted challenge:', error)
+        // Don't block the user flow if deletion fails
+        // Still clear sessionStorage to avoid retry loops
+        sessionStorage.removeItem('restartedChallengeId')
+      }
+    }
+    
     // Show success modal if privacy is public, otherwise navigate
     if (form.value.privacy === 'public') {
       await nextTick()

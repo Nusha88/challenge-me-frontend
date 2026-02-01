@@ -4,18 +4,25 @@
       <h1 class="page-title">{{ t('challenges.myActiveMissions', { count: activeChallenges.length }) }}</h1>
     </div>
 
-    <div>
-      <IgniteLoader v-if="loading" :loading-text="t('challenges.loading', 'Loading missions...')" />
+    <div class="content-section">
+      <div v-if="loading" class="challenges-grid">
+        <v-skeleton-loader
+          v-for="n in 6"
+          :key="n"
+          type="card, list-item-two-line"
+          class="skeleton-card"
+        ></v-skeleton-loader>
+      </div>
 
-      <v-alert v-if="error && !loading" type="error" class="mb-4">
+      <v-alert v-else-if="error" type="error" class="mb-4">
         {{ error }}
       </v-alert>
 
-      <v-alert v-else-if="!loading && challenges.length === 0" type="info">
+      <v-alert v-else-if="challenges.length === 0" type="info">
         {{ t('challenges.noMyChallenges') }}
       </v-alert>
 
-      <v-alert v-else-if="!loading && filteredChallenges.length === 0" type="info">
+      <v-alert v-else-if="filteredChallenges.length === 0" type="info">
         {{ t('challenges.noMyChallenges') }}
       </v-alert>
 
@@ -140,7 +147,6 @@ import { challengeService } from '../services/api'
 import { useI18n } from 'vue-i18n'
 import ChallengeCard from './ChallengeCard.vue'
 import ChallengeDetailsDialog from './ChallengeDetailsDialog.vue'
-import IgniteLoader from './IgniteLoader.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -338,15 +344,19 @@ const fetchChallenges = async () => {
   }
 }
 
-const handleChallengeClick = (challenge) => {
-  // If user owns the challenge, navigate to edit page
-  if (isChallengeOwner(challenge.owner)) {
-    router.push(`/missions/edit/${challenge._id}`)
-    return
+const handleChallengeClick = async (challenge) => {
+  // Always open details dialog for all users (owners can navigate to edit from dialog)
+  error.value = ''
+  
+  // Fetch full challenge data to ensure we have populated owner and participants
+  try {
+    const { data } = await challengeService.getChallenge(challenge._id)
+    selectedChallenge.value = data
+  } catch (err) {
+    // Fallback to using the challenge from the list
+    selectedChallenge.value = challenge
   }
   
-  // Otherwise open details dialog
-  selectedChallenge.value = challenge
   detailsDialogOpen.value = true
 }
 
@@ -618,6 +628,11 @@ watch(() => route.query.challengeId, async (newChallengeId) => {
   }
 }
 
+.content-section {
+  position: relative;
+  min-height: 400px;
+}
+
 .challenges-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -638,6 +653,10 @@ watch(() => route.query.challengeId, async (newChallengeId) => {
   .challenges-grid {
     grid-template-columns: repeat(3, 1fr);
   }
+}
+
+.skeleton-card {
+  width: 100%;
 }
 
 /* Quests grid - 2 per row */
