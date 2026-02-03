@@ -105,7 +105,7 @@
                       <div v-if="errors.duration" class="error-message mb-2">{{ errors.duration }}</div>
                       <div class="duration-toggle-wrapper" :class="{ 'error-border': errors.duration }">
                         <v-btn-toggle
-                          v-model="form.duration"
+              v-model="form.duration"
                           mandatory
                           class="custom-chips-group"
                         >
@@ -177,7 +177,7 @@
                       <v-btn 
                         @click="showDatePicker = true"
                         :class="['calendar-btn', { 'is-active': isCustomDate }]"
-                        variant="outlined"
+              variant="outlined"
                       >
                         <v-icon size="20">mdi-calendar-month-outline</v-icon>
                         <span v-if="isCustomDate" class="ml-2">{{ formattedDate }}</span>
@@ -326,11 +326,11 @@
                           <span v-if="form.endDate" class="time-left-hint">
                             {{ t('challenges.daysLeft') }}: {{ calculateDaysLeft(form.endDate) }}
                           </span>
-                        </div>
-                        
+          </div>
+
                         <v-spacer></v-spacer>
                         <v-icon color="#94a3b8">mdi-chevron-right</v-icon>
-                      </div>
+          </div>
                     </template>
 
                     <v-date-picker
@@ -1068,7 +1068,7 @@ async function handleSubmit() {
         await challengeService.deleteChallenge(restartedChallengeId)
         // Clear the sessionStorage after successful deletion
         sessionStorage.removeItem('restartedChallengeId')
-      } catch (error) {
+  } catch (error) {
         console.error('Error deleting restarted challenge:', error)
         // Don't block the user flow if deletion fails
         // Still clear sessionStorage to avoid retry loops

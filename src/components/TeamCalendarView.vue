@@ -1,29 +1,5 @@
 <template>
-  <div class="team-calendar-view">
-    <v-card variant="flat" class="team-pulse-card pa-6 mb-8 rounded-xl bg-teal-lighten-5">
-      <div class="d-flex align-center justify-space-between mb-2">
-        <div>
-          <div class="text-overline text-teal-darken-1 mb-n1">{{ t('challenges.teamProgress') }}</div>
-          <div class="text-h4 font-weight-black text-teal-darken-2">
-            {{ teamAveragePercentage }}%
-          </div>
-        </div>
-        <v-avatar size="64" color="white" class="elevation-2">
-          <v-icon color="teal" size="32">mdi-account-group</v-icon>
-        </v-avatar>
-      </div>
-      <v-progress-linear
-        :model-value="teamAveragePercentage"
-        color="teal-darken-1"
-        height="12"
-        rounded
-        class="mb-2"
-      />
-      <div class="text-caption text-teal-darken-1">
-        {{ totalCompletedTasks }} {{ t('challenges.tasksCompletedByTeam') }}
-      </div>
-    </v-card>
-
+  <div class="team-section mt-6">
     <div class="calendar-wrapper mb-8">
       <h4 class="text-subtitle-1 font-weight-bold mb-4 px-1">{{ t('challenges.teamActivityMap') }}</h4>
       <div class="calendar-grid">
@@ -62,61 +38,66 @@
       </div>
     </div>
 
-    <div v-if="participantsWithStats.length > 0" class="participants-section">
-      <h4 class="text-subtitle-1 font-weight-bold mb-4 px-1">
-        {{ t('challenges.teamLeaders') }} ({{ participantsWithStats.length }})
-      </h4>
-      
-      <div class="participants-grid">
-        <v-card
-          v-for="participant in participantsWithStats"
-          :key="participant.id"
-          variant="flat"
-          class="participant-card mb-3 rounded-xl border transition-swing"
-          @click="navigateToUserProfile(participant)"
-        >
-          <div class="d-flex align-center pa-4">
-            <v-avatar 
-              size="48" 
-              :color="getParticipantColor(participant)" 
-              class="mr-4 elevation-1"
-            >
-              <v-img v-if="getParticipantAvatarUrl(participant)" :src="getParticipantAvatarUrl(participant)" />
-              <span v-else class="text-white font-weight-bold">{{ getParticipantInitial(participant) }}</span>
-            </v-avatar>
+    <div class="d-flex align-center mb-4 px-2">
+      <v-icon color="primary" class="mr-2">mdi-account-group-outline</v-icon>
+      <h3 class="text-h6 font-weight-bold mb-0">{{ t('challenges.teamLeaders') }}</h3>
+    </div>
 
-            <div class="flex-grow-1">
-              <div class="d-flex justify-space-between align-center mb-1">
-                <span class="font-weight-bold text-truncate" style="max-width: 150px">
-                  {{ participant.name || t('common.unknown') }}
-                </span>
-                <span class="text-caption font-weight-black" :class="`text-${getProgressColor(participant)}`">
-                  {{ participant.completedCount }}/{{ participant.totalDuration }}
-                </span>
+    <v-list class="team-list bg-transparent">
+      <v-hover v-for="member in team" :key="member.id" v-slot="{ isHovering, props }">
+        <v-card
+          v-bind="props"
+          :elevation="isHovering ? 4 : 1"
+          class="member-card mb-3 pa-3 rounded-xl transition-swing"
+          :class="{ 'leader-border': member.isLeader }"
+          @click="navigateToUserProfile(member)"
+        >
+          <div class="d-flex align-center">
+            <v-badge
+              dot
+              location="bottom right"
+              :color="member.online ? 'success' : 'grey'"
+              offset-x="3"
+              offset-y="3"
+            >
+              <v-avatar size="48" :color="member.color || 'primary'" class="elevation-2">
+                <v-img v-if="member.avatarUrl" :src="member.avatarUrl" />
+                <span v-else class="text-white font-weight-bold">{{ getInitials(member.name) }}</span>
+              </v-avatar>
+            </v-badge>
+
+            <div class="ml-4 flex-grow-1">
+              <div class="d-flex justify-space-between align-center">
+                <span class="font-weight-bold text-subtitle-1">{{ member.name }}</span>
+                <div class="d-flex align-center">
+                  <v-icon v-if="member.streak > 3" color="orange" size="small" class="mr-1">mdi-fire</v-icon>
+                  <span class="text-caption font-weight-medium text-grey-darken-1">
+                    {{ member.currentDay }}/{{ totalDays }} {{ t('challenges.days') }}
+                  </span>
+                </div>
               </div>
-              
-              <v-progress-linear
-                :model-value="(participant.completedCount / participant.totalDuration) * 100"
-                :color="getProgressColor(participant)"
-                height="6"
-                rounded
-              />
-              
-              <div class="d-flex gap-1 mt-2 justify-start">
-                <div 
-                  v-for="(day, idx) in getLastDaysForParticipant(participant, 10)" 
-                  :key="idx"
-                  class="mini-dot"
-                  :class="{ 'active': day.completed, 'missed': day.missed }"
-                ></div>
+
+              <div class="progress-container mt-1">
+                <v-progress-linear
+                  :model-value="member.progress"
+                  color="primary"
+                  height="8"
+                  rounded
+                  striped
+                >
+                </v-progress-linear>
               </div>
             </div>
 
-            <v-icon color="grey-lighten-1" class="ml-2">mdi-chevron-right</v-icon>
+            <div class="ml-4 text-right" style="min-width: 45px">
+              <span class="text-h6 font-weight-black color-primary">{{ member.progress }}%</span>
+            </div>
+            
+            <v-btn icon="mdi-chevron-right" variant="text" size="small" color="grey"></v-btn>
           </div>
         </v-card>
-      </div>
-    </div>
+      </v-hover>
+    </v-list>
   </div>
 </template>
 
@@ -176,10 +157,8 @@ const days = computed(() => {
       const dateStr = formatDateString(current)
       const isToday = current.getTime() === today.getTime()
       const isPast = current < today
-      const isFuture = current > today
       
       // For "every other day" frequency, disable every other day starting from start date
-      // Day 0 (start date) is enabled, day 1 is disabled, day 2 is enabled, etc.
       const isFrequencyDisabled = props.frequency === 'everyOtherDay' && dayIndex % 2 === 1
       
       // Count how many participants completed this day
@@ -188,7 +167,6 @@ const days = computed(() => {
       
       props.participants.forEach(participant => {
         const completedDays = participant.completedDays || []
-        // Check if this date is in the participant's completedDays
         const hasDate = completedDays.some(d => {
           if (!d) return false
           try {
@@ -233,18 +211,19 @@ const days = computed(() => {
   }
 })
 
-// Calculate number of rows needed
-const calendarRows = computed(() => {
-  return Math.ceil(days.value.length / 7)
-})
+function formatDateString(date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
 
-// Check if scroll is needed (5 or more rows)
-const needsScroll = computed(() => {
-  return calendarRows.value >= 5
-})
+function formatDay(date) {
+  return date.getDate()
+}
 
-// Calculate total duration (days between start and end date)
-const totalDuration = computed(() => {
+// Calculate total days
+const totalDays = computed(() => {
   if (!props.startDate || !props.endDate) return 0
   
   try {
@@ -265,7 +244,6 @@ const totalDuration = computed(() => {
       let dayIndex = 0
       
       while (current <= end) {
-        // Only count enabled days (day 0, 2, 4, 6, etc.)
         if (dayIndex % 2 === 0) {
           count++
         }
@@ -273,24 +251,75 @@ const totalDuration = computed(() => {
         dayIndex++
       }
       
-      return Math.max(1, count) // At least 1 day
+      return Math.max(1, count)
     }
     
-    // For other frequencies, count all days
     const diffTime = end - start
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1 // +1 to include both start and end days
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1
     
-    return Math.max(1, diffDays) // At least 1 day
+    return Math.max(1, diffDays)
   } catch {
     return 0
   }
 })
 
-// Process participants with stats
-const participantsWithStats = computed(() => {
+// Calculate streak for a participant
+function calculateStreak(participant) {
+  if (!participant.completedDays || !Array.isArray(participant.completedDays)) return 0
+  
+  function formatDateString(date) {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+  
+  const completedDateStrings = participant.completedDays
+    .map(date => {
+      try {
+        if (!date) return null
+        let dateStr = String(date)
+        if (dateStr.includes('T')) dateStr = dateStr.split('T')[0]
+        return dateStr.substring(0, 10)
+      } catch {
+        return null
+      }
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.localeCompare(a))
+  
+  if (completedDateStrings.length === 0) return 0
+  
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const todayStr = formatDateString(today)
+  
+  let startDate = new Date(today)
+  if (!completedDateStrings.includes(todayStr)) {
+    startDate.setDate(today.getDate() - 1)
+  }
+  
+  let streak = 0
+  let currentDate = new Date(startDate)
+  
+  for (let i = 0; i < 365; i++) {
+    const dateStr = formatDateString(currentDate)
+    if (completedDateStrings.includes(dateStr)) {
+      streak++
+    } else {
+      break
+    }
+    currentDate.setDate(currentDate.getDate() - 1)
+    currentDate.setHours(0, 0, 0, 0)
+  }
+  
+  return streak
+}
+
+// Transform participants to team members format
+const team = computed(() => {
   return props.participants.map(participant => {
     const completedDays = participant.completedDays || []
-    // Normalize completedDays to date strings
     const normalizedDays = completedDays
       .filter(d => d)
       .map(d => {
@@ -305,72 +334,58 @@ const participantsWithStats = computed(() => {
         return null
       })
       .filter(Boolean)
-      .sort()
+    
+    const completedCount = normalizedDays.length
+    const progress = totalDays.value > 0 ? Math.round((completedCount / totalDays.value) * 100) : 0
+    const streak = calculateStreak({ completedDays: normalizedDays })
+    
+    // Determine if leader (highest progress or longest streak)
+    const userId = participant.userId?._id || participant.userId || participant._id
+    const name = participant.userId?.name || participant.name || t('common.unknown')
+    const avatarUrl = participant.userId?.avatarUrl || participant.avatarUrl || null
     
     return {
-      id: participant.userId?._id || participant.userId || participant._id || Math.random(),
-      name: participant.userId?.name || participant.name,
-      completedDays: normalizedDays,
-      completedCount: normalizedDays.length,
-      totalDuration: totalDuration.value,
+      id: userId || Math.random(),
+      name,
+      avatarUrl,
+      color: getParticipantColor(participant),
+      online: true, // Could be enhanced with actual online status
+      isLeader: false, // Will be set below
+      streak,
+      currentDay: completedCount,
+      progress,
       userId: participant.userId,
       _id: participant._id
     }
-  })
-})
-
-// Calculate team average percentage
-const teamAveragePercentage = computed(() => {
-  if (!participantsWithStats.value.length) return 0
-  const total = participantsWithStats.value.reduce((acc, p) => {
-    if (p.totalDuration === 0) return acc
-    return acc + (p.completedCount / p.totalDuration)
-  }, 0)
-  return Math.round((total / participantsWithStats.value.length) * 100)
-})
-
-// Calculate total completed tasks
-const totalCompletedTasks = computed(() => {
-  return participantsWithStats.value.reduce((acc, p) => acc + p.completedCount, 0)
-})
-
-// Get progress color based on percentage
-function getProgressColor(participant) {
-  if (participant.totalDuration === 0) return 'grey'
-  const pct = (participant.completedCount / participant.totalDuration) * 100
-  if (pct >= 80) return 'teal'
-  if (pct >= 50) return 'orange'
-  return 'grey'
-}
-
-// Get last days for participant (for mini dots)
-function getLastDaysForParticipant(participant, count) {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  
-  return days.value.slice(-count).map(day => {
-    const dayDate = new Date(day.date)
-    dayDate.setHours(0, 0, 0, 0)
-    const isCompleted = participant.completedDays.includes(day.dateStr)
-    const isMissed = dayDate < today && !isCompleted && !day.disabled
+  }).map((member, index, array) => {
+    // Find the leader (highest progress, then highest streak)
+    const maxProgress = Math.max(...array.map(m => m.progress))
+    const leaders = array.filter(m => m.progress === maxProgress)
+    const leader = leaders.reduce((prev, current) => {
+      return current.streak > prev.streak ? current : prev
+    }, leaders[0])
     
-    return {
-      completed: isCompleted,
-      missed: isMissed
+    if (member.id === leader.id) {
+      member.isLeader = true
     }
+    return member
+  }).sort((a, b) => {
+    // Sort: leader first, then by progress descending
+    if (a.isLeader && !b.isLeader) return -1
+    if (!a.isLeader && b.isLeader) return 1
+    return b.progress - a.progress
   })
+})
+
+function getInitials(name) {
+  if (!name) return '?'
+  const parts = name.trim().split(' ')
+  if (parts.length >= 2) {
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase()
+  }
+  return name.charAt(0).toUpperCase()
 }
 
-function formatDateString(date) {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
-function formatDay(date) {
-  return date.getDate()
-}
 
 function getParticipantColor(participant) {
   const colors = [
@@ -403,32 +418,24 @@ function getParticipantAvatarStyle(participant) {
   return { backgroundColor: getParticipantColor(participant) }
 }
 
-function navigateToUserProfile(participant) {
-  // Get user ID from participant
-  const userId = participant.userId?._id || participant.userId || participant._id || participant.id
+function navigateToUserProfile(member) {
+  // Get user ID from member
+  const userId = member.userId?._id || member.userId || member._id || member.id
   if (userId && typeof userId !== 'number') {
-    // Emit event before navigation so parent can close dialog if needed
-    emit('participant-clicked')
+    // Emit event before navigation so parent can close dialog if neede
     router.push(`/heroes/${userId}`)
+      emit('participant-clicked')
   }
 }
 </script>
 
 <style scoped>
-.team-calendar-view {
-  width: 100%;
-}
-
-.team-pulse-card {
-  border: 1px solid rgba(13, 148, 136, 0.1);
-}
-
 .calendar-wrapper {
   width: 100%;
   padding: 0;
 }
 
-/* Calendar Grid - Same as personal calendar */
+/* Calendar Grid */
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -454,7 +461,7 @@ function navigateToUserProfile(participant) {
   border: 2px solid transparent;
 }
 
-/* States - Same as personal calendar */
+/* States */
 .day-cell.is-completed {
   background: #ecfdf5;
   color: #059669;
@@ -500,7 +507,7 @@ function navigateToUserProfile(participant) {
   color: #64748b;
 }
 
-/* Status dot - Same as personal calendar */
+/* Status dot */
 .status-dot {
   width: 4px;
   height: 4px;
@@ -535,7 +542,7 @@ function navigateToUserProfile(participant) {
   background-color: #dc2626;
 }
 
-/* Calendar Legend - Same as personal calendar */
+/* Calendar Legend */
 .calendar-legend {
   font-size: 0.75rem;
   color: #64748b;
@@ -568,56 +575,56 @@ function navigateToUserProfile(participant) {
   border: 2px solid #0d9488;
 }
 
-/* Participants Section */
-.participants-section {
-  margin-top: 24px;
+.team-list {
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
-.participant-card {
-  transition: all 0.2s ease;
-  background: white !important;
+/* Кастомный скроллбар */
+.team-list::-webkit-scrollbar {
+  width: 4px;
+}
+.team-list::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 10px;
+}
+
+.member-card {
   border: 1px solid #f1f5f9 !important;
+  transition: all 0.3s ease !important;
+  background: white !important;
   cursor: pointer;
 }
 
-.participant-card:hover {
+.member-card:hover {
   transform: translateX(4px);
-  border-color: #0d9488 !important;
-  background: #f0fdfa !important;
+  border-color: #3b82f6 !important;
 }
 
-.mini-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 2px;
+.leader-border {
+  border: 1.5px solid #3b82f6 !important;
+  background: linear-gradient(to right, #ffffff, #f0f7ff) !important;
+}
+
+.progress-container {
+  border-radius: 10px;
+  overflow: hidden;
   background: #f1f5f9;
 }
 
-.mini-dot.active {
-  background: #0d9488;
+/* Цвет процента совпадает с темой */
+.color-primary {
+  color: #3b82f6;
 }
 
-.mini-dot.missed {
-  background: #fee2e2;
+/* Анимация при появлении */
+.member-card {
+  animation: slideIn 0.4s ease-out forwards;
 }
 
-.gap-1 {
-  gap: 4px;
-}
-
-/* Styling scroll for participants list */
-.participants-grid {
-  max-height: 400px;
-  overflow-y: auto;
-  padding-right: 8px;
-}
-
-.participants-grid::-webkit-scrollbar {
-  width: 4px;
-}
-
-.participants-grid::-webkit-scrollbar-thumb {
-  background: #e2e8f0;
-  border-radius: 10px;
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 </style>

@@ -105,7 +105,7 @@
         <v-tabs v-model="tab" grow bg-color="white" color="primary">
           <v-tab value="progress">{{ t('challenges.progress') }}</v-tab>
           <v-tab value="details">{{ t('challenges.about') }}</v-tab>
-          <v-tab value="community">{{ t('challenges.diary') }}</v-tab>
+          <v-tab value="community">{{ t('challenges.diary.title') }}</v-tab>
         </v-tabs>
 
         <v-window v-model="tab" class="pa-6">
@@ -114,14 +114,14 @@
             <template v-if="challenge.challengeType === 'habit' && challenge.startDate && challenge.endDate">
               <v-card variant="flat" class="pa-4 rounded-lg border mb-4">
                 <div class="d-flex justify-space-between align-center mb-4">
-                  <span class="text-subtitle-1 font-weight-bold">{{ t('challenges.challengeCalendar') }}</span>
+                  <span class="text-subtitle-1 font-weight-bold"></span>
                   <v-chip size="small" variant="tonal" color="primary">
                     {{ currentDayText }}
                   </v-chip>
                 </div>
                 
                 <!-- Calendar Mode Toggle for Team View -->
-                <div v-if="challenge.privacy !== 'private' && canViewPersonalProgress" class="calendar-mode-toggle mb-4">
+                <div v-if="challenge.privacy !== 'private' && canViewPersonalProgress && challenge.participants.length > 1" class="calendar-mode-toggle mb-4">
                   <v-btn-toggle
                     v-model="calendarViewMode"
                     mandatory
@@ -248,7 +248,6 @@
           <!-- Diary Tab -->
           <v-window-item value="community">
             <v-card variant="flat" class="pa-4 rounded-lg border">
-              <h3 class="text-subtitle-1 font-weight-bold mb-4">{{ t('challenges.diary') }}</h3>
               <div v-if="!isFinished">
                 <CommentsComponent
                   :challenge-id="challenge._id"
@@ -256,11 +255,14 @@
                   :current-user-id="currentUserId"
                   :is-owner="isOwner"
                   :challenge-start-date="isOwner ? editForm.startDate : challenge.startDate"
+                  :challenge-end-date="isOwner ? editForm.endDate : challenge.endDate"
+                  :challenge-type="challenge.challengeType"
                   :challenge-owner="challenge.owner"
                   :challenge-participants="challenge.participants || []"
                   @comment-added="handleCommentAdded"
                   @comment-deleted="handleCommentDeleted"
                   @user-navigated="handleUserNavigated"
+                  @join="emitJoin"
                 />
               </div>
               <v-alert v-else type="info">
@@ -272,57 +274,60 @@
       </v-card-text>
 
       <v-divider></v-divider>
-      <v-card-actions class="pa-4 bg-white">
-        <v-btn variant="text" @click="handleClose">{{ t('common.close') }}</v-btn>
-        <v-spacer></v-spacer>
-        <v-btn
-          v-if="!isOwner && isWatched && !isFinished"
-          variant="outlined"
-          color="primary"
-          :loading="watchingId === challenge._id"
-          @click="handleUnwatch"
-        >
-          {{ t('challenges.unwatch') }}
-        </v-btn>
-        <v-btn
-          v-else-if="!isOwner && currentUserId && !isWatched && !isFinished"
-          variant="outlined"
-          color="primary"
-          :loading="watchingId === challenge._id"
-          @click="handleWatch"
-        >
-          {{ t('challenges.watch') }}
-        </v-btn>
-        <v-btn
-          v-if="showLeaveButton"
-          color="error"
-          variant="text"
-          :loading="leaveLoading"
-          @click="emitLeave"
-        >
-          {{ t('challenges.giveUp') }}
-        </v-btn>
-        <v-btn
-          v-if="showJoinButton"
-          color="primary"
-          variant="elevated"
-          class="px-8 rounded-pill"
-          :loading="joinLoading"
-          @click="emitJoin"
-        >
-          {{ t('challenges.joinMission') }}
-        </v-btn>
-        <v-btn
-          v-if="isCurrentUserParticipant && challenge.challengeType === 'habit'"
-          color="primary"
-          variant="elevated"
-          class="px-8 rounded-pill"
-          :loading="participantSaveLoading"
-          @click="handleParticipantSave"
-        >
-          {{ t('challenges.saveProgress') }}
-        </v-btn>
-      </v-card-actions>
+      <v-card-actions class="modal-actions-footer px-6 py-4">
+  <div class="d-flex align-center gap-2">
+    <v-btn 
+      variant="text" 
+      color="grey-darken-1" 
+      class="text-none font-weight-medium"
+      @click="handleClose"
+    >
+      {{ t('common.close') }}
+    </v-btn>
+
+    <v-btn
+      v-if="showLeaveButton"
+      color="error"
+      variant="text"
+      size="small"
+      class="text-none opacity-70"
+      :loading="leaveLoading"
+      @click="emitLeave"
+    >
+      {{ t('challenges.giveUp') }}
+    </v-btn>
+  </div>
+
+  <v-spacer></v-spacer>
+
+  <div class="d-flex align-center gap-3">
+    <v-btn
+      v-if="!isOwner && !isFinished && currentUserId"
+      :variant="isWatched ? 'text' : 'outlined'"
+      :color="isWatched ? 'grey-darken-2' : 'primary'"
+      class="text-none px-4 rounded-lg"
+      :loading="watchingId === challenge._id"
+      @click="isWatched ? handleUnwatch() : handleWatch()"
+    >
+      <v-icon start size="small">
+        {{ isWatched ? 'mdi-eye-off-outline' : 'mdi-eye-outline' }}
+      </v-icon>
+      {{ isWatched ? t('challenges.unwatch') : t('challenges.watch') }}
+    </v-btn>
+
+    <v-btn
+      v-if="showJoinButton || (isCurrentUserParticipant && challenge.challengeType === 'habit')"
+      color="primary"
+      variant="elevated"
+      elevation="4"
+      class="main-action-btn text-none px-10"
+      :loading="joinLoading || participantSaveLoading"
+      @click="showJoinButton ? emitJoin() : handleParticipantSave()"
+    >
+      {{ showJoinButton ? t('challenges.joinMission') : t('challenges.saveProgress') }}
+    </v-btn>
+  </div>
+</v-card-actions>
     </v-card>
 
     <!-- Delete Confirmation Dialog -->
@@ -599,6 +604,14 @@ const progressPercentage = computed(() => {
   return Math.min(100, Math.max(0, percentage))
 })
 
+// Format date string in local timezone (YYYY-MM-DD)
+function formatDateString(date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 // Calendar grid computed properties
 const calendarDays = computed(() => {
   if (!props.challenge || props.challenge.challengeType !== 'habit') return []
@@ -608,6 +621,7 @@ const calendarDays = computed(() => {
   const end = new Date(props.challenge.endDate)
   const today = new Date()
   today.setHours(0, 0, 0, 0)
+  const todayStr = formatDateString(today)
   
   const completedDays = localCurrentUserCompletedDays.value.length > 0 
     ? localCurrentUserCompletedDays.value 
@@ -618,11 +632,21 @@ const calendarDays = computed(() => {
   current.setHours(0, 0, 0, 0)
   end.setHours(0, 0, 0, 0)
   
+  // Normalize completedDays to YYYY-MM-DD format for comparison
+  const normalizedCompletedDays = completedDays.map(d => {
+    if (!d) return null
+    let dateStr = String(d)
+    if (dateStr.includes('T')) {
+      dateStr = dateStr.split('T')[0]
+    }
+    return dateStr.substring(0, 10)
+  }).filter(Boolean)
+  
   let dayNumber = 1
   while (current <= end) {
-    const dateStr = current.toISOString().slice(0, 10)
-    const isCompleted = completedDays.includes(dateStr)
-    const isToday = current.getTime() === today.getTime()
+    const dateStr = formatDateString(current)
+    const isCompleted = normalizedCompletedDays.includes(dateStr)
+    const isToday = dateStr === todayStr
     const isLocked = current > today
     
     days.push({
@@ -735,14 +759,26 @@ async function toggleDay(day) {
     ? [...localCurrentUserCompletedDays.value]
     : [...currentUserCompletedDays.value]
   
-  const index = completedDays.indexOf(day.date)
+  // Normalize dates to YYYY-MM-DD format for comparison
+  const normalizedCompletedDays = completedDays.map(d => {
+    if (!d) return null
+    let dateStr = String(d)
+    if (dateStr.includes('T')) {
+      dateStr = dateStr.split('T')[0]
+    }
+    return dateStr.substring(0, 10)
+  }).filter(Boolean)
+  
+  const dayDateStr = day.date.substring(0, 10)
+  const index = normalizedCompletedDays.findIndex(d => d === dayDateStr)
+  
   if (index > -1) {
-    completedDays.splice(index, 1)
+    normalizedCompletedDays.splice(index, 1)
   } else {
-    completedDays.push(day.date)
+    normalizedCompletedDays.push(dayDateStr)
   }
   
-  localCurrentUserCompletedDays.value = completedDays.sort()
+  localCurrentUserCompletedDays.value = normalizedCompletedDays.sort()
 }
 
 // Get current user's completedDays from their participant entry
@@ -760,19 +796,33 @@ const currentUserCompletedDays = computed(() => {
   
   if (!participant || !participant.completedDays || !Array.isArray(participant.completedDays)) return []
   
+  // Normalize dates to YYYY-MM-DD format (handle both ISO strings and date strings)
   const days = participant.completedDays
     .filter(d => {
       if (!d) return false
       try {
-        const dateStr = String(d).slice(0, 10)
+        let dateStr = String(d)
+        // Handle ISO strings (remove time part)
+        if (dateStr.includes('T')) {
+          dateStr = dateStr.split('T')[0]
+        }
+        dateStr = dateStr.substring(0, 10)
+        // Validate format
         if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false
-        const date = new Date(dateStr)
+        // Validate it's a real date (use local timezone)
+        const date = new Date(dateStr + 'T00:00:00')
         return !Number.isNaN(date.getTime())
       } catch {
         return false
       }
     })
-    .map(d => String(d).slice(0, 10))
+    .map(d => {
+      let dateStr = String(d)
+      if (dateStr.includes('T')) {
+        dateStr = dateStr.split('T')[0]
+      }
+      return dateStr.substring(0, 10)
+    })
     .filter(Boolean)
     .sort()
   
@@ -1645,5 +1695,60 @@ async function handleUnwatch() {
 .v-card--variant-tonal:hover {
   transform: translateY(-2px);
   opacity: 1;
+}
+.modal-actions-footer {
+  background: #ffffff;
+  border-top: 1px solid #f1f5f9;
+  /* Для iPhone с челкой снизу */
+  padding-bottom: calc(16px + env(safe-area-inset-bottom)) !important;
+}
+
+/* Сетка для кнопок */
+.gap-2 { gap: 8px; }
+.gap-3 { gap: 12px; }
+
+/* Главная кнопка с градиентом или акцентом */
+.main-action-btn {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+  border-radius: 12px !important; /* Более мягкий квадрат, чем pill */
+  height: 44px !important;
+  font-size: 0.95rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.5px;
+  transition: all 0.2s ease;
+}
+
+.main-action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 15px rgba(37, 99, 235, 0.3) !important;
+}
+
+/* Улучшаем читаемость кнопок с текстом */
+.opacity-70 {
+  opacity: 0.7;
+}
+.opacity-70:hover {
+  opacity: 1;
+}
+
+/* Мобильная адаптация: если кнопок много, они не должны слипаться */
+@media (max-width: 600px) {
+  .modal-actions-footer {
+    flex-direction: column-reverse; /* Главная кнопка будет сверху под пальцем */
+    gap: 12px;
+  }
+  
+  .modal-actions-footer .v-spacer {
+    display: none;
+  }
+  
+  .main-action-btn {
+    width: 100%; /* На мобилках кнопка на всю ширину удобнее */
+  }
+  
+  .d-flex {
+    width: 100%;
+    justify-content: center;
+  }
 }
 </style>

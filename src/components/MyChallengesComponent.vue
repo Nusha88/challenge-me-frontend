@@ -16,15 +16,15 @@
 
       <v-alert v-else-if="error" type="error" class="mb-4">
         {{ error }}
-      </v-alert>
+        </v-alert>
 
       <v-alert v-else-if="challenges.length === 0" type="info">
         {{ t('challenges.noMyChallenges') }}
-      </v-alert>
+        </v-alert>
 
       <v-alert v-else-if="filteredChallenges.length === 0" type="info">
-        {{ t('challenges.noMyChallenges') }}
-      </v-alert>
+          {{ t('challenges.noMyChallenges') }}
+        </v-alert>
 
       <div v-else>
           <!-- Active Challenges -->

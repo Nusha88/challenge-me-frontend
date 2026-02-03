@@ -26,7 +26,7 @@
         :color="challenge.challengeType === 'habit' ? '#2C7A7B' : 'primary'"
         class="type-icon"
         :style="challenge.challengeType === 'habit' ? { color: '#2C7A7B' } : {}"
-      >
+        >
         {{ challenge.challengeType === 'habit' ? 'mdi-repeat' : 'mdi-sword-cross' }}
         </v-icon>
 
@@ -70,7 +70,7 @@
     </div>
 
     
-    <v-card-text v-if="!allChallenges && !isFinished && !isUpcoming && challenge.challengeType === 'habit'" class="pt-2 pb-0">
+    <v-card-text v-if="(!allChallenges || isOwner) && !isFinished && !isUpcoming && challenge.challengeType === 'habit'" class="pt-2 pb-0">
       <div v-if="streakDays > 0 && isTodayCompleted" class="streak-preview streak-completed">
         <div class="streak-item">
           <v-icon size="16" :style="{ color: '#2C7A7B' }">mdi-fire</v-icon>

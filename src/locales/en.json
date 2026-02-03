@@ -309,7 +309,7 @@
       "everyOtherDay": "Every other day",
       "weekdays": "Weekdays"
     },
-    "actions": "Actions plan",
+    "actionsPlan": "Actions plan",
     "actionPlaceholder": "Enter action",
     "addAction": "Add Action",
     "addChildAction": "Add child action",
@@ -399,7 +399,6 @@
     "teamLeaders": "Team Leaders",
     "progress": "Progress",
     "about": "About",
-    "diary": "Diary",
     "giveUp": "Give up",
     "joinMission": "Join Mission",
     "saveProgress": "Save Progress",
@@ -439,10 +438,26 @@
       "deleteConfirm": "Are you sure you want to delete this comment?",
       "reply": "Reply",
       "replyPlaceholder": "Reply to {name}...",
+      "placeholder1": "How did your step towards the goal go today?",
+      "placeholder2": "Record your success or share an insight...",
+      "placeholder3": "What was the most challenging today? The team will support you!",
+      "placeholder4": "Your progress is inspiring! Tell us how it was...",
+      "placeholder5": "Add an entry to your hero's diary...",
       "replyError": "Failed to add reply",
       "deleteReplyError": "Failed to delete reply",
       "deleteReplyConfirm": "Are you sure you want to delete this reply?",
-      "goToMention": "Go to mention"
+      "goToMention": "Go to mention",
+      "joinPrompt": "Join the mission to share your progress in the diary!"
+    },
+    "diary": {
+      "title": "Diary",
+      "heroJoined": "Hero {name} just joined the mission!",
+      "missionProgress": "Mission is {percent}% complete!",
+      "addReaction": "Add reaction",
+      "removeReaction": "Remove reaction",
+      "uploadImage": "Upload image",
+      "imageUploaded": "Image uploaded",
+      "streakBadge": "Streak"
     }
   },
   "filters": {

@@ -230,8 +230,8 @@ export const challengeService = {
   getWatchedChallenges: (userId) => {
     return api.get(`/challenges/watched/${userId}`)
   },
-  addComment: (challengeId, userId, text) => {
-    return api.post(`/challenges/${challengeId}/comments`, { userId, text })
+  addComment: (challengeId, userId, text, imageUrl = null) => {
+    return api.post(`/challenges/${challengeId}/comments`, { userId, text, imageUrl })
   },
   getComments: (challengeId) => {
     return api.get(`/challenges/${challengeId}/comments`)
@@ -239,14 +239,23 @@ export const challengeService = {
   deleteComment: (challengeId, commentId, userId) => {
     return api.delete(`/challenges/${challengeId}/comments/${commentId}`, { data: { userId } })
   },
-  replyToComment: (challengeId, commentId, userId, text, mentionedUserId) => {
-    return api.post(`/challenges/${challengeId}/comments/${commentId}/reply`, { userId, text, mentionedUserId })
+  replyToComment: (challengeId, commentId, userId, text, mentionedUserId, imageUrl = null) => {
+    return api.post(`/challenges/${challengeId}/comments/${commentId}/reply`, { userId, text, mentionedUserId, imageUrl })
   },
   deleteReply: (challengeId, commentId, replyId, userId) => {
     return api.delete(`/challenges/${challengeId}/comments/${commentId}/replies/${replyId}`, { data: { userId } })
   },
-  replyToReply: (challengeId, commentId, replyId, userId, text, mentionedUserId) => {
-    return api.post(`/challenges/${challengeId}/comments/${commentId}/replies/${replyId}/reply`, { userId, text, mentionedUserId })
+  replyToReply: (challengeId, commentId, replyId, userId, text, mentionedUserId, imageUrl = null) => {
+    return api.post(`/challenges/${challengeId}/comments/${commentId}/replies/${replyId}/reply`, { userId, text, mentionedUserId, imageUrl })
+  },
+  addReaction: (challengeId, commentId, emoji, userId, replyId = null, nestedReplyId = null) => {
+    if (nestedReplyId && replyId) {
+      return api.post(`/challenges/${challengeId}/comments/${commentId}/replies/${replyId}/replies/${nestedReplyId}/reactions`, { userId, emoji })
+    } else if (replyId) {
+      return api.post(`/challenges/${challengeId}/comments/${commentId}/replies/${replyId}/reactions`, { userId, emoji })
+    } else {
+      return api.post(`/challenges/${challengeId}/comments/${commentId}/reactions`, { userId, emoji })
+    }
   },
   deleteNestedReply: (challengeId, commentId, replyId, nestedReplyId, userId) => {
     return api.delete(`/challenges/${challengeId}/comments/${commentId}/replies/${replyId}/replies/${nestedReplyId}`, { data: { userId } })

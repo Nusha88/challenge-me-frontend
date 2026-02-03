@@ -320,6 +320,23 @@
     </v-card-text>
   </v-card>
 </v-dialog>
+
+    <!-- Challenge Details Dialog -->
+    <ChallengeDetailsDialog
+      v-model="detailsDialogOpen"
+      :challenge="selectedChallenge"
+      :is-owner="selectedIsOwner"
+      :is-participant="selectedIsParticipant"
+      :show-join-button="false"
+      :show-leave-button="selectedIsParticipant"
+      :join-loading="false"
+      :leave-loading="selectedLeaveLoading"
+      :save-loading="false"
+      :save-error="''"
+      :delete-loading="false"
+      @update="handleDialogUpdate"
+      @leave="handleDialogLeave"
+    />
   </div>
 </template>
 
@@ -330,6 +347,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { Sparkles, Plus, Trash2 } from 'lucide-vue-next'
 import DailyChecklist from './DailyChecklist.vue'
 import IgniteLoader from './IgniteLoader.vue'
+import ChallengeDetailsDialog from './ChallengeDetailsDialog.vue'
 import { userService, challengeService } from '../services/api'
 import motivationalMessagesEn from '../data/motivationalMessages.en.json'
 import motivationalMessagesRu from '../data/motivationalMessages.ru.json'
@@ -360,6 +378,13 @@ const tomorrowStepText = ref('')
 const tomorrowSteps = ref([])
 const editingTomorrowStepIndex = ref(-1)
 const editingTomorrowStepText = ref('')
+
+// Challenge details dialog
+const detailsDialogOpen = ref(false)
+const selectedChallenge = ref(null)
+const selectedIsOwner = ref(false)
+const selectedIsParticipant = ref(false)
+const selectedLeaveLoading = ref(false)
 
 function readStoredUser() {
   try {
@@ -780,18 +805,68 @@ async function loadTodaysChallenges() {
   }
 }
 
-function navigateToChallenge(challenge) {
-  // Check if user is owner - navigate to edit page
+async function navigateToChallenge(challenge) {
+  // Always open details dialog for all users (owners can navigate to edit from dialog)
   const userId = getCurrentUserId()
-  const ownerId = challenge.owner?._id || challenge.owner
-  if (ownerId && ownerId.toString() === userId.toString()) {
-    router.push(`/missions/edit/${challenge._id}`)
-  } else {
-    // Navigate to My Missions page and open dialog with this challenge
-    router.push({
-      path: '/missions/my',
-      query: { challengeId: challenge._id }
-    })
+  
+  // Fetch full challenge data to ensure we have populated owner and participants
+  try {
+    const { data } = await challengeService.getChallenge(challenge._id)
+    selectedChallenge.value = data
+  } catch (error) {
+    // Fallback to using the challenge from the list
+    selectedChallenge.value = challenge
+  }
+  
+  // Determine if user is owner
+  const ownerId = selectedChallenge.value.owner?._id || selectedChallenge.value.owner
+  selectedIsOwner.value = ownerId && ownerId.toString() === userId?.toString()
+  
+  // Determine if user is participant
+  selectedIsParticipant.value = selectedChallenge.value.participants?.some(p => {
+    const pUserId = p.userId?._id || p.userId || p._id
+    return pUserId && pUserId.toString() === userId?.toString()
+  }) || false
+  
+  detailsDialogOpen.value = true
+}
+
+// Handle dialog update (refresh challenge data)
+async function handleDialogUpdate() {
+  if (!selectedChallenge.value?._id) return
+  
+  try {
+    const { data } = await challengeService.getChallenge(selectedChallenge.value._id)
+    selectedChallenge.value = data
+    
+    // Update local challenges list
+    const index = challenges.value.findIndex(c => c._id === data._id)
+    if (index !== -1) {
+      challenges.value[index] = data
+    }
+    
+    // Refresh challenges to update todaysChallenges computed property
+    await loadTodaysChallenges()
+    await calculateStreak()
+  } catch (error) {
+    console.error('Error updating challenge:', error)
+  }
+}
+
+// Handle dialog leave
+async function handleDialogLeave() {
+  if (!selectedChallenge.value?._id || !getCurrentUserId()) return
+  
+  selectedLeaveLoading.value = true
+  try {
+    await challengeService.leaveChallenge(selectedChallenge.value._id, { userId: getCurrentUserId() })
+    
+    // Refresh challenge data and challenges list
+    await handleDialogUpdate()
+  } catch (error) {
+    console.error('Error leaving challenge:', error)
+  } finally {
+    selectedLeaveLoading.value = false
   }
 }
 
