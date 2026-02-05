@@ -1,135 +1,154 @@
 <template>
-  <div class="users-container">
-    <h1 class="mb-4 mb-md-6 page-title">{{ t('users.title') }}</h1>
+  <div class="users-container pb-10">
+    <div class="d-flex align-center justify-space-between mb-6">
+      <h1 class="page-title mb-0">{{ t('users.title') }}</h1>
+      <v-chip color="primary" variant="tonal" class="font-weight-bold">
+        {{ users.length }} Heroes
+      </v-chip>
+    </div>
 
-    <v-card>
-      <v-card-text>
-        <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4"></v-progress-linear>
+    <div v-if="!loading" class="search-wrapper mb-8">
+      <v-text-field
+        v-model="searchQuery"
+        :placeholder="t('users.searchPlaceholder')"
+        prepend-inner-icon="mdi-magnify"
+        variant="solo"
+        flat
+        class="hero-search-input"
+        rounded="xl"
+        hide-details
+        @keyup.enter="handleSearch"
+      >
+        <template #append-inner>
+          <v-btn
+            color="primary"
+            variant="elevated"
+            rounded="pill"
+            class="px-6"
+          :loading="loading"
+            @click="handleSearch"
+        >
+            {{ t('users.search') }}
+          </v-btn>
+          </template>
+      </v-text-field>
+    </div>
 
-        <v-alert v-if="error" type="error" class="mb-4">
-          {{ error }}
-        </v-alert>
+    <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4 rounded-pill"></v-progress-linear>
 
-        <!-- Search Input -->
-        <div v-if="!loading && users.length > 0" class="search-container mb-4">
-          <v-text-field
-            v-model="searchQuery"
-            :label="t('users.searchPlaceholder')"
-            prepend-inner-icon="mdi-magnify"
-            variant="outlined"
-            clearable
-            density="comfortable"
-            class="search-input"
-            @keyup.enter="handleSearch"
-            @click:clear="handleClearSearch"
+    <template v-if="!loading">
+      <div v-if="filteredUsers.length === 0" class="text-center py-10">
+        <v-icon size="64" color="grey-lighten-2">mdi-account-search-outline</v-icon>
+        <p class="text-grey-darken-1 mt-2">{{ searchQuery ? t('users.noUsersFound') : t('users.noUsers') }}</p>
+      </div>
+
+      <div v-else class="hall-of-fame">
+        <v-row v-if="topThreeUsers.length > 0" class="mb-8">
+          <v-col 
+            v-for="(user, index) in topThreeUsers" 
+            :key="user._id || user.id" 
+            :class="['user-card', 'top-user-card', `rank-${index + 1}`, 'reveal-animation']"
+  :style="{ '--i': index }"
+            cols="12" md="4"
           >
-            <template #append-inner>
-              <v-btn
-                color="primary"
-                variant="flat"
-                size="small"
-                class="search-button"
-                :loading="loading"
-                @click.stop="handleSearch"
-              >
-                {{ t('users.search') }}
-              </v-btn>
-            </template>
-          </v-text-field>
-        </div>
-
-        <template v-if="!loading">
-          <v-alert v-if="users.length === 0" type="info">
-            {{ t('users.noUsers') }}
-          </v-alert>
-
-          <v-alert v-else-if="filteredUsers.length === 0 && searchQuery" type="info">
-            {{ t('users.noUsersFound') }}
-          </v-alert>
-
-          <div v-else class="users-container-grid">
-          <!-- Top 3 users in one row -->
-          <div v-if="topThreeUsers.length > 0" class="top-three-row">
-            <v-card
-              v-for="(user, index) in topThreeUsers"
-              :key="user._id || user.id"
-              :class="['user-card', 'top-user-card', `rank-${index + 1}`]"
+            <v-card 
+              :class="['hero-card-premium', `rank-${index + 1}`]"
               @click="handleUserClick(user)"
             >
-              <v-card-text class="user-card-content">
-                <div class="rank-badge">
-                  <v-icon v-if="index === 0" size="32" color="#FFD700">mdi-trophy</v-icon>
-                  <v-icon v-else-if="index === 1" size="32" color="#C0C0C0">mdi-trophy</v-icon>
-                  <v-icon v-else-if="index === 2" size="32" color="#CD7F32">mdi-trophy</v-icon>
-                </div>
-                
-                <div class="user-avatar-container">
-                  <v-avatar size="80" class="user-avatar">
-                    <v-img v-if="user.avatarUrl" :src="user.avatarUrl" :alt="user.name" cover></v-img>
-                    <span v-else class="avatar-initials">{{ getUserInitials(user.name) }}</span>
+              <div class="rank-crown">
+                <v-icon :color="index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : '#CD7F32'">
+                  mdi-crown
+                </v-icon>
+              </div>
+              
+              <v-card-text class="text-center pt-8">
+                <v-badge
+                  bordered
+                  :color="index === 0 ? 'amber' : 'blue-grey-lighten-2'"
+                  icon="mdi-check-decagram"
+                  overlap
+                  location="bottom right"
+                >
+                  <v-avatar size="100" class="hero-avatar-border">
+                    <v-img v-if="user.avatarUrl" :src="user.avatarUrl" cover></v-img>
+                    <div v-else class="avatar-gen">{{ getUserInitials(user.name) }}</div>
                   </v-avatar>
-                </div>
-                
-                <div class="user-info">
-                  <h3 class="user-name">{{ user.name }}</h3>
-                  
-                  <div class="user-stats">
-                    <div class="stat-item">
-                      <v-icon size="small" class="mr-1">mdi-trophy</v-icon>
-                      <span>{{ user.challengeCount || 0 }} {{ t('users.challenges') }}</span>
-                    </div>
-                    <div class="stat-item">
-                      <v-icon size="small" class="mr-1">mdi-calendar-check</v-icon>
-                      <span>{{ user.daysOnSite || 0 }} {{ t('users.daysOnSite') }}</span>
-                    </div>
-                  </div>
-                </div>
-              </v-card-text>
-            </v-card>
-          </div>
+                </v-badge>
 
-          <!-- Rest of users in rows of 2 -->
-          <div v-if="remainingUsers.length > 0" class="users-grid">
-            <v-card
-              v-for="user in remainingUsers"
-              :key="user._id || user.id"
-              class="user-card"
-              @click="handleUserClick(user)"
-            >
-              <v-card-text class="user-card-content">
-                <div class="user-avatar-container">
-                  <v-avatar size="80" class="user-avatar">
-                    <v-img v-if="user.avatarUrl" :src="user.avatarUrl" :alt="user.name" cover></v-img>
-                    <span v-else class="avatar-initials">{{ getUserInitials(user.name) }}</span>
-                  </v-avatar>
-                </div>
-                
-                <div class="user-info">
-                  <h3 class="user-name">{{ user.name }}</h3>
-                  
-                  <div class="user-stats">
-                    <div class="stat-item">
-                      <v-icon size="small" class="mr-1">mdi-trophy</v-icon>
-                      <span>{{ user.challengeCount || 0 }} {{ t('users.challenges') }}</span>
+                <h3 class="hero-name mt-4">{{ user.name }}</h3>
+                <p class="hero-rank-title">{{ getLevelInfo(getUserLevel(user)).rankName }}</p>
+
+                <div class="pa-4">
+                  <div class="xp-sidebar-card">
+                    <div class="d-flex justify-space-between text-caption font-weight-bold mb-1">
+                      <span :style="{ color: getLevelInfo(getUserLevel(user)).color }">
+                        {{ getLevelInfo(getUserLevel(user)).rank }} (Lvl {{ getUserLevel(user) }})
+                      </span>
+                      <span class="text-grey-darken-1">{{ getUserCurrentXp(user) }} / {{ getLevelInfo(getUserLevel(user)).xpPerLvl }} XP</span>
                     </div>
-                    <div class="stat-item">
-                      <v-icon size="small" class="mr-1">mdi-calendar-check</v-icon>
-                      <span>{{ user.daysOnSite || 0 }} {{ t('users.daysOnSite') }}</span>
-                    </div>
+                    
+                    <v-progress-linear 
+                      :model-value="(getUserCurrentXp(user) / getLevelInfo(getUserLevel(user)).xpPerLvl) * 100" 
+                      :color="getLevelInfo(getUserLevel(user)).color" 
+                      height="8" 
+                      rounded
+                      striped
+                    ></v-progress-linear>
                   </div>
                 </div>
-              </v-card-text>
-            </v-card>
-          </div>
-        </div>
-        
-        <!-- Loading More Indicator -->
-        <div v-if="loadingMore" class="text-center py-4">
-          <v-progress-circular indeterminate color="primary" size="32"></v-progress-circular>
-        </div>
-        </template>
+
+                <div class="d-flex justify-center gap-4 mt-6">
+                  <div class="mini-stat mr-2">
+                    <v-icon size="16" color="primary">mdi-sword</v-icon>
+                    <span>{{ user.challengeCount || 0 }}</span>
+                  </div>
+                  <div class="mini-stat">
+                    <v-icon size="16" color="primary">mdi-calendar-multiselect</v-icon>
+                    <span>{{ user.daysOnSite || 0 }}d</span>
+                  </div>
+                </div>
       </v-card-text>
     </v-card>
+          </v-col>
+        </v-row>
+
+        <v-row>
+          <v-col 
+            v-for="user in remainingUsers" 
+            :key="user._id || user.id" 
+            cols="12" sm="6" lg="4"
+            class="user-card reveal-animation"
+  :style="{ '--i': index + 3 }"
+          >
+            <v-card class="hero-card-standard" @click="handleUserClick(user)">
+              <div class="d-flex align-center pa-4">
+                <v-avatar size="64" color="grey-lighten-4">
+                  <v-img v-if="user.avatarUrl" :src="user.avatarUrl" cover></v-img>
+                  <span v-else>{{ getUserInitials(user.name) }}</span>
+                </v-avatar>
+                
+                <div class="ml-4 flex-grow-1">
+                  <h4 class="hero-name-small">{{ user.name }}</h4>
+                  <div class="d-flex gap-3 mt-1">
+                    <span class="text-caption text-grey mr-2">
+                      <v-icon size="12">mdi-trophy-outline</v-icon> {{ user.challengeCount }}
+                    </span>
+                    <span class="text-caption text-grey">
+                      <v-icon size="12">mdi-clock-outline</v-icon> {{ user.daysOnSite }}d
+                    </span>
+                  </div>
+                </div>
+                <v-btn icon="mdi-chevron-right" variant="text" color="grey-lighten-1"></v-btn>
+              </div>
+            </v-card>
+          </v-col>
+        </v-row>
+      </div>
+    </template>
+
+    <div v-if="loadingMore" class="text-center py-8">
+      <v-progress-circular indeterminate color="primary"></v-progress-circular>
+    </div>
   </div>
 </template>
 
@@ -138,6 +157,7 @@ import { ref, onMounted, computed, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { userService } from '../services/api'
 import { useI18n } from 'vue-i18n'
+import { getLevelFromXp, getXpForLevel, getRank, getXpPerLevel } from '../utils/levelSystem'
 
 const router = useRouter()
 
@@ -294,6 +314,51 @@ const getDaysOnSiteNumber = (dateString) => {
   }
 }
 
+// Get level for a user
+const getUserLevel = (user) => {
+  const xp = Number(user?.xp || 0)
+  return getLevelFromXp(xp)
+}
+
+// Get current XP (XP progress within current level)
+const getUserCurrentXp = (user) => {
+  const xp = Number(user?.xp || 0)
+  const level = getUserLevel(user)
+  const xpForCurrentLevel = getXpForLevel(level)
+  return xp - xpForCurrentLevel
+}
+
+// Get level info (rank, color, xpPerLvl, rankName)
+const getLevelInfo = (level) => {
+  const lvl = Math.max(1, Math.floor(Number(level) || 1))
+  const rank = getRank(lvl)
+  const xpPerLvl = getXpPerLevel(lvl)
+  
+  // Get rank name based on level
+  let rankName = 'Explorer'
+  if (lvl >= 100) rankName = 'Legend'
+  else if (lvl >= 41) rankName = 'Grandmaster'
+  else if (lvl >= 21) rankName = 'Master'
+  else if (lvl >= 11) rankName = 'Warrior'
+  else if (lvl >= 6) rankName = 'Adept'
+  
+  // Get color based on rank
+  let color = '#2196F3' // Explorer - blue
+  if (rank === 'VI') color = '#FF4500' // Legend - orange red
+  else if (rank === 'V') color = '#9400D3' // Grandmaster - purple
+  else if (rank === 'IV') color = '#FFD700' // Master - gold
+  else if (rank === 'III') color = '#C0C0C0' // Warrior - silver
+  else if (rank === 'II') color = '#4CAF50' // Adept - green
+  else color = '#2196F3' // Explorer - blue
+  
+  return {
+    rank,
+    color,
+    xpPerLvl,
+    rankName
+  }
+}
+
 const handleUserClick = (user) => {
   const userId = user._id || user.id
   if (userId) {
@@ -312,189 +377,215 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* Главный контейнер */
 .users-container {
   width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
   padding: 24px;
+  padding-top: 0;
+}
+/* Базовое состояние для анимации */
+.reveal-animation {
+  opacity: 0;
+  transform: translateY(30px);
+  animation: revealHero 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  /* Задержка: 0.1s умножаем на порядковый номер пользователя */
+  animation-delay: calc(var(--i) * 0.1s);
+}
+
+@keyframes revealHero {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Улучшим визуальное разделение секций */
+.users-container-grid::before {
+  content: "Top Contributors";
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #94a3b8;
+  letter-spacing: 1.5px;
+  margin-bottom: -16px;
 }
 
 .page-title {
-  font-size: 1.75rem;
-  font-weight: 600;
-  color: rgba(0, 0, 0, 0.87);
+  font-size: 2rem;
+  letter-spacing: -0.5px;
+  color: #1a1a1a;
+  text-align: left;
 }
 
-@media (min-width: 600px) {
-  .page-title {
-    font-size: 2rem;
-  }
-}
-
+/* Современный поиск */
 .search-container {
-  display: flex;
-  align-items: center;
-}
-
-.search-input {
-  flex: 1;
-  max-width: 500px;
+  max-width: 600px;
+  margin-bottom: 32px;
 }
 
 .search-input :deep(.v-field) {
-  border-radius: 12px;
+  border-radius: 16px !important;
+  background: white !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
+  border: 1px solid #edf2f7 !important;
 }
 
 .search-button {
-  margin-left: 8px;
-  border-radius: 12px;
+  border-radius: 12px !important;
+  text-transform: none;
+  font-weight: 600;
+  padding: 0 20px !important;
 }
 
-@media (max-width: 600px) {
-  .search-input {
-    max-width: 100%;
-  }
-}
-
+/* Сетки */
 .users-container-grid {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 32px;
 }
 
 .top-three-row {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-  padding: 8px 0;
-}
-
-@media (min-width: 960px) {
-  .top-three-row {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 24px;
-  }
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
 }
 
 .users-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-  padding: 8px 0;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
 }
 
-@media (min-width: 600px) {
-  .users-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 24px;
-    padding: 16px 0;
-  }
-}
-
+/* Базовая карточка */
 .user-card {
-  background-color: #ffffff;
-  border-radius: 12px;
+  background: white;
+  border-radius: 20px;
+  border: 1px solid #f1f5f9;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
 }
 
 .user-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-6px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.06);
+  border-color: #3b82f6;
 }
 
+/* Стили для ТОП-3 */
 .top-user-card {
-  border: 3px solid transparent;
-}
-
-.top-user-card.rank-1 {
-  background: linear-gradient(135deg, #FFF9E6 0%, #FFF4D6 100%);
-  border-color: #FFD700;
-  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
-}
-
-.top-user-card.rank-1:hover {
-  box-shadow: 0 6px 16px rgba(255, 215, 0, 0.4);
-}
-
-.top-user-card.rank-2 {
-  background: linear-gradient(135deg, #F5F5F5 0%, #E8E8E8 100%);
-  border-color: #C0C0C0;
-  box-shadow: 0 4px 12px rgba(192, 192, 192, 0.3);
-}
-
-.top-user-card.rank-2:hover {
-  box-shadow: 0 6px 16px rgba(192, 192, 192, 0.4);
-}
-
-.top-user-card.rank-3 {
-  background: linear-gradient(135deg, #F5E6D3 0%, #E8D4B8 100%);
-  border-color: #CD7F32;
-  box-shadow: 0 4px 12px rgba(205, 127, 50, 0.3);
-}
-
-.top-user-card.rank-3:hover {
-  box-shadow: 0 6px 16px rgba(205, 127, 50, 0.4);
-}
-
-.rank-badge {
-  position: absolute;
-  top: 12px;
-  right: 12px;
+  position: relative;
   z-index: 1;
 }
 
+.top-user-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 6px;
+  z-index: 2;
+}
+
+.rank-1::before { background: #FFD700; }
+.rank-2::before { background: #C0C0C0; }
+.rank-3::before { background: #CD7F32; }
+
+/* Мягкие подложки для топа вместо ярких градиентов */
+.rank-1 { background: linear-gradient(180deg, #fffcf0 0%, #ffffff 100%); }
+.rank-2 { background: linear-gradient(180deg, #f8f9fa 0%, #ffffff 100%); }
+.rank-3 { background: linear-gradient(180deg, #fdf8f3 0%, #ffffff 100%); }
+
+.rank-badge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+}
+
+/* Контент карточки */
 .user-card-content {
+  padding: 32px 24px !important;
   display: flex;
   flex-direction: column;
   align-items: center;
-  text-align: center;
-  padding: 24px !important;
 }
 
 .user-avatar-container {
+  position: relative;
   margin-bottom: 16px;
 }
 
 .user-avatar {
-  border: 3px solid #f5f5f5;
+  border: 4px solid white;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
 }
 
-.user-info {
-  width: 100%;
-}
+.rank-1 .user-avatar { border-color: #FFD700; }
 
+/* Инфо и Имя */
 .user-name {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-bottom: 16px;
-  color: rgba(0, 0, 0, 0.87);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 12px;
 }
 
+/* Статистика в виде "таблеток" */
 .user-stats {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-direction: row;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
 }
 
 .stat-item {
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 0.9rem;
-  color: rgba(0, 0, 0, 0.6);
+  background: #f1f5f9;
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #475569;
+  transition: background 0.2s;
 }
 
+.user-card:hover .stat-item {
+  background: #e2e8f0;
+}
+
+.stat-item i {
+  color: #3b82f6;
+  margin-right: 6px;
+}
+
+/* Аватар-инициалы */
 .avatar-initials {
-  font-size: 32px;
-  font-weight: 600;
-  text-transform: uppercase;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
+  font-size: 28px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
   color: white;
-  background: linear-gradient(135deg, #1FA0F6 0%, #A62EE8 100%);
+}
+
+/* Адаптивность для мобилок */
+@media (max-width: 600px) {
+  .users-container {
+    padding: 16px;
+  }
+  
+  .page-title {
+    font-size: 1.5rem;
+  }
+  
+  .user-stats {
+    flex-wrap: wrap;
+  }
+  
+  .stat-item {
+    flex: 1 1 calc(50% - 12px);
+    font-size: 0.75rem;
+  }
 }
 </style> 

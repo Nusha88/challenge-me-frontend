@@ -75,15 +75,15 @@
                 variant="elevated"
               >
                 {{ challenge.challengeType === 'habit' ? t('challenges.typeHabitLabel') : t('challenges.typeResultLabel') }}
-              </v-chip>
-              <v-icon
-                v-if="challenge.privacy === 'private'"
+          </v-chip>
+        <v-icon
+          v-if="challenge.privacy === 'private'"
                 color="white"
                 size="16"
                 class="ml-1"
-              >
-                mdi-lock
-              </v-icon>
+        >
+          mdi-lock
+        </v-icon>
             </div>
             
             <h2 class="text-h4 font-weight-bold mb-2 challenge-title">
@@ -122,18 +122,18 @@
                 
                 <!-- Calendar Mode Toggle for Team View -->
                 <div v-if="challenge.privacy !== 'private' && canViewPersonalProgress && challenge.participants.length > 1" class="calendar-mode-toggle mb-4">
-                  <v-btn-toggle
-                    v-model="calendarViewMode"
-                    mandatory
-                    class="calendar-toggle-group"
-                    color="primary"
-                    variant="outlined"
+                <v-btn-toggle
+                  v-model="calendarViewMode"
+                  mandatory
+                  class="calendar-toggle-group"
+                  color="primary"
+                  variant="outlined"
                     density="compact"
-                  >
-                    <v-btn value="personal">{{ t('challenges.myProgress') }}</v-btn>
-                    <v-btn value="team">{{ t('challenges.teamProgress') }}</v-btn>
-                  </v-btn-toggle>
-                </div>
+                >
+                  <v-btn value="personal">{{ t('challenges.myProgress') }}</v-btn>
+                  <v-btn value="team">{{ t('challenges.teamProgress') }}</v-btn>
+                </v-btn-toggle>
+            </div>
 
                 <!-- Calendar Grid -->
                 <div v-if="challenge.privacy === 'private' || (canViewPersonalProgress && calendarViewMode === 'personal')" class="calendar-wrapper">
@@ -165,7 +165,7 @@
                       {{ t('challenges.today') }}
                     </div>
                   </div>
-                </div>
+              </div>
 
                 <!-- Team Calendar View -->
                 <div v-else>
@@ -176,7 +176,7 @@
                     :frequency="challenge.frequency"
                     @participant-clicked="handleParticipantClick"
                   />
-                </div>
+              </div>
               </v-card>
             </template>
             <template v-else-if="challenge.challengeType === 'result'">
@@ -186,7 +186,7 @@
                   <v-chip size="small" variant="tonal" color="primary">
                     {{ progressPercentage }}%
                   </v-chip>
-                </div>
+              </div>
                 <v-progress-linear
                   :model-value="progressPercentage"
                   color="primary"
@@ -194,10 +194,10 @@
                   rounded
                   class="mb-4"
                 ></v-progress-linear>
-                <ChallengeActions
+              <ChallengeActions
                   :model-value="challenge.actions || []"
                   :readonly="!isOwner"
-                />
+              />
               </v-card>
             </template>
           </v-window-item>
@@ -232,16 +232,16 @@
                   <div class="text-caption text-grey">{{ t('challenges.createdByLabel') }}</div>
                   <div class="text-body-2 font-weight-bold">{{ challenge.owner?.name || t('common.unknown') }}</div>
                 </div>
-                <v-spacer></v-spacer>
-                <v-btn 
+              <v-spacer></v-spacer>
+              <v-btn 
                   variant="text" 
                   size="small" 
-                  color="primary"
+                color="primary" 
                   @click="navigateToOwner"
-                >
+              >
                   {{ t('challenges.viewProfile') }}
-                </v-btn>
-              </div>
+              </v-btn>
+          </div>
             </div>
           </v-window-item>
 
@@ -264,10 +264,10 @@
                   @user-navigated="handleUserNavigated"
                   @join="emitJoin"
                 />
-              </div>
+          </div>
               <v-alert v-else type="info">
                 {{ t('challenges.finishedChallengeComments') }}
-              </v-alert>
+          </v-alert>
             </v-card>
           </v-window-item>
         </v-window>
@@ -276,14 +276,14 @@
       <v-divider></v-divider>
       <v-card-actions class="modal-actions-footer px-6 py-4">
   <div class="d-flex align-center gap-2">
-    <v-btn 
+        <v-btn 
       variant="text" 
       color="grey-darken-1" 
       class="text-none font-weight-medium"
-      @click="handleClose"
-    >
-      {{ t('common.close') }}
-    </v-btn>
+          @click="handleClose"
+        >
+          {{ t('common.close') }}
+        </v-btn>
 
     <v-btn
       v-if="showLeaveButton"
@@ -298,10 +298,10 @@
     </v-btn>
   </div>
 
-  <v-spacer></v-spacer>
+        <v-spacer></v-spacer>
 
   <div class="d-flex align-center gap-3">
-    <v-btn
+        <v-btn
       v-if="!isOwner && !isFinished && currentUserId"
       :variant="isWatched ? 'text' : 'outlined'"
       :color="isWatched ? 'grey-darken-2' : 'primary'"
@@ -313,11 +313,11 @@
         {{ isWatched ? 'mdi-eye-off-outline' : 'mdi-eye-outline' }}
       </v-icon>
       {{ isWatched ? t('challenges.unwatch') : t('challenges.watch') }}
-    </v-btn>
+        </v-btn>
 
-    <v-btn
+        <v-btn
       v-if="showJoinButton || (isCurrentUserParticipant && challenge.challengeType === 'habit')"
-      color="primary"
+          color="primary"
       variant="elevated"
       elevation="4"
       class="main-action-btn text-none px-10"
@@ -325,9 +325,9 @@
       @click="showJoinButton ? emitJoin() : handleParticipantSave()"
     >
       {{ showJoinButton ? t('challenges.joinMission') : t('challenges.saveProgress') }}
-    </v-btn>
+        </v-btn>
   </div>
-</v-card-actions>
+      </v-card-actions>
     </v-card>
 
     <!-- Delete Confirmation Dialog -->
@@ -676,7 +676,7 @@ const totalDays = computed(() => {
 const currentDayText = computed(() => {
   if (!props.challenge || !props.challenge.startDate) return ''
   const start = new Date(props.challenge.startDate)
-  const today = new Date()
+    const today = new Date()
   today.setHours(0, 0, 0, 0)
   start.setHours(0, 0, 0, 0)
   
@@ -920,7 +920,7 @@ watch(
     const oldValueId = oldValue?._id || oldValue?.id
     
     if (valueId !== oldValueId) {
-      localCurrentUserCompletedDays.value = []
+    localCurrentUserCompletedDays.value = []
     }
     
     if (value) {
@@ -1020,24 +1020,24 @@ watch(
       if (props.challenge?.challengeType === 'habit' && props.challenge?.completedDays) {
         nextTick(() => {
           if (isInitializing.value) {
-            editForm.completedDays = Array.isArray(props.challenge.completedDays)
-              ? props.challenge.completedDays
-                  .filter(d => {
-                    if (!d) return false
-                    try {
-                      const dateStr = String(d).slice(0, 10)
-                      if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false
-                      const date = new Date(dateStr)
-                      return !Number.isNaN(date.getTime())
-                    } catch {
-                      return false
-                    }
-                  })
-                  .map(d => String(d).slice(0, 10))
-                  .filter(Boolean)
-                  .sort()
-              : []
-            isInitializing.value = false
+          editForm.completedDays = Array.isArray(props.challenge.completedDays)
+            ? props.challenge.completedDays
+                .filter(d => {
+                  if (!d) return false
+                  try {
+                    const dateStr = String(d).slice(0, 10)
+                    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false
+                    const date = new Date(dateStr)
+                    return !Number.isNaN(date.getTime())
+                  } catch {
+                    return false
+                  }
+                })
+                .map(d => String(d).slice(0, 10))
+                .filter(Boolean)
+                .sort()
+            : []
+          isInitializing.value = false
           }
         })
       }

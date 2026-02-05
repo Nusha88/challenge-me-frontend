@@ -7,7 +7,7 @@ import { SUPPORTED_LOCALES, setLocale } from '../i18n'
 import NotificationsComponent from './NotificationsComponent.vue'
 import { notificationService, userService, challengeService } from '../services/api'
 import { initializePushNotifications, syncPushSubscriptionToServer } from '../utils/pushNotifications'
-import { getLevelFromXp, getXpForLevel, getXpForNextLevel, getLevelName } from '../utils/levelSystem'
+import { getLevelFromXp, getXpForLevel, getXpForNextLevel, getLevelName, getRank, getXpPerLevel } from '../utils/levelSystem'
 import { Sparkles, Mountain, BookOpen, Compass, Eye, Trophy, Star, Globe2, Coins, LogOut } from 'lucide-vue-next'
 import awaImage from '../assets/awa.png'
 
@@ -35,10 +35,38 @@ const { t, locale } = useI18n()
 const { mobile, mdAndUp } = useDisplay()
 const availableLocales = SUPPORTED_LOCALES
 
-function updateAuthState() {
+async function updateAuthState() {
   const wasLoggedIn = isLoggedIn.value
   isLoggedIn.value = !!localStorage.getItem('token')
-  currentUser.value = readStoredUser()
+  
+  // If logged in, fetch fresh user data from API to get updated XP
+  if (isLoggedIn.value) {
+    try {
+      const response = await userService.getProfile()
+      if (response.data?.user) {
+        // Update currentUser with fresh data
+        currentUser.value = response.data.user
+        // Also update localStorage to keep it in sync
+        try {
+          const stored = localStorage.getItem('user')
+          const storedUser = stored ? JSON.parse(stored) : {}
+          const merged = { ...storedUser, ...response.data.user }
+          localStorage.setItem('user', JSON.stringify(merged))
+        } catch {
+          // ignore storage errors
+        }
+      } else {
+        // Fallback to localStorage if API fails
+        currentUser.value = readStoredUser()
+      }
+    } catch (err) {
+      // If API call fails, fallback to localStorage
+      console.warn('Failed to fetch fresh user data, using localStorage:', err)
+      currentUser.value = readStoredUser()
+    }
+  } else {
+    currentUser.value = readStoredUser()
+  }
   
   // Initialize push notifications when user logs in
   // Wait a bit to ensure token is stored and axios interceptors are ready
@@ -56,6 +84,7 @@ const userName = computed(() => currentUser.value?.name || null)
 const userAvatarUrl = computed(() => currentUser.value?.avatarUrl || null)
 const userXp = computed(() => Number(currentUser.value?.xp || 0))
 const userLevel = computed(() => getLevelFromXp(userXp.value))
+const userRank = computed(() => getRank(userLevel.value))
 const userLevelName = computed(() => getLevelName(userLevel.value, locale.value))
 const xpForCurrentLevel = computed(() => getXpForLevel(userLevel.value))
 const xpForNextLevel = computed(() => getXpForNextLevel(userLevel.value))
@@ -68,6 +97,42 @@ const levelProgressPercentage = computed(() => {
   if (range <= 0) return 100
   return Math.min(100, Math.max(0, (xpProgress.value / range) * 100))
 })
+
+// Get current XP (XP progress within current level)
+const getCurrentXp = () => {
+  return userXp.value - xpForCurrentLevel.value
+}
+
+// Get level info (rank, color, xpPerLvl, rankName)
+const getLevelInfo = (level) => {
+  const lvl = Math.max(1, Math.floor(Number(level) || 1))
+  const rank = getRank(lvl)
+  const xpPerLvl = getXpPerLevel(lvl)
+  
+  // Get rank name based on level
+  let rankName = 'Explorer'
+  if (lvl >= 100) rankName = 'Legend'
+  else if (lvl >= 41) rankName = 'Grandmaster'
+  else if (lvl >= 21) rankName = 'Master'
+  else if (lvl >= 11) rankName = 'Warrior'
+  else if (lvl >= 6) rankName = 'Adept'
+  
+  // Get color based on rank
+  let color = '#2196F3' // Explorer - blue
+  if (rank === 'VI') color = '#FF4500' // Legend - orange red
+  else if (rank === 'V') color = '#9400D3' // Grandmaster - purple
+  else if (rank === 'IV') color = '#FFD700' // Master - gold
+  else if (rank === 'III') color = '#C0C0C0' // Warrior - silver
+  else if (rank === 'II') color = '#4CAF50' // Adept - green
+  else color = '#2196F3' // Explorer - blue
+  
+  return {
+    rank,
+    color,
+    xpPerLvl,
+    rankName
+  }
+}
 
 const getUserInitials = (name) => {
   if (!name) return '?'
@@ -494,23 +559,27 @@ watch(() => route.path, () => {
                   </v-avatar>
                   <div class="flex-grow-1">
                     <div class="text-body-1 font-weight-medium">{{ userName || t('navigation.profile') }}</div>
-                    <div class="text-caption text-medium-emphasis">{{ userLevelName }} (Lvl {{ userLevel }})</div>
+                    <div class="text-caption text-medium-emphasis">{{ userLevelName }} ({{ t('navigation.rank') }} {{ userRank }})</div>
                   </div>
                 </div>
 
                 <!-- Level Progress Bar -->
-                <v-progress-linear
-                  :model-value="levelProgressPercentage"
-                  height="4"
-                  rounded
-                  class="mb-2 level-progress-bar full-width-progress"
-                ></v-progress-linear>
-
-                <div class="d-flex justify-space-between align-center">
-                  <span class="text-caption">{{ xpDisplayCurrent }} / {{ xpDisplayNeeded }} {{ t('navigation.xp') }}</span>
-                  <div class="d-flex align-center">
-                    <span class="text-caption mr-1">0</span>
-                    <Coins :size="16" style="color: #2E2A47;" />
+                <div class="pa-2">
+                  <div class="xp-sidebar-card">
+                    <div class="d-flex justify-space-between text-caption font-weight-bold mb-1">
+                      <span :style="{ color: getLevelInfo(userLevel).color }">
+                        {{ getLevelInfo(userLevel).rank }} (Lvl {{ userLevel }})
+                      </span>
+                      <span class="text-grey-darken-1">{{ xpDisplayCurrent }} / {{ xpDisplayNeeded }} {{ t('navigation.xp') }}</span>
+                    </div>
+                    
+                    <v-progress-linear 
+                      :model-value="levelProgressPercentage" 
+                      :color="getLevelInfo(userLevel).color" 
+                      height="8" 
+                      rounded
+                      striped
+                    ></v-progress-linear>
                   </div>
                 </div>
               </div>
@@ -639,23 +708,27 @@ watch(() => route.path, () => {
             </v-avatar>
             <div class="flex-grow-1">
               <div class="text-body-1 font-weight-medium">{{ userName || t('navigation.profile') }}</div>
-              <div class="text-caption text-medium-emphasis">{{ userLevelName }} (Lvl {{ userLevel }})</div>
+              <div class="text-caption text-medium-emphasis">{{ userLevelName }} ({{ t('navigation.rank') }} {{ userRank }})</div>
             </div>
           </div>
 
           <!-- Level Progress Bar -->
-          <v-progress-linear
-            :model-value="levelProgressPercentage"
-            height="4"
-            rounded
-            class="mb-2 level-progress-bar full-width-progress"
-          ></v-progress-linear>
-
-          <div class="d-flex justify-space-between align-center">
-            <span class="text-caption">{{ xpDisplayCurrent }} / {{ xpDisplayNeeded }} {{ t('navigation.xp') }}</span>
-            <div class="d-flex align-center">
-              <span class="text-caption mr-1">0</span>
-              <Coins :size="16" style="color: #2E2A47;" />
+          <div class="pa-2">
+            <div class="xp-sidebar-card">
+              <div class="d-flex justify-space-between text-caption font-weight-bold mb-1">
+                <span :style="{ color: getLevelInfo(userLevel).color }">
+                  {{ getLevelInfo(userLevel).rank }} (Lvl {{ userLevel }})
+                </span>
+                <span class="text-grey-darken-1">{{ xpDisplayCurrent }} / {{ xpDisplayNeeded }} {{ t('navigation.xp') }}</span>
+              </div>
+              
+              <v-progress-linear 
+                :model-value="levelProgressPercentage" 
+                :color="getLevelInfo(userLevel).color" 
+                height="8" 
+                rounded
+                striped
+              ></v-progress-linear>
             </div>
           </div>
         </div>
@@ -1310,6 +1383,12 @@ watch(() => route.path, () => {
   color: white;
   font-weight: 700;
   font-size: 0.875rem;
+}
+
+.xp-sidebar-card {
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 8px;
+  padding: 8px;
 }
 
 .level-progress-bar {

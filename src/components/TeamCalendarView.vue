@@ -102,7 +102,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 
@@ -422,9 +422,12 @@ function navigateToUserProfile(member) {
   // Get user ID from member
   const userId = member.userId?._id || member.userId || member._id || member.id
   if (userId && typeof userId !== 'number') {
-    // Emit event before navigation so parent can close dialog if neede
-    router.push(`/heroes/${userId}`)
-      emit('participant-clicked')
+    // Emit first to close dialog
+    emit('participant-clicked')
+    // Use nextTick to ensure dialog closes before navigation
+    nextTick(() => {
+      router.push(`/heroes/${userId}`)
+    })
   }
 }
 </script>

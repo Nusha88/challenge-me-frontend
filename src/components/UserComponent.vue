@@ -1,264 +1,160 @@
 <template>
-  <div class="user-profile">
-    <v-card class="user-info-card mb-6">
-      <v-card-text>
-        <div v-if="loading" class="text-center py-8">
-          <v-progress-circular indeterminate color="primary"></v-progress-circular>
-        </div>
+  <div class="user-profile pb-10">
+    <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4 rounded-pill"></v-progress-linear>
+
+    <div v-else-if="user" class="profile-layout">
+      
+      <v-card class="hero-header-card overflow-visible mb-6 rounded-xl" elevation="2">
+        <div class="hero-cover"></div>
         
-        <div v-else-if="user" class="user-info">
-          <!-- Avatar and Basic Info -->
-          <div class="user-header mb-6">
-            <div class="avatar-wrapper">
-              <input
-                v-if="isOwnProfile"
-                ref="fileInputRef"
-                type="file"
-                accept="image/*"
-                class="hidden-file-input"
-                :disabled="uploading"
-                @change="handleFileInputChange"
-              />
-              <div
-                v-if="isOwnProfile"
-                class="avatar-clickable"
-                :class="{ 'uploading': uploading }"
-                @click="triggerFileInput"
-              >
-                <v-avatar size="120" class="user-avatar" :class="{ 'avatar-no-image': !user.avatarUrl }">
-                  <v-img v-if="user.avatarUrl" :src="user.avatarUrl" :alt="user.name" cover></v-img>
-                  <span v-else class="avatar-initials">{{ getUserInitials(user.name) }}</span>
+        <v-card-text class="position-relative pt-0">
+          <div class="d-flex flex-column flex-md-row align-center align-md-end hero-info-wrapper">
+            
+            <div class="avatar-container">
+              <input v-if="isOwnProfile" ref="fileInputRef" type="file" accept="image/*" class="d-none" @change="handleFileInputChange" />
+              <v-hover v-slot="{ isHovering, props }">
+                <v-avatar 
+                  size="140" 
+                  v-bind="props"
+                  :class="['hero-avatar', { 'clickable': isOwnProfile }]"
+                  @click="isOwnProfile && triggerFileInput()"
+                >
+                  <v-img v-if="user.avatarUrl" :src="user.avatarUrl" cover></v-img>
+                  <div v-else class="avatar-gen text-h3">{{ getUserInitials(user.name) }}</div>
+                  
+                  <v-fade-transition v-if="isOwnProfile">
+                    <div v-if="isHovering || uploading" class="avatar-overlay d-flex align-center justify-center">
+                      <v-progress-circular v-if="uploading" indeterminate color="white"></v-progress-circular>
+                      <v-icon v-else color="white" size="32">mdi-camera</v-icon>
+                    </div>
+                  </v-fade-transition>
                 </v-avatar>
-                <div class="avatar-overlay">
-                  <v-progress-circular
-                    v-if="uploading"
-                    indeterminate
-                    color="white"
-                    size="32"
-                    width="3"
-                  ></v-progress-circular>
-                  <v-icon v-else size="32" color="white">mdi-camera</v-icon>
-                  <span class="avatar-overlay-text">{{ uploading ? t('profile.uploading') : t('profile.clickToUpload') }}</span>
-                </div>
-              </div>
-              <v-avatar v-else size="120" class="user-avatar" :class="{ 'avatar-no-image': !user.avatarUrl }">
-                <v-img v-if="user.avatarUrl" :src="user.avatarUrl" :alt="user.name" cover></v-img>
-                <span v-else class="avatar-initials">{{ getUserInitials(user.name) }}</span>
-              </v-avatar>
+              </v-hover>
             </div>
-            <div class="user-details">
-              <h1 class="text-h4 mb-2">{{ user.name }}</h1>
-              <div class="user-stats">
-                <div class="stat-item">
-                  <v-icon size="small" class="mr-1">mdi-calendar-check</v-icon>
-                  <span>{{ t('users.daysOnSite') }}: {{ daysOnSite }}</span>
-                </div>
+
+            <div class="hero-text ml-md-6 mb-md-4 text-center text-md-left flex-grow-1">
+              <h1 class="text-h4 font-weight-black mb-1 d-flex align-center justify-center justify-md-start">
+                {{ user.name }}
+                <v-icon v-if="user.level > 10" color="amber" class="ml-2" size="24">mdi-shield-check</v-icon>
+              </h1>
+              <div class="d-flex align-center justify-center justify-md-start gap-4">
+                <v-chip
+                  :color="getHeroRank(userLevel).color"
+                  variant="flat"
+                  class="font-weight-bold px-4"
+                  size="small"
+                >
+                  <v-icon start size="16">{{ getHeroRank(userLevel).icon }}</v-icon>
+                  {{ getHeroRank(userLevel).title }}
+                </v-chip>
+                <span class="text-subtitle-2 text-grey-darken-1">
+                  <v-icon size="16" class="mr-1">mdi-map-marker-outline</v-icon>
+                  {{ daysOnSite }} {{ t('users.daysOnSite') }}
+                </span>
               </div>
+            </div>
+
+            <div class="xp-mini-card mb-md-4 mr-md-4">
+              <div class="d-flex justify-space-between text-caption font-weight-bold mb-1">
+                <span>{{ t('navigation.rank') }} {{ userRank }} ({{ t('navigation.level') }} {{ userLevel }})</span>
+                <span>{{ xpDisplayCurrent }} / {{ xpDisplayNeeded }} {{ t('navigation.xp') }}</span>
+              </div>
+              <v-progress-linear :model-value="levelProgressPercentage" color="primary" height="10" rounded></v-progress-linear>
             </div>
           </div>
-          
-          <v-alert v-if="uploadError" type="error" class="mb-4">{{ uploadError }}</v-alert>
-          <v-alert v-if="uploadSuccess" type="success" class="mb-4">{{ uploadSuccess }}</v-alert>
+        </v-card-text>
+      </v-card>
 
-          <!-- Settings Section - Only show for own profile -->
-          <div v-if="isOwnProfile" class="settings-section mt-6">
-            <v-divider class="mb-4"></v-divider>
-            
-            <!-- Language Setting -->
-            <div class="setting-item mb-4">
-              <div class="d-flex align-center">
-                <v-icon icon="mdi-web" size="small" class="mr-2"></v-icon>
-                <span class="text-body-2">{{ t('navigation.language') }}</span>
+      <v-card class="rounded-xl mb-6 hero-card-standard heatmap-card">
+  <div class="d-flex flex-column flex-sm-row align-start align-sm-center justify-space-between mb-4 heatmap-header">
+    <h3 class="text-h6 font-weight-bold d-flex align-center mb-2 mb-sm-0">
+      <v-icon color="success" class="mr-2">mdi-calendar-check</v-icon>
+      Activity Journey
+    </h3>
+    <div class="d-flex align-center text-caption text-grey heatmap-legend-wrapper">
+      <span class="mr-2 d-none d-sm-inline">Less</span>
+      <div class="heatmap-legend">
+        <div class="dot level-0"></div>
+        <div class="dot level-1"></div>
+        <div class="dot level-2"></div>
+        <div class="dot level-3"></div>
+      </div>
+      <span class="ml-2 d-none d-sm-inline">More</span>
+    </div>
+  </div>
+
+  <div class="heatmap-scroll-wrapper">
+    <div class="heatmap-grid">
+      <div 
+        v-for="day in heatmapDays" 
+        :key="day" 
+        class="heatmap-dot"
+        :class="getHeatmapLevel(day)"
+      >
+        <v-tooltip activator="parent" location="top">
+          {{ getTooltipText(day) }}
+        </v-tooltip>
+      </div>
+    </div>
+  </div>
+</v-card>
+
+      <v-expansion-panels v-if="isOwnProfile" class="mb-6 rounded-xl overflow-hidden">
+        <v-expansion-panel elevation="1">
+          <v-expansion-panel-title class="font-weight-bold text-grey-darken-2">
+            <v-icon start>mdi-cog-outline</v-icon> {{ t('profile.settings') }}
+          </v-expansion-panel-title>
+          <v-expansion-panel-text>
+             <div class="setting-row d-flex align-center py-2">
+                <span>{{ t('navigation.language') }}</span>
                 <v-spacer></v-spacer>
-                <v-menu location="bottom">
-                  <template #activator="{ props }">
-                    <v-btn
-                      v-bind="props"
-                      variant="text"
-                      size="small"
-                      class="text-lowercase"
-                    >
-                      {{ currentLocaleLabel }}
-                      <v-icon icon="mdi-chevron-down" size="small" class="ml-1"></v-icon>
-                    </v-btn>
-                  </template>
-                  <v-list>
-                    <v-list-item
-                      v-for="language in availableLocales"
-                      :key="language.code"
-                      :active="language.code === locale.value"
-                      @click="changeLanguage(language.code)"
-                    >
-                      <v-list-item-title>{{ language.label }}</v-list-item-title>
-                    </v-list-item>
-                  </v-list>
-                </v-menu>
-              </div>
-            </div>
-            
-          </div>
+                <v-btn variant="tonal" size="small">{{ currentLocaleLabel }}</v-btn>
+             </div>
+          </v-expansion-panel-text>
+        </v-expansion-panel>
+      </v-expansion-panels>
 
-          <!-- Push Notifications Settings - Only show for own profile -->
-          <div v-if="isOwnProfile" class="push-notifications-section mt-6">
-            <v-divider class="mb-4"></v-divider>
-            <h3 class="text-h6 mb-3">{{ t('profile.pushNotifications') }}</h3>
-            
-            <v-alert
-              v-if="pushNotificationStatus === 'denied'"
-              type="warning"
-              variant="tonal"
-              class="mb-3"
-            >
-              <div class="text-body-2">{{ t('profile.pushNotificationsDenied') }}</div>
-              <div class="text-caption mt-2">{{ t('profile.pushNotificationsDeniedInstructions') }}</div>
-            </v-alert>
-
-            <v-alert
-              v-else-if="pushNotificationStatus === 'unsupported'"
-              type="info"
-              variant="tonal"
-              class="mb-3"
-            >
-              {{ t('profile.pushNotificationsUnsupported') }}
-            </v-alert>
-
-            <div v-else class="d-flex align-center justify-space-between">
-              <div>
-                <div class="text-body-1 font-weight-medium mb-1">
-                  {{ t('profile.pushNotificationsStatus') }}
-                </div>
-                <div class="text-caption text-medium-emphasis">
-                  <span v-if="pushNotificationStatus === 'granted' && isPushSubscribed">
-                    {{ t('profile.pushNotificationsEnabled') }}
-                  </span>
-                  <span v-else-if="pushNotificationStatus === 'granted'">
-                    {{ t('profile.pushNotificationsNotSubscribed') }}
-                  </span>
-                  <span v-else>
-                    {{ t('profile.pushNotificationsNotEnabled') }}
-                  </span>
-                </div>
-              </div>
-              <v-btn
-                v-if="pushNotificationStatus === 'default' || (pushNotificationStatus === 'granted' && !isPushSubscribed)"
-                color="primary"
-                variant="flat"
-                :loading="subscribingToPush"
-                @click="enablePushNotifications"
-              >
-                {{ pushNotificationStatus === 'granted' && !isPushSubscribed ? t('profile.reSubscribePushNotifications') : t('profile.enablePushNotifications') }}
-              </v-btn>
-              <v-btn
-                v-else-if="pushNotificationStatus === 'granted' && isPushSubscribed"
-                color="success"
-                variant="text"
-                disabled
-              >
-                <v-icon size="small" class="mr-1">mdi-check-circle</v-icon>
-                {{ t('profile.pushNotificationsActive') }}
-              </v-btn>
-            </div>
+      <div v-if="!isOwnProfile" class="mt-6 mt-md-8 challenges-section">
+        <!-- Active Missions -->
+        <div v-if="activeUserMissions.length > 0">
+          <h3 class="text-subtitle-1 text-h6 font-weight-bold mb-3 mb-md-4 ml-0 ml-md-2">
+            <v-icon color="primary" class="mr-2">mdi-target</v-icon>
+            Hero's Missions
+          </h3>
+          
+          <div class="challenges-grid">
+            <ChallengeCard 
+              v-for="mission in activeUserMissions" 
+              :key="mission._id || mission.id"
+              :challenge="mission"
+              :show-join-button="!isOwnProfile"
+            />
           </div>
         </div>
         
-        <v-alert v-else-if="error" type="error">
-          {{ error }}
-        </v-alert>
-      </v-card-text>
-    </v-card>
-
-    <!-- Challenges Section - Only show for other users' profiles -->
-    <v-card v-if="!isOwnProfile">
-      <v-card-title class="text-h5 mb-4">
-        {{ t('users.userChallenges') }}
-      </v-card-title>
-      <v-card-text>
-        <!-- Filter Panel -->
-        <FilterPanel v-if="challenges.length > 0" v-model="filters" class="mb-4" />
-
-        <v-progress-linear v-if="loadingChallenges" indeterminate color="primary" class="mb-4"></v-progress-linear>
-        
-        <v-alert v-if="challengesError" type="error" class="mb-4">
-          {{ challengesError }}
-        </v-alert>
-        
-        <v-alert v-else-if="!loadingChallenges && challenges.length === 0" type="info">
-          {{ t('users.noChallenges') }}
-        </v-alert>
-        
-        <v-alert v-else-if="!loadingChallenges && filteredChallenges.length === 0" type="info">
-          {{ t('users.noChallenges') }}
-        </v-alert>
-        
-        <div v-else>
-          <!-- Active Challenges -->
-          <div v-if="activeChallenges.length > 0">
-            <h2 class="section-title mb-4">{{ t('challenges.activityActive') }}</h2>
-            <div class="challenges-grid">
-              <ChallengeCard
-                v-for="challenge in activeChallenges"
-                :key="challenge._id"
-                :challenge="challenge"
-                :current-user-id="currentUserId"
-                :show-join-button="true"
-                :joining-id="joiningId"
-                :leaving-id="leavingId"
-                :watching-id="watchingId"
-                :is-watched="isWatched(challenge)"
-                @click="handleChallengeClick"
-                @join="joinChallenge"
-                @leave="leaveChallenge"
-                @watch="watchChallenge"
-                @unwatch="unwatchChallenge"
-                @owner-navigated="handleOwnerNavigated"
-              />
-            </div>
-          </div>
-
-          <!-- Finished Challenges -->
-          <div v-if="finishedChallenges.length > 0" :class="{ 'finished-section': activeChallenges.length > 0 }">
-            <h2 class="section-title mb-4" :class="{ 'mt-8': activeChallenges.length > 0 }">{{ t('challenges.activityFinished') }}</h2>
-            <div class="challenges-grid">
-              <ChallengeCard
-                v-for="challenge in finishedChallenges"
-                :key="challenge._id"
-                :challenge="challenge"
-                :current-user-id="currentUserId"
-                :show-join-button="true"
-                :joining-id="joiningId"
-                :leaving-id="leavingId"
-                :watching-id="watchingId"
-                :is-watched="isWatched(challenge)"
-                @click="handleChallengeClick"
-                @join="joinChallenge"
-                @leave="leaveChallenge"
-                @watch="watchChallenge"
-                @unwatch="unwatchChallenge"
-                @owner-navigated="handleOwnerNavigated"
-              />
-            </div>
+        <!-- Finished Missions -->
+        <div v-if="finishedUserMissions.length > 0" class="mt-6 mt-md-8">
+          <h3 class="text-subtitle-1 text-h6 font-weight-bold mb-3 mb-md-4 ml-0 ml-md-2">
+            <v-icon color="grey" class="mr-2">mdi-check-circle</v-icon>
+            Finished Missions
+          </h3>
+          
+          <div class="challenges-grid">
+            <ChallengeCard 
+              v-for="mission in finishedUserMissions" 
+              :key="mission._id || mission.id"
+              :challenge="mission"
+              :show-join-button="!isOwnProfile"
+            />
           </div>
         </div>
-      </v-card-text>
-    </v-card>
+      </div>
 
-    <!-- Challenge Details Dialog -->
-    <ChallengeDetailsDialog
-      v-model="detailsDialogOpen"
-      :challenge="selectedChallenge"
-      :is-owner="selectedIsOwner"
-      :is-participant="selectedIsParticipant"
-      :show-join-button="showDialogJoinButton"
-      :show-leave-button="showDialogLeaveButton"
-      :join-loading="selectedJoinLoading"
-      :leave-loading="selectedLeaveLoading"
-      :save-loading="false"
-      :save-error="''"
-      :delete-loading="false"
-      @update="handleDialogUpdate"
-      @join="handleDialogJoin"
-      @leave="handleDialogLeave"
-    />
+    </div>
+
+    <v-alert v-else-if="error" type="error" variant="tonal" class="rounded-xl">
+      {{ error }}
+    </v-alert>
   </div>
 </template>
 
@@ -276,6 +172,7 @@ import {
   requestAndSubscribeToPushNotifications,
   isSubscribedToPushNotifications 
 } from '../utils/pushNotifications'
+import { getLevelFromXp, getXpForLevel, getXpForNextLevel, getLevelName, getRank } from '../utils/levelSystem'
 
 const props = defineProps({
   userId: {
@@ -304,6 +201,8 @@ const loading = ref(false)
 const loadingChallenges = ref(false)
 const error = ref('')
 const challengesError = ref('')
+const checklistHistory = ref([])
+const heatmapChallenges = ref([])
 
 const detailsDialogOpen = ref(false)
 const selectedChallenge = ref(null)
@@ -331,6 +230,34 @@ function getCurrentUserId() {
 }
 
 const currentUserId = ref(getCurrentUserId())
+
+// Level and rank calculations
+const userXp = computed(() => Number(user.value?.xp || 0))
+const userLevel = computed(() => getLevelFromXp(userXp.value))
+const userRank = computed(() => getRank(userLevel.value))
+const userLevelName = computed(() => getLevelName(userLevel.value, locale.value))
+const xpForCurrentLevel = computed(() => getXpForLevel(userLevel.value))
+const xpForNextLevel = computed(() => getXpForNextLevel(userLevel.value))
+const xpProgress = computed(() => Math.max(0, userXp.value - xpForCurrentLevel.value))
+const levelProgressPercentage = computed(() => {
+  const range = xpForNextLevel.value - xpForCurrentLevel.value
+  if (range <= 0) return 100
+  return Math.min(100, Math.max(0, (xpProgress.value / range) * 100))
+})
+
+// XP display values matching MainLayout format
+const xpDisplayCurrent = computed(() => userXp.value)
+const xpDisplayNeeded = computed(() => xpForNextLevel.value)
+
+// Get hero rank information based on level
+const getHeroRank = (level) => {
+  if (level >= 100) return { title: 'Legend', color: '#FF4500', icon: 'mdi-star-circles' };
+  if (level >= 41) return { title: 'Grandmaster', color: '#9400D3', icon: 'mdi-auto-fix' };
+  if (level >= 21) return { title: 'Master', color: '#FFD700', icon: 'mdi-crown' };
+  if (level >= 11) return { title: 'Warrior', color: '#C0C0C0', icon: 'mdi-sword' };
+  if (level >= 6) return { title: 'Adept', color: '#4CAF50', icon: 'mdi-shield-check' };
+  return { title: 'Explorer', color: '#2196F3', icon: 'mdi-compass-outline' };
+};
 
 // Filter state
 const filters = ref({
@@ -500,6 +427,24 @@ const finishedChallenges = computed(() => {
   return filteredChallenges.value.filter(challenge => isChallengeFinished(challenge))
 })
 
+// User missions (habit challenges) for non-current user profiles
+const userMissions = computed(() => {
+  if (isOwnProfile.value) return []
+  return challenges.value.filter(challenge => challenge.challengeType === 'habit')
+})
+
+// Active user missions (not finished)
+const activeUserMissions = computed(() => {
+  if (isOwnProfile.value) return []
+  return userMissions.value.filter(challenge => !isChallengeFinished(challenge))
+})
+
+// Finished user missions
+const finishedUserMissions = computed(() => {
+  if (isOwnProfile.value) return []
+  return userMissions.value.filter(challenge => isChallengeFinished(challenge))
+})
+
 const daysOnSite = computed(() => {
   if (!user.value?.createdAt) return 0
   try {
@@ -515,6 +460,10 @@ const daysOnSite = computed(() => {
   } catch {
     return 0
   }
+})
+
+const heatmapDays = computed(() => {
+  return Array.from({ length: daysOnSite.value }, (_, i) => i + 1)
 })
 
 const selectedIsOwner = computed(() => {
@@ -1090,10 +1039,303 @@ async function enablePushNotifications() {
   }
 }
 
-onMounted(() => {
-  fetchUser()
+// Fetch heatmap data (checklist history and challenges)
+const fetchHeatmapData = async () => {
+  const userId = targetUserId.value
+  if (!userId) {
+    console.log('[Heatmap] No userId, skipping fetchHeatmapData')
+    return
+  }
+
+  console.log('[Heatmap] fetchHeatmapData called', { userId, isOwnProfile: isOwnProfile.value })
+
+  try {
+    // Fetch checklist history (only for own profile - API doesn't support other users yet)
+    if (isOwnProfile.value) {
+      try {
+        console.log('[Heatmap] Fetching checklist history for own profile...')
+        const checklistResponse = await userService.getChecklistHistory()
+        console.log('[Heatmap] Checklist history response:', {
+          hasData: !!checklistResponse.data,
+          checklistsLength: checklistResponse.data?.checklists?.length || 0,
+          checklists: checklistResponse.data?.checklists || []
+        })
+        checklistHistory.value = checklistResponse.data?.checklists || []
+        console.log('[Heatmap] checklistHistory.value set to:', checklistHistory.value.length, 'items')
+      } catch (err) {
+        console.error('[Heatmap] Error fetching checklist history:', err)
+        console.error('[Heatmap] Error details:', err.response?.data || err.message)
+        checklistHistory.value = []
+      }
+    } else {
+      // For other users, we don't have access to their checklist history yet
+      // Will calculate heatmap based on missions only
+      console.log('[Heatmap] Not own profile, skipping checklist history fetch')
+      checklistHistory.value = []
+    }
+
+    // Fetch challenges for the viewed user (needed to determine missions)
+    try {
+      const excludePrivate = !isOwnProfile.value
+      const { data } = await challengeService.getChallengesByUser(userId, { excludePrivate })
+      // Filter for habit challenges only (missions) where user is participant
+      const habitChallenges = (data?.challenges || []).filter(c => {
+        if (c.challengeType !== 'habit') return false
+        if (!c.participants || !Array.isArray(c.participants)) return false
+        // Check if the viewed user is a participant
+        return c.participants.some(p => {
+          const pUserId = p.userId?._id || p.userId || p._id
+          return pUserId && pUserId.toString() === userId.toString()
+        })
+      })
+      heatmapChallenges.value = habitChallenges
+    } catch (err) {
+      console.error('Error fetching challenges for heatmap:', err)
+      heatmapChallenges.value = []
+    }
+  } catch (err) {
+    console.error('Error fetching heatmap data:', err)
+  }
+}
+
+// Helper function to format date string
+const formatDateString = (date) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+// Get date for a specific day number (day 1 = registration date)
+const getDateForDay = (dayNumber) => {
+  if (!user.value?.createdAt) return null
+  try {
+    const registrationDate = new Date(user.value.createdAt)
+    registrationDate.setHours(0, 0, 0, 0)
+    const targetDate = new Date(registrationDate)
+    targetDate.setDate(registrationDate.getDate() + (dayNumber - 1))
+    return targetDate
+  } catch {
+    return null
+  }
+}
+
+// Get challenges active on a specific date for the viewed user
+const getChallengesForDate = (dateString, userId) => {
+  if (!userId || !heatmapChallenges.value.length) return []
+  
+  const targetDate = new Date(dateString)
+  targetDate.setHours(0, 0, 0, 0)
+  const userIdStr = userId.toString()
+  
+  return heatmapChallenges.value.filter(challenge => {
+    // Must be a habit challenge (already filtered, but double-check)
+    if (challenge.challengeType !== 'habit') return false
+    
+    // Must have started (startDate <= targetDate)
+    if (challenge.startDate) {
+      const startDate = new Date(challenge.startDate)
+      startDate.setHours(0, 0, 0, 0)
+      if (startDate > targetDate) return false
+    }
+    
+    // Must not be finished before target date
+    if (challenge.endDate) {
+      const endDate = new Date(challenge.endDate)
+      endDate.setHours(0, 0, 0, 0)
+      if (endDate < targetDate) return false
+    }
+    
+    // Must be a participant (already filtered, but double-check)
+    const isParticipant = challenge.participants?.some(p => {
+      const pUserId = p.userId?._id || p.userId || p._id
+      if (!pUserId) return false
+      return pUserId.toString() === userIdStr
+    })
+    
+    return isParticipant
+  })
+}
+
+// Check if challenge is completed on a specific date
+const isChallengeCompletedOnDate = (challenge, dateString, userId) => {
+  if (!challenge.participants || !userId) return false
+  
+  // Ensure userId is a string for comparison
+  const userIdStr = userId.toString()
+  
+  const participant = challenge.participants.find(p => {
+    const pUserId = p.userId?._id || p.userId || p._id
+    if (!pUserId) return false
+    return pUserId.toString() === userIdStr
+  })
+  
+  if (!participant || !participant.completedDays || !Array.isArray(participant.completedDays)) {
+    return false
+  }
+  
+  return participant.completedDays.some(date => {
+    if (!date) return false
+    let dateStr = String(date)
+    if (dateStr.includes('T')) {
+      dateStr = dateStr.split('T')[0]
+    }
+    dateStr = dateStr.substring(0, 10)
+    return dateStr === dateString
+  })
+}
+
+const getHeatmapLevel = (day) => {
+  if (!user.value?.createdAt) return 'level-0'
+  
+  const targetDate = getDateForDay(day)
+  if (!targetDate) return 'level-0'
+  
+  const dateStr = formatDateString(targetDate)
+  const userId = targetUserId.value
+  
+  if (!userId) return 'level-0'
+  
+  // Find checklist entry for this date
+  const checklistForDate = checklistHistory.value.find(c => {
+    try {
+      // clientDay is already YYYY-MM-DD string, date is a Date object
+      let checklistDateStr = null
+      if (c.clientDay) {
+        // clientDay is already in YYYY-MM-DD format
+        checklistDateStr = c.clientDay
+      } else if (c.date) {
+        // date is a Date object, convert to YYYY-MM-DD
+        checklistDateStr = formatDateString(new Date(c.date))
+      }
+      if (!checklistDateStr) return false
+      return checklistDateStr === dateStr
+    } catch {
+      return false
+    }
+  })
+  
+  // Debug logging
+  if (day === 1 || day === daysOnSite.value) {
+    console.log(`[Heatmap Debug Day ${day}]`, {
+      dateStr,
+      checklistHistoryLength: checklistHistory.value.length,
+      checklistForDate: checklistForDate ? {
+        hasTasks: !!checklistForDate.tasks,
+        tasksLength: checklistForDate.tasks?.length || 0,
+        clientDay: checklistForDate.clientDay,
+        date: checklistForDate.date
+      } : null
+    })
+  }
+  
+  // Count completed and total steps from checklist
+  let completedSteps = 0
+  let totalSteps = 0
+  
+  if (checklistForDate) {
+    // Check for tasks array
+    if (checklistForDate.tasks && Array.isArray(checklistForDate.tasks)) {
+      totalSteps = checklistForDate.tasks.length
+      completedSteps = checklistForDate.tasks.filter(t => t && t.done).length
+    }
+    // Debug if we found checklist but no tasks
+    if (day === 1 || day === daysOnSite.value) {
+      console.log(`[Heatmap Debug Day ${day}] Steps:`, { completedSteps, totalSteps, hasTasks: !!checklistForDate.tasks })
+    }
+  }
+  
+  // Get challenges active on this date
+  const challengesForDate = getChallengesForDate(dateStr, userId)
+  
+  // Count completed and total missions
+  let completedMissions = 0
+  let totalMissions = challengesForDate.length
+  
+  challengesForDate.forEach(challenge => {
+    if (isChallengeCompletedOnDate(challenge, dateStr, userId)) {
+      completedMissions++
+    }
+  })
+  
+  // Calculate percentage
+  const totalItems = totalMissions + totalSteps
+  if (totalItems === 0) return 'level-0'
+  
+  const completedItems = completedMissions + completedSteps
+  const percentage = (completedItems / totalItems) * 100
+  
+  // Return level based on percentage
+  if (percentage > 80) return 'level-3'
+  if (percentage > 60) return 'level-2'
+  if (percentage > 40) return 'level-1'
+  return 'level-0'
+}
+
+const getTooltipText = (day) => {
+  if (!user.value?.createdAt) return `Day ${day}`
+  
+  const targetDate = getDateForDay(day)
+  if (!targetDate) return `Day ${day}`
+  
+  const dateStr = formatDateString(targetDate)
+  const userId = targetUserId.value
+  
+  if (!userId) return `Day ${day}`
+  
+  // Find checklist entry for this date
+  const checklistForDate = checklistHistory.value.find(c => {
+    try {
+      // clientDay is already YYYY-MM-DD string, date is a Date object
+      let checklistDateStr = null
+      if (c.clientDay) {
+        // clientDay is already in YYYY-MM-DD format
+        checklistDateStr = c.clientDay
+      } else if (c.date) {
+        // date is a Date object, convert to YYYY-MM-DD
+        checklistDateStr = formatDateString(new Date(c.date))
+      }
+      if (!checklistDateStr) return false
+      return checklistDateStr === dateStr
+    } catch {
+      return false
+    }
+  })
+  
+  // Count completed and total steps from checklist
+  let completedSteps = 0
+  let totalSteps = 0
+  
+  if (checklistForDate && checklistForDate.tasks && Array.isArray(checklistForDate.tasks)) {
+    totalSteps = checklistForDate.tasks.length
+    completedSteps = checklistForDate.tasks.filter(t => t && t.done).length
+  }
+  
+  // Get challenges active on this date
+  const challengesForDate = getChallengesForDate(dateStr, userId)
+  
+  // Count completed and total missions
+  let completedMissions = 0
+  let totalMissions = challengesForDate.length
+  
+  challengesForDate.forEach(challenge => {
+    if (isChallengeCompletedOnDate(challenge, dateStr, userId)) {
+      completedMissions++
+    }
+  })
+  
+  const dateFormatted = targetDate.toLocaleDateString()
+  return `${dateFormatted}: ${completedMissions}/${totalMissions} missions, ${completedSteps}/${totalSteps} steps`
+}
+
+onMounted(async () => {
+  await fetchUser()
   fetchChallenges()
   loadWatchedChallenges()
+  // Fetch heatmap data after user is loaded
+  if (user.value) {
+    await fetchHeatmapData()
+  }
   // Only check push notification status if viewing own profile
   if (isOwnProfile.value) {
     checkPushNotificationStatus()
@@ -1104,7 +1346,13 @@ onMounted(() => {
 <style scoped>
 .user-profile {
   width: 100%;
-  padding: 24px;
+  padding: 16px;
+}
+
+@media (min-width: 600px) {
+  .user-profile {
+    padding: 24px;
+  }
 }
 
 .user-info-card {
@@ -1239,7 +1487,7 @@ onMounted(() => {
 .challenges-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 16px;
+  gap: 12px;
   padding: 8px 0;
   width: 100%;
 }
@@ -1247,7 +1495,7 @@ onMounted(() => {
 @media (min-width: 600px) {
   .challenges-grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 24px;
+    gap: 20px;
     padding: 16px 0;
   }
 }
@@ -1255,6 +1503,7 @@ onMounted(() => {
 @media (min-width: 960px) {
   .challenges-grid {
     grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
   }
 }
 
@@ -1294,5 +1543,235 @@ onMounted(() => {
 .logout-button:hover {
   color: rgba(0, 0, 0, 0.7) !important;
   background-color: rgba(0, 0, 0, 0.05) !important;
+}
+/* Добавляем градиент на фон хедера, если он еще не задан */
+.hero-header-card {
+  position: relative;
+  background: white !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Создаем декоративную обложку внутри карточки */
+.hero-header-card::before {
+  content: "";
+  display: block;
+  height: 80px;
+  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+  border-radius: 16px 16px 0 0;
+}
+
+@media (min-width: 600px) {
+  .hero-header-card::before {
+    height: 120px;
+    border-radius: 20px 20px 0 0;
+  }
+}
+
+/* Поднимаем контент, чтобы аватар наплывал на обложку */
+.user-info {
+  margin-top: -40px;
+  padding: 0 16px 16px !important;
+}
+
+@media (min-width: 600px) {
+  .user-info {
+    margin-top: -50px;
+    padding: 0 32px 24px !important;
+  }
+}
+
+/* Hero info wrapper responsive adjustments */
+.hero-info-wrapper {
+  gap: 16px;
+}
+
+@media (min-width: 960px) {
+  .hero-info-wrapper {
+    gap: 24px;
+  }
+}
+
+/* Avatar container responsive */
+.avatar-container {
+  margin-bottom: 12px;
+}
+
+@media (min-width: 600px) {
+  .avatar-container {
+    margin-bottom: 0;
+  }
+}
+
+/* Avatar size responsive */
+.hero-avatar {
+  width: 100px !important;
+  height: 100px !important;
+}
+
+@media (min-width: 600px) {
+  .hero-avatar {
+    width: 140px !important;
+    height: 140px !important;
+  }
+}
+
+/* Hero text responsive */
+.hero-text h1 {
+  font-size: 1.5rem;
+}
+
+@media (min-width: 600px) {
+  .hero-text h1 {
+    font-size: 2rem;
+  }
+}
+
+.hero-text .gap-4 {
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (min-width: 600px) {
+  .hero-text .gap-4 {
+    gap: 16px;
+    flex-wrap: nowrap;
+  }
+}
+
+/* Стили для XP блока, чтобы он выглядел аккуратнее */
+.xp-mini-card {
+  background: #f8fafc;
+  border: 1px solid #edf2f7;
+  padding: 10px 16px;
+  border-radius: 12px;
+  width: 100%;
+  margin-top: 16px;
+}
+
+@media (min-width: 600px) {
+  .xp-mini-card {
+    padding: 12px 20px;
+    border-radius: 16px;
+    min-width: 260px;
+    width: auto;
+    margin-top: 0;
+  }
+}
+
+.xp-mini-card .text-caption {
+  font-size: 0.7rem;
+}
+
+@media (min-width: 600px) {
+  .xp-mini-card .text-caption {
+    font-size: 0.75rem;
+  }
+}
+/* Heatmap card responsive */
+.heatmap-card {
+  padding: 16px;
+}
+
+@media (min-width: 600px) {
+  .heatmap-card {
+    padding: 24px;
+  }
+}
+
+.heatmap-header {
+  gap: 12px;
+}
+
+@media (min-width: 600px) {
+  .heatmap-header {
+    gap: 0;
+  }
+}
+
+.heatmap-legend-wrapper {
+  font-size: 0.7rem;
+}
+
+@media (min-width: 600px) {
+  .heatmap-legend-wrapper {
+    font-size: 0.75rem;
+  }
+}
+
+.heatmap-scroll-wrapper {
+  overflow-x: auto;
+  padding: 10px 0;
+  /* Прячем скроллбар для красоты, если нужно */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.heatmap-scroll-wrapper::-webkit-scrollbar {
+  display: none;
+}
+
+.heatmap-grid {
+  display: grid;
+  /* 7 рядов (дни недели), колонки добавляются автоматически */
+  grid-template-rows: repeat(7, 12px);
+  grid-auto-flow: column;
+  grid-auto-columns: 12px;
+  gap: 3px;
+  width: max-content;
+}
+
+@media (min-width: 600px) {
+  .heatmap-grid {
+    grid-template-rows: repeat(7, 14px);
+    grid-auto-columns: 14px;
+    gap: 4px;
+  }
+}
+
+.heatmap-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  background-color: #f1f5f9; /* Пустой день */
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+@media (min-width: 600px) {
+  .heatmap-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+  }
+}
+
+.heatmap-dot:hover {
+  transform: scale(1.3);
+  box-shadow: 0 0 8px rgba(0,0,0,0.1);
+  z-index: 10;
+}
+
+/* Цвета уровней активности */
+.level-0 { background-color: #f1f5f9; }
+.level-1 { background-color: #dbeafe; } /* Светло-голубой */
+.level-2 { background-color: #60a5fa; } /* Средний */
+.level-3 { background-color: #2563eb; } /* Насыщенный синий */
+
+.heatmap-legend {
+  display: flex;
+  gap: 3px;
+}
+
+.heatmap-legend .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+@media (min-width: 600px) {
+  .heatmap-legend .dot {
+    width: 10px;
+    height: 10px;
+  }
 }
 </style>
