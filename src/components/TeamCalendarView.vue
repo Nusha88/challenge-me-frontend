@@ -91,7 +91,7 @@
 
             <div class="ml-4 text-right" style="min-width: 45px">
               <span class="text-h6 font-weight-black color-primary">{{ member.progress }}%</span>
-            </div>
+          </div>
             
             <v-btn icon="mdi-chevron-right" variant="text" size="small" color="grey"></v-btn>
           </div>
@@ -442,7 +442,7 @@ function navigateToUserProfile(member) {
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 12px;
+    gap: 12px;
   max-width: 450px;
   margin: 0 auto;
 }

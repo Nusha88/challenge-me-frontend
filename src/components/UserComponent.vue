@@ -1344,434 +1344,60 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.user-profile {
+.register-container {
+  min-height: 100vh;
   width: 100%;
-  padding: 16px;
-}
-
-@media (min-width: 600px) {
-  .user-profile {
-    padding: 24px;
-  }
-}
-
-.user-info-card {
-  width: 100%;
-}
-
-.user-info {
-  width: 100%;
-}
-
-.user-header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-
-@media (min-width: 600px) {
-  .user-header {
-    flex-direction: row;
-    align-items: center;
-    text-align: left;
-  }
-}
-
-.user-avatar {
-  margin-bottom: 16px;
-}
-
-@media (min-width: 600px) {
-  .user-avatar {
-    margin-right: 24px;
-    margin-bottom: 0;
-  }
-}
-
-.avatar-wrapper {
-  position: relative;
-  display: inline-block;
-}
-
-.avatar-clickable {
-  position: relative;
-  cursor: pointer;
-  display: inline-block;
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  overflow: hidden;
-}
-
-.avatar-clickable:hover .avatar-overlay {
-  opacity: 1;
-}
-
-.avatar-clickable.uploading .avatar-overlay {
-  opacity: 1;
-}
-
-.avatar-clickable:hover .user-avatar {
-  opacity: 0.8;
-}
-
-.avatar-no-image {
-  background: linear-gradient(135deg, #1FA0F6 0%, #A62EE8 100%);
-}
-
-.avatar-initials {
-  font-size: 48px;
-  font-weight: 600;
-  text-transform: uppercase;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  color: white;
-}
-
-.avatar-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.6);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  opacity: 0;
-  transition: opacity 0.2s;
-  pointer-events: none;
+  padding: 24px;
+  /* Мягкий градиент на фоне */
+  background: radial-gradient(circle at top right, #f8fafc 0%, #e2e8f0 100%);
 }
 
-.avatar-overlay-text {
-  color: white;
-  font-size: 12px;
-  margin-top: 4px;
-  text-align: center;
-}
-
-.hidden-file-input {
-  display: none;
-}
-
-.user-details {
-  flex: 1;
-}
-
-.user-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-@media (min-width: 600px) {
-  .user-stats {
-    flex-direction: row;
-    gap: 24px;
-  }
-}
-
-.stat-item {
-  display: flex;
-  align-items: center;
-  color: rgba(0, 0, 0, 0.6);
-}
-
-.challenges-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-  padding: 8px 0;
+.register-card {
   width: 100%;
+  max-width: 500px;
+  /* Эффект стекла */
+  background: rgba(255, 255, 255, 0.7) !important;
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  border-radius: 32px !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.05) !important;
 }
 
-@media (min-width: 600px) {
-  .challenges-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
-    padding: 16px 0;
-  }
+.register-title {
+  font-size: 2.5rem;
+  font-weight: 900;
+  letter-spacing: -1px;
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
-@media (min-width: 960px) {
-  .challenges-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 24px;
-  }
-}
-
-.section-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: rgba(0, 0, 0, 0.87);
-  margin-bottom: 16px;
-}
-
-@media (min-width: 600px) {
-  .section-title {
-    font-size: 1.5rem;
-  }
-}
-
-.finished-section {
-  border-top: 2px solid rgba(0, 0, 0, 0.12);
-  padding-top: 24px;
-  margin-top: 24px;
-}
-
-.settings-section {
-  padding-top: 16px;
-}
-
-.setting-item {
-  padding: 8px 0;
-}
-
-.logout-button {
-  color: rgba(0, 0, 0, 0.5) !important;
-  text-transform: none !important;
-  font-weight: 400;
-}
-
-.logout-button:hover {
-  color: rgba(0, 0, 0, 0.7) !important;
-  background-color: rgba(0, 0, 0, 0.05) !important;
-}
-/* Добавляем градиент на фон хедера, если он еще не задан */
-.hero-header-card {
-  position: relative;
+/* Стилизация полей ввода */
+:deep(.custom-field .v-field) {
+  border-radius: 16px !important;
   background: white !important;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05) !important;
 }
 
-/* Создаем декоративную обложку внутри карточки */
-.hero-header-card::before {
-  content: "";
-  display: block;
-  height: 80px;
-  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-  border-radius: 16px 16px 0 0;
+/* Анимация появления */
+.reveal-item {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: revealUp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation-delay: calc(var(--i) * 0.1s);
 }
 
-@media (min-width: 600px) {
-  .hero-header-card::before {
-    height: 120px;
-    border-radius: 20px 20px 0 0;
+@keyframes revealUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-/* Поднимаем контент, чтобы аватар наплывал на обложку */
-.user-info {
-  margin-top: -40px;
-  padding: 0 16px 16px !important;
-}
-
-@media (min-width: 600px) {
-  .user-info {
-    margin-top: -50px;
-    padding: 0 32px 24px !important;
-  }
-}
-
-/* Hero info wrapper responsive adjustments */
-.hero-info-wrapper {
-  gap: 16px;
-}
-
-@media (min-width: 960px) {
-  .hero-info-wrapper {
-    gap: 24px;
-  }
-}
-
-/* Avatar container responsive */
-.avatar-container {
-  margin-bottom: 12px;
-}
-
-@media (min-width: 600px) {
-  .avatar-container {
-    margin-bottom: 0;
-  }
-}
-
-/* Avatar size responsive */
-.hero-avatar {
-  width: 100px !important;
-  height: 100px !important;
-}
-
-@media (min-width: 600px) {
-  .hero-avatar {
-    width: 140px !important;
-    height: 140px !important;
-  }
-}
-
-/* Hero text responsive */
-.hero-text h1 {
-  font-size: 1.5rem;
-}
-
-@media (min-width: 600px) {
-  .hero-text h1 {
-    font-size: 2rem;
-  }
-}
-
-.hero-text .gap-4 {
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-@media (min-width: 600px) {
-  .hero-text .gap-4 {
-    gap: 16px;
-    flex-wrap: nowrap;
-  }
-}
-
-/* Стили для XP блока, чтобы он выглядел аккуратнее */
-.xp-mini-card {
-  background: #f8fafc;
-  border: 1px solid #edf2f7;
-  padding: 10px 16px;
-  border-radius: 12px;
-  width: 100%;
-  margin-top: 16px;
-}
-
-@media (min-width: 600px) {
-  .xp-mini-card {
-    padding: 12px 20px;
-    border-radius: 16px;
-    min-width: 260px;
-    width: auto;
-    margin-top: 0;
-  }
-}
-
-.xp-mini-card .text-caption {
-  font-size: 0.7rem;
-}
-
-@media (min-width: 600px) {
-  .xp-mini-card .text-caption {
-    font-size: 0.75rem;
-  }
-}
-/* Heatmap card responsive */
-.heatmap-card {
-  padding: 16px;
-}
-
-@media (min-width: 600px) {
-  .heatmap-card {
-    padding: 24px;
-  }
-}
-
-.heatmap-header {
-  gap: 12px;
-}
-
-@media (min-width: 600px) {
-  .heatmap-header {
-    gap: 0;
-  }
-}
-
-.heatmap-legend-wrapper {
-  font-size: 0.7rem;
-}
-
-@media (min-width: 600px) {
-  .heatmap-legend-wrapper {
-    font-size: 0.75rem;
-  }
-}
-
-.heatmap-scroll-wrapper {
-  overflow-x: auto;
-  padding: 10px 0;
-  /* Прячем скроллбар для красоты, если нужно */
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.heatmap-scroll-wrapper::-webkit-scrollbar {
-  display: none;
-}
-
-.heatmap-grid {
-  display: grid;
-  /* 7 рядов (дни недели), колонки добавляются автоматически */
-  grid-template-rows: repeat(7, 12px);
-  grid-auto-flow: column;
-  grid-auto-columns: 12px;
-  gap: 3px;
-  width: max-content;
-}
-
-@media (min-width: 600px) {
-  .heatmap-grid {
-    grid-template-rows: repeat(7, 14px);
-    grid-auto-columns: 14px;
-    gap: 4px;
-  }
-}
-
-.heatmap-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 2px;
-  background-color: #f1f5f9; /* Пустой день */
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-
-@media (min-width: 600px) {
-  .heatmap-dot {
-    width: 14px;
-    height: 14px;
-    border-radius: 3px;
-  }
-}
-
-.heatmap-dot:hover {
-  transform: scale(1.3);
-  box-shadow: 0 0 8px rgba(0,0,0,0.1);
-  z-index: 10;
-}
-
-/* Цвета уровней активности */
-.level-0 { background-color: #f1f5f9; }
-.level-1 { background-color: #dbeafe; } /* Светло-голубой */
-.level-2 { background-color: #60a5fa; } /* Средний */
-.level-3 { background-color: #2563eb; } /* Насыщенный синий */
-
-.heatmap-legend {
-  display: flex;
-  gap: 3px;
-}
-
-.heatmap-legend .dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
-}
-
-@media (min-width: 600px) {
-  .heatmap-legend .dot {
-    width: 10px;
-    height: 10px;
-  }
+@media (max-width: 600px) {
+  .register-title { font-size: 2rem; }
 }
 </style>

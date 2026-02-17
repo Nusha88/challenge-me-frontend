@@ -479,7 +479,7 @@ watch(() => route.path, () => {
         <!-- Right Section: Buttons -->
         <div class="header-section header-right">
       <v-btn
-        v-if="!isLoggedIn && route.path !== '/register'"
+        v-if="!isLoggedIn && route.path !== '/register' && route.path !== '/login'"
         to="/register"
         variant="elevated"
         class="mr-2 sign-up-button"
@@ -488,7 +488,7 @@ watch(() => route.path, () => {
         {{ t('navigation.register') }}
       </v-btn>
       <v-btn
-        v-if="!isLoggedIn && route.path !== '/login'"
+        v-if="!isLoggedIn && route.path !== '/login' && route.path !== '/register'"
         to="/login"
         variant="outlined"
         class="mr-2 login-button"

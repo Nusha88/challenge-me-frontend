@@ -115,9 +115,13 @@
     "back": "Назад"
   },
   "auth": {
+    "joinCommunity": "ПРИСОЕДИНЯЙСЯ К СООБЩЕСТВУ",
+    "motivationText": "Тысячи героев уже меняют свою жизнь. Начни свой путь к дисциплине и мастерству прямо сейчас.",
     "registerPageTitle": "Create your account",
     "registerDescription": "Присоединяйся к ChallengeMe и достигай целей вместе с друзьями",
     "registerTitle": "Создать аккаунт",
+    "alreadyHaveAccount": "Уже есть аккаунт?",
+    "welcomeBack": "С ВОЗВРАЩЕНИЕМ, ГЕРОЙ",
     "loginPageTitle": "Log in",
     "loginDescription": "Welcome back! Log in to your account",
     "loginTitle": "Войти",

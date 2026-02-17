@@ -19,28 +19,52 @@
 </template>
 
 <script setup>
+import { watch } from 'vue'
+import confetti from 'canvas-confetti'
 import GradientButton from './GradientButton.vue'
 
 const props = defineProps({
-  modelValue: {
-    type: Boolean,
-    default: false
-  },
-  title: {
-    type: String,
-    required: true
-  },
-  message: {
-    type: String,
-    required: true
-  },
-  buttonText: {
-    type: String,
-    default: 'OK'
-  }
+  modelValue: Boolean,
+  title: String,
+  message: String,
+  buttonText: { type: String, default: 'OK' }
 })
 
 const emit = defineEmits(['update:modelValue', 'close'])
+
+// Запуск пушки конфетти
+const fireConfetti = () => {
+  const duration = 3 * 1000
+  const end = Date.now() + duration
+
+  ;(function frame() {
+    confetti({
+      particleCount: 3,
+      angle: 60,
+      spread: 55,
+      origin: { x: 0, y: 0.6 },
+      colors: ['#a855f7', '#1FA0F6', '#ffa500']
+    })
+    confetti({
+      particleCount: 3,
+      angle: 120,
+      spread: 55,
+      origin: { x: 1, y: 0.6 },
+      colors: ['#a855f7', '#1FA0F6', '#ffa500']
+    })
+
+    if (Date.now() < end) {
+      requestAnimationFrame(frame)
+    }
+  }())
+}
+
+// Следим за открытием модалки
+watch(() => props.modelValue, (newVal) => {
+  if (newVal) {
+    setTimeout(fireConfetti, 300) // небольшая задержка для плавности
+  }
+})
 
 function handleClose() {
   emit('update:modelValue', false)
@@ -49,69 +73,71 @@ function handleClose() {
 </script>
 
 <style scoped>
-/* Стили для кастомного модального окна */
 .custom-modal-content {
-  background: white !important;
+  /* Эффект матового стекла */
+  background: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(15px) saturate(180%);
+  -webkit-backdrop-filter: blur(15px) saturate(180%);
+
   padding: 40px 30px !important;
-  border-radius: 24px !important;
+  border-radius: 32px !important;
+  border: 1px solid rgba(255, 255, 255, 0.3);
   text-align: center;
   position: relative;
-  overflow: hidden;
-  box-shadow: none !important;
-}
-
-.custom-modal-content :deep(.v-card-text) {
-  padding: 0 !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
 }
 
 .success-icon-wrapper {
-  width: 70px;
-  height: 70px;
-  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-  border-radius: 50%;
+  width: 80px;
+  height: 80px;
+  /* Градиент в цвет твоего кристалла */
+  background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
+  border-radius: 24px; /* Делаем мягкий квадрат (squircle) */
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 24px;
-  box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+  transform: rotate(-10deg); /* Легкий наклон для динамики */
+  box-shadow: 0 15px 30px rgba(168, 85, 247, 0.4);
+  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+  0% { transform: scale(0) rotate(0); }
+  100% { transform: scale(1) rotate(-10deg); }
 }
 
 .modal-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #1f2937;
+  font-size: 1.75rem;
+  font-weight: 800;
+  background: linear-gradient(to right, #1f2937, #4b5563);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
   margin-bottom: 12px;
 }
 
 .modal-text {
-  font-size: 1rem;
-  color: #6b7280;
-  line-height: 1.6;
-  margin-bottom: 30px;
+  font-size: 1.1rem;
+  color: #4b5563;
+  line-height: 1.5;
+  margin-bottom: 32px;
 }
 
-/* Убираем стандартные тени Vuetify диалога, чтобы оставить наши скругления */
-:deep(.v-overlay__content) {
-  box-shadow: none !important;
-}
-
-:deep(.v-overlay__content > .v-card) {
-  border-radius: 24px !important;
-  box-shadow: none !important;
-}
-
-/* Purple to blue gradient for the button */
+/* Стили для кнопки подтверждения */
 :deep(.gradient-button) {
-  background: linear-gradient(135deg, #a855f7 0%, #1FA0F6 100%) !important;
+  height: 56px !important;
+  font-size: 1.1rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 1px !important;
+  border-radius: 16px !important;
+  /* Фиолетово-синий градиент как на Register кнопке */
+  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%) !important;
+  box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3) !important;
 }
 
-:deep(.gradient-button :deep(.v-btn__overlay)) {
-  background: linear-gradient(135deg, #a855f7 0%, #1FA0F6 100%) !important;
-}
-
-:deep(.gradient-button:hover) {
-  background: linear-gradient(135deg, #1FA0F6 0%, #a855f7 100%) !important;
-  box-shadow: 0 4px 12px rgba(168, 85, 247, 0.4);
+:deep(.v-overlay__content) {
+  /* Важно для корректного отображения тени */
+  overflow: visible !important;
 }
 </style>
 

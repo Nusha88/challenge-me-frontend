@@ -115,9 +115,13 @@
     "back": "Back"
   },
   "auth": {
+    "joinCommunity": "JOIN THE COMMUNITY",
+    "motivationText": "Thousands of heroes are already changing their lives. Start your path to discipline and mastery right now.",
     "registerPageTitle": "Create your account",
     "registerDescription": "Join ChallengeMe and achieve goals together with friends",
     "registerTitle": "Create Account",
+    "alreadyHaveAccount": "Already have an account?",
+    "welcomeBack": "WELCOME BACK, HERO",
     "loginPageTitle": "Log in",
     "loginDescription": "Welcome back! Log in to your account",
     "loginTitle": "Sign In",
