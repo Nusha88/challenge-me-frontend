@@ -29,44 +29,21 @@ function readStoredUser() {
     return null
   }
 }
+const isAuthPage = computed(() => {
+  return ['login', 'register', 'forgot-password'].includes(route.name) || 
+         route.path === '/login' || 
+         route.path === '/register'
+})
 
 const currentUser = ref(readStoredUser())
 const { t, locale } = useI18n()
 const { mobile, mdAndUp } = useDisplay()
 const availableLocales = SUPPORTED_LOCALES
 
-async function updateAuthState() {
+function updateAuthState() {
   const wasLoggedIn = isLoggedIn.value
   isLoggedIn.value = !!localStorage.getItem('token')
-  
-  // If logged in, fetch fresh user data from API to get updated XP
-  if (isLoggedIn.value) {
-    try {
-      const response = await userService.getProfile()
-      if (response.data?.user) {
-        // Update currentUser with fresh data
-        currentUser.value = response.data.user
-        // Also update localStorage to keep it in sync
-        try {
-          const stored = localStorage.getItem('user')
-          const storedUser = stored ? JSON.parse(stored) : {}
-          const merged = { ...storedUser, ...response.data.user }
-          localStorage.setItem('user', JSON.stringify(merged))
-        } catch {
-          // ignore storage errors
-        }
-      } else {
-        // Fallback to localStorage if API fails
-        currentUser.value = readStoredUser()
-      }
-    } catch (err) {
-      // If API call fails, fallback to localStorage
-      console.warn('Failed to fetch fresh user data, using localStorage:', err)
-      currentUser.value = readStoredUser()
-    }
-  } else {
-    currentUser.value = readStoredUser()
-  }
+  currentUser.value = readStoredUser()
   
   // Initialize push notifications when user logs in
   // Wait a bit to ensure token is stored and axios interceptors are ready
@@ -447,7 +424,7 @@ watch(() => route.path, () => {
 
 <template>
   <v-app>
-    <v-app-bar class="app-bar-custom" elevation="0" :fixed="false">
+    <v-app-bar v-if="!isAuthPage" class="app-bar-custom" elevation="0" :fixed="false">
       <div class="header-content-wrapper">
         <!-- Left Section: Streak Button -->
         <div class="header-section header-left">
@@ -479,7 +456,7 @@ watch(() => route.path, () => {
         <!-- Right Section: Buttons -->
         <div class="header-section header-right">
       <v-btn
-        v-if="!isLoggedIn && route.path !== '/register' && route.path !== '/login'"
+        v-if="!isLoggedIn && route.path !== '/register'"
         to="/register"
         variant="elevated"
         class="mr-2 sign-up-button"
@@ -488,7 +465,7 @@ watch(() => route.path, () => {
         {{ t('navigation.register') }}
       </v-btn>
       <v-btn
-        v-if="!isLoggedIn && route.path !== '/login' && route.path !== '/register'"
+        v-if="!isLoggedIn && route.path !== '/login'"
         to="/login"
         variant="outlined"
         class="mr-2 login-button"
@@ -529,7 +506,7 @@ watch(() => route.path, () => {
 
     <!-- FAB Button for Mobile -->
       <v-btn
-        v-if="isLoggedIn"
+       v-if="isLoggedIn && !isAuthPage"
       to="/missions/add"
       class="fab-button d-md-none"
       color="primary"
@@ -540,11 +517,13 @@ watch(() => route.path, () => {
     >
       </v-btn>
 
-    <v-main :class="['main-content', { 'public-view': !isLoggedIn, 'with-sidebar': isLoggedIn }]">
+    <v-main :class="['main-content', { 'public-view': !isLoggedIn, 
+        'with-sidebar': isLoggedIn && !isAuthPage,
+        'auth-layout': isAuthPage }]">
       <div class="main-content-wrapper">
         <!-- Desktop Permanent Sidebar -->
         <v-navigation-drawer
-          v-if="isLoggedIn"
+          v-if="isLoggedIn && !isAuthPage"
           permanent
           class="d-none d-md-block desktop-sidebar sidebar-column"
         >
@@ -570,11 +549,11 @@ watch(() => route.path, () => {
                       <span :style="{ color: getLevelInfo(userLevel).color }">
                         {{ getLevelInfo(userLevel).rank }} (Lvl {{ userLevel }})
                       </span>
-                      <span class="text-grey-darken-1">{{ xpDisplayCurrent }} / {{ xpDisplayNeeded }} {{ t('navigation.xp') }}</span>
+                      <span class="text-grey-darken-1">{{ getCurrentXp() }} / {{ getLevelInfo(userLevel).xpPerLvl }} XP</span>
                     </div>
                     
                     <v-progress-linear 
-                      :model-value="levelProgressPercentage" 
+                      :model-value="(getCurrentXp() / getLevelInfo(userLevel).xpPerLvl) * 100" 
                       :color="getLevelInfo(userLevel).color" 
                       height="8" 
                       rounded
@@ -587,102 +566,77 @@ watch(() => route.path, () => {
               <v-divider class="my-2"></v-divider>
 
               <!-- YOUR JOURNEY Section -->
-              <v-list-subheader class="sidebar-section-header">
-                <Star :size="14" class="sidebar-section-icon ml-8" />
-                {{ t('navigation.yourJourney') }}
-              </v-list-subheader>
+              <div class="sidebar-menu-card mb-4">
+  <v-list-subheader class="sidebar-section-header">
+    <Star :size="14" class="sidebar-section-icon ml-8" />
+    {{ t('navigation.yourJourney') }}
+  </v-list-subheader>
 
-              <v-list-item
-                to="/"
-                :active="currentRoute === 'home'"
-                color="primary"
-              >
-                <template v-slot:prepend>
-                  <Sparkles :size="20" class="sidebar-lucide-icon mr-2" />
-                </template>
-                <v-list-item-title>{{ t('navigation.today') }}</v-list-item-title>
-              </v-list-item>
+  <v-list-item to="/" :active="currentRoute === 'home'" color="primary">
+    <template v-slot:prepend>
+      <Sparkles :size="20" class="sidebar-lucide-icon mr-2" />
+    </template>
+    <v-list-item-title>{{ t('navigation.today') }}</v-list-item-title>
+  </v-list-item>
 
-            <v-list-item
-              :active="currentRoute === 'my-challenges'"
-                to="/missions/my"
-              color="primary"
-            >
-              <template v-slot:prepend>
-                  <Mountain :size="20" class="sidebar-lucide-icon mr-2" />
-              </template>
-              <v-list-item-title>{{ t('navigation.myChallenges') }}</v-list-item-title>
-            </v-list-item>
+  <v-list-item to="/missions/my" :active="currentRoute === 'my-challenges'" color="primary">
+    <template v-slot:prepend>
+      <Mountain :size="20" class="sidebar-lucide-icon mr-2" />
+    </template>
+    <v-list-item-title>{{ t('navigation.myChallenges') }}</v-list-item-title>
+  </v-list-item>
 
-            <v-list-item
-                :active="currentRoute === 'checklists-history'"
-                to="/checklists/history"
-              color="primary"
-            >
-              <template v-slot:prepend>
-                  <BookOpen :size="20" class="sidebar-lucide-icon mr-2" />
-              </template>
-                <v-list-item-title>{{ t('navigation.checklistHistory') }}</v-list-item-title>
-            </v-list-item>
+  <v-list-item to="/checklists/history" :active="currentRoute === 'checklists-history'" color="primary">
+    <template v-slot:prepend>
+      <BookOpen :size="20" class="sidebar-lucide-icon mr-2" />
+    </template>
+    <v-list-item-title>{{ t('navigation.checklistHistory') }}</v-list-item-title>
+  </v-list-item>
+</div>
 
-              <v-divider class="my-2"></v-divider>
+<div class="sidebar-menu-card mb-4">
+  <v-list-subheader class="sidebar-section-header">
+    <Globe2 :size="14" class="sidebar-section-icon ml-8" />
+    {{ t('navigation.world') }}
+  </v-list-subheader>
 
-              <!-- WORLD Section -->
-              <v-list-subheader class="sidebar-section-header">
-                <Globe2 :size="14" class="sidebar-section-icon ml-8" />
-                {{ t('navigation.world') }}
-              </v-list-subheader>
+  <v-list-item to="/missions" :active="currentRoute === 'challenges'" color="primary">
+    <template v-slot:prepend>
+      <Compass :size="20" class="sidebar-lucide-icon mr-2" />
+    </template>
+    <v-list-item-title>{{ t('navigation.allChallenges') }}</v-list-item-title>
+  </v-list-item>
 
-            <v-list-item
-              :active="currentRoute === 'challenges'"
-                to="/missions"
-              color="primary"
-            >
-              <template v-slot:prepend>
-                  <Compass :size="20" class="sidebar-lucide-icon mr-2" />
-              </template>
-              <v-list-item-title>{{ t('navigation.allChallenges') }}</v-list-item-title>
-            </v-list-item>
+  <v-list-item to="/missions/watched" :active="currentRoute === 'watched-challenges'" color="primary">
+    <template v-slot:prepend>
+      <Eye :size="20" class="sidebar-lucide-icon mr-2" />
+    </template>
+    <v-list-item-title>{{ t('navigation.interested') }}</v-list-item-title>
+  </v-list-item>
 
-              <v-list-item
-                :active="currentRoute === 'watched-challenges'"
-                to="/missions/watched"
-                color="primary"
-              >
-                <template v-slot:prepend>
-                  <Eye :size="20" class="sidebar-lucide-icon mr-2" />
-                </template>
-                <v-list-item-title>{{ t('navigation.interested') }}</v-list-item-title>
-              </v-list-item>
+  <v-list-item to="/heroes" :active="currentRoute === 'users'" color="primary">
+    <template v-slot:prepend>
+      <Trophy :size="20" class="sidebar-lucide-icon mr-2" />
+    </template>
+    <v-list-item-title>{{ t('navigation.allUsers') }}</v-list-item-title>
+  </v-list-item>
+</div>
 
-              <v-list-item
-                :active="currentRoute === 'users'"
-                to="/heroes"
-                color="primary"
-              >
-                <template v-slot:prepend>
-                  <Trophy :size="20" class="sidebar-lucide-icon mr-2" />
-                </template>
-                <v-list-item-title>{{ t('navigation.allUsers') }}</v-list-item-title>
-              </v-list-item>
-
-              <v-divider class="my-2"></v-divider>
-
-              <v-list-item
-                class="logout-item"
-                @click="logout"
-              >
-                <template v-slot:prepend>
-                  <LogOut :size="20" class="logout-icon sidebar-lucide-icon mr-2" />
-                </template>
-                <v-list-item-title class="logout-text">{{ t('navigation.logout') }}</v-list-item-title>
-              </v-list-item>
+<div class="sidebar-menu-card logout-card mt-auto mb-4">
+  <v-list-item class="logout-item" @click="logout(); if(drawerOpen) drawerOpen = false">
+    <template v-slot:prepend>
+      <LogOut :size="20" class="logout-icon sidebar-lucide-icon mr-2" />
+    </template>
+    <v-list-item-title class="logout-text">{{ t('navigation.logout') }}</v-list-item-title>
+  </v-list-item>
+</div>
 
           </v-list>
           </div>
         </v-navigation-drawer>
 
-        <div :class="['main-content-inner', { 'content-column': isLoggedIn, 'full-column': !isLoggedIn }]">
+        <div :class="['main-content-inner', { 'content-column': isLoggedIn && !isAuthPage, 
+            'full-column': !isLoggedIn || isAuthPage}]">
           <router-view></router-view>
         </div>
       </div>
@@ -690,7 +644,7 @@ watch(() => route.path, () => {
 
     <!-- Mobile Navigation Drawer -->
     <v-navigation-drawer
-      v-if="isLoggedIn"
+      v-if="!isAuthPage"
       :model-value="drawerOpen"
       @update:model-value="drawerOpen = $event"
       temporary
@@ -719,11 +673,11 @@ watch(() => route.path, () => {
                 <span :style="{ color: getLevelInfo(userLevel).color }">
                   {{ getLevelInfo(userLevel).rank }} (Lvl {{ userLevel }})
                 </span>
-                <span class="text-grey-darken-1">{{ xpDisplayCurrent }} / {{ xpDisplayNeeded }} {{ t('navigation.xp') }}</span>
+                <span class="text-grey-darken-1">{{ getCurrentXp() }} / {{ getLevelInfo(userLevel).xpPerLvl }} XP</span>
               </div>
               
               <v-progress-linear 
-                :model-value="levelProgressPercentage" 
+                :model-value="(getCurrentXp() / getLevelInfo(userLevel).xpPerLvl) * 100" 
                 :color="getLevelInfo(userLevel).color" 
                 height="8" 
                 rounded
@@ -736,102 +690,70 @@ watch(() => route.path, () => {
         <v-divider class="my-2"></v-divider>
 
         <!-- YOUR JOURNEY Section -->
-        <v-list-subheader class="sidebar-section-header">
-          <Star :size="14" class="sidebar-section-icon ml-8" />
-          {{ t('navigation.yourJourney') }}
-        </v-list-subheader>
+        <div class="sidebar-menu-card mb-4">
+  <v-list-subheader class="sidebar-section-header">
+    <Star :size="14" class="sidebar-section-icon ml-8" />
+    {{ t('navigation.yourJourney') }}
+  </v-list-subheader>
 
-        <v-list-item
-          to="/"
-          :active="currentRoute === 'home'"
-          color="primary"
-          @click="drawerOpen = false"
-        >
-          <template v-slot:prepend>
-            <Sparkles :size="20" class="sidebar-lucide-icon mr-2" />
-          </template>
-          <v-list-item-title>{{ t('navigation.today') }}</v-list-item-title>
-        </v-list-item>
+  <v-list-item to="/" :active="currentRoute === 'home'" color="primary">
+    <template v-slot:prepend>
+      <Sparkles :size="20" class="sidebar-lucide-icon mr-2" />
+    </template>
+    <v-list-item-title>{{ t('navigation.today') }}</v-list-item-title>
+  </v-list-item>
 
-        <v-list-item
-          :active="currentRoute === 'my-challenges'"
-          to="/missions/my"
-          color="primary"
-          @click="drawerOpen = false"
-        >
-          <template v-slot:prepend>
-            <Mountain :size="20" class="sidebar-lucide-icon mr-2" />
-          </template>
-          <v-list-item-title>{{ t('navigation.myChallenges') }}</v-list-item-title>
-        </v-list-item>
+  <v-list-item to="/missions/my" :active="currentRoute === 'my-challenges'" color="primary">
+    <template v-slot:prepend>
+      <Mountain :size="20" class="sidebar-lucide-icon mr-2" />
+    </template>
+    <v-list-item-title>{{ t('navigation.myChallenges') }}</v-list-item-title>
+  </v-list-item>
 
-        <v-list-item
-          :active="currentRoute === 'checklists-history'"
-          to="/checklists/history"
-          color="primary"
-          @click="drawerOpen = false"
-        >
-          <template v-slot:prepend>
-            <BookOpen :size="20" class="sidebar-lucide-icon mr-2" />
-          </template>
-          <v-list-item-title>{{ t('navigation.checklistHistory') }}</v-list-item-title>
-        </v-list-item>
+  <v-list-item to="/checklists/history" :active="currentRoute === 'checklists-history'" color="primary">
+    <template v-slot:prepend>
+      <BookOpen :size="20" class="sidebar-lucide-icon mr-2" />
+    </template>
+    <v-list-item-title>{{ t('navigation.checklistHistory') }}</v-list-item-title>
+  </v-list-item>
+</div>
 
-        <v-divider class="my-2"></v-divider>
+<div class="sidebar-menu-card mb-4">
+  <v-list-subheader class="sidebar-section-header">
+    <Globe2 :size="14" class="sidebar-section-icon ml-8" />
+    {{ t('navigation.world') }}
+  </v-list-subheader>
 
-        <!-- WORLD Section -->
-        <v-list-subheader class="sidebar-section-header">
-          <Globe2 :size="14" class="sidebar-section-icon ml-8" />
-          {{ t('navigation.world') }}
-        </v-list-subheader>
+  <v-list-item to="/missions" :active="currentRoute === 'challenges'" color="primary">
+    <template v-slot:prepend>
+      <Compass :size="20" class="sidebar-lucide-icon mr-2" />
+    </template>
+    <v-list-item-title>{{ t('navigation.allChallenges') }}</v-list-item-title>
+  </v-list-item>
 
-        <v-list-item
-          :active="currentRoute === 'challenges'"
-          to="/missions"
-          color="primary"
-          @click="drawerOpen = false"
-        >
-          <template v-slot:prepend>
-            <Compass :size="20" class="sidebar-lucide-icon mr-2" />
-          </template>
-          <v-list-item-title>{{ t('navigation.allChallenges') }}</v-list-item-title>
-        </v-list-item>
+  <v-list-item to="/missions/watched" :active="currentRoute === 'watched-challenges'" color="primary">
+    <template v-slot:prepend>
+      <Eye :size="20" class="sidebar-lucide-icon mr-2" />
+    </template>
+    <v-list-item-title>{{ t('navigation.interested') }}</v-list-item-title>
+  </v-list-item>
 
-        <v-list-item
-          :active="currentRoute === 'watched-challenges'"
-          to="/missions/watched"
-          color="primary"
-          @click="drawerOpen = false"
-        >
-          <template v-slot:prepend>
-            <Eye :size="20" class="sidebar-lucide-icon mr-2" />
-          </template>
-          <v-list-item-title>{{ t('navigation.interested') }}</v-list-item-title>
-        </v-list-item>
+  <v-list-item to="/heroes" :active="currentRoute === 'users'" color="primary">
+    <template v-slot:prepend>
+      <Trophy :size="20" class="sidebar-lucide-icon mr-2" />
+    </template>
+    <v-list-item-title>{{ t('navigation.allUsers') }}</v-list-item-title>
+  </v-list-item>
+</div>
 
-        <v-list-item
-          :active="currentRoute === 'users'"
-          to="/heroes"
-          color="primary"
-          @click="drawerOpen = false"
-        >
-          <template v-slot:prepend>
-            <Trophy :size="20" class="sidebar-lucide-icon mr-2" />
-          </template>
-          <v-list-item-title>{{ t('navigation.allUsers') }}</v-list-item-title>
-        </v-list-item>
-
-        <v-divider class="my-2"></v-divider>
-
-        <v-list-item
-          class="logout-item"
-          @click="logout(); drawerOpen = false"
-        >
-          <template v-slot:prepend>
-            <LogOut :size="20" class="logout-icon sidebar-lucide-icon mr-2" />
-          </template>
-          <v-list-item-title class="logout-text">{{ t('navigation.logout') }}</v-list-item-title>
-        </v-list-item>
+<div class="sidebar-menu-card logout-card mt-auto mb-4">
+  <v-list-item class="logout-item" @click="logout(); if(drawerOpen) drawerOpen = false">
+    <template v-slot:prepend>
+      <LogOut :size="20" class="logout-icon sidebar-lucide-icon mr-2" />
+    </template>
+    <v-list-item-title class="logout-text">{{ t('navigation.logout') }}</v-list-item-title>
+  </v-list-item>
+</div>
 
       </v-list>
       </div>
@@ -848,6 +770,7 @@ watch(() => route.path, () => {
 </template>
 
 <style scoped>
+
 .v-navigation-drawer {
   width: auto;
 }
@@ -883,20 +806,6 @@ watch(() => route.path, () => {
   }
 }
 
-.desktop-sidebar {
-  position: relative;
-  flex-shrink: 0;
-  height: 100vh;
-  z-index: 1;
-  margin-top: 0;
-  padding-top: 0;
-  top: 0 !important;
-  width: auto;
-  background-color: #F9F9FB !important;
-  border: none !important;
-  border-right: 1px solid rgba(112, 72, 232, 0.05) !important;
-  color: #2E2A47;
-}
 
 .desktop-sidebar :deep(.v-navigation-drawer) {
   top: 0 !important;
@@ -908,16 +817,11 @@ watch(() => route.path, () => {
 
 .desktop-sidebar :deep(.v-navigation-drawer__content) {
   padding-top: 0;
-  background-color: #F9F9FB !important;
-  color: #2E2A47;
+  background-color: transparent;
+  color: #ffffff;
   display: flex;
   flex-direction: column;
   height: 100%;
-}
-
-.desktop-sidebar :deep(.v-navigation-drawer__prepend),
-.desktop-sidebar :deep(.v-navigation-drawer__append) {
-  background-color: #F9F9FB !important;
 }
 
 .desktop-sidebar :deep(.v-navigation-drawer__border) {
@@ -926,13 +830,7 @@ watch(() => route.path, () => {
 
 .mobile-drawer {
   z-index: 2000;
-  background-color: #F9F9FB !important;
-  color: #2E2A47;
-}
-
-.mobile-drawer :deep(.v-navigation-drawer__content) {
-  background-color: #F9F9FB !important;
-  color: #2E2A47;
+  background-color: #131323;
 }
 
 .mobile-drawer :deep(.v-list-item-title) {
@@ -998,7 +896,7 @@ watch(() => route.path, () => {
   
   /* Control mobile drawer position */
   .mobile-drawer:not(.v-navigation-drawer--active) {
-    left: -256px !important;
+    left: -280px !important;
     transform: translateX(0) !important;
   }
   
@@ -1043,7 +941,7 @@ watch(() => route.path, () => {
 
 .v-list-item :deep(.v-icon) {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  color: #2E2A47;
+  color: #ffffff;
 }
 
 .v-list-item:not(.v-list-item--active):not(.active):hover :deep(.v-icon) {
@@ -1057,70 +955,9 @@ watch(() => route.path, () => {
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 100%;
-  color: #2E2A47;
+  color: #ffffff;
 }
 
-/* Базовый стиль для всех пунктов меню в сайдбаре */
-.v-list-item {
-  margin: 4px 12px !important; /* Отступы, чтобы пункты не прилипали к краям */
-  border-radius: 12px !important;
-  transition: all 0.3s ease !important;
-  border: 1px solid transparent; /* Подготовка для hover-эффекта */
-}
-
-/* СТИЛЬ АКТИВНОГО ПУНКТА (например, Today) */
-.v-list-item--active,
-.v-list-item.active {
-  /* Микро-градиент: от чисто белого к очень нежному фиолетовому */
-  background: linear-gradient(135deg, 
-    #FFFFFF 0%, 
-    rgba(112, 72, 232, 0.08) 100%
-  ) !important;
-  
-  /* Тонкая граница, чтобы пункт казался объемным */
-  border: 1px solid rgba(112, 72, 232, 0.15) !important;
-  
-  /* Мягкая тень для эффекта приподнятости */
-  box-shadow: 0 4px 15px rgba(112, 72, 232, 0.08) !important;
-}
-
-/* Цвет иконки и текста в активном состоянии */
-.v-list-item--active .v-list-item-title,
-.v-list-item.active :deep(.v-list-item-title) {
-  color: #7048E8 !important;
-  font-weight: 700 !important;
-}
-
-.v-list-item--active .v-icon,
-.v-list-item.active :deep(.v-icon) {
-  color: #7048E8 !important;
-  transform: scale(1.1); /* Легкое увеличение иконки */
-}
-
-/* Вертикальный индикатор (фиолетовая полоска слева) */
-.v-list-item--active::before,
-.v-list-item.active::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 25%;
-  height: 50%;
-  width: 4px;
-  background: #7048E8;
-  border-radius: 0 4px 4px 0;
-  opacity: 1 !important;
-  display: block !important;
-}
-
-/* Эффект при наведении на неактивные пункты */
-.v-list-item:not(.v-list-item--active):not(.active):hover {
-  background: rgba(0, 0, 0, 0.02) !important;
-  transform: translateX(4px); /* Легкий сдвиг вправо */
-}
-
-.v-list-item:not(.v-list-item--active):not(.active):hover :deep(.v-list-item-title) {
-  color: #7C4DFF;
-}
 
 .v-application {
   background-color: transparent !important;
@@ -1131,25 +968,10 @@ watch(() => route.path, () => {
   min-height: auto;
   width: 100%;
   margin: 0;
-  background-color: rgba(255, 255, 255, 0.4);
+  background-color: transparent;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border-radius: 0 0 12px 12px;
-}
-
-@media (min-width: 600px) {
-  .main-content {
-    padding: 1.5em;
-    margin: 0 1em 1.5em 1em;
-    border-radius: 0 0 16px 16px;
-  }
-}
-
-@media (min-width: 960px) {
-  .main-content {
-    padding: 2em;
-    margin: 0 1em 2em 1em;
-  }
 }
 
 .main-content.with-sidebar .main-content-wrapper {
@@ -1168,77 +990,6 @@ watch(() => route.path, () => {
   }
 }
 
-.cta-button {
-  background: linear-gradient(135deg, #7048E8 0%, #9066FF 100%) !important;
-  color: white !important;
-  border-radius: 14px !important;
-  font-weight: 700 !important;
-  box-shadow: 0 4px 15px rgba(112, 72, 232, 0.25) !important;
-  text-transform: none !important;
-  padding-left: 24px;
-  padding-right: 24px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
-}
-
-.cta-button::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: left 0.5s ease;
-}
-
-.cta-button:hover::before {
-  left: 100%;
-}
-
-.cta-button :deep(.v-btn__overlay) {
-  background: linear-gradient(135deg, #7048E8 0%, #9066FF 100%) !important;
-  transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.cta-button :deep(.v-btn__content) {
-  color: white !important;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.cta-button :deep(.v-icon) {
-  color: white !important;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-@media (max-width: 959px) {
-  .cta-button {
-    padding: 12px 28px;
-    font-size: 1rem;
-    height: 48px;
-    min-width: 180px;
-  }
-}
-
-.cta-button:hover {
-  transform: translateY(-3px) scale(1.02);
-  box-shadow: 0 8px 20px rgba(112, 72, 232, 0.4) !important;
-  background: linear-gradient(135deg, #9066FF 0%, #7048E8 100%) !important;
-}
-
-.cta-button:hover :deep(.v-btn__content) {
-  transform: translateX(2px);
-}
-
-.cta-button:hover :deep(.v-icon) {
-  transform: rotate(90deg) scale(1.1);
-}
-
-.cta-button:active {
-  transform: translateY(-1px) scale(0.98);
-  box-shadow: 0 4px 12px rgba(31, 160, 246, 0.4);
-}
 
 .today-button {
   font-weight: 600;
@@ -1316,20 +1067,6 @@ watch(() => route.path, () => {
   background-color: transparent;
 }
 
-.brand-logo {
-  height: 48px;
-  width: auto;
-  object-fit: contain;
-  /* Увеличиваем интенсивность и радиус */
-  filter: drop-shadow(0 0 10px rgba(112, 72, 232, 0.6)) 
-          drop-shadow(0 0 20px rgba(181, 114, 255, 0.3));
-  transition: all 0.4s ease;
-}
-
-.brand-logo:hover {
-  filter: drop-shadow(0 0 15px rgba(112, 72, 232, 0.9));
-  transform: scale(1.05);
-}
 
 .brand-link-centered {
   position: absolute;
@@ -1406,36 +1143,6 @@ watch(() => route.path, () => {
   background-color: rgba(0, 0, 0, 0.05) !important;
 }
 
-.app-bar-custom {
-  position: relative !important;
-  background-color: rgba(255, 255, 255, 0.7) !important;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-  margin: 1em 1em 0 1em;
-  border-radius: 16px 16px 0 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.app-bar-custom :deep(.v-toolbar__content) {
-  position: relative;
-}
-
-.app-bar-custom :deep(.v-toolbar__content) {
-  background-color: transparent !important;
-  padding: 0 1.5em;
-  overflow-x: auto;
-  overflow-y: hidden;
-}
-
-.app-bar-custom :deep(.v-toolbar__content)::-webkit-scrollbar {
-  display: none;
-}
-
-.app-bar-custom :deep(.v-toolbar__content) {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
 
 @media (max-width: 959px) {
   .app-bar-custom {
@@ -1600,33 +1307,6 @@ watch(() => route.path, () => {
   }
 }
 
-.streak-button {
-  font-family: 'Montserrat', sans-serif;
-  background: linear-gradient(135deg, #FFF5F0 0%, #FFEDE3 100%);
-  color: #FF8C42;
-  border: 1px solid rgba(255, 140, 66, 0.3);
-  padding: 8px 16px;
-  border-radius: 14px;
-  font-weight: 800;
-  font-size: 13px;
-  letter-spacing: 0.5px;
-  display: flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-  cursor: default !important;
-  text-transform: uppercase !important;
-  min-width: auto !important;
-  transition: all 0.3s ease !important;
-  box-shadow: none !important;
-}
-
-.streak-button.streak-yesterday {
-  background: linear-gradient(135deg, #F5F5F5 0%, #E8E8E8 100%);
-  color: #757575;
-  border: 1px solid rgba(117, 117, 117, 0.3);
-  box-shadow: none !important;
-}
-
 @media (max-width: 959px) {
   .streak-button {
     display: none !important;
@@ -1637,16 +1317,6 @@ watch(() => route.path, () => {
   }
 }
 
-.streak-button span {
-  color: inherit !important;
-  text-transform: uppercase !important;
-}
-
-.streak-button i {
-  color: inherit !important;
-  font-size: 18px;
-}
-
 .streak-divider {
   width: 1px;
   height: 32px;
@@ -1654,100 +1324,20 @@ watch(() => route.path, () => {
   align-self: center;
 }
 
-.header-content-wrapper {
-  display: flex;
-  width: 100%;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.header-section {
-  flex: 1;
-  display: flex;
-  align-items: center;
-}
-
-.header-left {
-  justify-content: flex-start;
-}
-
-.header-center {
-  justify-content: center;
-}
-
-.header-center .brand-link {
-  position: static;
-  transform: none;
-}
-
-.header-right {
-  justify-content: flex-end;
-}
-
-.app-bar-custom :deep(.v-toolbar__content) {
-  padding: 0 16px !important;
-}
-
-.app-bar-custom :deep(.v-toolbar__content) {
-  background-color: transparent !important;
-  padding: 0 16px !important;
-}
-
-.header-content-wrapper {
-  display: flex;
-  width: 100%;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.header-section {
-  flex: 1;
-  display: flex;
-  align-items: center;
-}
-
-.header-left {
-  justify-content: flex-start;
-}
-
-.header-center {
-  justify-content: center;
-}
-
-.header-right {
-  justify-content: flex-end;
-}
-
 .app-bar-custom :deep(.v-app-bar-title) {
-  color: rgba(0, 0, 0, 0.87) !important;
+  color: #ffffff;
 }
 
 .app-bar-custom :deep(.v-btn:not(.sign-up-button)) {
-  color: rgba(0, 0, 0, 0.87) !important;
+  color: #ffffff;
 }
 
 .app-bar-custom :deep(.brand-link) {
-  color: rgba(0, 0, 0, 0.87) !important;
+  color: #ffffff;
 }
 
 .app-bar-custom :deep(.v-app-bar-nav-icon) {
-  color: rgba(0, 0, 0, 0.87) !important;
-}
-
-.sign-up-button {
-  border-radius: 24px !important;
-  background: linear-gradient(135deg, #4161E1 0%, #4869DB 100%) !important;
-}
-
-.login-button {
-  border-radius: 24px !important;
-  background-color: transparent !important;
-  color: #3C60E8 !important;
-  border-color: #3C60E8 !important;
-}
-
-.login-button :deep(.v-btn__content) {
-  color: #3C60E8 !important;
+  color: #ffffff;
 }
 
 .add-button-mobile-wrapper {
@@ -1791,10 +1381,6 @@ watch(() => route.path, () => {
   height: 100%;
 }
 
-.notification-button {
-  min-width: auto;
-  padding: 0 8px;
-}
 
 .notification-badge {
   position: absolute;
@@ -1820,17 +1406,6 @@ watch(() => route.path, () => {
   letter-spacing: 0.02em;
 }
 
-/* Sidebar Section Headers */
-.sidebar-section-header {
-  /* Styles will be applied via .v-list-subheader */
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.sidebar-section-header :deep(.v-list-subheader__text) {
-  color: #94A3B8 !important;
-}
 
 .sidebar-section-icon {
   color: #BDBDBD;
@@ -1853,22 +1428,6 @@ watch(() => route.path, () => {
   font-size: 1rem;
 }
 
-/* Lucide Icons */
-.sidebar-lucide-icon {
-  color: #2E2A47;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.v-list-item:hover .sidebar-lucide-icon {
-  color: #7C4DFF;
-  transform: scale(1.15);
-}
-
-.v-list-item.active .sidebar-lucide-icon,
-.v-list-item--active .sidebar-lucide-icon {
-  color: #7048E8 !important;
-  transform: scale(1.1);
-}
 
 /* Основной контейнер в сайдбаре */
 .sidebar-user-section {
@@ -1890,12 +1449,11 @@ watch(() => route.path, () => {
 .sidebar-user-clickable:hover {
   background: rgba(112, 72, 232, 0.05);
 }
-
 /* Текст: Имя и Уровень */
 .sidebar-user-section .text-body-1 {
   font-family: 'Plus Jakarta Sans', sans-serif !important;
   font-size: 0.95rem !important;
-  color: #1A1A2E;
+  color: #94A3B8;
   line-height: 1.2;
 }
 
@@ -2025,9 +1583,6 @@ watch(() => route.path, () => {
   color: rgba(112, 72, 232, 0.4); /* Полупрозрачный фиолетовый */
 }
 
-.sidebar-section-header :deep(.v-list-subheader__text) {
-  color: #94A3B8 !important;
-}
 
 /* FAB Button for Mobile */
 .fab-button {
@@ -2045,5 +1600,277 @@ watch(() => route.path, () => {
 .fab-button:active {
   transform: scale(0.92) !important;
   filter: brightness(1.2) !important;
+}
+/* Убираем отступы v-main, когда шапки нет */
+.auth-layout {
+  padding: 0 !important;
+  margin: 0 !important;
+  height: 100vh !important;
+  width: 100vw !important;
+  overflow: hidden !important; /* Главный секрет отсутствия скролла */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Растягиваем внутренний контейнер на весь экран */
+.auth-layout .main-content-wrapper,
+.auth-layout .main-content-inner {
+  height: 100% !important;
+  width: 100% !important;
+  display: flex;
+}
+
+/* Глобальное исправление для v-application, чтобы фон не скроллился */
+:deep(.v-application__wrap) {
+  min-height: 100vh !important;
+  backface-visibility: hidden;
+}
+
+/* Если на маленьких экранах (ноутбуках) форма не влезает по высоте */
+@media (max-height: 750px) {
+  .auth-layout {
+    overflow-y: auto !important; /* Разрешаем скролл только если экран совсем крошечный */
+  }
+}
+/* 1. Основной контейнер сайдбара */
+.desktop-sidebar {
+  position: relative;
+  flex-shrink: 0;
+  height: 100vh;
+  z-index: 1;
+  margin-top: 0;
+  padding-top: 0;
+  top: 0 !important;
+  width: auto;
+  background: rgba(15, 15, 26, 0.7) !important; /* Прозрачный фон */
+  backdrop-filter: blur(20px);
+  border: none !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+  color: #ffffff;
+}
+
+/* 2. Секция пользователя */
+.sidebar-user-section {
+  padding: 20px 16px !important;
+}
+
+.sidebar-user-clickable:hover {
+  cursor: pointer;
+  filter: brightness(1.2);
+}
+
+/* 3. Карточка опыта (XP Card) */
+.xp-sidebar-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 12px;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Прокачанный прогресс-бар */
+:deep(.v-progress-linear) {
+  background: rgba(255, 255, 255, 0.05) !important;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  overflow: visible !important;
+}
+
+:deep(.v-progress-linear__determinate) {
+  /* Добавляем неоновое свечение самой полоске */
+  box-shadow: 0 0 15px currentColor;
+  border-radius: 20px;
+}
+
+/* 4. Навигационные ссылки */
+.v-list-item {
+  margin: 4px 12px !important;
+  border-radius: 12px !important;
+  transition: all 0.3s ease !important;
+  position: relative;
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+/* Эффект при наведении */
+.v-list-item:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: #fff !important;
+}
+
+.v-list-item:hover :deep(.v-list-item__prepend) {
+  transform: scale(1.1);
+}
+
+.v-list-item:hover :deep(.v-icon) {
+  transform: scale(1.15) rotate(5deg);
+  color: #7C4DFF;
+}
+
+/* Активный пункт меню */
+.v-list-item--active {
+  background: linear-gradient(90deg, rgba(112, 72, 232, 0.15) 0%, transparent 100%) !important;
+  color: #fff !important;
+  border-left: 3px solid #7048E8 !important; /* "Световой меч" */
+}
+
+.v-list-item--active .sidebar-lucide-icon {
+  color: #7048E8 !important;
+  filter: drop-shadow(0 0 5px rgba(112, 72, 232, 0.8));
+}
+
+.v-list-item--active :deep(.v-list-item-title) {
+  color: #fff !important;
+  font-weight: 700 !important;
+}
+
+/* Заголовки разделов (World, Your Journey) */
+.sidebar-section-header {
+  height: 32px !important;
+  min-height: 32px !important;
+  font-size: 0.7rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1.2px !important;
+  color: rgba(255, 255, 255, 0.4) !important;
+  display: flex !important;
+  align-items: center !important;
+  margin-top: 15px;
+}
+
+/* Специальная карточка для логаута */
+.logout-card {
+  margin-top: auto !important; /* Прижимает кнопку к низу, если контента мало */
+  border: 1px solid rgba(255, 82, 82, 0.1) !important; /* Еле заметный красный контур */
+  background: rgba(255, 82, 82, 0.02) !important;
+  transition: all 0.3s ease;
+}
+
+.logout-card:hover {
+  background: rgba(255, 82, 82, 0.08) !important;
+  border-color: rgba(255, 82, 82, 0.3) !important;
+  box-shadow: 0 0 20px rgba(255, 82, 82, 0.1);
+}
+
+/* Стили текста и иконки внутри */
+.logout-item .logout-text,
+.logout-item .logout-icon {
+  color: rgba(255, 255, 255, 0.5) !important;
+  transition: color 0.3s ease;
+}
+
+.logout-card:hover .logout-text,
+.logout-card:hover .logout-icon {
+  color: #ff5252 !important; /* Яркий красный при наведении */
+}
+
+/* Чтобы иконка LogOut тоже светилась как остальные при наведении */
+.logout-card:hover .sidebar-lucide-icon {
+  filter: drop-shadow(0 0 8px rgba(255, 82, 82, 0.5));
+  transform: translateX(3px); /* Небольшой сдвиг вправо для динамики */
+}
+/* Основной контейнер группы меню */
+.sidebar-menu-card {
+  background: rgba(255, 255, 255, 0.03) !important; /* Тот же Glass-эффект */
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-radius: 20px !important;
+  margin: 0 12px 16px 12px !important;
+  padding: 8px 0 !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.3s ease;
+}
+
+/* Настройка отступов для мобильного сайдбара, чтобы карточки не липли к краям */
+.mobile-drawer .sidebar-menu-card {
+  margin: 0 16px 16px 16px !important;
+}
+
+
+/* Основной контейнер хедера */
+.app-bar-custom {
+  background: rgba(13, 13, 23, 0.7) !important; /* Очень темное стекло */
+  backdrop-filter: blur(15px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  color: white !important;
+}
+
+.header-content-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 16px;
+}
+
+/* 1. Стрик (Огонь) — делаем его сочным */
+.streak-button {
+  background: rgba(255, 165, 0, 0.1) !important;
+  border: 1px solid rgba(255, 165, 0, 0.3) !important;
+  border-radius: 12px;
+  padding: 6px 14px;
+  color: #FFA500 !important;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 0 15px rgba(255, 165, 0, 0.1);
+}
+
+.streak-button i {
+  font-size: 20px;
+  filter: drop-shadow(0 0 5px #FFA500);
+}
+
+.streak-yesterday {
+  filter: grayscale(0.8); /* Если сегодня еще не выполнил — огонек тусклый */
+  opacity: 0.7;
+}
+
+/* 2. Логотип — добавляем мягкое свечение сзади */
+.brand-logo {
+  height: 40px;
+  filter: drop-shadow(0 0 10px rgba(112, 72, 232, 0.4));
+  transition: transform 0.3s ease;
+}
+.brand-logo:hover {
+  transform: scale(1.05);
+}
+
+/* 3. Кнопка Start Mission (Add Challenge) */
+.cta-button {
+  background: linear-gradient(135deg, #7048E8 0%, #F4A782 100%) !important;
+  color: white !important;
+  border-radius: 14px !important;
+  font-weight: 700 !important;
+  text-transform: none !important;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 15px rgba(112, 72, 232, 0.3) !important;
+}
+
+/* 4. Колокольчик уведомлений */
+.notification-button {
+  color: rgba(255, 255, 255, 0.7) !important; /* Исправляем черный цвет */
+}
+
+.notification-button:hover {
+  color: white !important;
+}
+
+:deep(.v-badge__badge) {
+  background-color: #ff5252 !important;
+  box-shadow: 0 0 10px rgba(255, 82, 82, 0.5);
+}
+
+/* 5. Кнопки Login/Register для гостей */
+.login-button {
+  border: 2px solid rgba(112, 72, 232, 0.5) !important;
+  color: white !important;
+  border-radius: 12px !important;
+}
+
+.sign-up-button {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 12px !important;
 }
 </style> 

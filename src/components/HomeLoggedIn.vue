@@ -1726,27 +1726,19 @@ onBeforeUnmount(() => {
 
 .greeting-title {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 2rem;
+  font-size: clamp(2rem, 5vw, 3rem); /* Адаптивный размер шрифта */
   font-weight: 800;
-  margin-bottom: 4px;
-  letter-spacing: -0.02em;
-  line-height: 1.3;
+  color: #FFFFFF;
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
   gap: 0.5em;
 }
 
 .greeting-text {
-  font-family: 'Outfit', sans-serif;
-  font-style: italic;
-  /* Магия градиента */
-  background: linear-gradient(90deg, #1A1A2E 0%, #7048E8 100%);
-  -webkit-background-clip: text; /* Обрезает фон по форме букв */
-  background-clip: text; /* Стандартное свойство для совместимости */
-  -webkit-text-fill-color: transparent; /* Делает сами буквы прозрачными, чтобы был виден фон-градиент */
-  display: inline-block; /* Необходимо для корректной работы градиента */
-  padding-right: 0.15em; /* Добавляем немного пространства после имени */
+  background: linear-gradient(90deg, #F4A782 0%, #7048E8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 @media (min-width: 400px) {

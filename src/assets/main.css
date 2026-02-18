@@ -3,8 +3,8 @@
 #app {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 2rem;
   font-weight: normal;
+  padding-top: 4em;
 }
 
 a,
@@ -36,4 +36,23 @@ a,
 button {
   font-family: 'Montserrat', sans-serif !important;
   font-weight: 600 !important;
+}
+/* Заголовки (Log In, Create account) */
+h1, h2, .text-h4 {
+  color: #FFFFFF !important;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.1); /* Легкое свечение для эпичности */
+}
+
+/* Второстепенный текст (Welcome back!, Already have an account?) */
+.text-caption, .text-medium-emphasis, .sidebar-section-header {
+  color: #94A3B8 !important;
+}
+
+/* Текст в инпутах (Vuetify) */
+:deep(.v-field__input) {
+  color: #F8FAFC !important;
+}
+
+:deep(.v-label) {
+  color: #94A3B8 !important; /* Цвет названия поля (Email, Password) */
 }

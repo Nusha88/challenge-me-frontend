@@ -1,8 +1,13 @@
 <template>
-  <v-dialog :model-value="modelValue" max-width="400" persistent @update:model-value="$emit('update:modelValue', $event)">
+  <v-dialog 
+    :model-value="modelValue" 
+    max-width="400" 
+    persistent 
+    @update:model-value="$emit('update:modelValue', $event)"
+  >
     <v-card class="custom-modal-content">
       <div class="success-icon-wrapper">
-        <v-icon size="40" color="white">mdi-check</v-icon>
+        <v-icon size="42" color="white">mdi-check-bold</v-icon>
       </div>
       
       <h2 class="modal-title">{{ title }}</h2>
@@ -10,6 +15,7 @@
       
       <GradientButton
         block
+        class="ok-btn"
         @click="handleClose"
       >
         {{ buttonText }}
@@ -32,7 +38,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'close'])
 
-// Запуск пушки конфетти
+// Конфетти в тонах твоего интерфейса
 const fireConfetti = () => {
   const duration = 3 * 1000
   const end = Date.now() + duration
@@ -43,14 +49,14 @@ const fireConfetti = () => {
       angle: 60,
       spread: 55,
       origin: { x: 0, y: 0.6 },
-      colors: ['#a855f7', '#1FA0F6', '#ffa500']
+      colors: ['#7048E8', '#F4A782', '#FFFFFF']
     })
     confetti({
       particleCount: 3,
       angle: 120,
       spread: 55,
       origin: { x: 1, y: 0.6 },
-      colors: ['#a855f7', '#1FA0F6', '#ffa500']
+      colors: ['#7048E8', '#F4A782', '#FFFFFF']
     })
 
     if (Date.now() < end) {
@@ -59,10 +65,9 @@ const fireConfetti = () => {
   }())
 }
 
-// Следим за открытием модалки
 watch(() => props.modelValue, (newVal) => {
   if (newVal) {
-    setTimeout(fireConfetti, 300) // небольшая задержка для плавности
+    setTimeout(fireConfetti, 300)
   }
 })
 
@@ -74,74 +79,79 @@ function handleClose() {
 
 <style scoped>
 .custom-modal-content {
-  /* Эффект матового стекла */
-  background: rgba(255, 255, 255, 0.8) !important;
-  backdrop-filter: blur(15px) saturate(180%);
-  -webkit-backdrop-filter: blur(15px) saturate(180%);
+  /* Глубокое темное стекло */
+  background: rgba(15, 15, 25, 0.9) !important;
+  backdrop-filter: blur(25px) saturate(200%);
+  -webkit-backdrop-filter: blur(25px) saturate(200%);
 
-  padding: 40px 30px !important;
+  padding: 45px 35px !important;
   border-radius: 32px !important;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  /* Тонкая граница с эффектом свечения */
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
   text-align: center;
-  position: relative;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.7) !important;
 }
 
 .success-icon-wrapper {
-  width: 80px;
-  height: 80px;
-  /* Градиент в цвет твоего кристалла */
-  background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
-  border-radius: 24px; /* Делаем мягкий квадрат (squircle) */
+  width: 84px;
+  height: 84px;
+  /* Твой основной градиент */
+  background: linear-gradient(135deg, #7048E8 0%, #F4A782 100%);
+  border-radius: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 24px;
-  transform: rotate(-10deg); /* Легкий наклон для динамики */
-  box-shadow: 0 15px 30px rgba(168, 85, 247, 0.4);
-  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  margin: 0 auto 28px;
+  transform: rotate(-8deg); /* Небольшой игровой наклон */
+  box-shadow: 0 12px 30px rgba(112, 72, 232, 0.4);
+  animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 @keyframes popIn {
-  0% { transform: scale(0) rotate(0); }
-  100% { transform: scale(1) rotate(-10deg); }
+  0% { transform: scale(0) rotate(0deg); opacity: 0; }
+  100% { transform: scale(1) rotate(-8deg); opacity: 1; }
 }
 
 .modal-title {
-  font-size: 1.75rem;
+  font-size: 1.8rem;
   font-weight: 800;
-  background: linear-gradient(to right, #1f2937, #4b5563);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  margin-bottom: 12px;
+  color: #FFFFFF !important;
+  margin-bottom: 14px;
+  letter-spacing: -0.5px;
 }
 
 .modal-text {
   font-size: 1.1rem;
-  color: #4b5563;
-  line-height: 1.5;
-  margin-bottom: 32px;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.6;
+  margin-bottom: 35px;
 }
 
-/* Стили для кнопки подтверждения */
-:deep(.gradient-button) {
-  height: 56px !important;
-  font-size: 1.1rem !important;
+/* Принудительное перекрашивание кнопки */
+.ok-btn :deep(.v-btn) {
+  /* Убираем стандартный синий фон Vuetify */
+  background: linear-gradient(135deg, #7048E8 0%, #F4A782 100%) !important;
+  /* Убираем синюю тень и границы */
+  border: none !important;
+  box-shadow: 0 10px 20px rgba(112, 72, 232, 0.4) !important;
+  
+  /* Текст и иконка внутри */
+  color: white !important;
+  height: 58px !important;
+  border-radius: 18px !important;
   font-weight: 700 !important;
-  letter-spacing: 1px !important;
-  border-radius: 16px !important;
-  /* Фиолетово-синий градиент как на Register кнопке */
-  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%) !important;
-  box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3) !important;
+  text-transform: none !important;
 }
 
-:deep(.v-overlay__content) {
-  /* Важно для корректного отображения тени */
-  overflow: visible !important;
+/* Убираем синий эффект при наведении */
+.ok-btn :deep(.v-btn__overlay),
+.ok-btn :deep(.v-btn__underlay) {
+  display: none !important;
+}
+
+.ok-btn :deep(.v-btn:hover) {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+  box-shadow: 0 15px 30px rgba(112, 72, 232, 0.6) !important;
 }
 </style>
-
-
-
-
-

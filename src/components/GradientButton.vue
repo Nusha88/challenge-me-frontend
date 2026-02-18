@@ -52,7 +52,8 @@ defineEmits(['click'])
 <style scoped>
 .gradient-button {
   border-radius: 24px !important;
-  background: linear-gradient(135deg, #1FA0F6 0%, #2196F3 100%) !important;
+  /* ЗАМЕНЕНО: Фиолетово-персиковый градиент вместо синего */
+  background: linear-gradient(135deg, #7048E8 0%, #F4A782 100%) !important;
   color: white !important;
   font-size: 1.1rem;
   font-weight: 600;
@@ -61,8 +62,10 @@ defineEmits(['click'])
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+  border: none !important;
 }
 
+/* Эффект блика при наведении */
 .gradient-button::before {
   content: '';
   position: absolute;
@@ -71,33 +74,42 @@ defineEmits(['click'])
   width: 100%;
   height: 100%;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-  transition: left 0.5s;
+  transition: left 0.6s ease-in-out;
 }
 
 .gradient-button:hover::before {
   left: 100%;
 }
 
+/* ЗАМЕНЕНО: Исправляем оверлей Vuetify, чтобы он не подмешивал синий или серый */
 .gradient-button :deep(.v-btn__overlay) {
-  background: linear-gradient(135deg, #1FA0F6 0%, #2196F3 100%) !important;
+  background: transparent !important;
 }
 
 .gradient-button:hover {
-  background: linear-gradient(135deg, #2196F3 0%, #1FA0F6 100%) !important;
+  /* Легкое изменение градиента при наведении */
+  background: linear-gradient(135deg, #815bf0 0%, #f7b89a 100%) !important;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(31, 160, 246, 0.4);
+  /* ЗАМЕНЕНО: Свечение в тон фиолетового */
+  box-shadow: 0 8px 20px rgba(112, 72, 232, 0.4) !important;
 }
 
 .gradient-button:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 6px rgba(31, 160, 246, 0.3);
+  transform: translateY(1px);
+  box-shadow: 0 4px 10px rgba(112, 72, 232, 0.3) !important;
 }
 
 .gradient-button:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
+  filter: grayscale(0.5);
+  cursor: not-allowed;
+}
+
+/* Убираем стандартную обводку Vuetify при фокусе */
+.gradient-button :deep(.v-btn__underlay) {
+  display: none !important;
 }
 </style>
-
 
 
 
