@@ -1138,6 +1138,7 @@ function resetForm() {
   margin: 0 auto;
   padding: 2em 1em;
   position: relative;
+  color: #FFFFFF;
 }
 
 .header-section {
@@ -1154,6 +1155,8 @@ function resetForm() {
 
 .tree-image {
   width: 360px;
+  opacity: 0.2; /* Делаем дерево более призрачным для темной темы */
+  filter: drop-shadow(0 0 20px rgba(112, 72, 232, 0.2));
   height: auto;
   object-fit: contain;
   position: absolute;
@@ -1184,14 +1187,15 @@ function resetForm() {
   font-weight: 800;
   letter-spacing: -1px;
   margin-bottom: 12px;
-  background: linear-gradient(135deg, #1A1A2E 0%, #7E46C4 100%);
+  /* Градиент от фиолетового к персику */
+  background: linear-gradient(135deg, #7048E8 0%, #F4A782 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .motive-text {
-  color: #64748b;
+  color: gba(255, 255, 255, 0.6);
   font-style: italic;
   opacity: 0.8;
   border-left: 3px solid #7e46c4;
@@ -1211,9 +1215,11 @@ function resetForm() {
 .field-label {
   display: block;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #1A1A2E;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 1px;
+  color: #F4A782;
   margin-bottom: 8px;
   margin-top: 16px;
 }
@@ -1229,7 +1235,7 @@ function resetForm() {
 .duration-selector .field-label {
   font-size: 0.9rem;
   font-weight: 700;
-  color: #1a1a2e;
+  color: #F4A782;
   margin-bottom: 12px;
   letter-spacing: 0.5px;
 }
@@ -1268,6 +1274,21 @@ function resetForm() {
   gap: 12px;
   flex-wrap: wrap;
 }
+/* Стили для Vuetify Input (Textfield / Textarea) */
+:deep(.v-field) {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-radius: 12px !important;
+  color: white !important;
+}
+
+:deep(.v-field__outline) {
+  --v-field-border-opacity: 0.1 !important;
+}
+
+:deep(.v-field--focused .v-field__outline) {
+  --v-field-border-opacity: 1 !important;
+  color: #7048E8 !important;
+}
 
 @media (max-width: 600px) {
   .duration-toggle-wrapper {
@@ -1290,14 +1311,14 @@ function resetForm() {
 
 
 .custom-chips-group .chip-btn {
-  border: 2px solid #f1f1f4 !important;
-  background-color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: rgba(255, 255, 255, 0.7) !important;
   border-radius: 12px !important;
   height: 48px !important;
   text-transform: none !important;
   font-weight: 600 !important;
   letter-spacing: 0 !important;
-  color: #64748b !important;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
   padding: 0 20px !important;
   box-shadow: none !important;
@@ -1335,15 +1356,12 @@ function resetForm() {
 
 .custom-chips-group .chip-btn:hover:not(.v-btn--active) {
   border-color: #e2e8f0 !important;
-  background-color: #f8fafc !important;
-  transform: translateY(-2px);
 }
 
 .custom-chips-group .chip-btn.v-btn--active {
-  border-color: #7e46c4 !important;
-  background: linear-gradient(135deg, #7e46c4 0%, #6b39a8 100%) !important;
-  color: #ffffff !important;
-  box-shadow: 0 4px 15px rgba(126, 70, 196, 0.3) !important;
+  background: #7048E8 !important;
+  color: white !important;
+  box-shadow: 0 0 15px rgba(112, 72, 232, 0.4)
 }
 
 .custom-chips-group .chip-btn.v-btn--active .v-icon {
@@ -1405,19 +1423,19 @@ function resetForm() {
   align-items: center;
   gap: 20px;
   padding: 10px 15px;
-  background: #f8fafc;
   border-radius: 16px;
-  border: 1px solid #e2e8f0;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
   animation: fadeIn 0.3s ease;
 }
 
 .custom-slider-container .days-display {
   min-width: 80px;
   font-weight: 800;
-  color: #7e46c4;
   font-size: 1.2rem;
   text-align: center;
-  border-right: 2px solid #e2e8f0;
+  color: #F4A782 !important;
+  border-right-color: rgba(255, 255, 255, 0.1);
   padding-right: 15px;
 }
 
@@ -1454,65 +1472,73 @@ function resetForm() {
 .start-time-selector .field-label {
   font-size: 0.85rem;
   font-weight: 700;
-  color: #475569;
+  /* Персиковый заголовок для единообразия */
+  color: #F4A782 !important;
   margin-bottom: 12px;
   display: block;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .custom-toggle-group {
-  background: #f1f5f9 !important;
+  background: rgba(255, 255, 255, 0.05) !important;
   border-radius: 12px !important;
   padding: 4px !important;
   height: 44px !important;
   display: flex;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
 .custom-toggle-group .toggle-btn {
   border: none !important;
   border-radius: 8px !important;
   background: transparent !important;
-  color: #64748b !important;
+  /* Приглушенный текст */
+  color: rgba(255, 255, 255, 0.4) !important;
   font-weight: 600 !important;
   text-transform: none !important;
   flex: 1;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .custom-toggle-group .toggle-btn.v-btn--active {
-  background: #ffffff !important;
-  color: #7e46c4 !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+  background: #7048E8 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(112, 72, 232, 0.4) !important;
 }
 
 .calendar-btn {
   height: 44px !important;
-  border: 2px solid #e2e8f0 !important;
+  /* Стеклянная граница */
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
   border-radius: 12px !important;
-  color: #64748b !important;
-  background: #ffffff !important;
+  color: rgba(255, 255, 255, 0.6) !important;
+  background: rgba(255, 255, 255, 0.03) !important;
   text-transform: none !important;
   font-weight: 600 !important;
   transition: all 0.2s ease;
-  margin-left: 5px !important;
+  margin-left: 8px !important;
 }
 
 .calendar-btn:hover {
-  border-color: #cbd5e1 !important;
-  background: #f8fafc !important;
+  border-color: rgba(112, 72, 232, 0.5) !important;
+  background: rgba(112, 72, 232, 0.05) !important;
+  color: #ffffff !important;
 }
 
 .calendar-btn.is-active {
-  border-color: #7e46c4 !important;
-  color: #7e46c4 !important;
-  background: rgba(126, 70, 196, 0.05) !important;
+  border-color: #7048E8 !important;
+  color: #7048E8 !important;
+  background: rgba(112, 72, 232, 0.1) !important;
+  box-shadow: 0 0 10px rgba(112, 72, 232, 0.2);
 }
 
 .calendar-btn .v-icon {
-  color: #94a3b8;
+  color: rgba(255, 255, 255, 0.3);
 }
 
 .calendar-btn.is-active .v-icon {
-  color: #7e46c4;
+  color: #7048E8;
 }
 
 .date-pickers {
@@ -1552,8 +1578,9 @@ function resetForm() {
 .type-card {
   position: relative;
   cursor: pointer;
-  background: #ffffff;
-  border: 2px solid #f1f1f4;
+  background: rgba(255, 255, 255, 0.03) !important;
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.08) !important;
   border-radius: 20px;
   padding: 24px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1575,14 +1602,14 @@ function resetForm() {
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
-  background: #f8f9fa;
-  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .type-card .type-title {
   font-size: 1.1rem;
   font-weight: 800;
-  color: #1a1a2e;
+  color: #FFFFFF;
   margin-bottom: 4px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -1590,7 +1617,7 @@ function resetForm() {
 
 .type-card .type-description {
   font-size: 0.85rem;
-  color: #64748b;
+  color: rgba(255, 255, 255, 0.5);
   line-height: 1.4;
   margin: 0;
 }
@@ -1614,9 +1641,9 @@ function resetForm() {
 
 /* ЭФФЕКТЫ ПРИ ВЫБОРЕ (Habit - Purple) */
 .type-card.habit-style.is-active {
-  border-color: #7e46c4;
-  background: linear-gradient(135deg, #ffffff 0%, #f9f5ff 100%);
-  box-shadow: 0 10px 25px rgba(126, 70, 196, 0.15);
+  border-color: #7048E8 !important;
+  background: rgba(112, 72, 232, 0.1) !important;
+  box-shadow: 0 0 20px rgba(112, 72, 232, 0.2) !important;
 }
 
 .type-card.habit-style.is-active .icon-box {
@@ -1631,13 +1658,13 @@ function resetForm() {
 
 /* ЭФФЕКТЫ ПРИ ВЫБОРЕ (Result - Orange) */
 .type-card.result-style.is-active {
-  border-color: #f4a782;
-  background: linear-gradient(135deg, #ffffff 0%, #fffaf5 100%);
-  box-shadow: 0 10px 25px rgba(244, 167, 130, 0.15);
+  border-color: #F4A782 !important;
+  background: rgba(244, 167, 130, 0.1) !important;
+  box-shadow: 0 0 20px rgba(244, 167, 130, 0.2)
 }
 
 .type-card.result-style.is-active .icon-box {
-  background: #f4a782;
+  background: #F4A782;
   color: #ffffff;
   box-shadow: 0 4px 12px rgba(244, 167, 130, 0.3);
 }
@@ -1707,14 +1734,16 @@ function resetForm() {
 /* Social Settings Block */
 .social-settings-block {
   padding: 24px;
-  background: rgba(126, 70, 196, 0.03);
-  border: 1px dashed #7e46c4;
+  /* Темная подложка с легким фиолетовым оттенком */
+  background: rgba(112, 72, 232, 0.04);
+  /* Сплошная тонкая граница вместо пунктира */
+  border: 1px solid rgba(112, 72, 232, 0.2);
   border-radius: 24px;
 }
 
 .social-settings-block .mode-card {
-  background: #ffffff;
-  border: 2px solid #f1f5f9;
+  background: rgba(255, 255, 255, 0.03); /* Прозрачное стекло */
+  border: 2px solid rgba(255, 255, 255, 0.06);
   border-radius: 16px;
   padding: 16px;
   cursor: pointer;
@@ -1723,41 +1752,47 @@ function resetForm() {
 }
 
 .social-settings-block .mode-card:hover {
-  border-color: #e2e8f0;
-  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-3px);
 }
 
 .social-settings-block .mode-card.active {
-  border-color: #7e46c4;
-  background: #fdfaff;
-  box-shadow: 0 4px 15px rgba(126, 70, 196, 0.1);
+  border-color: #7048E8;
+  background: rgba(112, 72, 232, 0.1);
+  /* Мягкое неоновое свечение */
+  box-shadow: 0 0 20px rgba(112, 72, 232, 0.2);
 }
 
 .social-settings-block .mode-card.active .mode-title {
-  color: #7e46c4;
+  color: #FFFFFF !important; /* Белый текст для контраста */
+  text-shadow: 0 0 8px rgba(112, 72, 232, 0.5);
 }
 
 .social-settings-block .mode-title {
   display: block;
-  font-weight: 800;
+  color: #FFFFFF; 
+  font-weight: 700;
   font-size: 1rem;
   margin-bottom: 4px;
-  color: #1a1a2e;
 }
 
 .social-settings-block .mode-desc {
-  font-size: 0.8rem;
   line-height: 1.3;
-  color: #64748b;
+  color: rgba(255, 255, 255, 0.5); 
+  font-size: 0.85rem;
   margin: 0;
 }
 
+/* --- ПРЕВЬЮ ПРИ ПУБЛИЧНОМ РЕЖИМЕ --- */
 .social-settings-block .public-preview-box {
-  background: linear-gradient(135deg, rgba(126, 70, 196, 0.05) 0%, rgba(244, 167, 130, 0.05) 100%);
-  border: 1px solid rgba(126, 70, 196, 0.2);
+  /* Градиент в стиле "магической пыли" */
+  background: linear-gradient(135deg, rgba(112, 72, 232, 0.08) 0%, rgba(244, 167, 130, 0.08) 100%);
+  border: 1px solid rgba(112, 72, 232, 0.3);
   border-radius: 16px;
   position: relative;
   overflow: hidden;
+  backdrop-filter: blur(5px);
 }
 
 .social-settings-block .public-preview-box::before {
@@ -1767,23 +1802,41 @@ function resetForm() {
   left: 0;
   width: 4px;
   height: 100%;
-  background: #7e46c4;
+  background: linear-gradient(to bottom, #7048E8, #F4A782); /* Фиолетово-персиковая полоска */
 }
 
+/* Стилизация чекбокса внутри блока */
 .social-settings-block .compact-checkbox :deep(.v-label) {
   font-size: 0.9rem !important;
   font-weight: 600 !important;
+  color: rgba(255, 255, 255, 0.9) !important;
   opacity: 1 !important;
+}
+
+.social-settings-block .compact-checkbox :deep(.v-selection-control__input) {
+  color: #7048E8 !important; /* Цвет галочки */
 }
 
 .social-settings-block .field-label {
   font-size: 0.75rem;
   font-weight: 800;
   text-transform: uppercase;
-  color: #94a3b8;
-  letter-spacing: 0.5px;
+  color: #F4A782; /* Персиковый акцент для меток */
+  letter-spacing: 1px;
 }
 
+/* Цвет текста внутри превью-бокса */
+.social-settings-block .public-preview-box span.font-weight-bold {
+  color: #FFFFFF !important;
+}
+
+.social-settings-block .text-grey-darken-1 {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+:deep(.v-divider) {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
 /* Create button wrapper */
 .create-button-wrapper {
   display: flex;
@@ -1795,24 +1848,23 @@ function resetForm() {
 
 /* Create mission button styling */
 .create-mission-btn {
-  background: linear-gradient(135deg, #8a4af3 0%, #7e46c4 100%) !important;
-  color: #ffffff !important;
+  background: linear-gradient(135deg, #7048E8 0%, #BE4BDB 100%) !important;
+  color: white !important;
   height: 56px !important;
-  border-radius: 16px !important;
-  padding: 0 40px !important;
-  text-transform: uppercase !important;
   font-weight: 800 !important;
+  letter-spacing: 1px !important;
+  border-radius: 16px !important;
+  box-shadow: 0 10px 20px rgba(112, 72, 232, 0.3) !important;
+  text-transform: uppercase !important;
+  padding: 0 40px !important;
   font-size: 1.1rem !important;
-  letter-spacing: 1.5px !important;
-  box-shadow: 0 8px 20px rgba(126, 70, 196, 0.35) !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   border: none !important;
 }
 
 .create-mission-btn:hover {
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 12px 28px rgba(126, 70, 196, 0.45) !important;
-  background: linear-gradient(135deg, #965df5 0%, #8a4af3 100%) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 15px 30px rgba(112, 72, 232, 0.4) !important;
 }
 
 .create-mission-btn:active {
@@ -1821,9 +1873,8 @@ function resetForm() {
 }
 
 .create-mission-btn.disabled-grayscale {
-  filter: grayscale(100%) !important;
-  opacity: 0.6 !important;
-  cursor: not-allowed !important;
+  filter: grayscale(1) opacity(0.5);
+  cursor: not-allowed;
 }
 
 .create-mission-btn.disabled-grayscale:hover {
@@ -1904,9 +1955,9 @@ function resetForm() {
 }
 
 .milestones-manager .milestone-item {
-  background: #f8faff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
   transition: 0.2s;
 }
 
@@ -1936,7 +1987,7 @@ function resetForm() {
 }
 
 .milestones-manager .milestone-item .step-number {
-  background: #7e46c4;
+  background: #7048E8;
   color: white;
   width: 24px;
   height: 24px;
@@ -1965,41 +2016,59 @@ function resetForm() {
 }
 
 .deadline-selector {
-  background: #ffffff;
-  border: 2px solid #e2e8f0;
+  background: rgba(255, 255, 255, 0.03) !important;
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.08) !important;
   border-radius: 20px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .deadline-selector:hover {
-  border-color: #7e46c4;
-  background: rgba(126, 70, 196, 0.02);
+  border-color: rgba(112, 72, 232, 0.5) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
   transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }
 
 .deadline-selector.has-date {
-  border-color: #7e46c4;
-  background: linear-gradient(90deg, #ffffff 0%, #fdfaff 100%);
+  border-color: #7048E8 !important;
+  background: rgba(112, 72, 232, 0.1) !important;
+  box-shadow: 0 0 15px rgba(112, 72, 232, 0.2);
 }
 
 .deadline-selector .date-display {
   font-size: 1.1rem;
   font-weight: 800;
-  color: #1a1a2e;
+  color: #FFFFFF !important;
 }
 
 .deadline-selector .time-left-hint {
   font-size: 0.8rem;
-  color: #7e46c4;
+  color: #F4A782;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 :deep(.v-date-picker) {
+  background: #1A1A2E !important; /* Глубокий темный фон */
+  color: white !important;
+  border-radius: 24px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+
   .v-date-picker-month__day--selected .v-btn {
-    background: #7e46c4 !important;
+    background: #7048E8 !important; /* Наш фиолетовый */
+    color: white !important;
+    box-shadow: 0 0 10px rgba(112, 72, 232, 0.5);
+  }
+
+  .v-date-picker-controls .v-btn {
+    color: #F4A782 !important; /* Стрелки и управление — персик */
+  }
+
+  .v-date-picker-header__title {
+    color: white !important;
   }
 }
 
@@ -2007,8 +2076,8 @@ function resetForm() {
   display: flex;
   align-items: center;
   padding: 16px;
-  background: #f8fafc;
-  border: 2px solid #e2e8f0;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   cursor: pointer;
   transition: all 0.25s ease;
@@ -2019,15 +2088,9 @@ function resetForm() {
   transition: 0.25s;
 }
 
-.privacy-card:hover {
-  border-color: #cbd5e1;
-  background: #f1f5f9;
-}
-
 .privacy-card.active {
-  border-color: #7e46c4;
-  background: #ffffff;
-  box-shadow: 0 4px 12px rgba(126, 70, 196, 0.1);
+  border-color: #7048E8;
+  background: rgba(112, 72, 232, 0.05);
 }
 
 .privacy-card.active .v-icon {
@@ -2043,40 +2106,65 @@ function resetForm() {
 }
 
 .loot-container {
-  background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%);
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 170, 0, 0.05) 100%) !important;
   border-radius: 20px;
-  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
+  border: 2px solid #FFD700 !important; /* Тонкая золотая рамка */
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.15), inset 0 0 10px rgba(255, 215, 0, 0.05) !important;
+  padding: 4px;
+  position: relative;
+  overflow: hidden;
+}
+.loot-container::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+  transform: rotate(45deg);
+  pointer-events: none;
 }
 
 .loot-container .reward-input :deep(.v-field) {
-  border-radius: 18px !important;
+  font-weight: 700 !important;
+  color: #FFD700 !important; /* Текст ввода становится золотым */
+  letter-spacing: 0.5px;
 }
 
 .loot-container .reward-input :deep(.v-field--focused) .reward-icon-box {
-  transform: scale(1.1) rotate(-10deg);
+  transform: scale(1.15) rotate(-10deg);
+  background: rgba(255, 215, 0, 0.3);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
 }
 
 .reward-icon-box {
-  background: rgba(255, 215, 0, 0.1);
+  background: rgba(255, 215, 0, 0.15);
   width: 40px;
   height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 12px;
-  transition: transform 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   margin-right: 8px;
+  border: 1px solid rgba(255, 215, 0, 0.3);
 }
 
 .reward-input :deep(input) {
-  font-weight: 600 !important;
-  color: #1a1a2e !important;
+  font-weight: 400;
+  font-style: italic;
+  color: rgba(255, 215, 0, 0.4) !important; /* Приглушенный золотой для плейсхолдера */
+  opacity: 1;
 }
 
 .reward-input :deep(input::placeholder) {
   font-weight: 400;
   font-style: italic;
   opacity: 0.6;
+}
+.reward-input :deep(.v-field__shadow) {
+  display: none !important;
 }
 
 .diff-cards-container {
@@ -2089,8 +2177,8 @@ function resetForm() {
   display: flex;
   align-items: center;
   padding: 16px 20px;
-  background: #f8fafc;
-  border: 2px solid #e2e8f0;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -2106,7 +2194,6 @@ function resetForm() {
   justify-content: center;
   margin-right: 16px;
   transition: 0.3s;
-  background: #fff;
 }
 
 .diff-option .diff-content {
@@ -2115,16 +2202,13 @@ function resetForm() {
 }
 
 .diff-option .diff-content .diff-name {
-  font-weight: 800;
   text-transform: uppercase;
   font-size: 0.95rem;
-  color: #1a1a2e;
+  font-weight: 700; color: white;
 }
 
 .diff-option .diff-content .diff-xp {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: #64748b;
+  color: rgba(255, 255, 255, 0.5); font-size: 0.8rem;
 }
 
 .diff-option .check-icon {
@@ -2144,7 +2228,7 @@ function resetForm() {
 }
 
 .diff-option.active.easy {
-  border-color: #4caf50;
+  border-color: #4CAF50; background: rgba(76, 175, 80, 0.1)
 }
 
 .diff-option.active.easy .diff-icon {
@@ -2158,7 +2242,7 @@ function resetForm() {
 }
 
 .diff-option.active.normal {
-  border-color: #7e46c4;
+  border-color: #2196F3; background: rgba(33, 150, 243, 0.1)
 }
 
 .diff-option.active.normal .diff-icon {
@@ -2172,8 +2256,7 @@ function resetForm() {
 }
 
 .diff-option.active.heroic {
-  border-color: #ff5252;
-  background: #fff5f5;
+  border-color: #F4A782; background: rgba(244, 167, 130, 0.1);;
   animation: shake 0.5s ease-in-out;
 }
 

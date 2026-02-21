@@ -1894,7 +1894,7 @@ onBeforeUnmount(() => {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 1.1rem;
   font-weight: 700;
-  color: #1A1A2E;
+  color: #F4A782;
   margin-bottom: 16px;
   padding-left: 4px;
 }
@@ -1902,7 +1902,7 @@ onBeforeUnmount(() => {
 .copy-to-tomorrow-btn {
   font-size: 0.75rem !important;
   font-weight: 600 !important;
-  color: #7048E8 !important;
+  color: #F4A782 !important;
   text-transform: none !important;
   padding: 4px 12px !important;
   min-width: auto !important;
@@ -1966,9 +1966,9 @@ onBeforeUnmount(() => {
 }
 
 .checklist-card {
-  background: #ffffff !important;
-  border-radius: 24px !important;
-  border: 1px solid rgba(0, 163, 255, 0.08) !important; /* Легкий голубой оттенок для отличия */
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 24px !important;/* Легкий голубой оттенок для отличия */
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02) !important;
   box-sizing: border-box !important;
   overflow: visible !important;
@@ -1999,8 +1999,8 @@ onBeforeUnmount(() => {
 }
 
 .checklist-card-empty {
-  background: #ffffff !important;
-  border: 2px dashed rgba(112, 72, 232, 0.2) !important; /* Светло-фиолетовый пунктир */
+  background: rgba(112, 72, 232, 0.02) !important;
+  border: 2px dashed rgba(112, 72, 232, 0.2) !important;
   border-radius: 24px !important;
   padding: 24px !important;
   width: 100% !important;
@@ -2061,18 +2061,17 @@ onBeforeUnmount(() => {
 }
 
 .hero-progress-light {
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.03) !important;
+  backdrop-filter: blur(10px);
   border-radius: 20px;
   padding: 24px;
-  border: 1px solid rgba(112, 72, 232, 0.1); /* Тонкий контур */
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.03); /* Очень мягкая тень */
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2) !important;
   display: flex;
   flex-direction: column;
   gap: 15px;
   width: 100%;
-  max-width: 100%;
   margin-bottom: 3em;
-  box-sizing: border-box;
 }
 
 /* Reduce margin on mobile */
@@ -2091,7 +2090,7 @@ onBeforeUnmount(() => {
 
 .level-badge {
   font-weight: 800;
-  color: #1A1A2E;
+  color: #FFFFFF;
   font-size: 1.2rem;
 }
 
@@ -2162,30 +2161,28 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   padding: 14px 20px;
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  color: white !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important;
   border-radius: 16px;
-  border: 1px solid rgba(112, 72, 232, 0.05); /* Очень тонкая граница для четкости */
   cursor: pointer;
-  
-  /* Глубокая и мягкая тень */
-  box-shadow: 0 10px 20px rgba(112, 72, 232, 0.03), 
-              0 6px 6px rgba(0, 0, 0, 0.02); 
               
   transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
 }
 
 /* Эффект при наведении — еще больше объема */
 .challenge-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 20px 40px rgba(112, 72, 232, 0.06);
-  border-color: rgba(112, 72, 232, 0.1);
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(112, 72, 232, 0.3) !important;
+  transform: translateY(-2px);
 }
 
 /* Стили для иконки */
 .challenge-icon {
   width: 36px;
   height: 36px;
-  background: #F3F0FF; /* Светло-фиолетовый фон иконки */
+  background: rgba(112, 72, 232, 0.1);/* Светло-фиолетовый фон иконки */
   border-radius: 10px;
   display: flex;
   align-items: center;
@@ -2230,7 +2227,7 @@ onBeforeUnmount(() => {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 0.95rem;
   font-weight: 500;
-  color: #2D3436;
+  color: FFFFFF;
   transition: color 0.3s ease;
   flex: 1;
   cursor: pointer;
@@ -2241,7 +2238,7 @@ onBeforeUnmount(() => {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #7E46C4;
+  color: #F4A782;
   opacity: 0.8;
   transition: color 0.3s ease, opacity 0.3s ease;
   margin-left: auto;
@@ -2251,10 +2248,10 @@ onBeforeUnmount(() => {
 
 /* Стили для выполненного челленджа (состояние completed) */
 .challenge-card.completed {
-  background: #F8F9FA;
+  background: rgba(255, 255, 255, 0.01);
   border-color: transparent;
   box-shadow: none;
-  opacity: 0.7;
+  opacity: 0.5;
 }
 
 /* Состояние иконки внутри выполненной карточки */
@@ -2274,7 +2271,7 @@ onBeforeUnmount(() => {
 
 .challenge-text.completed {
   text-decoration: line-through;
-  color: #94A3B8; /* Приглушенный серый */
+  color: rgba(255, 255, 255, 0.4); /* Приглушенный серый */
 }
 
 .challenge-progress.completed {
@@ -2313,7 +2310,7 @@ onBeforeUnmount(() => {
 }
 
 .empty-text-sub {
-  color: #94A3B8; /* Мягкий серый цвет */
+  color: rgba(255, 255, 255, 0.5); /* Мягкий серый цвет */
   font-size: 0.85rem;
   max-width: 250px;
   line-height: 1.5;
@@ -2322,7 +2319,15 @@ onBeforeUnmount(() => {
 .empty-text-sub strong {
   color: #7048E8; /* Выделяем название кнопки твоим фирменным цветом */
 }
+/* Глубокий сброс для внутренних компонентов Vuetify */
+:deep(.v-card-text) {
+  color: white !important;
+}
 
+/* Фикс для иконок внутри DailyChecklist, если они темные */
+:deep(.step-text) {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
 /* Карта в стиле "Космическое стекло" */
 .completion-dialog-card {
   /* Темный фон для контраста с яркой кнопкой */
@@ -2480,13 +2485,13 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   padding: 10px 8px;
-  border-bottom: 1px solid #F8F9FA;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   transition: all 0.2s ease;
 }
 
 .tomorrow-steps-content .step-text {
   font-size: 0.9rem;
-  color: #4A5568;
+  color: rgba(255, 255, 255, 0.9);
   font-family: 'Plus Jakarta Sans', sans-serif;
   flex: 1;
   word-wrap: break-word;
@@ -2497,19 +2502,20 @@ onBeforeUnmount(() => {
 }
 
 .tomorrow-steps-content .step-text:hover {
-  background: rgba(112, 72, 232, 0.05);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .tomorrow-steps-content .step-edit-input {
   flex: 1;
-  border: 2px solid #7048E8;
-  background: #ffffff;
+  border: 1px solid #7048E8;
+  background: rgba(255, 255, 255, 0.08); /* Полупрозрачный фон */
   padding: 4px 8px;
   font-size: 0.9rem;
-  color: #1A1A2E;
+  color: #FFFFFF;
   font-family: 'Plus Jakarta Sans', sans-serif;
   border-radius: 4px;
   outline: none;
+  box-shadow: 0 0 10px rgba(112, 72, 232, 0.2);
 }
 
 .tomorrow-steps-content .delete-action {
@@ -2520,13 +2526,13 @@ onBeforeUnmount(() => {
   padding: 4px;
   border-radius: 6px;
   cursor: pointer;
-  color: #94A3B8;
+  color: rgba(255, 255, 255, 0.3);
   transition: all 0.2s ease;
 }
 
 .tomorrow-steps-content .delete-action:hover {
   color: #EF4444;
-  background: #FEF2F2;
+  background: rgba(239, 68, 68, 0.1);
   transform: scale(1.1);
 }
 
@@ -2540,6 +2546,17 @@ onBeforeUnmount(() => {
   border: 1px solid #E2E8F0;
 }
 
+/* --- ПОЛЕ ДОБАВЛЕНИЯ (ADD STEP) --- */
+.tomorrow-steps-content .add-step-wrapper {
+  margin-top: 24px;
+  display: flex;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.05); /* Темный фон инпута */
+  padding: 6px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
 .tomorrow-steps-content .step-input {
   flex: 1;
   border: none;
@@ -2547,12 +2564,12 @@ onBeforeUnmount(() => {
   padding: 8px 12px;
   font-size: 0.85rem;
   outline: none;
-  color: #1A1A2E;
+  color: #FFFFFF;
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
 .tomorrow-steps-content .step-input::placeholder {
-  color: #A0AEC0;
+  color: rgba(255, 255, 255, 0.3);
 }
 
 .tomorrow-steps-content .add-step-btn {
@@ -2563,6 +2580,47 @@ onBeforeUnmount(() => {
   width: 36px !important;
   min-width: 36px !important;
   padding: 0 !important;
+  box-shadow: 0 4px 10px rgba(112, 72, 232, 0.3) !important;
+}
+
+/* --- ПУСТОЕ СОСТОЯНИЕ (EMPTY STATE) --- */
+.tomorrow-steps-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 10px;
+  text-align: center;
+}
+
+.tomorrow-empty-text {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.9rem;
+  margin: 16px 0;
+}
+
+.plan-step-btn {
+  background: rgba(112, 72, 232, 0.1) !important;
+  color: #F4A782 !important; /* Персиковый акцент */
+  border: 1px solid rgba(112, 72, 232, 0.3) !important;
+  text-transform: none !important;
+  font-weight: 700 !important;
+  border-radius: 12px !important;
+}
+
+.plan-step-btn:hover {
+  background: rgba(112, 72, 232, 0.2) !important;
+}
+
+/* --- ВЫКЛЮЧЕННЫЕ КАРТОЧКИ (DISABLED) --- */
+.challenge-card-disabled {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid rgba(255, 255, 255, 0.03) !important;
+  opacity: 0.5;
+}
+
+.challenge-text-disabled {
+  color: rgba(255, 255, 255, 0.3) !important;
 }
 
 /* Tabs styling - align left */

@@ -206,13 +206,16 @@ onMounted(() => {
   display: flex;
   align-items: center;
   padding: 10px 8px;
-  border-bottom: 1px solid #F8F9FA;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   transition: all 0.2s ease;
+}
+.checklist-item:hover {
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .delete-action {
   cursor: pointer;
-  color: #94A3B8; /* Приглушенный серо-голубой */
+  color: rgba(255, 255, 255, 0.3); /* Тусклый белый */
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   padding: 4px;
   border-radius: 8px;
@@ -224,8 +227,8 @@ onMounted(() => {
 }
 
 .delete-action:hover {
-  color: #EF4444; /* Насыщенный красный при наведении */
-  background: #FEF2F2; /* Нежно-розовая подложка */
+  color: #EF4444; 
+  background: rgba(239, 68, 68, 0.1); /* Темно-красная подложка */
   transform: scale(1.1);
 }
 
@@ -233,45 +236,57 @@ onMounted(() => {
 .custom-check {
   width: 22px;
   height: 22px;
-  border: 2px solid #E2E8F0;
-  border-radius: 50%; /* Круглый стиль */
+  /* Темная граница чекбокса */
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
   margin-right: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
   flex-shrink: 0;
+}
+.custom-check:hover {
+  border-color: #7048E8;
+  box-shadow: 0 0 8px rgba(112, 72, 232, 0.4);
 }
 
 .custom-check.checked {
   background: #7048E8;
   border-color: #7048E8;
+  box-shadow: 0 0 12px rgba(112, 72, 232, 0.4);
 }
 
 /* Текст задачи */
 .step-text {
   font-size: 0.9rem;
-  color: #4A5568;
+  color: rgba(255, 255, 255, 0.9); /* Почти белый текст */
   font-family: 'Plus Jakarta Sans', sans-serif;
   flex: 1;
   word-wrap: break-word;
+  transition: all 0.3s ease;
 }
 
 .text-strike {
   text-decoration: line-through;
-  color: #CBD5E0;
+  color: rgba(255, 255, 255, 0.3) !important; /* Зачеркнутый текст уходит в тень */
 }
 
-/* Поле добавления задачи */
+/* Поле добавления задачи (Add Step) */
 .add-step-wrapper {
   margin-top: 24px;
   display: flex;
   gap: 8px;
-  background: #F8FAFC;
+  background: rgba(255, 255, 255, 0.05); /* Темный инпут */
   padding: 6px;
   border-radius: 14px;
-  border: 1px solid #E2E8F0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: border-color 0.3s ease;
+}
+
+.add-step-wrapper:focus-within {
+  border-color: rgba(112, 72, 232, 0.5);
 }
 
 .step-input {
@@ -281,12 +296,12 @@ onMounted(() => {
   padding: 8px 12px;
   font-size: 0.85rem;
   outline: none;
-  color: #1A1A2E;
+  color: #FFFFFF; /* Белый текст при вводе */
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
 .step-input::placeholder {
-  color: #A0AEC0;
+  color: rgba(255, 255, 255, 0.3); /* Приглушенный плейсхолдер */
 }
 
 .add-step-btn {
@@ -297,11 +312,17 @@ onMounted(() => {
   width: 36px !important;
   min-width: 36px !important;
   padding: 0 !important;
+  box-shadow: 0 4px 10px rgba(112, 72, 232, 0.3) !important;
+}
+
+.add-step-btn:hover {
+  transform: scale(1.05);
+  filter: brightness(1.1);
 }
 
 /* Пустое состояние */
 .empty-state {
-  color: #A0AEC0;
+  color: rgba(255, 255, 255, 0.3);
   font-size: 0.85rem;
   text-align: center;
   padding-top: 40px;
@@ -310,12 +331,11 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 12px;
 }
 
 .empty-state-icon {
-  color: #94A3B8;
-  opacity: 0.7;
+  color: rgba(255, 255, 255, 0.2);
 }
 
 /* Reduce margin/padding for empty state on mobile */
@@ -323,6 +343,9 @@ onMounted(() => {
   .empty-state {
     padding-top: 20px;
     min-height: 100px;
+  }
+  .checklist-item {
+    padding: 14px 8px; /* Чуть больше места для нажатия пальцем */
   }
 }
 </style>
