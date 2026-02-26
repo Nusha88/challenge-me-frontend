@@ -95,6 +95,8 @@
             <v-select
               :model-value="modelValue.owner"
               :items="ownerOptions"
+              item-title="title"
+              item-value="value"
               label="Created by"
               variant="outlined"
               density="comfortable"
@@ -123,6 +125,16 @@
               density="comfortable"
               class="show-upcoming-switch"
             ></v-switch>
+
+            <v-switch
+              :model-value="modelValue.isCompleted === true"
+              @update:model-value="updateFilter('isCompleted', $event)"
+              :label="t('filters.showCompleted')"
+              color="primary"
+              hide-details
+              density="comfortable"
+              class="show-completed-switch"
+            ></v-switch>
           </div>
         </v-card>
       </div>
@@ -131,7 +143,7 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { userService } from '../services/api'
 
@@ -149,14 +161,19 @@ const showAdvanced = ref(false)
 const users = ref([])
 
 // Опции (аналогично вашему коду, укорочено для примера)
-const ownerOptions = computed(() => users.value.map(u => ({ title: u.name, value: u.id })))
+const ownerOptions = computed(() => {
+  return users.value.map(u => ({ 
+    title: u.name, 
+    value: String(u.id || u._id) 
+  }))
+})
 const popularityOptions = computed(() => [
   { title: t('filters.popularityMost'), value: 'most' },
   { title: t('filters.popularityLeast'), value: 'least' }
 ])
 
 const hasActiveFilters = computed(() => {
-  return props.modelValue.title || props.modelValue.owner || (props.modelValue.type && props.modelValue.type !== 'all') || props.modelValue.popularity
+  return props.modelValue.title || props.modelValue.owner || (props.modelValue.type && props.modelValue.type !== 'all') || props.modelValue.popularity || props.modelValue.isCompleted
 })
 
 function updateFilter(key, value) {
@@ -164,14 +181,46 @@ function updateFilter(key, value) {
 }
 
 function clearFilters() {
-  emit('update:modelValue', { title: null, type: 'all', owner: null, popularity: null, showUpcoming: true })
+  emit('update:modelValue', { title: null, type: 'all', owner: null, popularity: null, showUpcoming: true, isCompleted: false })
 }
 
 function handleSearch() { emit('search') }
 
+const fetchUserIfNeeded = async (ownerId) => {
+  if (!ownerId) return
+  const ownerIdStr = String(ownerId)
+  const exists = users.value.some(u => String(u.id || u._id) === ownerIdStr)
+  if (!exists) {
+    try {
+      const userResp = await userService.getUserById(ownerIdStr)
+      if (userResp.data?.user) {
+        users.value.push(userResp.data.user)
+      }
+    } catch (error) {
+      // User not found or error fetching - ignore
+    }
+  }
+}
+
 onMounted(async () => {
-  const resp = await userService.getAllUsers({ limit: 100 })
-  users.value = resp.data.users || []
+  try {
+    const resp = await userService.getAllUsers({ limit: 100 })
+    users.value = resp.data.users || []
+    
+    // If there's a selected owner that's not in the list, fetch it
+    if (props.modelValue.owner) {
+      await fetchUserIfNeeded(props.modelValue.owner)
+    }
+  } catch (error) {
+    // Error loading users - ignore
+  }
+})
+
+// Watch for owner changes and fetch user if needed
+watch(() => props.modelValue.owner, async (newOwner) => {
+  if (newOwner) {
+    await fetchUserIfNeeded(newOwner)
+  }
 })
 </script>
 
@@ -265,7 +314,7 @@ onMounted(async () => {
 
 .advanced-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 20px;
 }
 

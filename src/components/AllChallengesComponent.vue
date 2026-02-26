@@ -144,7 +144,8 @@ const filters = ref({
   type: 'all',
   owner: null,
   popularity: null,
-  showUpcoming: true // Default to showing upcoming challenges
+  showUpcoming: true, // Default to showing upcoming challenges
+  isCompleted: false // Default to hiding completed challenges
 })
 
 // Challenges are already filtered by the backend, so use them directly
@@ -507,11 +508,15 @@ async function fetchChallenges(page = 1, append = false) {
     const filterParams = {
       page,
       limit: 20,
-      excludeFinished: true, // Default to excluding finished challenges
       ...(filters.value.title && { title: filters.value.title }),
       ...(filters.value.type && { type: filters.value.type }),
       ...(filters.value.owner && { owner: filters.value.owner }),
-      ...(filters.value.popularity && { popularity: filters.value.popularity })
+      ...(filters.value.popularity && { popularity: filters.value.popularity }),
+      // Send isCompleted as string 'true' when filter is enabled, 'false' when disabled
+      // Backend expects: 'true' = show completed, 'false' = hide completed, undefined = default (hide)
+      ...(filters.value.isCompleted !== undefined && { 
+        isCompleted: filters.value.isCompleted ? 'true' : 'false' 
+      })
     }
     
     const { data } = await challengeService.getAllChallenges(filterParams)
@@ -731,28 +736,163 @@ async function openChallengeById(challengeId) {
   }
 }
 
+// Sync filters from URL query parameters
+const syncFiltersFromUrl = () => {
+  const query = route.query
+  
+  // Sync owner/createdBy filter
+  if (query.owner) {
+    filters.value.owner = query.owner
+  } else if (query.createdBy) {
+    filters.value.owner = query.createdBy
+  } else {
+    filters.value.owner = null
+  }
+  
+  // Sync isCompleted filter
+  if (query.isCompleted !== undefined) {
+    filters.value.isCompleted = query.isCompleted === 'true'
+  } else {
+    filters.value.isCompleted = false
+  }
+  
+  // Sync type filter
+  if (query.type) {
+    filters.value.type = query.type
+  } else {
+    filters.value.type = 'all'
+  }
+  
+  // Sync popularity filter
+  if (query.popularity) {
+    filters.value.popularity = query.popularity
+  } else {
+    filters.value.popularity = null
+  }
+  
+  // Sync title filter
+  if (query.title) {
+    filters.value.title = query.title
+  } else {
+    filters.value.title = null
+  }
+  
+  // Sync showUpcoming filter
+  if (query.showUpcoming !== undefined) {
+    filters.value.showUpcoming = query.showUpcoming === 'true'
+  } else {
+    filters.value.showUpcoming = true
+  }
+}
+
+// Sync filters to URL query parameters
+const syncFiltersToUrl = () => {
+  const query = { ...route.query }
+  
+  // Update or remove filter parameters
+  if (filters.value.owner) {
+    query.createdBy = filters.value.owner
+    delete query.owner // Remove old 'owner' param if exists
+  } else {
+    delete query.createdBy
+    delete query.owner
+  }
+  
+  if (filters.value.isCompleted === true) {
+    query.isCompleted = 'true'
+  } else {
+    delete query.isCompleted
+  }
+  
+  if (filters.value.type && filters.value.type !== 'all') {
+    query.type = filters.value.type
+  } else {
+    delete query.type
+  }
+  
+  if (filters.value.popularity) {
+    query.popularity = filters.value.popularity
+  } else {
+    delete query.popularity
+  }
+  
+  if (filters.value.title) {
+    query.title = filters.value.title
+  } else {
+    delete query.title
+  }
+  
+  if (filters.value.showUpcoming === false) {
+    query.showUpcoming = 'false'
+  } else {
+    delete query.showUpcoming
+  }
+  
+  // Update URL without triggering navigation
+  router.replace({ query })
+}
+
 // Handle filter search button click
 const handleFilterSearch = () => {
   fetchChallenges(1, false) // Reset to page 1 when search is triggered
 }
 
+// Flag to prevent infinite loops when syncing URL and filters
+const isSyncingFromUrl = ref(false)
+
 // Watch for filter changes (except title which uses search button)
 // Watch each filter property individually to avoid triggering on title changes
 watch(() => filters.value.type, () => {
-  fetchChallenges(1, false)
+  if (!isSyncingFromUrl.value) {
+    syncFiltersToUrl()
+    fetchChallenges(1, false)
+  }
 })
 
 watch(() => filters.value.owner, () => {
-  fetchChallenges(1, false)
+  if (!isSyncingFromUrl.value) {
+    syncFiltersToUrl()
+    fetchChallenges(1, false)
+  }
 })
 
 watch(() => filters.value.popularity, () => {
-  fetchChallenges(1, false)
+  if (!isSyncingFromUrl.value) {
+    syncFiltersToUrl()
+    fetchChallenges(1, false)
+  }
 })
 
 watch(() => filters.value.showUpcoming, () => {
+  if (!isSyncingFromUrl.value) {
+    syncFiltersToUrl()
+  }
   // No need to refetch, just filter client-side
 })
+
+watch(() => filters.value.isCompleted, () => {
+  if (!isSyncingFromUrl.value) {
+    syncFiltersToUrl()
+    fetchChallenges(1, false)
+  }
+})
+
+watch(() => filters.value.title, () => {
+  if (!isSyncingFromUrl.value) {
+    syncFiltersToUrl()
+  }
+  // Title uses search button, so don't auto-fetch
+})
+
+// Watch for route query changes and sync filters
+watch(() => route.query, () => {
+  isSyncingFromUrl.value = true
+  syncFiltersFromUrl()
+  fetchChallenges(1, false)
+  nextTick(() => {
+    isSyncingFromUrl.value = false
+  })
+}, { deep: true })
 
 // Fetch all habit challenges to find the main ritual
 async function fetchAllHabitChallenges() {
@@ -775,6 +915,12 @@ async function fetchAllHabitChallenges() {
 }
 
 onMounted(async () => {
+  // Sync filters from URL query parameters (prevent watchers from updating URL)
+  isSyncingFromUrl.value = true
+  syncFiltersFromUrl()
+  await nextTick()
+  isSyncingFromUrl.value = false
+  
   // Fetch all habit challenges first to determine main ritual
   await fetchAllHabitChallenges()
   await fetchChallenges(1, false)

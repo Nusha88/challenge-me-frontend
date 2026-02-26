@@ -132,6 +132,9 @@ export const userService = {
   getAllUsers: (params = {}) => {
     return api.get('/auth/users', { params })
   },
+  getUserById: (userId) => {
+    return api.get(`/auth/users/${userId}`)
+  },
   getTodayChecklist: () => {
     return api.get('/auth/daily-checklist/today', {
       headers: userService._clientDayHeaders()
@@ -192,10 +195,10 @@ export const challengeService = {
     if (filters.page) params.page = filters.page
     if (filters.limit) params.limit = filters.limit
     
-    // Support legacy excludeFinished parameter
-    if (filters.excludeFinished !== undefined) {
+    // Support legacy excludeFinished parameter (only if isCompleted is not specified)
+    if (filters.isCompleted === undefined && filters.excludeFinished !== undefined) {
       params.excludeFinished = filters.excludeFinished
-    } else {
+    } else if (filters.isCompleted === undefined) {
       // Default to excluding finished challenges if no filters specified
       params.excludeFinished = true
     }
@@ -206,6 +209,7 @@ export const challengeService = {
     if (filters.owner) params.owner = filters.owner
     if (filters.popularity) params.popularity = filters.popularity
     if (filters.creationDate) params.creationDate = filters.creationDate
+    if (filters.isCompleted !== undefined) params.isCompleted = filters.isCompleted
     
     return api.get('/challenges', { params })
   },

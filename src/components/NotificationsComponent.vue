@@ -1,120 +1,3 @@
-<template>
-  <v-navigation-drawer
-    ref="drawerRef"
-    :model-value="modelValue"
-    @update:model-value="handleDrawerUpdate"
-    location="right"
-    temporary
-    :width="mobile ? '100%' : '400'"
-    :class="{ 'drawer-closed': !modelValue, 'notification-drawer-desktop': !mobile }"
-  >
-    <v-card-title class="d-flex align-center justify-space-between pa-4">
-      <div class="d-flex align-center">
-        <v-icon class="mr-2">mdi-bell</v-icon>
-        <span class="text-h6">{{ t('notifications.title') }}</span>
-        <v-chip
-          v-if="unreadCount > 0"
-          color="error"
-          size="small"
-          class="ml-2"
-        >
-          {{ unreadCount }}
-        </v-chip>
-      </div>
-      <div class="d-flex align-center gap-2">
-        <v-btn
-          v-if="unreadCount > 0"
-          icon="mdi-check-all"
-          size="small"
-          variant="text"
-          :loading="markingAllAsRead"
-          @click="markAllAsRead"
-          :title="t('notifications.markAllAsRead')"
-        ></v-btn>
-        <v-btn
-          icon="mdi-close"
-          size="small"
-          variant="text"
-          @click.stop="closeDrawer"
-          style="z-index: 1000; position: relative;"
-        ></v-btn>
-      </div>
-    </v-card-title>
-
-    <v-divider></v-divider>
-
-    <v-card-text class="pa-0">
-      <v-progress-linear v-if="loading" indeterminate color="primary"></v-progress-linear>
-
-      <v-alert
-        v-if="errorMessage"
-        type="error"
-        variant="tonal"
-        class="ma-4"
-      >
-        {{ errorMessage }}
-      </v-alert>
-
-      <div v-if="!loading && notifications.length === 0" class="text-center pa-8">
-        <v-icon size="64" color="grey-lighten-1" class="mb-4">mdi-bell-off-outline</v-icon>
-        <p class="text-body-1 text-medium-emphasis">{{ t('notifications.noNotifications') }}</p>
-      </div>
-
-      <v-list v-else class="pa-0">
-        <v-list-item
-          v-for="notification in notifications"
-          :key="notification._id"
-          :class="['notification-item', { 'notification-unread': !notification.read }]"
-          @click="handleNotificationClick(notification)"
-        >
-          <template v-slot:prepend>
-            <div class="notification-avatar mr-3">
-              <img
-                v-if="notification.fromUserId?.avatarUrl"
-                :src="notification.fromUserId.avatarUrl"
-                :alt="notification.fromUserId.name"
-                class="avatar-img"
-              />
-              <div v-else class="avatar-placeholder">
-                {{ getInitial(notification.fromUserId?.name) }}
-              </div>
-            </div>
-          </template>
-
-          <v-list-item-title class="notification-title">
-            <div class="d-flex align-center">
-              <span class="font-weight-medium">{{ notification.fromUserId?.name || t('common.unknown') }}</span>
-              <v-chip
-                v-if="!notification.read"
-                color="primary"
-                size="x-small"
-                class="ml-2 unread-indicator"
-              ></v-chip>
-            </div>
-          </v-list-item-title>
-
-          <v-list-item-subtitle class="notification-subtitle">
-            {{ getNotificationText(notification) }}
-          </v-list-item-subtitle>
-
-          <v-list-item-subtitle class="notification-date text-caption">
-            {{ formatDate(notification.createdAt) }}
-          </v-list-item-subtitle>
-
-          <template v-slot:append>
-            <v-btn
-              icon="mdi-close"
-              size="x-small"
-              variant="text"
-              @click.stop="deleteNotification(notification)"
-            ></v-btn>
-          </template>
-        </v-list-item>
-      </v-list>
-    </v-card-text>
-  </v-navigation-drawer>
-</template>
-
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
@@ -287,6 +170,17 @@ function getNotificationText(notification) {
     challenge: notification.challengeId?.title || t('notifications.challenge')
   })
 }
+const getNotificationIcon = (type) => {
+  const icons = {
+    'like': 'mdi-heart',
+    'comment': 'mdi-comment-text-outline',
+    'follow': 'mdi-account-plus',
+    'join': 'mdi-sword-cross',
+    'mention': 'mdi-at',
+    'achievement': 'mdi-trophy-variant-outline'
+  };
+  return icons[type] || 'mdi-bell-ring-outline';
+};
 
 function formatDate(dateString) {
   if (!dateString) return ''
@@ -463,87 +357,320 @@ onBeforeUnmount(() => {
 })
 </script>
 
+<template>
+  <v-navigation-drawer
+    ref="drawerRef"
+    :model-value="modelValue"
+    @update:model-value="handleDrawerUpdate"
+    location="right"
+    temporary
+    :width="mobile ? '100%' : '400'"
+    class="notification-drawer"
+    :class="{ 'drawer-closed': !modelValue, 'notification-drawer-desktop': !mobile }"
+  >
+    <div class="notification-header">
+      <div class="header-left">
+        <div class="bell-glow-container">
+          <v-icon color="#7048E8">mdi-bell-outline</v-icon>
+          <div v-if="unreadCount > 0" class="pulse-indicator"></div>
+        </div>
+        <span class="header-title">{{ t('notifications.title') }}</span>
+        <span v-if="unreadCount > 0" class="unread-badge">{{ unreadCount }}</span>
+      </div>
+      
+      <div class="header-actions">
+        <v-btn
+          v-if="unreadCount > 0"
+          icon="mdi-check-all"
+          size="small"
+          variant="text"
+          class="action-btn"
+          @click="markAllAsRead"
+        ></v-btn>
+        <v-btn
+          icon="mdi-close"
+          size="small"
+          variant="text"
+          class="action-btn"
+          @click.stop="closeDrawer"
+        ></v-btn>
+      </div>
+    </div>
+
+    <v-divider class="glass-divider"></v-divider>
+
+    <div class="notification-content">
+      <v-progress-linear v-if="loading" indeterminate color="#7048E8" height="2"></v-progress-linear>
+
+      <div v-if="!loading && notifications.length === 0" class="empty-state">
+        <div class="empty-icon-wrapper">
+          <v-icon size="48">mdi-ghost-outline</v-icon>
+        </div>
+        <p class="empty-text">{{ t('notifications.noNotifications') }}</p>
+      </div>
+
+      <div v-else class="notification-list">
+        <div
+          v-for="notification in notifications"
+          :key="notification._id"
+          :class="['notification-card', { 'unread': !notification.read }]"
+          @click="handleNotificationClick(notification)"
+        >
+          <div class="card-glow"></div>
+          
+          <div class="card-avatar">
+            <img
+              v-if="notification.fromUserId?.avatarUrl"
+              :src="notification.fromUserId.avatarUrl"
+              class="avatar-img"
+            />
+            <div v-else class="avatar-placeholder">
+              {{ getInitial(notification.fromUserId?.name) }}
+            </div>
+            <div class="type-icon-small" :class="notification.type">
+               <v-icon size="10">{{ getNotificationIcon(notification.type) }}</v-icon>
+            </div>
+          </div>
+
+          <div class="card-info">
+            <div class="info-top">
+              <span class="user-name">{{ notification.fromUserId?.name || t('common.unknown') }}</span>
+              <span class="time-stamp">{{ formatDate(notification.createdAt) }}</span>
+            </div>
+            <p class="message-text">{{ getNotificationText(notification) }}</p>
+          </div>
+
+          <v-btn
+            icon="mdi-close"
+            size="x-small"
+            variant="text"
+            class="delete-btn"
+            @click.stop="deleteNotification(notification)"
+          ></v-btn>
+        </div>
+      </div>
+    </div>
+  </v-navigation-drawer>
+</template>
+
 <style scoped>
-.notification-item {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  transition: background-color 0.2s;
+/* Основной контейнер дровера */
+.notification-drawer {
+  background: rgba(13, 13, 23, 0.95) !important; /* Глубокий темный фон */
+  backdrop-filter: blur(20px) !important;
+  border-left: 1px solid rgba(112, 72, 232, 0.2) !important;
+  color: #fff !important;
 }
 
-.notification-item:hover {
-  background-color: rgba(0, 0, 0, 0.04);
+/* Шапка */
+.notification-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
 }
 
-.notification-unread {
-  background-color: rgba(25, 118, 210, 0.05);
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
-.notification-avatar {
-  flex-shrink: 0;
+.header-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.6) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
-.avatar-img,
-.avatar-placeholder {
-  width: 40px;
-  height: 40px;
+.bell-glow-container {
+  position: relative;
+  display: flex;
+}
+
+.pulse-indicator {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 8px;
+  background: #ff4d4d;
   border-radius: 50%;
+  box-shadow: 0 0 10px #ff4d4d;
+  animation: pulse 2s infinite;
+}
+
+/* Карточки уведомлений */
+.notification-list {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.notification-card {
+  position: relative;
+  display: flex;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.notification-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(112, 72, 232, 0.3);
+  transform: translateX(-4px);
+}
+
+.notification-card.unread {
+  background: rgba(112, 72, 232, 0.08);
+  border-left: 3px solid #7048E8;
+}
+
+.notification-card.unread .card-glow {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: radial-gradient(circle at 10% 50%, rgba(112, 72, 232, 0.15), transparent 70%);
+}
+
+/* Аватар */
+.card-avatar {
+  position: relative;
+  margin-right: 14px;
+}
+
+.avatar-img, .avatar-placeholder {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
   object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .avatar-placeholder {
+  background: linear-gradient(135deg, #7048E8 0%, #BE4BDB 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #1FA0F6 0%, #A62EE8 100%) !important;
-  color: white !important;
-  font-weight: 600;
-  font-size: 16px;
-  border-radius: 50%;
-  min-width: 40px;
-  min-height: 40px;
+  font-weight: 800;
 }
 
-.notification-title {
+.type-icon-small {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  background: #1A1A2E;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+/* Текст */
+.card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.info-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 4px;
 }
 
-.notification-subtitle {
-  margin-top: 4px;
-  white-space: normal;
-  word-wrap: break-word;
+.user-name {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #fff;
 }
 
-.notification-date {
-  margin-top: 4px;
-  color: rgba(0, 0, 0, 0.6);
+.time-stamp {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.4);
 }
 
-.unread-indicator {
-  min-width: 8px !important;
-  width: 8px !important;
-  height: 8px !important;
-  padding: 0 !important;
-  border-radius: 50% !important;
+.message-text {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
-</style>
 
-<style>
-/* Global style to force hide notifications drawer when closed */
-.drawer-closed,
-.v-navigation-drawer.drawer-closed {
+/* Кнопка удаления */
+.delete-btn {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  color: rgba(255,255,255,0.3) !important;
+}
+
+.notification-card:hover .delete-btn {
+  opacity: 1;
+}
+
+/* Пустое состояние */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.empty-icon-wrapper {
+  width: 80px;
+  height: 80px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  color: rgba(255,255,255,0.2);
+}
+
+.empty-text {
+  color: rgba(255,255,255,0.4);
+  font-weight: 500;
+}
+
+/* Анимации */
+@keyframes pulse {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 77, 77, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(255, 77, 77, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 77, 77, 0); }
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 77, 77, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(255, 77, 77, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 77, 77, 0); }
+}
+
+/* Глобальные фиксы для дровера */
+.drawer-closed {
   transform: translateX(100%) !important;
   visibility: hidden !important;
-  display: none !important;
-  right: -100% !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-  position: fixed !important;
-  z-index: -1 !important;
 }
 
-/* Add margin-top for desktop to prevent hiding under header */
 @media (min-width: 960px) {
   .notification-drawer-desktop {
     margin-top: 64px !important;
+    height: calc(100% - 64px) !important;
   }
 }
 </style>

@@ -206,7 +206,8 @@
     "pushNotificationsActive": "Active",
     "pushNotificationsEnabledSuccess": "Push notifications enabled successfully!",
     "pushNotificationsPermissionDenied": "Notification permission was denied. Please enable it in your browser settings.",
-    "pushNotificationsEnableError": "Failed to enable push notifications. Please try again."
+    "pushNotificationsEnableError": "Failed to enable push notifications. Please try again.",
+    "settings": "Settings"
   },
   "users": {
     "title": "Registered Users",
@@ -486,7 +487,8 @@
     "participantsNone": "None",
     "participantsFew": "1-5",
     "participantsMany": "6+",
-    "showUpcoming": "Show Upcoming"
+    "showUpcoming": "Show Upcoming",
+    "showCompleted": "Show Completed"
   },
   "validation": {
     "titleRequired": "Title is required",

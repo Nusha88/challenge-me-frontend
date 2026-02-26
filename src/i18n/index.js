@@ -4,22 +4,22 @@ import ru from '../locales/ru.json'
 
 const STORAGE_KEY = 'challenge-me-locale'
 
-function detectStartingLocale() {
+function getBestLocale() {
   if (typeof window === 'undefined') {
     return 'en'
   }
 
-  const stored = window.localStorage.getItem(STORAGE_KEY)
-  if (stored && ['en', 'ru'].includes(stored)) {
-    return stored
+  const savedLocale = localStorage.getItem(STORAGE_KEY)
+  if (savedLocale && ['en', 'ru'].includes(savedLocale)) {
+    return savedLocale
   }
 
-  const browserLocale = window.navigator.language?.slice(0, 2).toLowerCase()
-  if (browserLocale && ['en', 'ru'].includes(browserLocale)) {
-    return browserLocale
-  }
+  const browserLocale = navigator.language || navigator.userLanguage
+  const shortLocale = browserLocale.split('-')[0]
 
-  return 'en'
+  const supportedLocales = ['ru', 'en']
+
+  return supportedLocales.includes(shortLocale) ? shortLocale : 'en'
 }
 
 export const SUPPORTED_LOCALES = [
@@ -29,7 +29,7 @@ export const SUPPORTED_LOCALES = [
 
 const i18n = createI18n({
   legacy: false,
-  locale: detectStartingLocale(),
+  locale: getBestLocale(),
   fallbackLocale: 'en',
   messages: {
     en,
