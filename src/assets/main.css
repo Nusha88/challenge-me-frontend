@@ -56,3 +56,44 @@ h1, h2, .text-h4 {
 :deep(.v-label) {
   color: #94A3B8 !important; /* Цвет названия поля (Email, Password) */
 }
+/* Общий стиль для всех страниц миссий */
+.page-title-dark {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: #FFFFFF;
+  text-transform: uppercase;
+  letter-spacing: -1px;
+  line-height: 1;
+}
+
+.tracking-widest {
+  letter-spacing: 3px !important;
+  font-weight: 800 !important;
+  opacity: 0.8;
+  font-size: 10px !important;
+}
+
+/* Сабтитл в стиле "Hero's Journal" */
+.journal-subtitle-dark {
+  color: rgba(255, 255, 255, 0.5);
+  border-left: 2px solid #4FD1C5;
+  padding-left: 15px;
+  font-size: 0.9rem;
+  font-style: italic;
+  max-width: 600px;
+}
+
+/* Адаптация под iPhone (430px) */
+@media (max-width: 480px) {
+  .page-title-dark {
+    font-size: 1.6rem !important;
+  }
+  
+  .ml-13 {
+    margin-left: 42px !important; /* Выравниваем overline под текстом на мобилках */
+  }
+  
+  .header-section {
+    margin-bottom: 24px !important;
+  }
+}

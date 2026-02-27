@@ -1,100 +1,108 @@
 <template>
-  <div class="checklists-history">
-    <div class="header-section">
-      <h1 class="journal-header">{{ t('home.loggedIn.checklistHistory.title') }}</h1>
-      <p class="journal-subtitle">{{ t('home.loggedIn.checklistHistory.subtitle') }}</p>
+  <div class="checklists-history dark-mode-journal">
+    <div class="header-section text-left mb-8">
+      <div class="d-flex align-center mb-2">
+        <v-icon color="teal-accent-4" size="32" class="mr-3">mdi-book-open-variant</v-icon>
+        <h1 class="journal-header-dark">{{ t('home.loggedIn.checklistHistory.title') }}</h1>
+      </div>
+      <p class="journal-subtitle-dark">{{ t('home.loggedIn.checklistHistory.subtitle') }}</p>
     </div>
     
     <div v-if="loading" class="journal-loading-container">
       <IgniteLoader :loading-text="t('home.loggedIn.checklistHistory.loading', 'Loading your legend...')" />
     </div>
     
-    <v-alert v-if="error" type="error" variant="tonal" class="mb-4">{{ error }}</v-alert>
+    <v-alert v-else-if="error" type="error" variant="tonal" class="mb-6 shadow-neon-red">
+      {{ error }}
+    </v-alert>
     
-    <div v-if="!loading && checklists.length === 0" class="empty-journal">
-      <div class="empty-icon">✨</div>
-      <p class="empty-text">{{ t('home.loggedIn.checklistHistory.empty') }}</p>
+    <div v-else-if="checklists.length === 0" class="empty-journal-dark">
+      <div class="empty-icon-glow">✨</div>
+      <p class="empty-text-dark">{{ t('home.loggedIn.checklistHistory.empty') }}</p>
+      <v-btn color="teal-accent-4" variant="outlined" rounded="pill" class="mt-4" to="/missions">
+        Start First Mission
+      </v-btn>
     </div>
     
-    <div v-else-if="!loading" class="journal-timeline">
+    <div v-else class="journal-timeline-dark">
        <div
-         v-for="checklist in checklists"
+         v-for="(checklist, index) in checklists"
          :key="checklist._id || checklist.clientDay || checklist.date"
-         class="timeline-item"
+         class="timeline-item-dark reveal-animation"
          :class="{ 'active': isToday(checklist.date), 'future': isFuture(checklist.date) }"
+         :style="{ '--i': index }"
        >
-        <div class="timeline-dot"></div>
+        <div class="timeline-dot-neon"></div>
         
         <div class="timeline-content">
-          <div class="day-card" :class="{ 'card-completed': isFull(checklist) }">
-            <div class="checklist-header">
-              <h3 class="checklist-date">{{ formatDate(checklist.clientDay || checklist.date) }}</h3>
+          <div class="day-card-dark" :class="{ 'card-completed': isFull(checklist) }">
+            <div class="checklist-header d-flex justify-space-between align-start mb-4">
+              <h3 class="checklist-date-dark">{{ formatDate(checklist.clientDay || checklist.date) }}</h3>
               
-              <div class="ignite-badge" :class="getCompletionStatusClass(checklist)">
+              <v-chip 
+                :color="isFull(checklist) ? 'teal-accent-4' : 'grey-darken-3'" 
+                variant="flat" 
+                size="x-small"
+                class="font-weight-black shadow-neon-dim px-2"
+              >
                 {{ getCompletionText(checklist) }}
-              </div>
+              </v-chip>
             </div>
             
-            <!-- Daily Challenges -->
             <div v-if="getChallengesForDate(checklist.clientDay || checklist.date).length > 0" class="challenges-section">
               <div
                 v-for="challenge in getChallengesForDate(checklist.clientDay || checklist.date)"
                 :key="challenge._id"
-                class="challenge-item"
+                class="challenge-item-dark"
                 :class="{ 'completed': isChallengeCompletedOnDate(challenge, checklist.clientDay || checklist.date) }"
               >
-                <div class="challenge-icon">
+                <div class="challenge-status-icon">
                   <v-icon 
-                    v-if="isChallengeCompletedOnDate(challenge, checklist.clientDay || checklist.date)"
-                    size="small"
-                    color="#7048e8"
-                  >mdi-check-circle</v-icon>
-                  <v-icon 
-                    v-else
-                    size="small"
-                    color="#7048e8"
-                  >mdi-flag</v-icon>
+                    :color="isChallengeCompletedOnDate(challenge, checklist.clientDay || checklist.date) ? 'teal-accent-4' : 'grey-darken-2'"
+                    size="16"
+                  >
+                    {{ isChallengeCompletedOnDate(challenge, checklist.clientDay || checklist.date) ? 'mdi-check-decagram' : 'mdi-shield-outline' }}
+                  </v-icon>
                 </div>
-                <span class="challenge-text" :class="{ completed: isChallengeCompletedOnDate(challenge, checklist.clientDay || checklist.date) }">
-                  {{ challenge.title }}
-                </span>
+                <span class="challenge-text-dark">{{ challenge.title }}</span>
               </div>
             </div>
             
-            <!-- Divider between challenges and checklist -->
-            <v-divider v-if="getChallengesForDate(checklist.clientDay || checklist.date).length > 0 && checklist.tasks && checklist.tasks.length > 0" class="my-4"></v-divider>
+            <v-divider 
+              v-if="getChallengesForDate(checklist.clientDay || checklist.date).length > 0 && checklist.tasks?.length > 0" 
+              class="my-4 border-opacity-25" 
+              color="teal-accent-4"
+            ></v-divider>
             
-            <div v-if="checklist.tasks && checklist.tasks.length > 0" class="tasks-list">
+            <div v-if="checklist.tasks?.length > 0" class="tasks-list">
               <div
                 v-for="(task, index) in checklist.tasks"
                 :key="index"
-                class="task-item"
+                class="task-item-dark"
               >
-                <div class="custom-check" :class="{ 'checked': task.done }">
-                  <v-icon v-if="task.done" size="10" color="white">mdi-check</v-icon>
+                <div class="diamond-check" :class="{ 'checked': task.done }">
+                  <v-icon v-if="task.done" size="10" color="black">mdi-check</v-icon>
                 </div>
                 
-                <span class="task-text" :class="{ completed: task.done }">
+                <span class="task-text-dark" :class="{ 'completed-dim': task.done }">
                   {{ task.title }}
                 </span>
               </div>
             </div>
 
-            <!-- Empty state: show only if no missions and no checklist -->
-            <div v-if="getChallengesForDate(checklist.clientDay || checklist.date).length === 0 && (!checklist.tasks || checklist.tasks.length === 0)" class="no-tasks-state">
-              <p class="no-tasks-text">The page is blank. Start your mission today.</p>
+            <div v-if="getChallengesForDate(checklist.clientDay || checklist.date).length === 0 && (!checklist.tasks || checklist.tasks.length === 0)" class="no-tasks-state-dark">
+              <p class="no-tasks-text-dark">The logs are empty. No action recorded.</p>
             </div>
             
-            <!-- Generate Legend Card button - show when all tasks are completed -->
             <v-btn
               v-if="isFull(checklist)"
               block
-              class="generate-art-btn"
+              class="generate-art-btn-dark mt-4"
               @click="generateLegendImage(checklist)"
               :loading="generatingImage"
             >
-              <v-icon left>mdi-creation</v-icon>
-              Generate Legend Card
+              <v-icon left size="18" class="mr-2">mdi-auto-fix</v-icon>
+              Mint Legend Card
             </v-btn>
           </div>
         </div>
@@ -102,6 +110,209 @@
     </div>
   </div>
 </template>
+
+<style scoped>
+/* Base Layout */
+.checklists-history {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+/* Typography */
+.journal-header-dark {
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: #FFFFFF;
+  letter-spacing: -1px;
+  text-transform: uppercase;
+}
+
+.journal-subtitle-dark {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.5);
+  border-left: 2px solid #4FD1C5;
+  padding-left: 16px;
+  font-style: italic;
+}
+
+/* Timeline Logic */
+.journal-timeline-dark {
+  position: relative;
+  padding-top: 10px;
+}
+
+.journal-timeline-dark::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 100%;
+  background: linear-gradient(to bottom, #4FD1C5 0%, rgba(79, 209, 197, 0.1) 80%, transparent 100%);
+}
+
+.timeline-item-dark {
+  position: relative;
+  padding-left: 32px;
+  margin-bottom: 32px;
+}
+
+.timeline-dot-neon {
+  position: absolute;
+  left: -5px;
+  top: 24px;
+  width: 11px;
+  height: 11px;
+  background: #0B0E14;
+  border: 2px solid #4FD1C5;
+  transform: rotate(45deg);
+  z-index: 2;
+  box-shadow: 0 0 8px rgba(79, 209, 197, 0.3);
+}
+
+.active .timeline-dot-neon {
+  background: #4FD1C5;
+  box-shadow: 0 0 15px #4FD1C5;
+  animation: pulse-neon 2s infinite;
+}
+
+/* Card Style */
+.day-card-dark {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  border-radius: 20px;
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.day-card-dark:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(79, 209, 197, 0.4);
+  transform: translateX(8px);
+}
+
+.checklist-date-dark {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #FFFFFF;
+}
+
+/* Challenges & Tasks */
+.challenge-item-dark {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.challenge-status-icon {
+  width: 28px;
+  height: 28px;
+  background: rgba(79, 209, 197, 0.1);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+}
+
+.challenge-text-dark {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.completed .challenge-text-dark {
+  text-decoration: line-through;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* Diamond Checkboxes */
+.task-item-dark {
+  display: flex;
+  align-items: center;
+  padding: 6px 0;
+}
+
+.diamond-check {
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid rgba(79, 209, 197, 0.5);
+  transform: rotate(45deg);
+  margin-right: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.diamond-check.checked {
+  background: #4FD1C5;
+  border-color: #4FD1C5;
+  box-shadow: 0 0 10px rgba(79, 209, 197, 0.5);
+}
+
+.diamond-check .v-icon {
+  transform: rotate(-45deg);
+}
+
+.task-text-dark {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.95rem;
+}
+
+.completed-dim {
+  text-decoration: line-through;
+  opacity: 0.3;
+}
+
+/* Buttons */
+.generate-art-btn-dark {
+  background: linear-gradient(135deg, #4FD1C5 0%, #3B82F6 100%) !important;
+  color: #000 !important;
+  font-weight: 900 !important;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-radius: 12px;
+}
+
+/* Future State */
+.future .day-card-dark {
+  opacity: 0.4;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  background: transparent;
+}
+
+/* Animations */
+.reveal-animation {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: revealJournal 0.5s ease forwards;
+  animation-delay: calc(var(--i) * 0.1s);
+}
+
+@keyframes revealJournal {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-neon {
+  0%, 100% { box-shadow: 0 0 5px #4FD1C5; }
+  50% { box-shadow: 0 0 15px #4FD1C5; }
+}
+
+/* Mobile Optimization (430px - 480px) */
+@media (max-width: 480px) {
+  .checklists-history { padding: 12px; }
+  .journal-header-dark { font-size: 1.5rem !important; }
+  .day-card-dark { padding: 16px !important; }
+  .timeline-item-dark { padding-left: 24px; }
+  .challenge-text-dark, .task-text-dark { font-size: 0.85rem !important; }
+  .diamond-check { width: 12px; height: 12px; margin-right: 12px; }
+}
+</style>
 
 <script setup>
 import { ref, onMounted, computed, nextTick } from 'vue'
@@ -486,292 +697,3 @@ onMounted(() => {
   loadChecklists()
 })
 </script>
-
-<style scoped>
-  .checklists-history {
-    width: 100%;
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 2em 1em;
-  }
-
-.journal-loading-container {
-  min-height: 300px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
-}
-  
-  /* Заголовки */
-  .journal-header {
-    font-size: 2.8rem;
-    font-weight: 800;
-    letter-spacing: -1px;
-    margin-bottom: 12px;
-    background: linear-gradient(135deg, #1A1A2E 0%, #7E46C4 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  
-  .journal-subtitle {
-  font-size: 1rem;
-  font-style: italic;
-  color: rgba(26, 26, 46, 0.5);
-  border-left: 2px solid #F4A782; /* Делаем линию чуть тоньше */
-  padding-left: 15px;
-  margin-top: 10px; /* Отступ от Hero's Journal */
-  margin-bottom: 40px; /* Отступ до начала таймлайна */
-  font-weight: 300;
-}
-  
-  /* Линия таймлайна */
-  .journal-timeline {
-    position: relative;
-  }
-  
-  .journal-timeline::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 10px;
-    width: 2px;
-    height: calc(100% - 20px);
-    background: linear-gradient(to bottom, #7E46C4, #F4A782, transparent);
-  }
-  
-  /* Элемент таймлайна */
-  .timeline-item {
-    position: relative;
-    padding-left: 40px;
-    margin-bottom: 30px;
-  }
-  
-  .timeline-dot {
-    position: absolute;
-    left: -7px;
-    top: 24px;
-    width: 16px;
-    height: 16px;
-    background: #fff;
-    border: 2px solid #7E46C4;
-    transform: rotate(45deg);
-    z-index: 2;
-    transition: all 0.3s ease;
-  }
-  
-  .timeline-item.active .timeline-dot {
-    background: #F4A782;
-    border-color: #F4A782;
-    box-shadow: 0 0 15px rgba(244, 167, 130, 0.6);
-    animation: pulse-glow 2s infinite;
-  }
-  
-  /* Стили для будущих дней */
-  .timeline-item.future .day-card {
-    opacity: 0.7;
-    border: 1px dashed rgba(126, 70, 196, 0.3); /* Пунктир */
-    background: rgba(255, 255, 255, 0.4);
-  }
-  
-  /* Специальный стиль для будущих событий */
-  .timeline-item.future .timeline-dot {
-    border-color: rgba(126, 70, 196, 0.4);
-    box-shadow: none;
-    border-style: dashed;
-    background: transparent;
-  }
-  
-  .timeline-item.future .checklist-date {
-    color: rgba(26, 26, 46, 0.4); /* Бледный заголовок */
-  }
-  
-  /* Эффект "заблокированности" для задач */
-  .timeline-item.future .custom-check {
-    border-color: rgba(126, 70, 196, 0.2);
-    background: rgba(126, 70, 196, 0.05);
-  }
-  
-  .timeline-item.future .task-text {
-    color: rgba(26, 26, 46, 0.3);
-  }
-  
-  /* Бейдж для будущего дня */
-  .timeline-item.future .ignite-badge {
-    background: transparent;
-    border: 1px solid rgba(126, 70, 196, 0.2);
-    color: rgba(126, 70, 196, 0.4);
-  }
-  
-  /* Карточка */
-  .day-card {
-    background: white;
-    border-radius: 20px;
-    padding: 24px;
-    border: 1px solid rgba(126, 70, 196, 0.08);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-  }
-  
-  .day-card:hover {
-    transform: translateX(10px);
-    box-shadow: 0 10px 30px rgba(126, 70, 196, 0.08);
-  }
-  
-  .checklist-header {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 20px;
-  }
-  
-  /* Бейджи Ignite */
-  .ignite-badge {
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  min-width: 40px;
-  text-align: center;
-}
-
-.status-complete {
-  background: linear-gradient(135deg, #7E46C4, #9D50BB);
-  color: white !important;
-}
-
-.status-progress {
-  background: #F0EBFF;
-  color: #7E46C4;
-}
-  
-  /* Кастомные чекбоксы */
-  .custom-check {
-  width: 14px; /* Уменьшаем с 18px */
-  height: 14px;
-  border: 1.5px solid #7E46C4;
-  transform: rotate(45deg);
-  margin-right: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: all 0.2s ease;
-}
-
-/* Исправляем галочку внутри */
-.custom-check .v-icon {
-  transform: rotate(-45deg); /* Поворачиваем иконку обратно, чтобы она стояла ровно */
-  font-size: 10px !important;
-}
-
-.custom-check.checked {
-  background: #7E46C4;
-  border-color: #7E46C4;
-}
-  
-  .task-text.completed {
-    text-decoration: line-through;
-    opacity: 0.4;
-  }
-  
-  .task-item {
-  display: flex;
-  align-items: center; /* Центрируем ромб и текст по вертикали */
-  padding: 6px 0;
-}
-
-  .task-text {
-    font-size: 0.95rem;
-    line-height: 1.2;
-    color: #1A1A2E;
-  }
-  
-  /* Challenges Section */
-  .challenges-section {
-    margin-bottom: 16px;
-  }
-  
-  .challenge-item {
-    display: flex;
-    align-items: center;
-    padding: 8px 0;
-    transition: all 0.2s ease;
-  }
-  
-  .challenge-icon {
-    width: 32px;
-    height: 32px;
-    background: #F3F0FF;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 12px;
-    transition: background 0.3s ease;
-  }
-  
-  .challenge-item.completed .challenge-icon {
-    background: #E8E2FF;
-  }
-  
-  .challenge-text {
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    font-size: 0.95rem;
-    font-weight: 500;
-    color: #2D3436;
-    transition: color 0.3s ease;
-  }
-  
-  .challenge-text.completed {
-    text-decoration: line-through;
-    color: #94A3B8;
-  }
-  
-  .challenge-item.completed .challenge-icon .v-icon {
-    color: #94A3B8 !important;
-  }
-.no-tasks-state {
-  padding: 10px 0;
-  text-align: center;
-}
-
-.no-tasks-text {
-  color: rgba(0, 0, 0, 0.4);
-  font-style: italic;
-  font-size: 0.9rem;
-}
-
-  @keyframes pulse-glow {
-    0% { transform: rotate(45deg) scale(1); }
-    50% { transform: rotate(45deg) scale(1.2); }
-    100% { transform: rotate(45deg) scale(1); }
-  }
-  
-  /* Generate Legend Card Button */
-  .generate-art-btn {
-    background: linear-gradient(135deg, #7E46C4 0%, #F4A782 100%) !important;
-    color: white !important;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    border-radius: 12px;
-    margin-top: 15px;
-    box-shadow: 0 4px 15px rgba(126, 70, 196, 0.4);
-    transition: all 0.3s ease;
-  }
-
-  .generate-art-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(244, 167, 130, 0.5);
-  }
-
-  .achievement-footer {
-    animation: fadeIn 0.5s ease-out;
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  </style>

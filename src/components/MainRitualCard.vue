@@ -1,84 +1,219 @@
 <template>
   <v-card 
-    class="main-ritual-hero mb-8" 
+    class="main-ritual-hero mb-10" 
     theme="dark"
     @click="$emit('click', challenge)"
-    style="cursor: pointer;"
+    elevation="0"
   >
     <v-img
       :src="challenge?.imageUrl || 'https://images.unsplash.com/photo-149485981460c-3834b3a25b5c?auto=format&fit=crop&q=80&w=1200'"
       cover
-      class="align-end"
-      gradient="to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0) 100%"
+      class="hero-image-wrapper align-center justify-center"
     >
-      <v-card-text class="hero-content pa-8">
-        <div class="d-flex flex-column gap-2">
-          
-          <div class="d-flex align-center gap-3">
-            <v-chip
-              color="teal-accent-4"
-              variant="flat"
-              label
-              size="small"
-              class="font-weight-black"
-            >
-              {{ t('challenges.typeHabitLabel') }}
-            </v-chip>
-            <span class="text-overline text-teal-lighten-3 ml-2">{{ t('challenges.mainRitualOfWeek') }}</span>
-          </div>
+      <div class="hero-overlay"></div>
 
-          <h1 class="text-h3 font-weight-bold mb-2">{{ challenge?.title || t('challenges.defaultRitualTitle') }}</h1>
+      <v-card-text class="hero-content d-flex flex-column align-center text-center">
+        
+        <div class="ritual-badge-container mb-6">
+          <v-chip
+            color="teal-accent-4"
+            variant="flat"
+            label
+            size="small"
+            class="ritual-chip px-4 font-weight-black"
+          >
+            <v-icon start size="14">mdi-star</v-icon>
+            {{ t('challenges.typeHabitLabel').toUpperCase() }}
+          </v-chip>
+          <span class="ritual-subtitle">{{ t('challenges.mainRitualOfWeek') }}</span>
+        </div>
 
-          <div class="d-flex align-center flex-wrap gap-6 mt-4 stats-actions-row">
-            <div class="social-stats d-flex align-center">
-              <v-avatar-group density="comfortable" class="participants-avatars">
-                <v-avatar 
-                  v-for="(participant, index) in displayedParticipants" 
-                  :key="index"
-                  size="32"
-                  :color="getParticipantColor(participant)"
-                >
-                  <v-img 
-                    v-if="getParticipantAvatarUrl(participant)" 
-                    :src="getParticipantAvatarUrl(participant)" 
-                  />
-                  <span v-else>{{ getParticipantInitial(participant) }}</span>
-                </v-avatar>
-              </v-avatar-group>
-              <span class="ml-4 text-body-1 participants-text">
-                <strong>{{ participantCount }} {{ t('challenges.heroesInLine') }}</strong>
-              </span>
+        <h1 class="ritual-title mb-6">
+          {{ challenge?.title || t('challenges.defaultRitualTitle') }}
+        </h1>
+
+        <div class="actions-wrapper">
+          <div class="social-panel d-flex align-center py-2 px-6">
+            <v-avatar-group density="comfortable">
+              <v-avatar 
+                v-for="(participant, index) in displayedParticipants" 
+                :key="index"
+                size="36"
+                border="2"
+                :color="getParticipantColor(participant)"
+                class="participant-avatar"
+              >
+                <v-img v-if="getParticipantAvatarUrl(participant)" :src="getParticipantAvatarUrl(participant)" />
+                <span v-else class="text-caption font-weight-bold">{{ getParticipantInitial(participant) }}</span>
+              </v-avatar>
+            </v-avatar-group>
+            
+            <div class="ml-4 text-left">
+              <div class="stats-count">{{ participantCount }} {{ t('challenges.heroesInLine') }}</div>
+              <div class="stats-label">Waiting for you</div>
             </div>
+
+            <v-divider vertical class="mx-6 my-2" color="rgba(255,255,255,0.2)"></v-divider>
 
             <v-btn
               v-if="canJoin"
-              color="teal-accent-4"
-              size="large"
+              color="teal-accent-3"
+              height="54"
               rounded="xl"
-              class="px-8 ml-3 join-btn"
-              elevation="8"
+              class="join-btn px-8"
               :loading="joining"
               @click.stop="handleJoin"
             >
+              <template v-slot:prepend>
+                <v-icon class="join-icon">mdi-flash</v-icon>
+              </template>
               {{ t('challenges.acceptChallenge') }}
             </v-btn>
 
             <v-btn
               v-else-if="isParticipant"
-              prepend-icon="mdi-check-circle"
-              size="large"
+              variant="flat"
+              color="white"
+              height="54"
               rounded="xl"
-              class="px-8 ml-3 joined-btn"
+              class="joined-btn px-8"
             >
+              <v-icon start color="teal-accent-4">mdi-check-decagram</v-icon>
               {{ t('challenges.joined') }}
             </v-btn>
           </div>
-
         </div>
+
       </v-card-text>
     </v-img>
   </v-card>
 </template>
+
+<style scoped>
+.main-ritual-hero {
+  height: 480px !important;
+  border-radius: 32px !important;
+  overflow: hidden;
+  position: relative;
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.main-ritual-hero:hover {
+  transform: scale(1.01);
+}
+
+.hero-image-wrapper {
+  height: 100%;
+}
+
+/* Затемнение фона */
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.85) 100%);
+  z-index: 1;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 900px !important;
+}
+
+/* Бейдж и подпись */
+.ritual-badge-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ritual-chip {
+  box-shadow: 0 0 15px rgba(20, 255, 236, 0.4);
+}
+
+.ritual-subtitle {
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #4FD1C5;
+}
+
+/* Заголовок */
+.ritual-title {
+  font-size: 3.5rem !important;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: -2px !important;
+  text-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+/* Стеклянная панель управления */
+.social-panel {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 60px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+}
+
+.stats-count {
+  font-weight: 800;
+  font-size: 16px;
+  color: #fff;
+}
+
+.stats-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 1px;
+}
+
+/* Кнопки */
+.join-btn {
+  font-weight: 900 !important;
+  font-size: 16px !important;
+  letter-spacing: 0;
+  color: #000 !important;
+  box-shadow: 0 10px 25px rgba(20, 255, 236, 0.3) !important;
+  transition: all 0.3s ease;
+}
+
+.join-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 30px rgba(20, 255, 236, 0.5) !important;
+}
+
+.join-icon {
+  animation: bolt-glow 1.5s infinite alternate;
+}
+
+@keyframes bolt-glow {
+  from { opacity: 0.5; transform: scale(1); }
+  to { opacity: 1; transform: scale(1.2); }
+}
+
+/* --- Адаптивность --- */
+@media (max-width: 960px) {
+  .ritual-title { font-size: 2.8rem !important; }
+  .social-panel { flex-wrap: wrap; border-radius: 24px; justify-content: center; }
+}
+
+@media (max-width: 600px) {
+  .main-ritual-hero { height: 420px !important; }
+  .ritual-title { font-size: 2rem !important; letter-spacing: -1px !important; }
+  .social-panel {
+    padding: 16px !important;
+    flex-direction: column;
+    width: 100%;
+  }
+  .v-divider { display: none; }
+  .ml-4 { text-align: center !important; margin: 12px 0 !important; }
+  .join-btn, .joined-btn { width: 100%; }
+}
+</style>
 
 <script setup>
 import { computed } from 'vue'
@@ -123,138 +258,3 @@ function getParticipantName(participant) { return participant.userId?.name || pa
 function getParticipantInitial(participant) { return getParticipantName(participant).charAt(0).toUpperCase() }
 function handleJoin() { if (props.challenge) emit('join', props.challenge) }
 </script>
-
-<style scoped>
-/* Ограничиваем высоту баннера, чтобы он не был "слишком большим" */
-.main-ritual-hero {
-  height: 400px !important;
-  border-radius: 20px !important;
-  overflow: hidden;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15) !important;
-  border: 1px solid rgba(79, 209, 197, 0.15);
-}
-
-.hero-content {
-  max-width: 800px;
-  padding: 32px !important; 
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
-}
-
-.text-h3 {
-  font-size: 2.5rem !important;
-  line-height: 1.1;
-  letter-spacing: -0.01em !important;
-}
-
-/* Статистика героев (аватарки и текст) */
-.social-stats {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(8px);
-  padding: 6px 16px;
-  border-radius: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-}
-
-.social-stats strong {
-  color: #4FD1C5; /* Бирюзовый акцент из твоего кода */
-}
-
-/* Кнопка принять вызов */
-.join-btn {
-  font-weight: 800 !important;
-  text-transform: none !important;
-  letter-spacing: 0.5px;
-  box-shadow: 0 0 20px rgba(79, 209, 197, 0.4) !important;
-  transition: all 0.3s ease;
-}
-
-/* Твоя новая кнопка JOINED */
-.joined-btn {
-  background: white !important; 
-  color: #1a202c !important;    
-  font-weight: 800 !important;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  opacity: 1 !important;        
-  box-shadow: 0 4px 15px rgba(0,0,0,0.3) !important;
-}
-
-.joined-btn :deep(.v-btn__prepend) {
-  color: #4FD1C5;
-}
-/* --- Стили для планшетов (max-width: 960px) --- */
-@media (max-width: 960px) {
-  .main-ritual-hero {
-    height: 380px !important;
-  }
-  .text-h3 {
-    font-size: 2.2rem !important;
-  }
-}
-
-/* --- Стили для мобильных (max-width: 600px) --- */
-@media (max-width: 600px) {
-  .main-ritual-hero {
-    height: 282px !important; /* Фиксируем высоту, чтобы не "раздувало" */
-    border-radius: 16px !important;
-  }
-
-  .hero-content {
-    padding: 16px !important; /* Уменьшаем внутренние отступы контента */
-    padding-bottom: 24px !important;
-  }
-
-  .text-h3 {
-    font-size: 1.5rem !important; /* Компактный заголовок */
-    line-height: 1.2;
-    margin-bottom: 12px !important;
-  }
-
-  /* Статистика (8 heroes in line) */
-  .social-stats {
-    padding: 4px 10px;
-    border-radius: 16px;
-    margin-bottom: 8px; /* Добавляем отступ, если кнопки встанут друг под друга */
-  }
-
-  .participants-text {
-    font-size: 0.8rem !important;
-    margin-left: 6px !important;
-  }
-
-  .participants-avatars :deep(.v-avatar) {
-    size: 24px !important; /* Уменьшаем аватарки */
-    width: 24px !important;
-    height: 24px !important;
-  }
-
-  /* Кнопки действий */
-  .stats-actions-row {
-    flex-direction: column; /* Складываем элементы в колонку */
-    align-items: flex-start !important;
-    gap: 12px !important;
-  }
-
-  .join-btn, .joined-btn {
-    width: auto; /* Не на всю ширину, а по контенту */
-    height: 44px !important; /* Чуть ниже высоту */
-    padding: 0 20px !important;
-    font-size: 0.85rem !important;
-  }
-}
-
-/* --- Совсем маленькие экраны (max-width: 400px) --- */
-@media (max-width: 400px) {
-  .main-ritual-hero {
-    height: 235px !important;
-  }
-  
-  .text-h3 {
-    font-size: 1.35rem !important;
-  }
-  
-  .social-stats {
-    display: none; /* Можно скрыть аватарки на экстремально маленьких экранах */
-  }
-}
-</style>

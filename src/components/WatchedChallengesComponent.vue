@@ -1,231 +1,435 @@
 <template>
-  <div class="watched-challenges">
-    <h1 class="mb-4 mb-md-6 page-title ml-4">{{ t('challenges.watchedListTitle') }}</h1>
+  <div class="watched-challenges-page pa-4">
+    <div class="header-section text-left mb-10 reveal-animation">
+  <div class="d-flex align-center mb-1">
+    <v-icon color="teal-accent-4" size="40" class="mr-3">mdi-radar</v-icon>
+    <h1 class="page-title-dark">Strategic Surveillance</h1>
+  </div>
+  <div class="text-overline text-teal-accent-4 tracking-widest ml-13">Active Monitoring Ops</div>
+  <p class="journal-subtitle-dark mt-2">Tracking high-priority targets and progress across the global network.</p>
+</div>
 
-    <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4"></v-progress-linear>
+    <v-progress-linear v-if="loading" indeterminate color="teal-accent-4" class="mb-4 shadow-neon"></v-progress-linear>
 
-    <v-alert v-if="errorMessage" type="error" class="mb-4">
-      {{ errorMessage }}
-    </v-alert>
-
-    <v-alert v-else-if="!isLoggedIn" type="info">
-      {{ t('challenges.loginPrompt') }}
-    </v-alert>
-
-    <v-alert v-else-if="!challenges.length && !loading" type="info">
-      {{ t('challenges.noWatchedChallenges') }}
-    </v-alert>
-
-    <v-row v-else class="watched-challenges-layout">
-      <!-- Left Column: Challenge Cards (8 cols) -->
-      <v-col cols="12" md="8" class="challenges-column">
-        <div class="challenges-list">
-          <v-card
-            v-for="challenge in challenges"
-            :key="challenge._id"
-            class="watched-challenge-card mb-4"
-            @click="openDetails(challenge)"
-          >
-            <v-card-text>
-              <div class="challenge-header-row mb-3">
-                <h3 class="challenge-title">{{ challenge.title }}</h3>
-                <v-chip
-                  v-if="challenge.challengeType"
-                  :color="challenge.challengeType === 'habit' ? 'success' : 'warning'"
-                  size="small"
-                >
-                  {{ challenge.challengeType === 'habit' ? t('challenges.typeHabit') : t('challenges.typeResult') }}
-                </v-chip>
-              </div>
-              
-              <div class="challenge-meta-row mb-3">
-                <div class="author-info">
-                  <v-icon size="small" class="mr-1">mdi-account</v-icon>
-                  <span class="text-caption">{{ t('challenges.createdBy').split('{name}')[0] }}</span>
-                  <span 
-                    class="author-name text-caption ml-1" 
-                    @click.stop="navigateToUser(challenge.owner)"
-                  >
+    <v-row v-if="challenges.length" class="watched-layout">
+      <v-col cols="12" md="8">
+        <v-card
+          v-for="challenge in challenges"
+          :key="challenge._id"
+          class="watched-mission-card mb-6"
+          variant="flat"
+          @click="openDetails(challenge)"
+        >
+          <v-card-text class="pa-6">
+            <div class="d-flex justify-space-between align-start mb-4">
+              <div>
+                <h3 class="mission-title text-h5 font-weight-bold white--text">{{ challenge.title }}</h3>
+                <div class="author-tag d-flex align-center mt-1">
+                  <v-icon size="14" color="teal-accent-4" class="mr-1">mdi-shield-check</v-icon>
+                  <span class="text-caption grey-text mr-1">{{ t('challenges.createdBy').split('{name}')[0] }}</span>
+                  <span class="author-name text-caption font-weight-bold" @click.stop="navigateToUser(challenge.owner)">
                     {{ challenge.owner?.name || t('common.unknown') }}
                   </span>
                 </div>
-                <div class="dates-info text-caption">
-                  {{ formatDateRange(challenge.startDate, challenge.endDate) }}
-                </div>
               </div>
+              <v-chip
+                :color="challenge.challengeType === 'habit' ? 'teal-accent-4' : 'deep-purple-accent-2'"
+                size="small"
+                variant="flat"
+                class="font-weight-black"
+              >
+                {{ challenge.challengeType === 'habit' ? 'RITUAL' : 'QUEST' }}
+              </v-chip>
+            </div>
 
-              <div v-if="challenge.owner && getOwnerProgress(challenge) !== null" class="owner-progress mb-3">
-                <div class="d-flex justify-space-between mb-1">
-                  <span class="text-caption">{{ t('challenges.authorProgress') }}</span>
-                  <span class="progress-numbers">
-                    <template v-if="challenge.challengeType === 'result'">
-                      {{ getOwnerProgressDone(challenge) }}/{{ getOwnerProgressTotal(challenge) }} {{ t('home.loggedIn.dailyChecklist.completed') }}
-                    </template>
-                    <template v-else>
-                      {{ getOwnerProgressPercentage(challenge) }}%
-                    </template>
-                  </span>
-                </div>
-                <v-progress-linear
-                  :model-value="getOwnerProgressPercentage(challenge)"
-                  :color="getProgressBarColor(challenge)"
-                  height="6"
-                  rounded
-                  :class="['owner-progress-bar', getProgressBarColorClass(challenge)]"
-                ></v-progress-linear>
+            <div v-if="challenge.owner" class="author-progress-block mb-6">
+              <div class="d-flex justify-space-between mb-2 align-center">
+                <span class="text-overline grey-text">Hero's Progress</span>
+                <span class="progress-val font-weight-black text-teal-accent-4">
+                  {{ getOwnerProgressPercentage(challenge) }}%
+                </span>
               </div>
+              <v-progress-linear
+                :model-value="getOwnerProgressPercentage(challenge)"
+                color="teal-accent-4"
+                height="10"
+                rounded
+                class="mission-bar"
+              >
+                <div class="bar-glow"></div>
+              </v-progress-linear>
+            </div>
 
-              <div class="challenge-actions d-flex justify-space-between align-center">
-                <v-btn
-                  size="small"
-                  variant="text"
-                  color="grey"
-                  :loading="watchingId === challenge._id"
-                  @click.stop="unwatchChallenge(challenge)"
-                  class="unwatch-button"
-                >
-                  <v-icon size="small" class="mr-1">mdi-eye-off</v-icon>
-                  {{ t('challenges.unwatch') }}
-                </v-btn>
-                <v-btn
-                  v-if="canJoin(challenge)"
-                  color="primary"
-                  size="small"
-                  variant="flat"
-                  :loading="joiningId === challenge._id"
-                  @click.stop="joinChallenge(challenge)"
-                  class="join-button"
-                >
-                  {{ t('challenges.join') }}
-                </v-btn>
-              </div>
-            </v-card-text>
-          </v-card>
-        </div>
+            <div class="card-actions d-flex justify-space-between">
+              <v-btn
+                variant="text"
+                color="grey-lighten-1"
+                size="small"
+                class="unwatch-btn"
+                @click.stop="unwatchChallenge(challenge)"
+              >
+                <v-icon start size="16">mdi-eye-off-outline</v-icon>
+                Stop Monitoring
+              </v-btn>
+              
+              <v-btn
+                v-if="canJoin(challenge)"
+                color="teal-accent-4"
+                variant="flat"
+                size="small"
+                rounded="lg"
+                class="join-btn font-weight-black px-6"
+                @click.stop="joinChallenge(challenge)"
+              >
+                JOIN MISSION
+              </v-btn>
+            </div>
+          </v-card-text>
+        </v-card>
       </v-col>
 
-      <!-- Right Column: Sidebar (4 cols) -->
-      <v-col cols="12" md="4" class="sidebar-column">
-        <!-- Top Performers Block -->
-        <v-card class="top-performers-card mb-4">
-          <v-card-title>
-            <span class="mr-2">🏆</span>
-            Top Performers
-          </v-card-title>
-          <v-card-text>
-            <div v-if="topPerformers.length === 0" class="text-caption text-medium-emphasis">
-              No participants yet
-            </div>
-            <div v-else class="performers-list">
-              <div
-                v-for="(participant, index) in topPerformers"
-                :key="getParticipantId(participant)"
-                class="performer-item d-flex align-center mb-3"
-              >
-                <div class="performer-rank mr-3">{{ index + 1 }}</div>
-                <div class="performer-avatar mr-3">
-                  <img
-                    v-if="getParticipantAvatar(participant)"
-                    :src="getParticipantAvatar(participant)"
-                    :alt="getParticipantName(participant)"
-                    class="avatar-img"
-                  />
-                  <div v-else class="avatar-placeholder">
-                    {{ getParticipantInitial(participant) }}
-                  </div>
-                </div>
-                <div class="performer-info flex-grow-1">
-                  <div class="performer-name text-body-2 font-weight-medium">
-                    {{ getParticipantName(participant) }}
-                  </div>
-                  <div class="performer-progress">
-                    <v-progress-linear
-                      :model-value="getParticipantProgressPercentage(participant)"
-                      color="primary"
-                      height="4"
-                      rounded
-                      class="mt-1"
-                    ></v-progress-linear>
-                    <div class="text-caption text-medium-emphasis mt-1">
-                      {{ getParticipantProgressPercentage(participant) }}%
-                    </div>
-                  </div>
-                </div>
+      <v-col cols="12" md="4">
+        <v-card class="sidebar-widget mb-6" variant="flat">
+          <div class="widget-header pa-4 d-flex align-center">
+            <v-icon color="amber" class="mr-2">mdi-trophy-variant</v-icon>
+            <span class="text-overline font-weight-black">Elite Performers</span>
+          </div>
+          <v-card-text class="pa-4 pt-0">
+            <div v-for="(p, i) in topPerformers" :key="i" class="performer-row d-flex align-center mb-4">
+              <div class="rank-badge">{{ i + 1 }}</div>
+              <v-avatar size="36" class="mx-3 border-neon">
+                <v-img v-if="getParticipantAvatar(p)" :src="getParticipantAvatar(p)" />
+                <span v-else class="text-caption">{{ getParticipantInitial(p) }}</span>
+              </v-avatar>
+              <div class="flex-grow-1 min-width-0">
+                <div class="text-body-2 font-weight-bold white--text text-truncate">{{ getParticipantName(p) }}</div>
+                <v-progress-linear :model-value="getParticipantProgressPercentage(p)" height="3" color="teal-accent-4" rounded></v-progress-linear>
               </div>
             </div>
           </v-card-text>
         </v-card>
 
-        <!-- News Feed Block -->
-        <v-card class="news-feed-card">
-          <v-card-title>
-            <span class="mr-2">🔔</span>
-            {{ t('challenges.newsFeed') }}
-          </v-card-title>
-          <v-card-text class="feed-content">
-            <div v-if="feedActivities.length === 0 && !feedLoading" class="text-caption text-medium-emphasis text-center py-4">
-              {{ t('challenges.feedEmpty') }}
-            </div>
-            <div v-else class="feed-activities">
-              <div
-                v-for="activity in feedActivities"
-                :key="activity.id"
-                class="feed-activity-item"
-              >
-                <div class="activity-avatar mr-3">
-                  <img
-                    v-if="activity.userAvatar"
-                    :src="activity.userAvatar"
-                    :alt="activity.userName"
-                    class="avatar-img"
-                  />
-                  <div v-else class="avatar-placeholder">
-                    {{ activity.userInitial }}
+        <v-card class="sidebar-widget" variant="flat">
+          <div class="widget-header pa-4 d-flex align-center">
+            <v-icon color="teal-accent-4" class="mr-2">mdi-broadcast</v-icon>
+            <span class="text-overline font-weight-black">Surveillance Feed</span>
+          </div>
+          <div class="feed-scroll no-scrollbar px-2">
+            <div v-for="act in feedActivities" :key="act.id" class="activity-entry pa-3">
+              <div class="d-flex align-start gap-3">
+                <v-avatar size="24" class="mt-1">
+                  <v-img :src="act.userAvatar" />
+                </v-avatar>
+                <div>
+                  <div class="text-caption white--text">
+                    <b class="text-teal-accent-3">{{ act.userName }}</b> {{ act.text }}
                   </div>
-                </div>
-                <div class="activity-content flex-grow-1">
-                  <div class="activity-text text-body-2">
-                    <span 
-                      class="activity-user-name font-weight-medium"
-                      @click.stop="navigateToActivityUser(activity)"
-                    >
-                      {{ activity.userName }}
-                    </span>
-                    {{ activity.text }}
-                  </div>
-                  <div class="activity-time text-caption text-medium-emphasis mt-1">
-                    {{ formatActivityTime(activity.timestamp) }}
-                  </div>
+                  <div class="text-time">{{ formatActivityTime(act.timestamp) }}</div>
                 </div>
               </div>
             </div>
-            <v-progress-linear v-if="feedLoading" indeterminate color="primary" class="mt-2"></v-progress-linear>
-          </v-card-text>
+          </div>
         </v-card>
       </v-col>
     </v-row>
-
-    <ChallengeDetailsDialog
-      v-model="detailsDialogOpen"
-      :challenge="selectedChallenge"
-      :is-owner="selectedIsOwner"
-      :is-participant="selectedIsParticipant"
-      :show-join-button="showDialogJoinButton"
-      :show-leave-button="showDialogLeaveButton"
-      :join-loading="selectedJoinLoading"
-      :leave-loading="selectedLeaveLoading"
-      :save-loading="saveLoading"
-      :save-error="saveError"
-      :delete-loading="deleteLoading"
-      @save="handleDialogSave"
-      @join="handleDialogJoin"
-      @leave="handleDialogLeave"
-      @delete="handleDialogDelete"
-      @update="handleDialogUpdate"
-    />
   </div>
 </template>
 
+<style scoped>
+/* Фоновые настройки страницы */
+.watched-challenges-page {
+  background: transparent;
+  color: #fff;
+}
+
+/* Карточка Миссии (Glassmorphism) */
+.watched-mission-card {
+  background: rgba(255, 255, 255, 0.03) !important;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 20px !important;
+  transition: all 0.3s ease;
+}
+
+.watched-mission-card:hover {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(79, 209, 197, 0.4) !important;
+  transform: translateY(-4px);
+}
+
+/* Заголовок миссии */
+.mission-title {
+  color: #FFFFFF !important; /* Чистый белый для контраста */
+  font-size: 1.25rem;
+  font-weight: 800;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); /* Немного объема */
+}
+
+/* Имя автора и доп. информация */
+.author-name, .text-caption, .grey-text {
+  color: rgba(255, 255, 255, 0.7) !important; /* Светло-серый */
+}
+
+/* Наведение на имя автора */
+.author-name:hover {
+  color: #4FD1C5 !important; /* Бирюзовый при наведении */
+  text-decoration: underline;
+}
+
+/* Текст "Hero's Progress" и проценты */
+.text-overline, .progress-val {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+.grey-text {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Кастомный прогресс-бар */
+.mission-bar {
+  background: rgba(255, 255, 255, 0.05) !important;
+  overflow: visible;
+}
+
+.bar-glow {
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  box-shadow: 0 0 15px rgba(79, 209, 197, 0.3);
+  pointer-events: none;
+}
+
+/* Боковые виджеты */
+.sidebar-widget {
+  background: rgba(15, 15, 25, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-radius: 24px !important;
+  /* Сетчатый фон */
+  background-image: radial-gradient(rgba(79, 209, 197, 0.1) 1px, transparent 1px) !important;
+  background-size: 20px 20px !important;
+}
+
+.rank-badge {
+  width: 20px;
+  font-family: 'Monaco', monospace;
+  font-weight: 900;
+  color: rgba(79, 209, 197, 0.4);
+}
+
+.border-neon {
+  border: 1px solid rgba(79, 209, 197, 0.3);
+}
+
+/* Лента новостей */
+.feed-scroll {
+  max-height: 450px;
+  overflow-y: auto;
+}
+
+.activity-entry {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.text-time {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.3);
+  margin-top: 4px;
+}
+.unwatch-btn {
+  color: rgba(255, 255, 255, 0.5) !important; /* Неяркий текст для второстепенной кнопки */
+  text-transform: none !important;
+  font-weight: 600 !important;
+}
+
+.unwatch-btn:hover {
+  color: #FF5252 !important; /* Красный при наведении (опасное действие) */
+  background: rgba(255, 82, 82, 0.1) !important;
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* Кнопки */
+.join-btn {
+  box-shadow: 0 4px 15px rgba(79, 209, 197, 0.3) !important;
+}
+
+.tracking-widest {
+  letter-spacing: 4px !important;
+}
+/* Имена в списке лидеров */
+.performer-row .text-body-2 {
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+}
+
+/* Индикатор прогресса в сайдбаре */
+.performer-row .text-caption {
+  color: #4FD1C5 !important; /* Бирюзовый для процентов */
+  font-family: 'monospace';
+}
+
+/* Ранг (номер места) */
+.rank-badge {
+  color: #4FD1C5 !important;
+  opacity: 0.8;
+  font-weight: 900;
+  text-shadow: 0 0 5px rgba(79, 209, 197, 0.3);
+}
+/* Имя пользователя в ленте */
+.activity-entry b.text-teal-accent-3 {
+  color: #4FD1C5 !important;
+  font-weight: 800;
+}
+
+/* Сам текст события (например, "commented in...") */
+.activity-entry .text-caption.white--text {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+/* Ссылка на миссию внутри ленты (если есть) */
+.activity-entry .grey--text {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+/* Время события */
+.text-time {
+  color: rgba(255, 255, 255, 0.4) !important;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+}
+.sidebar-widget {
+  background: rgba(20, 20, 35, 0.7) !important;
+  border: 1px solid rgba(79, 209, 197, 0.15) !important;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05);
+}
+
+.widget-header span.text-overline {
+  color: #FFFFFF !important;
+  letter-spacing: 2px !important;
+}
+@media (max-width: 480px) {
+  /* 1. Контейнер и заголовок секции */
+  .watched-challenges-page {
+    padding: 8px !important;
+  }
+
+  .header-section {
+    margin-bottom: 16px !important;
+    margin-left: 8px !important;
+  }
+
+  .page-title {
+    font-size: 1.5rem !important; /* Уменьшаем "Following" */
+  }
+
+  .header-section .text-overline {
+    font-size: 7px !important; /* "STRATEGIC SURVEILLANCE" совсем мелко */
+    letter-spacing: 2px !important;
+  }
+
+  /* 2. Карточка миссии */
+  .watched-mission-card {
+    margin-bottom: 12px !important;
+    border-radius: 16px !important; /* Более аккуратные углы */
+  }
+
+  .watched-mission-card :deep(.v-card-text) {
+    padding: 12px !important; /* Сжимаем внутренние отступы */
+  }
+
+  .mission-title {
+    font-size: 1.1rem !important; /* Компактные названия */
+    line-height: 1.2;
+    margin-bottom: 4px !important;
+  }
+
+  /* 3. Инфо об авторе и чипы */
+  .author-tag {
+    margin-top: 0 !important;
+  }
+
+  .author-name, .grey-text {
+    font-size: 10px !important;
+  }
+
+  .v-chip.v-chip--size-small {
+    font-size: 9px !important;
+    height: 18px !important;
+    padding: 0 6px !important;
+  }
+
+  /* 4. Прогресс-бар (самый важный фикс) */
+  .author-progress-block {
+    margin-bottom: 12px !important;
+  }
+
+  .author-progress-block .text-overline {
+    font-size: 8px !important;
+    margin-bottom: 2px !important;
+  }
+
+  .progress-val {
+    font-size: 11px !important;
+  }
+
+  .mission-bar {
+    height: 6px !important; /* Тонкая изящная линия */
+  }
+
+  /* 5. Кнопки действий */
+  .card-actions {
+    margin-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding-top: 8px;
+  }
+
+  .unwatch-btn {
+    font-size: 10px !important;
+    letter-spacing: 0 !important;
+    height: 28px !important;
+  }
+
+  .join-btn {
+    height: 32px !important;
+    font-size: 10px !important;
+    padding: 0 12px !important;
+  }
+
+  /* 6. Боковые виджеты (если они рендерятся под списком) */
+  .sidebar-widget {
+    border-radius: 16px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .widget-header {
+    padding: 10px 12px !important;
+  }
+
+  .performer-row {
+    margin-bottom: 8px !important;
+  }
+  /* Анимация вращения радара для страницы Following */
+.mdi-radar {
+  animation: radar-pulse 4s infinite linear;
+}
+
+@keyframes radar-pulse {
+  0% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.1); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* На мобильных устройствах 430px */
+@media (max-width: 480px) {
+  .page-title-dark {
+    font-size: 1.5rem !important; /* "Strategic Surveillance" длинное слово, чуть уменьшим */
+  }
+  
+  .ml-13 {
+    margin-left: 42px !important;
+  }
+}
+}
+</style>
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
@@ -997,248 +1201,3 @@ onMounted(() => {
   loadWatchedChallenges()
 })
 </script>
-
-<style scoped>
-.watched-challenges {
-  width: 100%;
-}
-
-.watched-challenges-layout {
-  margin: 0;
-}
-
-.challenges-column {
-  padding: 0 12px;
-}
-
-.sidebar-column {
-  padding: 0 12px;
-}
-
-.challenges-list {
-  padding: 0;
-}
-
-.watched-challenge-card {
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  border-radius: 12px;
-}
-
-.watched-challenge-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.challenge-header-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.challenge-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin: 0;
-}
-
-.challenge-meta-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.author-info {
-  display: flex;
-  align-items: center;
-}
-
-.author-name {
-  color: #1976d2;
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-
-.author-name:hover {
-  opacity: 0.7;
-  text-decoration: underline;
-}
-
-.owner-progress {
-  margin-top: 8px;
-}
-
-.progress-numbers {
-  font-size: calc(0.75rem + 4px);
-  font-weight: 700;
-}
-
-.owner-progress-bar :deep(.v-progress-linear__determinate) {
-  transition: background-color 0.3s ease;
-}
-
-.owner-progress-bar.progress-low :deep(.v-progress-linear__determinate) {
-  background: #1565C0 !important; /* Dark blue for 0-30% */
-}
-
-.challenge-actions {
-  margin-top: 12px;
-}
-
-.join-button,
-.unwatch-button {
-  border-radius: 12px !important;
-}
-
-.top-performers-card,
-.news-feed-card {
-  border-radius: 12px;
-}
-
-.performers-list {
-  padding: 0;
-}
-
-.performer-item {
-  padding: 8px 0;
-}
-
-.performer-rank {
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #1FA0F6 0%, #A62EE8 100%);
-  color: white;
-  border-radius: 50%;
-  font-weight: 600;
-  font-size: 0.75rem;
-  flex-shrink: 0;
-}
-
-.performer-avatar {
-  flex-shrink: 0;
-}
-
-.avatar-img,
-.avatar-placeholder {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.avatar-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #1FA0F6;
-  color: white;
-  font-weight: 600;
-  font-size: 16px;
-}
-
-.performer-info {
-  min-width: 0;
-}
-
-.performer-name {
-  margin-bottom: 4px;
-}
-
-.performer-progress {
-  width: 100%;
-}
-
-.feed-content {
-  padding: 0 !important;
-  height: 500px;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-.feed-activities {
-  padding: 8px 0;
-}
-
-.feed-activity-item {
-  display: flex;
-  align-items: flex-start;
-  padding: 12px 16px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  transition: background-color 0.2s;
-}
-
-.feed-activity-item:last-child {
-  border-bottom: none;
-}
-
-.feed-activity-item:hover {
-  background-color: rgba(0, 0, 0, 0.02);
-}
-
-.activity-avatar {
-  flex-shrink: 0;
-}
-
-.activity-avatar .avatar-img,
-.activity-avatar .avatar-placeholder {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.activity-avatar .avatar-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #1FA0F6;
-  color: white;
-  font-weight: 600;
-  font-size: 14px;
-}
-
-.activity-content {
-  min-width: 0;
-}
-
-.activity-user-name {
-  color: #1976d2;
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-
-.activity-user-name:hover {
-  opacity: 0.7;
-  text-decoration: underline;
-}
-
-.activity-text {
-  color: rgba(0, 0, 0, 0.87);
-  line-height: 1.5;
-}
-
-.activity-time {
-  color: rgba(0, 0, 0, 0.6);
-}
-
-@media (max-width: 959px) {
-  .challenges-column,
-  .sidebar-column {
-    padding: 0 16px;
-  }
-  
-  .feed-content {
-    height: 400px;
-  }
-  
-  .feed-activity-item {
-    padding: 10px 12px;
-  }
-}
-</style>
-

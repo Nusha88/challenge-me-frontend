@@ -1,8 +1,13 @@
 <template>
   <div class="my-challenges">
-    <div class="mb-4 mb-md-6">
-      <h1 class="page-title">{{ t('challenges.myActiveMissions', { count: activeChallenges.length }) }}</h1>
-    </div>
+    <div class="header-section text-left mb-10 reveal-animation">
+  <div class="d-flex align-center mb-1">
+    <v-icon color="teal-accent-4" size="40" class="mr-3">mdi-shield-account</v-icon>
+    <h1 class="page-title-dark">My Command Post</h1>
+  </div>
+  <div class="text-overline text-teal-accent-4 tracking-widest ml-13">Personal Tactical Briefing</div>
+  <p class="journal-subtitle-dark mt-2">Manage your active rituals and track your ascent to legend.</p>
+</div>
 
     <div class="content-section">
       <div v-if="loading" class="challenges-grid">
