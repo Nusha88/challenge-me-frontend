@@ -1849,15 +1849,19 @@ onBeforeUnmount(() => {
 
 .streak-display-mobile {
   width: 100%;
-  background: linear-gradient(135deg, #FFF5F0 0%, #FFEDE3 100%);
-  color: #4FD1C5;
-  border: 1px solid rgba(79, 209, 197, 0.3);
+  background: rgba(255, 140, 66, 0.1) !important;
+  border: 1px solid rgba(255, 140, 66, 0.4) !important;
+  color: #FF8C42 !important;
   padding: 8px 16px;
   border-radius: 14px;
   font-family: 'Montserrat', sans-serif;
   font-weight: 800;
   font-size: 13px;
   letter-spacing: 0.5px;
+  box-shadow: 0 0 15px rgba(255, 140, 66, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1868,19 +1872,23 @@ onBeforeUnmount(() => {
 }
 
 .streak-display-mobile.streak-yesterday {
-  background: linear-gradient(135deg, #F5F5F5 0%, #E8E8E8 100%);
-  color: #757575;
-  border: 1px solid rgba(117, 117, 117, 0.3);
-  box-shadow: none;
+  background: rgba(255, 140, 66, 0.05) !important;
+  border: 1px solid rgba(255, 140, 66, 0.2) !important;
+  color: #FF8C42 !important;
+  opacity: 0.7;
+  filter: grayscale(0.3);
+  box-shadow: 0 0 8px rgba(255, 140, 66, 0.1);
 }
 
 .streak-display-mobile span {
-  color: inherit;
+  color: #FF8C42 !important;
+  font-weight: 800;
 }
 
 .streak-display-mobile i {
-  color: inherit;
+  color: #FF8C42 !important;
   font-size: 18px;
+  filter: drop-shadow(0 0 5px rgba(255, 140, 66, 0.6));
 }
 
 .todays-card {

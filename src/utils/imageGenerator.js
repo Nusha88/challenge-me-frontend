@@ -1,22 +1,17 @@
 import html2canvas from 'html2canvas'
-import roketImage from '../assets/roket.png'
+import crystalImage from '../assets/crystal.png' 
 import motivationalMessagesEn from '../data/motivationalMessages.en.json'
 import motivationalMessagesRu from '../data/motivationalMessages.ru.json'
 
-/**
- * Генерирует изображение триумфа для Hero's Journal
- */
 export async function generateCompletionImage(options) {
   const {
     userName = 'Hero',
-    date = new Date(),
     challenges = [],
     completedChallenges = [],
     checklistTasks = [],
     streakDays = null,
     locale = 'en',
     t = null,
-    includeMotivationalMessage = true,
     filenamePrefix = 'victory'
   } = options
 
@@ -25,340 +20,183 @@ export async function generateCompletionImage(options) {
     Object.assign(container.style, {
       position: 'absolute',
       left: '-9999px',
-      width: '600px',
-      minHeight: '850px',
-      padding: '40px',
-      background: `
-        radial-gradient(circle at 50% 0%, rgba(126, 70, 196, 0.6) 0%, transparent 70%),
-        radial-gradient(circle at 100% 100%, rgba(244, 167, 130, 0.2) 0%, transparent 50%),
-        #1A1A2E
-      `,
+      width: '540px',
+      height: '960px',
+      padding: '50px 40px',
+      background: '#0f172a',
       color: '#ffffff',
       fontFamily: '"Plus Jakarta Sans", sans-serif',
       display: 'flex',
       flexDirection: 'column',
-      gap: '24px',
       position: 'relative',
-      overflow: 'hidden'
+      overflow: 'hidden',
+      boxSizing: 'border-box'
     })
 
-    // Иконка ракеты
-    const rocketIcon = document.createElement('img')
-    rocketIcon.src = roketImage
-    Object.assign(rocketIcon.style, {
+    // 1. ФОН: СЕТКА И СВЕЧЕНИЕ
+    const grid = document.createElement('div')
+    Object.assign(grid.style, {
       position: 'absolute',
-      top: '20px',
-      right: '20px',
-      width: '130px',
-      height: 'auto',
-      zIndex: '10',
-      filter: 'drop-shadow(0 0 25px rgba(244, 167, 130, 0.6))',
-      transform: 'rotate(12deg)'
+      inset: '0',
+      opacity: '0.4',
+      background: `linear-gradient(to right, rgba(79, 209, 197, 0.05) 1px, transparent 1px),
+                   linear-gradient(to bottom, rgba(79, 209, 197, 0.05) 1px, transparent 1px)`,
+      backgroundSize: '40px 40px',
+      zIndex: '1'
     })
-    container.appendChild(rocketIcon)
+    container.appendChild(grid)
 
-    // Звезды
-    for (let i = 0; i < 25; i++) {
-      const star = document.createElement('div')
-      Object.assign(star.style, {
-        position: 'absolute',
-        left: `${Math.random() * 100}%`,
-        top: `${Math.random() * 100}%`,
-        width: `${Math.random() * 2 + 1}px`,
-        height: `${Math.random() * 2 + 1}px`,
-        background: '#fff',
-        borderRadius: '50%',
-        opacity: Math.random() * 0.6,
-        boxShadow: '0 0 4px #fff'
-      })
-      container.appendChild(star)
-    }
-
-    // --- ГЕОМЕТРИЧЕСКИЙ ПАТТЕРН И СВЕЧЕНИЯ ---
-    // Сетка
-    const gridOverlay = document.createElement('div');
-    Object.assign(gridOverlay.style, {
-        position: 'absolute',
-        top: '0',
-        left: '0',
-        width: '100%',
-        height: '100%',
-        background: `
-            linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px)
-        `,
-        backgroundSize: '40px 40px', // Размер ячейки сетки
-        zIndex: '1',
-        opacity: '0.4'
-    });
-    container.appendChild(gridOverlay);
-
-    // Мягкие свечения (добавляют глубину)
-    const glow1 = document.createElement('div');
-    Object.assign(glow1.style, {
-        position: 'absolute',
-        top: '10%',
-        left: '10%',
-        width: '200px',
-        height: '200px',
-        background: 'radial-gradient(circle, rgba(126, 70, 196, 0.3) 0%, transparent 70%)',
-        borderRadius: '50%',
-        filter: 'blur(50px)',
-        zIndex: '2'
-    });
-    container.appendChild(glow1);
-
-    const glow2 = document.createElement('div');
-    Object.assign(glow2.style, {
-        position: 'absolute',
-        bottom: '5%',
-        right: '15%',
-        width: '150px',
-        height: '150px',
-        background: 'radial-gradient(circle, rgba(244, 167, 130, 0.2) 0%, transparent 70%)',
-        borderRadius: '50%',
-        filter: 'blur(40px)',
-        zIndex: '2'
-    });
-    container.appendChild(glow2);
-    // --- КОНЕЦ ГЕОМЕТРИЧЕСКОГО ПАТТЕРНА И СВЕЧЕНИЙ ---
-
-
-    // --- HEADER ---
+    // 2. HEADER С КРИСТАЛЛОМ
     const header = document.createElement('div')
     Object.assign(header.style, {
-      textAlign: 'left',
-      padding: '35px 30px',
-      background: 'rgba(0, 0, 0, 0.4)',
-      borderRadius: '24px',
-      border: '1px solid rgba(255, 255, 255, 0.1)',
-      backdropFilter: 'blur(12px)',
-      zIndex: '5',
       position: 'relative',
-      boxShadow: '0 20px 40px rgba(0,0,0,0.3)'
+      zIndex: '10',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: '40px'
     })
-    
-    const title = document.createElement('h1')
-    const displayTitle = t && typeof t === 'function' 
-      ? t('home.loggedIn.completionImage.title', { name: userName }).toUpperCase()
-      : `${userName.toUpperCase()} - LEGEND DAY`
 
-    title.textContent = displayTitle
+    const titleBlock = document.createElement('div')
+    
+    // Бейдж
+    const badge = document.createElement('div')
+    badge.textContent = 'REPORT: OPERATIONAL SUCCESS'
+    Object.assign(badge.style, {
+      display: 'inline-block',
+      padding: '4px 12px',
+      border: '1px solid #4FD1C5',
+      borderRadius: '20px',
+      color: '#4FD1C5',
+      fontSize: '10px',
+      letterSpacing: '2px',
+      fontWeight: '800',
+      marginBottom: '12px'
+    })
+    titleBlock.appendChild(badge)
+
+    // Заголовок (Без иконки)
+    const title = document.createElement('h1')
+    title.textContent = `ALL DONE,\n${userName.toUpperCase()}!`
     Object.assign(title.style, {
-      fontSize: '40px',
+      fontSize: '36px',
       fontWeight: '900',
       margin: '0',
       lineHeight: '1.1',
-      color: '#ffffff',
-      textShadow: '2px 4px 12px rgba(0, 0, 0, 0.9), 0 0 20px rgba(126, 70, 196, 0.4)'
+      whiteSpace: 'pre-line'
     })
+    titleBlock.appendChild(title)
+    header.appendChild(titleBlock)
 
-    const dateObj = typeof date === 'string' ? new Date(date) : date
-    const dateStr = dateObj.toLocaleDateString(locale === 'ru' ? 'ru-RU' : 'en-US', {
-      year: 'numeric', month: 'long', day: 'numeric'
+    // КРИСТАЛЛ (Справа от текста)
+    const crystal = document.createElement('img')
+    crystal.src = crystalImage
+    Object.assign(crystal.style, {
+      width: '110px',
+      height: '110px',
+      filter: 'drop-shadow(0 0 25px rgba(79, 209, 197, 0.5))',
+      objectFit: 'contain'
     })
-    const dateText = document.createElement('p')
-    dateText.textContent = dateStr.toUpperCase()
-    Object.assign(dateText.style, {
-      fontSize: '16px',
-      fontWeight: '800',
-      color: '#F4A782',
-      marginTop: '12px',
-      letterSpacing: '2px'
-    })
-
-    header.appendChild(title)
-    header.appendChild(dateText)
+    header.appendChild(crystal)
     container.appendChild(header)
 
-    // Мотивация
-    if (includeMotivationalMessage) {
-      const messages = locale === 'ru' ? motivationalMessagesRu : motivationalMessagesEn
-      const selectedMessage = messages[Math.floor(Math.random() * messages.length)]
+    // 3. CONTENT AREA
+    const content = document.createElement('div')
+    Object.assign(content.style, { position: 'relative', zIndex: '10', flex: '1' })
+
+    // Active Missions
+    const activeMissions = completedChallenges.length > 0 ? completedChallenges : challenges.filter(c => c.completed !== false)
+    if (activeMissions.length > 0) {
+      const mSection = document.createElement('div')
+      mSection.innerHTML = `<div style="color: #A62EE8; font-size: 11px; font-weight: 800; letter-spacing: 2px; margin-bottom: 15px;">ACTIVE MISSIONS</div>`
       
-      const quoteBox = document.createElement('div')
-      Object.assign(quoteBox.style, {
-        fontSize: '22px',
-        lineHeight: '1.5',
-        color: 'rgba(255, 255, 255, 0.95)',
-        padding: '0 20px',
-        fontWeight: '500',
-        fontStyle: 'italic',
-        borderLeft: '4px solid #F4A782',
-        zIndex: '5'
+      activeMissions.forEach(m => {
+        const card = document.createElement('div')
+        Object.assign(card.style, {
+          background: 'rgba(255, 255, 255, 0.03)',
+          border: '1px solid rgba(79, 209, 197, 0.2)',
+          borderRadius: '12px',
+          padding: '16px 20px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '12px'
+        })
+        card.innerHTML = `
+          <div style="font-weight: 700; font-size: 16px;">${(m.title || m).toUpperCase()}</div>
+          <div style="color: #4FD1C5; font-weight: 900;">${m.completedDays || 1}/${m.totalDays || 30}</div>
+        `
+        mSection.appendChild(card)
       })
-      quoteBox.textContent = `"${selectedMessage}"`
-      container.appendChild(quoteBox)
+      content.appendChild(mSection)
     }
 
-     // Контент (Миссии и Шаги)
-     const listContainer = document.createElement('div')
-     Object.assign(listContainer.style, {
-       flex: '1',
-       display: 'flex',
-       flexDirection: 'column',
-       gap: '20px',
-       zIndex: '5'
-     })
+    // Daily Steps
+    const doneSteps = checklistTasks.filter(task => task.done !== false)
+    if (doneSteps.length > 0) {
+      const sSection = document.createElement('div')
+      sSection.style.marginTop = '30px'
+      sSection.innerHTML = `<div style="color: #4FD1C5; font-size: 11px; font-weight: 800; letter-spacing: 2px; margin-bottom: 15px;">DAILY STEPS</div>`
+      
+      doneSteps.forEach(step => {
+        const sItem = document.createElement('div')
+        Object.assign(sItem.style, {
+          background: 'rgba(79, 209, 197, 0.05)',
+          padding: '12px 16px',
+          borderRadius: '10px',
+          fontSize: '14px',
+          marginBottom: '8px',
+          borderLeft: '3px solid #4FD1C5'
+        })
+        sItem.innerHTML = `<span style="color: #4FD1C5; margin-right: 8px;">✓</span> ${step.title || step}`
+        sSection.appendChild(sItem)
+      })
+      content.appendChild(sSection)
+    }
+    container.appendChild(content)
 
-     const missionsToShow = completedChallenges.length > 0 
-       ? completedChallenges 
-       : challenges.filter(c => c.completed !== false)
-
-     // Daily Missions section
-     if (missionsToShow.length > 0) {
-       const mSection = document.createElement('div')
-       const mTitle = document.createElement('h2')
-       mTitle.textContent = 'MISSIONS ACCOMPLISHED'
-       Object.assign(mTitle.style, { fontSize: '13px', color: '#F4A782', letterSpacing: '3px', marginBottom: '15px', fontWeight: '800' })
-       mSection.appendChild(mTitle)
-
-       missionsToShow.forEach(m => {
-         const item = document.createElement('div')
-         Object.assign(item.style, {
-           background: 'linear-gradient(90deg, rgba(126, 70, 196, 0.3), transparent)',
-           padding: '12px 18px',
-           borderRadius: '12px',
-           marginBottom: '8px',
-           display: 'flex',
-           alignItems: 'center',
-           justifyContent: 'space-between',
-           border: '1px solid rgba(126, 70, 196, 0.2)'
-         })
-         
-         const titleText = m.title || m
-         const progressText = (m.completedDays !== undefined && m.totalDays !== undefined)
-           ? `<span style="color:#7E46C4; font-weight:600; font-size:14px; opacity:0.9; margin-left:12px;">${m.completedDays} / ${m.totalDays}</span>`
-           : ''
-         
-         item.innerHTML = `<div style="display:flex; align-items:center; flex:1;"><span style="color:#F4A782; margin-right:12px; font-size:18px;">✦</span><span style="font-weight:700; font-size:17px;">${titleText}</span></div>${progressText}`
-         mSection.appendChild(item)
-       })
-       listContainer.appendChild(mSection)
-     }
-
-     // Daily Steps section
-     const completedTasks = checklistTasks.filter(task => task.done !== false)
-     if (completedTasks.length > 0) {
-       const stepsSection = document.createElement('div')
-       const stepsTitle = document.createElement('h2')
-       stepsTitle.textContent = 'DAILY STEPS'
-       Object.assign(stepsTitle.style, { 
-         fontSize: '13px', 
-         color: '#F4A782', 
-         letterSpacing: '3px', 
-         marginBottom: '15px', 
-         fontWeight: '800',
-         marginTop: missionsToShow.length > 0 ? '20px' : '0'
-       })
-       stepsSection.appendChild(stepsTitle)
-
-       completedTasks.forEach(task => {
-         const item = document.createElement('div')
-         Object.assign(item.style, {
-           background: 'linear-gradient(90deg, rgba(126, 70, 196, 0.3), transparent)',
-           padding: '12px 18px',
-           borderRadius: '12px',
-           marginBottom: '8px',
-           display: 'flex',
-           alignItems: 'center',
-           border: '1px solid rgba(126, 70, 196, 0.2)'
-         })
-         item.innerHTML = `<span style="color:#F4A782; margin-right:12px; font-size:18px;">✦</span><span style="font-weight:700; font-size:17px;">${task.title || task}</span>`
-         stepsSection.appendChild(item)
-       })
-       listContainer.appendChild(stepsSection)
-     }
-
-     container.appendChild(listContainer)
-
-     // --- ФУТЕР ---
-     const footer = document.createElement('div')
-     Object.assign(footer.style, {
-       display: 'flex',
-       justifyContent: streakDays !== null ? 'space-between' : 'flex-start',
-       alignItems: 'flex-start',
-       marginTop: 'auto',
-       paddingTop: '30px',
-       borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-       zIndex: '5'
-     })
-
-     // Левая часть футера: Название бренда и слоган
-     const leftSide = document.createElement('div')
-     Object.assign(leftSide.style, {
-       display: 'flex',
-       flexDirection: 'column',
-       gap: '6px'
-     })
-
-     const brandName = document.createElement('div')
-     brandName.textContent = 'IGNITE'
-     Object.assign(brandName.style, {
-       fontSize: '26px',
-       fontWeight: '900',
-       color: '#ffffff',
-       letterSpacing: '5px',
-       lineHeight: '1',
-       textShadow: '0 0 20px rgba(126, 70, 196, 0.8)'
-     })
-
-     // Слоган под брендом
-     const slogan = document.createElement('div')
-     slogan.textContent = 'START YOUR MISSION'
-     Object.assign(slogan.style, {
-       fontSize: '10px',
-       fontWeight: '800',
-       color: '#F4A782',
-       letterSpacing: '1.5px'
-     })
-
-     leftSide.appendChild(brandName)
-     leftSide.appendChild(slogan)
-     footer.appendChild(leftSide)
-
-     // Правая часть футера: Стрик (если есть)
-     if (streakDays !== null) {
-       const streakBadge = document.createElement('div')
-       Object.assign(streakBadge.style, {
-         background: 'linear-gradient(135deg, #7E46C4, #F4A782)',
-         padding: '6px 16px',
-         borderRadius: '50px',
-         fontWeight: '900',
-         fontSize: '14px',
-         boxShadow: '0 4px 12px rgba(126, 70, 196, 0.4)'
-       })
-       const streakLabel = t ? t('navigation.streakDays').toUpperCase() : 'DAYS STREAK'
-       streakBadge.innerHTML = `🔥 ${streakDays} ${streakLabel}`
-       footer.appendChild(streakBadge)
-     }
-     
-     container.appendChild(footer)
-
-    // Рендеринг
-    document.body.appendChild(container)
-    const canvas = await html2canvas(container, {
-      scale: 3,
-      backgroundColor: null,
-      useCORS: true,
-      logging: false
+    // 4. FOOTER
+    const footer = document.createElement('div')
+    Object.assign(footer.style, {
+      marginTop: 'auto',
+      paddingTop: '20px',
+      borderTop: '1px solid rgba(255,255,255,0.1)',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      zIndex: '10'
     })
+    footer.innerHTML = `
+      <div>
+        <div style="letter-spacing: 4px; font-weight: 900; font-size: 20px;">IGNITE<span style="color:#4FD1C5">.</span></div>
+        <div style="font-size: 9px; color: #94a3b8; letter-spacing: 1px;">START YOUR MISSION</div>
+      </div>
+    `
+    if (streakDays) {
+      const st = document.createElement('div')
+      Object.assign(st.style, {
+        background: 'linear-gradient(135deg, #4FD1C5, #A62EE8)',
+        padding: '8px 16px',
+        borderRadius: '10px',
+        fontWeight: '900',
+        fontSize: '14px'
+      })
+      st.textContent = `🔥 ${streakDays} DAYS STREAK`
+      footer.appendChild(st)
+    }
+    container.appendChild(footer)
+
+    // RENDER
+    document.body.appendChild(container)
+    const canvas = await html2canvas(container, { scale: 2, useCORS: true, backgroundColor: '#0f172a' })
     document.body.removeChild(container)
 
-    const dateForFilename = typeof date === 'string' ? date : dateObj.toISOString().split('T')[0]
-    const filename = `${filenamePrefix}-${dateForFilename}.png`
-
-    canvas.toBlob((blob) => {
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = filename
-      link.click()
-      URL.revokeObjectURL(url)
-    }, 'image/png')
+    const link = document.createElement('a')
+    link.download = `${filenamePrefix}-${new Date().toISOString().split('T')[0]}.png`
+    link.href = canvas.toDataURL('image/png')
+    link.click()
 
   } catch (error) {
-    console.error('Failed to generate Ignite achievement image:', error)
-    throw error
+    console.error('Render failed:', error)
   }
 }
