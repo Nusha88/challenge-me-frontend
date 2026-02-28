@@ -443,20 +443,42 @@ watch(() => route.path, () => {
           </div>
         </div>
         
-        <!-- Center Section: Logo -->
+        <!-- Center Section: Logo / Buttons (mobile) -->
         <div class="header-section header-center">
       <router-link 
+        v-if="isLoggedIn || route.path !== '/'"
         to="/" 
         class="brand-link"
           >
             <img :src="awaImage" alt="Awa" class="brand-logo" />
           </router-link>
+          <!-- Mobile: Buttons in center when not logged in and on index page -->
+          <div v-if="!isLoggedIn && route.path === '/' && mobile" class="d-flex align-center gap-2">
+            <v-btn
+              v-if="route.path !== '/register'"
+              to="/register"
+              variant="elevated"
+              class="sign-up-button"
+              style="color: white;"
+            >
+              {{ t('navigation.register') }}
+            </v-btn>
+            <v-btn
+              v-if="route.path !== '/login'"
+              to="/login"
+              variant="outlined"
+              class="login-button"
+              style="border-color: #3C60E8; color: #3C60E8; border-width: 2px;"
+            >
+              {{ t('navigation.login') }}
+            </v-btn>
+          </div>
       </div>
         
-        <!-- Right Section: Buttons -->
+        <!-- Right Section: Buttons (desktop or logged in) -->
         <div class="header-section header-right">
       <v-btn
-        v-if="!isLoggedIn && route.path !== '/register'"
+        v-if="!isLoggedIn && route.path !== '/register' && (!mobile || route.path !== '/')"
         to="/register"
         variant="elevated"
         class="mr-2 sign-up-button"
@@ -465,7 +487,7 @@ watch(() => route.path, () => {
         {{ t('navigation.register') }}
       </v-btn>
       <v-btn
-        v-if="!isLoggedIn && route.path !== '/login'"
+        v-if="!isLoggedIn && route.path !== '/login' && (!mobile || route.path !== '/')"
         to="/login"
         variant="outlined"
         class="mr-2 login-button"
@@ -474,15 +496,17 @@ watch(() => route.path, () => {
         {{ t('navigation.login') }}
       </v-btn>
       <v-btn
-        v-if="isLoggedIn"
-            to="/missions/add"
-        variant="elevated"
-        size="large"
-        class="mr-2 cta-button d-none d-md-inline-flex"
-        prepend-icon="mdi-plus-circle"
-      >
-        {{ t('navigation.addChallenge') }}
-      </v-btn>
+  v-if="isLoggedIn"
+  to="/missions/add"
+  variant="elevated"
+  size="large"
+  class="mr-2 cta-button-cyber d-none d-md-inline-flex"
+>
+  <template v-slot:prepend>
+    <v-icon class="icon-pulse">mdi-flare</v-icon>
+  </template>
+  {{ t('navigation.addChallenge') }}
+</v-btn>
       <v-btn
         v-if="isLoggedIn"
         variant="text"
@@ -1163,6 +1187,32 @@ watch(() => route.path, () => {
     overflow-y: hidden;
     gap: 0.25em;
     min-height: 56px;
+    align-items: center;
+  }
+  
+  .header-content-wrapper {
+    gap: 12px;
+  }
+  
+  .header-left {
+    min-width: auto;
+    flex: 0 0 auto;
+  }
+  
+  .header-center {
+    flex: 1;
+    justify-content: center;
+  }
+  
+  .header-center .d-flex {
+    justify-content: center;
+    gap: 8px;
+  }
+  
+  .header-right {
+    min-width: auto;
+    flex: 0 0 auto;
+    gap: 6px;
   }
   
   .brand-link {
@@ -1170,6 +1220,13 @@ watch(() => route.path, () => {
     padding-left: 4px;
     white-space: nowrap;
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .brand-logo {
+    height: 32px;
   }
   
   .brand-link.hide-on-mobile-logged-in {
@@ -1235,6 +1292,32 @@ watch(() => route.path, () => {
   .app-bar-custom :deep(.v-toolbar__content) {
     padding: 0.5em 0.5em;
     gap: 0.25em;
+    align-items: center;
+  }
+  
+  .header-content-wrapper {
+    gap: 8px;
+  }
+  
+  .header-left {
+    min-width: auto;
+    flex: 0 0 auto;
+  }
+  
+  .header-center {
+    flex: 1;
+    justify-content: center;
+  }
+  
+  .header-center .d-flex {
+    justify-content: center;
+    gap: 6px;
+  }
+  
+  .header-right {
+    min-width: auto;
+    flex: 0 0 auto;
+    gap: 4px;
   }
   
   .brand-link {
@@ -1242,6 +1325,13 @@ watch(() => route.path, () => {
     max-width: 100px;
     overflow: hidden;
     text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .brand-logo {
+    height: 28px;
   }
   
   .sign-up-button,
@@ -1800,6 +1890,37 @@ watch(() => route.path, () => {
   justify-content: space-between;
   width: 100%;
   padding: 0 16px;
+  gap: 16px;
+}
+
+.header-section {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.header-left {
+  justify-content: flex-start;
+  min-width: 120px;
+}
+
+.header-center {
+  justify-content: center;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.header-right {
+  justify-content: flex-end;
+  min-width: 120px;
+  gap: 8px;
+}
+
+.brand-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* 1. Стрик (Огонь) — делаем его сочным */
@@ -1831,6 +1952,8 @@ watch(() => route.path, () => {
   height: 40px;
   filter: drop-shadow(0 0 10px rgba(112, 72, 232, 0.4));
   transition: transform 0.3s ease;
+  display: block;
+  object-fit: contain;
 }
 .brand-logo:hover {
   transform: scale(1.05);
@@ -1872,5 +1995,50 @@ watch(() => route.path, () => {
   background: rgba(255, 255, 255, 0.05) !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
   border-radius: 12px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sign-up-button :deep(.v-btn__content),
+.login-button :deep(.v-btn__content) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cta-button-cyber {
+  /* Твой фирменный бирюзовый градиент */
+  background: linear-gradient(135deg, #4FD1C5 0%, #38B2AC 100%) !important;
+  color: #0F172A !important; /* Темный текст для контраста */
+  font-weight: 800 !important;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-radius: 12px !important;
+  
+  /* Эффект свечения */
+  box-shadow: 0 0 15px rgba(79, 209, 197, 0.4) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.cta-button-cyber:hover {
+  /* Усиливаем неон при наведении */
+  box-shadow: 0 0 25px rgba(79, 209, 197, 0.8) !important;
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+}
+
+.cta-button-cyber:active {
+  transform: translateY(0);
+}
+
+/* Анимация иконки */
+.icon-pulse {
+  animation: star-pulse 2s infinite ease-in-out;
+}
+
+@keyframes star-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.2); }
 }
 </style> 

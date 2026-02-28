@@ -1,16 +1,17 @@
 <template>
-  <div class="comments-component">
-    <div class="diary-header d-flex align-center mb-4">
-      <div class="diary-icon-wrapper mr-3">
-        <v-icon color="primary" size="small">mdi-book-open-variant</v-icon>
+  <div class="diary-component">
+    <div class="diary-header d-flex align-center mb-6">
+      <div class="diary-icon-glow mr-3">
+        <v-icon color="#4FD1C5" size="small">mdi-message-text-clock-outline</v-icon>
       </div>
-      <h3 class="text-h6 font-weight-bold mb-0">{{ t('challenges.diary.title') }}</h3>
-      <v-chip v-if="comments.length > 0" size="x-small" color="primary" variant="flat" class="ml-2 px-2">
+      <h3 class="text-h6 font-weight-bold text-white mb-0">{{ t('challenges.diary.title') }}</h3>
+      <v-chip v-if="comments.length > 0" size="x-small" color="#4FD1C5" class="ml-3 tactical-count-chip">
         {{ comments.length }}
       </v-chip>
     </div>
-    <div v-if="canComment && isCurrentUserParticipant" class="add-comment-container mb-6">
-      <v-card variant="flat" class="comment-input-card">
+
+    <div v-if="canComment" class="add-comment-container mb-8">
+      <div class="tactical-input-wrapper">
         <v-textarea
           v-model="newCommentText"
           :placeholder="commentPlaceholder"
@@ -18,465 +19,277 @@
           rows="1"
           max-rows="6"
           variant="plain"
-          class="px-4 pt-2"
+          class="comment-field px-4 pt-3"
           hide-details
           :disabled="addingComment"
         ></v-textarea>
 
-        <div v-if="newCommentImagePreview" class="px-4 pb-2">
-          <v-hover v-slot="{ isHovering, props }">
-            <v-img
-              v-bind="props"
-              :src="newCommentImagePreview"
-              max-height="150"
-              cover
-              class="rounded-lg border position-relative"
-            >
-              <v-btn
-                icon="mdi-close"
-                size="x-small"
-                color="black"
-                class="remove-img-btn"
-                @click="removeImagePreview('comment')"
-              ></v-btn>
+        <div v-if="newCommentImagePreview" class="px-4 pb-3">
+          <div class="preview-frame">
+            <v-img :src="newCommentImagePreview" max-height="180" cover class="rounded-lg border-accent">
+              <v-btn icon="mdi-close" size="x-small" color="error" class="remove-img-btn" @click="removeImagePreview('comment')"></v-btn>
             </v-img>
-          </v-hover>
+          </div>
         </div>
 
-        <div class="input-actions-bar d-flex align-center pa-2 border-t">
-          <input
-            ref="fileInputRef"
-            type="file"
-            accept="image/*"
-            class="d-none"
-            @change="handleImageSelect($event, 'comment')"
-          />
-          <v-btn
-            icon="mdi-camera-outline"
-            variant="text"
-            color="grey-darken-1"
-            size="small"
-            @click="fileInputRef?.click()"
-          ></v-btn>
+        <div class="input-footer d-flex align-center pa-2">
+          <input ref="fileInputRef" type="file" accept="image/*" class="d-none" @change="handleImageSelect($event, 'comment')" />
+          <v-btn icon="mdi-camera-plus-outline" variant="text" color="rgba(255,255,255,0.5)" size="small" @click="fileInputRef?.click()"></v-btn>
           
           <v-spacer></v-spacer>
           
           <v-btn
-            color="primary"
-            rounded="pill"
-            elevation="0"
+            color="#4FD1C5"
+            variant="flat"
             size="small"
-            class="px-5 font-weight-bold"
-            :loading="addingComment"
-            :disabled="!newCommentText.trim() && !newCommentImagePreview"
+            class="post-btn px-6 font-weight-black"
+            :loading="addingComment || uploadingImage"
+            :disabled="(!newCommentText.trim() && !newCommentImageUrl) || uploadingImage"
             @click="addComment"
           >
             {{ t('challenges.comments.post') }}
           </v-btn>
         </div>
-      </v-card>
+      </div>
     </div>
 
-    <div v-else-if="!isCurrentUserParticipant && props.currentUserId" class="join-prompt pa-4 text-center mb-6">
-      <v-icon color="grey" size="large" class="mb-2">mdi-lock-outline</v-icon>
-      <p class="text-body-2 text-medium-emphasis">
-        {{ t('challenges.comments.joinPrompt') }}
-      </p>
-      <v-btn color="primary" variant="outlined" class="mt-2" @click="emitJoin">
+    <div v-else-if="!isCurrentUserParticipant && props.currentUserId && props.challengeType === 'habit'" class="join-mission-card pa-6 text-center mb-8">
+      <v-icon color="rgba(255,255,255,0.2)" size="48" class="mb-3">mdi-shield-lock-outline</v-icon>
+      <p class="text-body-2 text-white opacity-70 mb-4">{{ t('challenges.comments.joinPrompt') }}</p>
+      <v-btn color="#4FD1C5" variant="outlined" class="rounded-lg" @click="emitJoin">
         {{ t('challenges.joinMission') }}
       </v-btn>
     </div>
 
-        <!-- Comments disabled message -->
-        <v-alert v-if="allowComments === false" type="info" variant="tonal" class="mb-4">
-          {{ t('challenges.comments.disabled') }}
-        </v-alert>
-
-        <!-- Feed list (comments + system events) -->
-        <div v-if="feedItems.length > 0" class="comments-list">
-          <div
-            v-for="item in feedItems"
-            :key="item._id || item.createdAt"
-            :id="item.type === 'system' ? `system-${item._id}` : `comment-${item._id}`"
-            class="mb-3"
-            :class="item.type === 'system' ? 'system-event' : 'comment-item'"
-          >
-            <!-- System Event -->
-            <div v-if="item.type === 'system'" class="system-event-content">
-              <div class="text-center text-caption text-medium-emphasis font-italic">
-                {{ item.text }}
-              </div>
-            </div>
-
-            <!-- Regular Comment -->
-            <template v-else>
-              <div
-                v-if="shouldShowDayLabel(item)"
-                class="day-badge"
-              >
-                {{ getDayLabel(item) }}
-              </div>
-              <div class="d-flex align-start">
-              <div class="comment-content flex-grow-1">
-                <div class="comment-header mb-1" :class="mobile ? 'flex-column align-start' : ''">
-                  <div class="d-flex align-center" style="width: 100%;">
-                    <span 
-                      class="comment-author font-weight-medium user-name-link" 
-                      @click.stop="navigateToUser(item.userId)"
-                    >
-                      {{ getCommentName(item) }}
-                    </span>
-                    <span v-if="getParticipantStreak(item.userId?._id || item.userId) > 0" class="streak-badge-inline ml-2">
-                      <Flame :size="14" class="fire-icon-inline" />
-                      <span class="ml-1">{{ getParticipantStreak(item.userId?._id || item.userId) }}</span>
-                    </span>
-                    <span class="comment-date text-caption text-medium-emphasis" :class="mobile ? 'ml-2' : 'ml-2'">
-                      {{ formatDate(item.createdAt) }}
-                    </span>
-                    <v-btn
-                      v-if="canDeleteComment(item)"
-                      icon="mdi-delete-outline"
-                      size="x-small"
-                      variant="text"
-                      color="error"
-                      class="ml-auto"
-                      @click="deleteComment(item)"
-                    ></v-btn>
-                  </div>
-                </div>
-                <div v-if="item.text && item.text.trim()" class="comment-text">{{ item.text }}</div>
-                <div v-if="item.imageUrl" class="comment-image mt-2">
-                  <v-img :src="item.imageUrl" max-height="400" class="rounded-lg"></v-img>
-                </div>
-                
-                <!-- Reactions -->
-                <div class="reactions-container mt-2 d-flex gap-1">
-                  <v-btn
-                    v-for="emoji in ['👏', '🔥', '💪']"
-                    :key="emoji"
-                    size="x-small"
-                    variant="text"
-                    :class="{ 'reaction-active': hasUserReacted(item, emoji) }"
-                    :disabled="reactingCommentId === item._id"
-                    @click="toggleReaction(item, emoji, 'comment')"
-                  >
-                    <span class="mr-1">{{ emoji }}</span>
-                    <span v-if="getReactionCount(item, emoji) > 0" class="text-caption">
-                      {{ getReactionCount(item, emoji) }}
-                    </span>
-                  </v-btn>
-                </div>
-                
-                <!-- Reply button -->
-                <div v-if="canComment" class="mt-2">
-                  <v-btn
-                    v-if="replyingToCommentId !== item._id"
-                    size="x-small"
-                    variant="text"
-                    color="primary"
-                    @click="startReply(item)"
-                  >
-                    {{ t('challenges.comments.reply') }}
-                  </v-btn>
-                  
-                  <!-- Reply input -->
-                  <div v-else class="reply-input-section mt-2">
-                    <v-textarea
-                      v-model="replyTexts[item._id]"
-                      :label="t('challenges.comments.replyPlaceholder', { name: getCommentName(item) })"
-                      variant="outlined"
-                      rows="2"
-                      :maxlength="1000"
-                      counter
-                      :disabled="replyingCommentId === item._id || uploadingReplyImages[item._id]"
-                      density="compact"
-                      @keydown.ctrl.enter="submitReply(item)"
-                      @keydown.meta.enter="submitReply(item)"
-                    ></v-textarea>
-                    <div v-if="replyImagePreviews[item._id]" class="image-preview-container mt-2">
-                      <v-img :src="replyImagePreviews[item._id]" max-height="200" class="rounded-lg"></v-img>
-                      <v-btn
-                        icon="mdi-close"
-                        size="x-small"
-                        variant="text"
-                        class="remove-image-btn"
-                        @click="removeImagePreview('reply', item._id)"
-                      ></v-btn>
-                    </div>
-                    <div class="d-flex justify-space-between align-center mt-2">
-                      <input
-                        :ref="el => { if (el) replyFileInputs[item._id] = el }"
-                        type="file"
-                        accept="image/*"
-                        class="hidden-file-input"
-                        :disabled="replyingCommentId === item._id || uploadingReplyImages[item._id]"
-                        @change="handleImageSelect($event, 'reply', item._id)"
-                      />
-                      <v-btn
-                        icon="mdi-image"
-                        size="x-small"
-                        variant="text"
-                        :disabled="replyingCommentId === item._id || uploadingReplyImages[item._id]"
-                        :loading="uploadingReplyImages[item._id]"
-                        @click="replyFileInputs[item._id]?.click()"
-                      ></v-btn>
-                      <v-spacer></v-spacer>
-                      <v-btn
-                        size="small"
-                        variant="text"
-                        @click="cancelReply(item._id)"
-                      >
-                        {{ t('common.cancel') }}
-                      </v-btn>
-                      <v-btn
-                        size="small"
-                        color="primary"
-                        :loading="replyingCommentId === item._id"
-                        :disabled="!replyTexts[item._id]?.trim() || uploadingReplyImages[item._id]"
-                        @click="submitReply(item)"
-                      >
-                        {{ t('challenges.comments.post') }}
-                      </v-btn>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Replies list -->
-                <div v-if="item.replies && item.replies.length > 0" class="replies-list mt-3">
-                  <div
-                    v-for="reply in item.replies"
-                    :key="reply._id || reply.createdAt"
-                    :id="`comment-${item._id}-${reply._id}`"
-                    class="reply-item border-l-2"
-                    :class="mobile ? 'ml-3 pl-3' : 'ml-6 pl-6'"
-                  >
-                    <div class="d-flex align-start">
-                      <div class="reply-content flex-grow-1">
-                        <div class="reply-header mb-1" :class="mobile ? 'flex-column align-start' : ''">
-                          <div class="d-flex align-center" style="width: 100%;">
-                            <span class="comment-author font-weight-medium reply-author">
-                              <span 
-                                class="user-name-link" 
-                                @click.stop="navigateToUser(reply.userId)"
-                              >
-                                {{ getReplyName(reply) }}
-                              </span>
-                              <span v-if="reply.mentionedUserId" class="text-primary">
-                                → 
-                                <span 
-                                  class="mention-link user-name-link" 
-                                  @click.stop="navigateToUser(reply.mentionedUserId)"
-                                  :title="t('challenges.comments.goToMention')"
-                                >
-                                  @{{ getMentionedName(reply) }}
-                                </span>
-                              </span>
-                            </span>
-                            <span class="comment-date text-caption text-medium-emphasis reply-date ml-2">
-                              {{ formatDate(reply.createdAt) }}
-                            </span>
-                            <v-btn
-                              v-if="canDeleteReply(reply, item)"
-                              icon="mdi-delete-outline"
-                              size="x-small"
-                              variant="text"
-                              color="error"
-                              class="ml-auto"
-                              @click="deleteReply(item, reply)"
-                            ></v-btn>
-                          </div>
-                        </div>
-                        <div class="comment-text reply-text">{{ reply.text }}</div>
-                        <div v-if="reply.imageUrl" class="comment-image mt-2">
-                          <v-img :src="reply.imageUrl" max-height="300" class="rounded-lg"></v-img>
-                        </div>
-                        
-                        <!-- Reactions for reply -->
-                        <div class="reactions-container mt-2 d-flex gap-1">
-                          <v-btn
-                            v-for="emoji in ['👏', '🔥', '💪']"
-                            :key="emoji"
-                            size="x-small"
-                            variant="text"
-                            :class="{ 'reaction-active': hasUserReacted(reply, emoji) }"
-                            :disabled="reactingReplyId === reply._id"
-                            @click="toggleReaction(reply, emoji, 'reply', item._id)"
-                          >
-                            <span class="mr-1">{{ emoji }}</span>
-                            <span v-if="getReactionCount(reply, emoji) > 0" class="text-caption">
-                              {{ getReactionCount(reply, emoji) }}
-                            </span>
-                          </v-btn>
-                        </div>
-                        
-                        <!-- Reply to reply button -->
-                        <div v-if="canComment" class="mt-2">
-                          <v-btn
-                            v-if="replyingToReplyId !== reply._id"
-                            size="x-small"
-                            variant="text"
-                            color="primary"
-                            style="font-size: 0.75rem;"
-                            @click="startReplyToReply(item, reply)"
-                          >
-                            {{ t('challenges.comments.reply') }}
-                          </v-btn>
-                          
-                          <!-- Reply to reply input -->
-                          <div v-else class="reply-input-section mt-2">
-                            <v-textarea
-                              v-model="replyToReplyTexts[reply._id]"
-                              :label="t('challenges.comments.replyPlaceholder', { name: getReplyName(reply) })"
-                              variant="outlined"
-                              rows="2"
-                              :maxlength="1000"
-                              counter
-                              :disabled="!!replyingToReplyCommentId && replyingToReplyCommentId === item._id || uploadingReplyToReplyImages[reply._id]"
-                              density="compact"
-                              style="font-size: 0.875rem;"
-                              @keydown.ctrl.enter="submitReplyToReply(item, reply)"
-                              @keydown.meta.enter="submitReplyToReply(item, reply)"
-                            ></v-textarea>
-                            <div v-if="replyToReplyImagePreviews[reply._id]" class="image-preview-container mt-2">
-                              <v-img :src="replyToReplyImagePreviews[reply._id]" max-height="200" class="rounded-lg"></v-img>
-                              <v-btn
-                                icon="mdi-close"
-                                size="x-small"
-                                variant="text"
-                                class="remove-image-btn"
-                                @click="removeImagePreview('nestedReply', null, reply._id)"
-                              ></v-btn>
-                            </div>
-                            <div class="d-flex justify-space-between align-center mt-2">
-                              <input
-                                :ref="el => { if (el) replyToReplyFileInputs[reply._id] = el }"
-                                type="file"
-                                accept="image/*"
-                                class="hidden-file-input"
-                                :disabled="!!replyingToReplyCommentId && replyingToReplyCommentId === item._id || uploadingReplyToReplyImages[reply._id]"
-                                @change="handleImageSelect($event, 'nestedReply', item._id, reply._id)"
-                              />
-                              <v-btn
-                                icon="mdi-image"
-                                size="x-small"
-                                variant="text"
-                                :disabled="!!replyingToReplyCommentId && replyingToReplyCommentId === item._id || uploadingReplyToReplyImages[reply._id]"
-                                :loading="uploadingReplyToReplyImages[reply._id]"
-                                @click="replyToReplyFileInputs[reply._id]?.click()"
-                              ></v-btn>
-                              <v-spacer></v-spacer>
-                              <v-btn
-                                size="small"
-                                variant="text"
-                                :disabled="!!replyingToReplyCommentId && replyingToReplyCommentId === item._id"
-                                @click="cancelReplyToReply(reply._id)"
-                              >
-                                {{ t('common.cancel') }}
-                              </v-btn>
-                              <v-btn
-                                size="small"
-                                color="primary"
-                                :loading="!!replyingToReplyCommentId && replyingToReplyCommentId === item._id"
-                                :disabled="!replyToReplyTexts[reply._id]?.trim() || (!!replyingToReplyCommentId && replyingToReplyCommentId === item._id) || uploadingReplyToReplyImages[reply._id]"
-                                @click="submitReplyToReply(item, reply)"
-                              >
-                                {{ t('challenges.comments.post') }}
-                              </v-btn>
-                            </div>
-                          </div>
-                        </div>
-
-                        <!-- Nested replies (replies to replies) -->
-                        <div v-if="reply.replies && reply.replies.length > 0" class="nested-replies-list mt-2">
-                          <div
-                            v-for="nestedReply in reply.replies"
-                            :key="nestedReply._id || nestedReply.createdAt"
-                            :id="`comment-${item._id}-${nestedReply._id}`"
-                            class="nested-reply-item border-l-2"
-                            :class="mobile ? 'ml-2 pl-3' : 'ml-6 pl-5'"
-                          >
-                            <div class="d-flex align-start">
-                              <div class="nested-reply-content flex-grow-1">
-                                <div class="reply-header mb-1" :class="mobile ? 'flex-column align-start' : ''">
-                                  <div class="d-flex align-center" style="width: 100%;">
-                                    <span class="comment-author font-weight-medium nested-reply-author">
-                                      <span 
-                                        class="user-name-link" 
-                                        @click.stop="navigateToUser(nestedReply.userId)"
-                                      >
-                                        {{ getNestedReplyName(nestedReply) }}
-                                      </span>
-                                      <span v-if="nestedReply.mentionedUserId" class="text-primary">
-                                        → 
-                                        <span 
-                                          class="mention-link user-name-link" 
-                                          @click.stop="navigateToUser(nestedReply.mentionedUserId)"
-                                          :title="t('challenges.comments.goToMention')"
-                                        >
-                                          @{{ getNestedMentionedName(nestedReply) }}
-                                        </span>
-                                      </span>
-                                    </span>
-                                    <span class="comment-date text-caption text-medium-emphasis nested-reply-date ml-2">
-                                      {{ formatDate(nestedReply.createdAt) }}
-                                    </span>
-                                    <v-btn
-                                      v-if="canDeleteNestedReply(nestedReply, reply, item)"
-                                      icon="mdi-delete-outline"
-                                      size="x-small"
-                                      variant="text"
-                                      color="error"
-                                      class="ml-auto"
-                                      @click="deleteNestedReply(item, reply, nestedReply)"
-                                    ></v-btn>
-                                  </div>
-                                </div>
-                                <div class="comment-text nested-reply-text">{{ nestedReply.text }}</div>
-                                <div v-if="nestedReply.imageUrl" class="comment-image mt-2">
-                                  <v-img :src="nestedReply.imageUrl" max-height="250" class="rounded-lg"></v-img>
-                                </div>
-                                
-                                <!-- Reactions for nested reply -->
-                                <div class="reactions-container mt-2 d-flex gap-1">
-                                  <v-btn
-                                    v-for="emoji in ['👏', '🔥', '💪']"
-                                    :key="emoji"
-                                    size="x-small"
-                                    variant="text"
-                                    :class="{ 'reaction-active': hasUserReacted(nestedReply, emoji) }"
-                                    :disabled="reactingNestedReplyId === nestedReply._id"
-                                    @click="toggleReaction(nestedReply, emoji, 'nestedReply', item._id, reply._id)"
-                                  >
-                                    <span class="mr-1">{{ emoji }}</span>
-                                    <span v-if="getReactionCount(nestedReply, emoji) > 0" class="text-caption">
-                                      {{ getReactionCount(nestedReply, emoji) }}
-                                    </span>
-                                  </v-btn>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              </div>
-            </template>
-          </div>
+    <div v-if="feedItems.length > 0" class="comments-feed">
+      <div
+        v-for="item in feedItems"
+        :key="item._id || item.createdAt"
+        class="feed-item-container"
+        :class="item.type === 'system' ? 'system-log' : 'user-comment'"
+      >
+        <div v-if="item.type === 'system'" class="system-log-entry text-center py-2 px-4 mb-4">
+          <span class="log-text">{{ item.text }}</span>
         </div>
 
-        <!-- Empty state -->
-        <v-alert v-else-if="allowComments !== false && !loading" type="info" variant="tonal">
-          {{ t('challenges.comments.noComments') }}
-        </v-alert>
+        <div v-else class="comment-block mb-6">
+          <div v-if="shouldShowDayLabel(item)" class="tactical-day-label mb-3">
+            <span class="label-text">{{ getDayLabel(item) }}</span>
+          </div>
 
-        <!-- Loading state -->
-        <v-progress-linear v-if="loading" indeterminate color="primary" class="mt-4"></v-progress-linear>
+          <div class="d-flex align-start">
+            <div class="comment-main flex-grow-1">
+              <div class="d-flex align-center mb-1">
+                <span class="author-name font-weight-bold" @click.stop="navigateToUser(item.userId)">
+                  {{ getCommentName(item) }}
+                </span>
+                <span v-if="getParticipantStreak(item.userId?._id || item.userId) > 0" class="streak-indicator ml-2">
+                  <v-icon size="12" color="#F4A782">mdi-fire</v-icon>
+                  {{ getParticipantStreak(item.userId?._id || item.userId) }}
+                </span>
+                <span class="post-time ml-3">{{ formatDate(item.createdAt) }}</span>
+                
+                <v-spacer></v-spacer>
+                
+                <v-btn v-if="canDeleteComment(item)" icon="mdi-delete-outline" size="x-small" variant="text" color="rgba(255,255,255,0.3)" @click="deleteComment(item)"></v-btn>
+              </div>
+
+              <div class="comment-body pa-3">
+                <p v-if="item.text" class="text-content mb-0">{{ item.text }}</p>
+                <v-img v-if="item.imageUrl" :src="item.imageUrl" max-height="350" class="rounded-lg mt-3 border-accent"></v-img>
+                
+                <div class="d-flex align-center mt-3 gap-2">
+                  <div class="reactions-row d-flex">
+                    <div
+                      v-for="emoji in ['👏', '🔥', '💪']"
+                      :key="emoji"
+                      class="reaction-capsule"
+                      :class="{ 'active': hasUserReacted(item, emoji) }"
+                      @click="toggleReaction(item, emoji, 'comment')"
+                    >
+                      <span class="emoji">{{ emoji }}</span>
+                      <span v-if="getReactionCount(item, emoji) > 0" class="count ml-1">{{ getReactionCount(item, emoji) }}</span>
+                    </div>
+                  </div>
+                  <v-btn size="x-small" variant="text" color="#4FD1C5" class="ml-2 font-weight-bold" @click="startReply(item)">
+                    {{ t('challenges.comments.reply') }}
+                  </v-btn>
+                </div>
+              </div>
+
+              <div v-if="item.replies && item.replies.length > 0" class="replies-thread ml-6 mt-3">
+                <div v-for="reply in item.replies" :key="reply._id" class="reply-entry pl-4 mb-3 border-left-tactical">
+                  <div class="d-flex align-center mb-1">
+                    <span class="reply-author text-caption font-weight-bold" @click.stop="navigateToUser(reply.userId)">{{ getReplyName(reply) }}</span>
+                    <v-icon size="10" class="mx-1 opacity-50 text-white">mdi-chevron-right</v-icon>
+                    <span v-if="reply.mentionedUserId" class="mention text-caption">@{{ getMentionedName(reply) }}</span>
+                    <span class="post-time ml-2">{{ formatDate(reply.createdAt) }}</span>
+                  </div>
+                  <div class="reply-body text-caption opacity-90">{{ reply.text }}</div>
+                  </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
+<style scoped>
+/* --- BASE THEME (Command Post Dark) --- */
+.diary-component { color: #ffffff; }
+
+.diary-icon-glow {
+  background: rgba(79, 209, 197, 0.1);
+  border: 1px solid rgba(79, 209, 197, 0.3);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(79, 209, 197, 0.1);
+}
+
+.tactical-count-chip {
+  background: rgba(79, 209, 197, 0.2) !important;
+  border: 1px solid #4FD1C5 !important;
+  font-weight: 800;
+  font-family: 'Montserrat', sans-serif;
+}
+
+/* --- INPUT FIELD (Tactical Glass) --- */
+.tactical-input-wrapper {
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: 0.3s;
+}
+
+.tactical-input-wrapper:focus-within {
+  border-color: #4FD1C5;
+  box-shadow: 0 0 15px rgba(79, 209, 197, 0.2);
+}
+
+.comment-field :deep(textarea) {
+  color: #fff !important;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.input-footer {
+  background: rgba(15, 23, 42, 0.4);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.post-btn {
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(79, 209, 197, 0.3) !important;
+}
+
+/* --- COMMENT BLOCKS --- */
+.comment-body {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  border-left: 3px solid rgba(79, 209, 197, 0.4);
+}
+
+.author-name {
+  color: #4FD1C5;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.post-time {
+  font-size: 0.7rem;
+  opacity: 0.4;
+  font-family: 'Montserrat', sans-serif;
+}
+
+.text-content {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* --- REACTIONS --- */
+.reaction-capsule {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 2px 10px;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: 0.2s;
+  display: flex;
+  align-items: center;
+}
+
+.reaction-capsule:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.reaction-capsule.active {
+  background: rgba(79, 209, 197, 0.2);
+  border-color: #4FD1C5;
+  color: #4FD1C5;
+}
+
+.reaction-capsule .count {
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* --- THREADS & LOGS --- */
+.border-left-tactical {
+  border-left: 1px solid rgba(79, 209, 197, 0.3);
+}
+
+.system-log-entry {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+.log-text {
+  font-size: 0.75rem;
+  font-style: italic;
+  opacity: 0.5;
+}
+
+.tactical-day-label {
+  display: inline-block;
+  background: linear-gradient(90deg, #4FD1C5 0%, transparent 100%);
+  padding: 2px 12px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.streak-indicator {
+  background: rgba(244, 167, 130, 0.15);
+  color: #F4A782;
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.join-mission-card {
+  background: rgba(30, 41, 59, 0.4);
+  border: 2px dashed rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+}
+
+.border-accent {
+  border: 1px solid rgba(79, 209, 197, 0.2);
+}
+</style>
 <script setup>
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
@@ -653,9 +466,17 @@ async function handleImageSelect(event, type = 'comment', commentId = null, repl
   } catch (error) {
     console.error('Image upload failed:', error)
     alert(error.message || t('challenges.uploadError'))
-    if (type === 'reply') {
+    if (type === 'comment') {
+      newCommentImagePreview.value = null
+      newCommentImageName.value = null
+      newCommentImageUrl.value = null
+    } else if (type === 'reply') {
+      replyImagePreviews.value[commentId] = null
+      replyImageUrls.value[commentId] = null
       uploadingReplyImages.value[commentId] = false
     } else if (type === 'nestedReply') {
+      replyToReplyImagePreviews.value[replyId] = null
+      replyToReplyImageUrls.value[replyId] = null
       uploadingReplyToReplyImages.value[replyId] = false
     }
   }
@@ -871,13 +692,31 @@ async function loadComments() {
 async function addComment() {
   if ((!newCommentText.value.trim() && !newCommentImageUrl.value) || !props.currentUserId || addingComment.value) return
 
+  // Wait for image upload to complete if preview exists but URL doesn't
+  if (newCommentImagePreview.value && !newCommentImageUrl.value && uploadingImage.value) {
+    // Image is still uploading, wait a bit
+    await new Promise(resolve => setTimeout(resolve, 500))
+    if (!newCommentImageUrl.value) {
+      alert(t('challenges.uploadInProgress'))
+      return
+    }
+  }
+
   addingComment.value = true
   try {
+    const commentText = newCommentText.value.trim() || (newCommentImageUrl.value ? ' ' : '')
+    const imageUrl = newCommentImageUrl.value ? String(newCommentImageUrl.value).trim() : null
+    
+    if (!commentText && !imageUrl) {
+      addingComment.value = false
+      return
+    }
+    
     const { data } = await challengeService.addComment(
       props.challengeId,
       props.currentUserId,
-      newCommentText.value.trim() || (newCommentImageUrl.value ? ' ' : ''),
-      newCommentImageUrl.value
+      commentText,
+      imageUrl
     )
     newCommentText.value = ''
     newCommentImageUrl.value = null
@@ -976,7 +815,17 @@ const isCurrentUserParticipant = computed(() => {
 })
 
 const canComment = computed(() => {
-  return props.allowComments !== false && !!props.currentUserId && !props.isFinished && isCurrentUserParticipant.value
+  if (props.allowComments === false || !props.currentUserId || props.isFinished) {
+    return false
+  }
+  
+  // For quest (result) challenges, any logged-in user can comment
+  if (props.challengeType === 'result') {
+    return true
+  }
+  
+  // For habit challenges, only participants can comment
+  return isCurrentUserParticipant.value
 })
 
 function canDeleteComment(comment) {
@@ -1443,219 +1292,4 @@ onMounted(() => {
 })
 </script>
 
-
-<style scoped>
-/* Общий контейнер дневника */
-.comments-component {
-  width: 100%;
-  padding-bottom: 20px;
-}
-
-/* Убираем лишние рамки v-card для чистоты */
-.comments-component :deep(.v-card--variant-outlined) {
-  border: none !important;
-}
-
-/* Секция ввода сообщения */
-.add-comment-section {
-  background: #fcfcfc;
-  border: 1px solid #eee;
-  border-radius: 16px;
-  padding: 16px;
-  margin-bottom: 24px;
-}
-
-/* Скрываем стандартный инпут файла */
-.hidden-file-input {
-  display: none;
-}
-
-/* Кнопки действий под текстовым полем */
-.action-buttons {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-/* КАРТОЧКА КОММЕНТАРИЯ */
-.comment-item {
-  position: relative;
-  background: #ffffff;
-  border: 1px solid #f0f0f0;
-  border-radius: 16px;
-  padding: 16px;
-  margin-bottom: 12px;
-  transition: transform 0.2s ease;
-}
-
-/* Эффект наведения (только для десктопа) */
-@media (min-width: 601px) {
-  .comment-item:hover {
-    border-color: #d1d5db;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-  }
-}
-
-/* БЕЙДЖ ДНЯ (Day Label) */
-.day-badge {
-  display: inline-flex;
-  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-  color: white;
-  font-size: 10px;
-  font-weight: bold;
-  padding: 2px 8px;
-  border-radius: 6px;
-  margin-bottom: 8px;
-  text-transform: uppercase;
-}
-
-/* СИСТЕМНЫЕ СОБЫТИЯ (Hero joined и т.д.) */
-.system-event-content {
-  background: #f9fafb;
-  border: 1px dashed #e5e7eb;
-  border-radius: 12px;
-  padding: 8px;
-  margin: 12px 0;
-  color: #6b7280;
-  font-size: 0.8rem;
-}
-
-/* РЕАКЦИИ (Emoji капсулы) */
-.reactions-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 12px;
-}
-
-.reactions-container .v-btn {
-  background: #f3f4f6 !important;
-  border-radius: 50px !important;
-  text-transform: none;
-  font-weight: 500;
-  height: 28px !important;
-}
-
-.reaction-active {
-  background: #dbeafe !important;
-  color: #2563eb !important;
-  border: 1px solid #bfdbfe;
-}
-
-/* АДАПТИВНОСТЬ ПОД МОБИЛЬНЫЕ */
-@media (max-width: 600px) {
-  .comment-item {
-    padding: 12px;
-    border-radius: 12px;
-  }
-
-  /* Уменьшаем вложенность ответов, чтобы текст не сжимался */
-  .reply-item, .nested-reply-item {
-    margin-left: 8px !important;
-    padding-left: 8px !important;
-    border-left: 1px solid #eee !important;
-  }
-
-  /* Аватарки поменьше */
-  .avatar-img, .avatar-placeholder {
-    width: 32px;
-    height: 32px;
-  }
-
-  /* Sticky input снизу для удобства */
-  .sticky-input {
-    position: sticky;
-    bottom: -16px;
-    background: white;
-    z-index: 5;
-    margin: 0 -16px;
-    padding: 12px 16px;
-    border-top: 1px solid #eee;
-  }
-}
-
-/* Стили превью изображения */
-.image-preview-container {
-  position: relative;
-  width: fit-content;
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid #eee;
-}
-
-.remove-image-btn {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  background: rgba(0,0,0,0.5) !important;
-  color: white !important;
-}
-.diary-header {
-  border-bottom: 2px solid #f8fafc;
-  padding-bottom: 12px;
-}
-
-.diary-icon-wrapper {
-  background: #eff6ff;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-}
-
-/* Карточка ввода */
-.comment-input-card {
-  background: #ffffff !important;
-  border: 1px solid #e2e8f0 !important;
-  border-radius: 16px !important;
-  transition: border-color 0.2s;
-}
-
-.join-prompt {
-  background: #f8fafc;
-  border: 2px dashed #e2e8f0;
-  border-radius: 16px;
-}
-
-.comment-input-card:focus-within {
-  border-color: #3b82f6 !important;
-  box-shadow: 0 0 0 1px #3b82f6;
-}
-
-/* Убираем стандартные паддинги Vuetify у plain textarea */
-.comment-input-card :deep(.v-field__input) {
-  padding-top: 12px !important;
-  min-height: 48px !important;
-  font-size: 0.95rem;
-}
-
-/* Нижняя панель с кнопками */
-.input-actions-bar {
-  background: #f8fafc;
-  border-radius: 0 0 16px 16px;
-}
-
-/* Кнопка удаления фото */
-.remove-img-btn {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  opacity: 0.8;
-  background: rgba(255, 255, 255, 0.9) !important;
-}
-
-.remove-img-btn:hover {
-  opacity: 1;
-}
-
-/* Мобильная адаптация */
-@media (max-width: 600px) {
-  .comment-input-card {
-    border-radius: 12px !important;
-  }
-}
-</style>
 

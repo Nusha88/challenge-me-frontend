@@ -1,180 +1,76 @@
 <template>
-  <div class="challenge-edit-page">
+  <div class="challenge-edit-page dark-mission-theme">
     <v-container>
-      <div class="page-header mb-6">
-        <div class="header-top-row">
+      <div class="mission-header-panel mb-6">
+        <div class="d-flex align-center gap-3 w-100">
         <v-btn
-          icon="mdi-arrow-left"
+            icon="mdi-chevron-left"
           variant="text"
+            color="#4FD1C5"
           @click="goBack"
-          class="back-button"
+            class="back-tactical-btn"
         ></v-btn>
-        <h1 class="page-title">{{ t('challenges.editTitle') }}</h1>
-          <v-spacer class="mobile-hidden"></v-spacer>
-          <div class="header-badges desktop-badges">
-        <v-chip
-          v-if="challenge?.challengeType"
-          :color="challengeTypeColor"
-          size="small"
-              class="ml-2"
-        >
-          {{ challengeTypeLabel }}
-        </v-chip>
-        <v-icon
-          v-if="challenge?.privacy === 'private'"
-          color="grey-darken-1"
-              size="20"
-              class="ml-2 privacy-icon"
-        >
-          mdi-lock
-        </v-icon>
-            <!-- Share Menu -->
-            <v-menu location="bottom end">
-              <template #activator="{ props: menuProps }">
-                <v-btn
-                  variant="text"
-                  size="small"
-                  v-bind="menuProps"
-                  class="ml-2 share-btn"
-                  prepend-icon="mdi-share-variant"
-                >
-                  {{ t('challenges.share.share') }}</v-btn>
-              </template>
-              <v-list>
-                <v-list-item @click="copyLink">
-                  <template #prepend>
-                    <v-icon>mdi-link</v-icon>
-                  </template>
-                  <v-list-item-title>{{ t('challenges.share.copyLink') }}</v-list-item-title>
-                </v-list-item>
-                <v-list-item @click="shareToTelegram">
-                  <template #prepend>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="#0088cc" xmlns="http://www.w3.org/2000/svg" style="margin-right: 31px;">
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.13-.31-1.09-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.45.08-.01.15-.01.22-.01.23.01.33.05.45.12.1.06.13.1.15.17.01.07.01.22-.01.38z"/>
-                    </svg>
-                  </template>
-                  <v-list-item-title>{{ t('challenges.share.telegram') }}</v-list-item-title>
-                </v-list-item>
-              </v-list>
-            </v-menu>
+          
+          <div class="title-container flex-grow-1">
+            <h1 v-if="!isEditingTitle" class="page-title-display" @click="!isDisabled && (isEditingTitle = true)">
+              {{ editForm.title || t('challenges.editTitle') }}
+              <v-icon size="16" class="edit-hint-icon ml-2">mdi-pencil-outline</v-icon>
+            </h1>
+            <v-text-field
+              v-else
+              v-model="editForm.title"
+              variant="plain"
+              class="title-input-active"
+              autofocus
+              hide-details
+              @blur="isEditingTitle = false"
+              @keyup.enter="isEditingTitle = false"
+            ></v-text-field>
           </div>
-        </div>
-        <div class="header-badges mobile-badges">
+
+          <div class="header-status-badges">
           <v-chip
             v-if="challenge?.challengeType"
             :color="challengeTypeColor"
             size="small"
-            class="ml-2"
+              variant="flat"
+              class="tactical-chip"
           >
             {{ challengeTypeLabel }}
           </v-chip>
-          <v-icon
-            v-if="challenge?.privacy === 'private'"
-            color="grey-darken-1"
-            size="20"
-            class="ml-2 privacy-icon"
-          >
-            mdi-lock
-          </v-icon>
-          <!-- Share Menu -->
-          <v-menu location="bottom end">
-            <template #activator="{ props: menuProps }">
-              <v-btn
-                variant="text"
-                size="small"
-                v-bind="menuProps"
-                class="ml-2 share-btn"
-                prepend-icon="mdi-share-variant"
-              >
-                {{ t('challenges.share.share') }}</v-btn>
-            </template>
-            <v-list>
-              <v-list-item @click="copyLink">
-                <template #prepend>
-                  <v-icon>mdi-link</v-icon>
-                </template>
-                <v-list-item-title>{{ t('challenges.share.copyLink') }}</v-list-item-title>
-              </v-list-item>
-              <v-list-item @click="shareToTelegram">
-                <template #prepend>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="#0088cc" xmlns="http://www.w3.org/2000/svg" style="margin-right: 31px;">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.13-.31-1.09-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.45.08-.01.15-.01.22-.01.23.01.33.05.45.12.1.06.13.1.15.17.01.07.01.22-.01.38z"/>
-                  </svg>
-                </template>
-                <v-list-item-title>{{ t('challenges.share.telegram') }}</v-list-item-title>
-              </v-list-item>
-            </v-list>
-          </v-menu>
+            <v-icon v-if="challenge?.privacy === 'private'" color="#4FD1C5" size="18" class="ml-2">mdi-lock-outline</v-icon>
+            
+            <v-btn icon="mdi-share-variant" variant="text" size="small" color="rgba(255,255,255,0.5)" class="ml-2"></v-btn>
+          </div>
         </div>
       </div>
 
-      <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4"></v-progress-linear>
+      <v-progress-linear v-if="loading" indeterminate color="#4FD1C5" class="mb-4 rounded-pill"></v-progress-linear>
 
-      <v-alert v-if="errorMessage" type="error" class="mb-4">
-        {{ errorMessage }}
-      </v-alert>
-
-      <v-alert v-if="challenge && isChallengeFinished(challenge) && !loading" type="info" class="mb-4">
-        {{ t('challenges.challengeFinished') }}
-      </v-alert>
-
-      <v-card v-if="challenge && !loading">
-        <v-card-text>
+      <v-card v-if="challenge && !loading" class="main-tactical-card pa-1">
+        <v-card-text class="pa-6">
           <v-form @submit.prevent="handleSubmit">
-            <div class="dates-row mb-4">
-              <p class="start-date-text">
-                <strong>{{ t('challenges.startDate') }}:</strong> {{ formatDisplayDate(editForm.startDate) }}
-              </p>
-              <p class="end-date-text">
-                <strong>{{ t('challenges.endDate') }}:</strong> {{ formatDisplayDate(editForm.endDate) }}
-              </p>
+            
+            <div class="mission-dates-grid mb-8">
+              <div class="date-info-box">
+                <span class="label">{{ t('challenges.startDate') }}</span>
+                <span class="value">{{ formatDisplayDate(editForm.startDate) }}</span>
             </div>
-
-            <div class="title-section mb-4">
-              <h2 
-                v-if="!isEditingTitle"
-                class="editable-title"
-                :class="{ 'disabled': isDisabled }"
-                @click="!isDisabled && (isEditingTitle = true)"
-              >
-                {{ editForm.title || t('challenges.title') }}
-              </h2>
-              <v-text-field
-                v-else
-                v-model="editForm.title"
-                :label="t('challenges.title')"
-                variant="outlined"
-                required
-                :error-messages="titleErrorMessages"
-                :disabled="isDisabled"
-                autofocus
-                @blur="isEditingTitle = false"
-                @keyup.enter="isEditingTitle = false"
-                @keyup.esc="isEditingTitle = false"
-              ></v-text-field>
-            </div>
-
-            <!-- Calendar for habit challenges -->
-            <div v-if="challenge.challengeType === 'habit' && editForm.startDate && editForm.endDate" class="habit-calendar mb-4">
-              <div v-if="challenge.privacy !== 'private' && canViewPersonalProgress" class="calendar-mode-toggle mb-3">
-                <v-btn-toggle
-                  v-model="calendarViewMode"
-                  mandatory
-                  class="calendar-toggle-group"
-                  color="primary"
-                  variant="outlined"
-                  :disabled="isDisabled"
-                >
-                  <v-btn value="personal">{{ t('challenges.myProgress') }}</v-btn>
-                  <v-btn value="team">{{ t('challenges.teamProgress') }}</v-btn>
-                </v-btn-toggle>
+              <div class="date-divider">
+                <v-icon color="rgba(255,255,255,0.1)">mdi-arrow-right-thin</v-icon>
               </div>
-              <v-card variant="outlined">
-                <v-card-title class="text-h6">
+              <div class="date-info-box">
+                <span class="label">{{ t('challenges.endDate') }}</span>
+                <span class="value">{{ formatDisplayDate(editForm.endDate) }}</span>
+              </div>
+            </div>
+
+            <div v-if="challenge.challengeType === 'habit'" class="calendar-section-wrapper mb-8">
+              <div class="section-tag mb-4">
+                <v-icon start size="14">mdi-calendar-month</v-icon>
                   {{ t('challenges.challengeCalendar') }}
-                </v-card-title>
-                <v-card-text>
-                  <template v-if="challenge.privacy === 'private' || (canViewPersonalProgress && calendarViewMode === 'personal')">
+              </div>
+              <div class="glass-container pa-4">
                     <ChallengeCalendar
                       :start-date="editForm.startDate"
                       :end-date="editForm.endDate"
@@ -183,322 +79,510 @@
                       :frequency="editForm.frequency"
                       @update:model-value="handleOwnerCompletedDaysUpdate"
                     />
-                  </template>
-                  <template v-else>
-                    <TeamCalendarView
-                      :start-date="editForm.startDate"
-                      :end-date="editForm.endDate"
-                      :participants="challenge.participants || []"
-                      :frequency="editForm.frequency"
-                    />
-                  </template>
-                </v-card-text>
-              </v-card>
+              </div>
             </div>
 
-            <ChallengeImageUpload
-              v-model="editForm.imageUrl"
-              :editable="!isDisabled"
-            />
+            <div class="image-upload-wrapper mb-8">
+              <ChallengeImageUpload v-model="editForm.imageUrl" :editable="!isDisabled" />
+            </div>
 
-            <div class="description-section mb-4">
-              <p 
+            <div class="mission-description-block mb-8">
+              <div class="section-tag mb-2">{{ t('challenges.description') }}</div>
+              <div 
                 v-if="!isEditingDescription"
-                ref="descriptionDisplay"
-                class="editable-description"
-                :class="{ 'disabled': isDisabled }"
+                class="description-display-box"
+                :class="{ 'is-empty': !editForm.description }"
                 @click="!isDisabled && startEditingDescription()"
               >
-                {{ editForm.description || t('challenges.description') }}
-              </p>
+                {{ editForm.description || t('challenges.descriptionPlaceholder') }}
+                <v-icon class="edit-corner-icon">mdi-plus-circle-outline</v-icon>
+              </div>
               <v-textarea
                 v-else
                 ref="descriptionTextarea"
                 v-model="editForm.description"
-                :label="t('challenges.description')"
                 variant="outlined"
-                :rows="descriptionRows"
-                required
-                :error-messages="errors.description"
-                :disabled="isDisabled"
-                autofocus
+                color="#4FD1C5"
+                class="description-input-active"
                 auto-grow
+                autofocus
                 @blur="isEditingDescription = false"
-                @keyup.ctrl.enter="isEditingDescription = false"
-                @keyup.esc="isEditingDescription = false"
               ></v-textarea>
             </div>
 
-            <template v-if="challenge.challengeType === 'habit'">
-              <div class="frequency-privacy-row mb-4">
-                <div class="editable-field-section">
-                  <p 
-                    v-if="!isEditingPrivacy"
-                    class="editable-field"
-                    @click="isEditingPrivacy = true"
-                  >
-                    <strong>{{ t('challenges.privacy') }}:</strong> {{ getPrivacyLabel(editForm.privacy) }}
-                  </p>
+            <div class="settings-tactical-grid mb-8">
+              <div class="setting-item">
+                <span class="setting-label">{{ t('challenges.privacy') }}</span>
                   <v-select
-                    v-else
                     v-model="editForm.privacy"
                     :items="privacyOptions"
-                    :label="t('challenges.privacy')"
-                    item-title="title"
-                    item-value="value"
-                    variant="outlined"
-                    autofocus
-                    @blur="isEditingPrivacy = false"
-                    @update:model-value="isEditingPrivacy = false"
+                  variant="plain"
+                  class="tactical-select"
+                  hide-details
                   ></v-select>
                 </div>
-                <div class="editable-field-section">
-                  <p 
-                    v-if="!isEditingFrequency"
-                    class="editable-field"
-                    :class="{ 'disabled': isDisabled }"
-                    @click="!isDisabled && (isEditingFrequency = true)"
-                  >
-                    <strong>{{ t('challenges.frequency') }}:</strong> {{ getFrequencyLabel(editForm.frequency) }}
-                  </p>
+
+              <div v-if="challenge.challengeType === 'habit'" class="setting-item">
+                <span class="setting-label">{{ t('challenges.frequency') }}</span>
                   <v-select
-                    v-else
                     v-model="editForm.frequency"
                     :items="frequencyOptions"
-                    :label="t('challenges.frequency')"
-                    item-title="title"
-                    item-value="value"
-                    variant="outlined"
-                    :error-messages="errors.frequency"
-                    :disabled="isDisabled"
-                    autofocus
-                    @blur="isEditingFrequency = false"
-                    @update:model-value="isEditingFrequency = false"
+                  variant="plain"
+                  class="tactical-select"
+                  hide-details
                   ></v-select>
-                </div>
               </div>
 
-              <div class="duration-row mb-4">
-                <div class="editable-field-section">
-                  <p 
-                    v-if="!isEditingDuration"
-                    class="editable-field"
-                    @click="isEditingDuration = true"
-                  >
-                    <strong>{{ t('challenges.duration') }}:</strong> {{ getDurationLabel(editForm.duration) }}
-                  </p>
+              <div class="setting-item">
+                <span class="setting-label">{{ t('challenges.duration') }}</span>
                   <v-select
-                    v-else
                     v-model="editForm.duration"
                     :items="durationOptions"
-                    :label="t('challenges.duration')"
-                    item-title="title"
-                    item-value="value"
-                    variant="outlined"
-                    :error-messages="errors.duration"
-                    autofocus
-                    @blur="isEditingDuration = false"
-                    @update:model-value="isEditingDuration = false"
-                  ></v-select>
-                </div>
-              </div>
-            </template>
-
-            <template v-else>
-              <div class="duration-privacy-row mb-4">
-                <div class="editable-field-section">
-                  <p 
-                    v-if="!isEditingPrivacy"
-                    class="editable-field"
-                    :class="{ 'disabled': isDisabled }"
-                    @click="!isDisabled && (isEditingPrivacy = true)"
-                  >
-                    <strong>{{ t('challenges.privacy') }}:</strong> {{ getPrivacyLabel(editForm.privacy) }}
-                  </p>
-                  <v-select
-                    v-else
-                    v-model="editForm.privacy"
-                    :items="privacyOptions"
-                    :label="t('challenges.privacy')"
-                    item-title="title"
-                    item-value="value"
-                    variant="outlined"
-                    :disabled="isDisabled"
-                    autofocus
-                    @blur="isEditingPrivacy = false"
-                    @update:model-value="isEditingPrivacy = false"
-                  ></v-select>
-                </div>
-
-                <div class="editable-field-section">
-                  <p 
-                    v-if="!isEditingDuration"
-                    class="editable-field"
-                    :class="{ 'disabled': isDisabled }"
-                    @click="!isDisabled && (isEditingDuration = true)"
-                  >
-                    <strong>{{ t('challenges.duration') }}:</strong> {{ getDurationLabel(editForm.duration) }}
-                  </p>
-                  <v-select
-                    v-else
-                    v-model="editForm.duration"
-                    :items="durationOptions"
-                    :label="t('challenges.duration')"
-                    item-title="title"
-                    item-value="value"
-                    variant="outlined"
-                    :error-messages="errors.duration"
-                    :disabled="isDisabled"
-                    autofocus
-                    @blur="isEditingDuration = false"
-                    @update:model-value="isEditingDuration = false"
+                  variant="plain"
+                  class="tactical-select"
+                  hide-details
                   ></v-select>
                 </div>
               </div>
 
-              <div class="actions-plan-wrapper">
-                <div ref="actionsScrollContainer" class="actions-plan-container">
-              <ChallengeActions
-                v-model="editForm.actions"
-                    :readonly="isDisabled"
-                    :hide-add-button="true"
-                  />
-                </div>
-                <div class="actions-plan-footer">
+            <div v-if="challenge.challengeType === 'result'" class="actions-plan-section mb-8">
+              <div class="section-tag mb-4">{{ t('challenges.actionsPlan') }}</div>
+              <div class="actions-glass-wrapper pa-2">
+                <ChallengeActions v-model="editForm.actions" :readonly="isDisabled" />
                   <v-btn
                     v-if="!isDisabled"
+                  block
+                  variant="text"
+                  color="#4FD1C5"
+                  class="add-action-tactical-btn mt-2"
                     prepend-icon="mdi-plus"
-                    variant="outlined"
-                    color="primary"
-                    class="add-action-btn mt-2"
                     @click="handleAddAction"
                   >
                     {{ t('challenges.addAction') }}
                   </v-btn>
                 </div>
               </div>
-            </template>
 
-            <!-- Allow Comments Switcher -->
-            <div class="mb-4">
+            <div class="comments-section-wrapper mb-8">
+              <div class="d-flex align-center justify-space-between mb-4">
+                <div class="section-tag">{{ t('challenges.diary.title') }}</div>
               <v-switch
                 v-model="editForm.allowComments"
-                :label="t('challenges.allowComments')"
-                color="primary"
-                :disabled="isDisabled"
+                  color="#4FD1C5"
                 hide-details
+                  density="compact"
               ></v-switch>
             </div>
-
-            <!-- Comments Component -->
-            <div v-if="editForm.allowComments" class="mb-4">
+              <v-expand-transition>
+                <div v-if="editForm.allowComments" class="comments-container-glass">
               <CommentsComponent
                 :challenge-id="challenge._id"
                 :allow-comments="editForm.allowComments"
                 :current-user-id="currentUserId"
                 :is-owner="true"
-                :is-finished="isDisabled"
-                :challenge-start-date="editForm.startDate"
-                :challenge-owner="challenge.owner"
                 :challenge-participants="challenge.participants || []"
-                @comment-added="handleCommentAdded"
-                @comment-deleted="handleCommentDeleted"
               />
+                </div>
+              </v-expand-transition>
             </div>
 
-            <v-alert v-if="saveError" type="error" class="mb-4">
-              {{ saveError }}
-            </v-alert>
-
-            <v-card-actions class="buttons-area">
-              <template v-if="isDisabled">
-              <v-spacer></v-spacer>
+            <div class="mission-footer-actions">
               <v-btn 
                 variant="outlined" 
-                @click="goBack" 
-                  class="action-button back-button"
+                color="error" 
+                @click="handleDelete" 
+                class="footer-btn delete-btn"
               >
-                  {{ t('common.back') }}
+                {{ t('challenges.delete') }}
               </v-btn>
-              </template>
-              <template v-else>
-                <div class="buttons-container">
+              
+              <v-spacer></v-spacer>
+
+              <div class="d-flex gap-3">
+                <v-btn variant="text" color="white" @click="goBack" class="footer-btn">{{ t('challenges.cancel') }}</v-btn>
               <v-btn 
                 type="submit" 
-                variant="flat"
-                color="primary" 
-                :disabled="saveLoading || deleteLoading || !isFormValid"
+                  color="#4FD1C5" 
+                  class="footer-btn save-btn"
                     :loading="saveLoading"
-                class="action-button save-button"
               >
                 {{ t('challenges.update') }}
-              </v-btn>
-                  <div class="secondary-buttons-row">
-                    <v-btn 
-                      variant="outlined" 
-                      @click="goBack" 
-                      :disabled="saveLoading || deleteLoading"
-                      class="action-button cancel-button secondary-button"
-                    >
-                      {{ t('challenges.cancel') }}
-                    </v-btn>
-                    <v-btn 
-                      variant="outlined" 
-                      color="error" 
-                      @click="handleDelete" 
-                      :disabled="saveLoading || deleteLoading"
-                      :loading="deleteLoading"
-                      class="action-button delete-button secondary-button"
-                    >
-                      {{ t('challenges.delete') }}
                     </v-btn>
                   </div>
                 </div>
-              </template>
-            </v-card-actions>
+
           </v-form>
         </v-card-text>
       </v-card>
     </v-container>
-
-    <!-- Delete Confirmation Dialog -->
-    <v-dialog v-model="deleteConfirmDialog" max-width="500" persistent>
-      <v-card>
-        <v-card-title class="text-h6">
-          {{ t('challenges.deleteConfirmTitle') }}
-        </v-card-title>
-        <v-card-text>
-          {{ t('challenges.deleteConfirmMessage') }}
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn
-            variant="text"
-            @click="deleteConfirmDialog = false"
-            :disabled="deleteLoading"
-          >
-            {{ t('common.cancel') }}
-          </v-btn>
-          <v-btn
-            variant="flat"
-            color="error"
-            @click="confirmDelete"
-            :loading="deleteLoading"
-            :disabled="deleteLoading"
-          >
-            {{ t('challenges.delete') }}
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
-    <!-- Snackbar for notifications -->
-    <v-snackbar v-model="snackbar" :timeout="3000" color="success">
-      {{ snackbarText }}
-    </v-snackbar>
   </div>
 </template>
 
+<style scoped>
+/* --- ТЕМНАЯ ТАКТИЧЕСКАЯ ТЕМА --- */
+.dark-mission-theme {
+  background: #0f172a;
+  color: #fff;
+  min-height: 100vh;
+}
+
+.mission-header-panel {
+  background: rgba(30, 41, 59, 0.4);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 12px 20px;
+}
+
+.page-title-display {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: 0.2s;
+}
+
+.page-title-display:hover { color: #4FD1C5; }
+.edit-hint-icon { opacity: 0.3; }
+
+/* --- ГЛАВНАЯ КАРТОЧКА --- */
+.main-tactical-card {
+  background: rgba(30, 41, 59, 0.3) !important;
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-radius: 24px !important;
+}
+
+/* --- ТАКТИЧЕСКИЕ ДАТЫ --- */
+.mission-dates-grid {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  background: rgba(15, 23, 42, 0.4);
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.date-info-box {
+  display: flex;
+  flex-direction: column;
+}
+
+.date-info-box .label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  color: #4FD1C5;
+  letter-spacing: 1px;
+  font-weight: 800;
+}
+
+.date-info-box .value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  font-family: 'Montserrat', sans-serif;
+  color: #FFFFFF;
+}
+
+/* --- СЕКЦИИ И ТЕГИ --- */
+.section-tag {
+  color: #4FD1C5;
+  font-size: 0.75rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  display: flex;
+  align-items: center;
+}
+
+.description-display-box {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 16px;
+  min-height: 100px;
+  cursor: pointer;
+  position: relative;
+  transition: 0.3s;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.6;
+}
+
+.description-display-box:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(79, 209, 197, 0.3);
+}
+
+.edit-corner-icon {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  opacity: 0.2;
+}
+
+/* --- СЕТКА НАСТРОЕК --- */
+.settings-tactical-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.setting-item {
+  background: rgba(15, 23, 42, 0.3);
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.setting-label {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.tactical-select :deep(.v-field__input) {
+  padding: 0 !important;
+  color: #4FD1C5 !important;
+  font-weight: 700;
+}
+
+/* --- ФУТЕР И КНОПКИ --- */
+.mission-footer-actions {
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+}
+
+.footer-btn {
+  border-radius: 12px !important;
+  text-transform: none;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.save-btn {
+  background: linear-gradient(135deg, #4FD1C5 0%, #3a9e94 100%) !important;
+  color: #0f172a !important;
+  padding: 0 32px !important;
+  box-shadow: 0 4px 15px rgba(79, 209, 197, 0.3) !important;
+}
+
+.delete-btn {
+  border-color: rgba(255, 82, 82, 0.3) !important;
+  color: #FF5252 !important;
+}
+
+.glass-container {
+  background: rgba(255, 255, 255, 0.01);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+/* Mobile Styles */
+@media (max-width: 959px) {
+  .mission-header-panel {
+    padding: 10px 16px;
+    border-radius: 12px;
+  }
+
+  .page-title-display {
+    font-size: 1.25rem;
+  }
+
+  .main-tactical-card {
+    border-radius: 16px !important;
+  }
+
+  .main-tactical-card :deep(.v-card-text) {
+    padding: 16px !important;
+  }
+
+  .mission-dates-grid {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+    align-items: flex-start;
+  }
+
+  .date-divider {
+    display: none;
+  }
+
+  .date-info-box .label {
+    font-size: 0.6rem;
+  }
+
+  .date-info-box .value {
+    font-size: 1rem;
+  }
+
+  .section-tag {
+    font-size: 0.7rem;
+    letter-spacing: 1px;
+  }
+
+  .description-display-box {
+    padding: 12px;
+    min-height: 80px;
+    font-size: 0.9rem;
+  }
+
+  .settings-tactical-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .setting-item {
+    padding: 10px 12px;
+  }
+
+  .setting-label {
+    font-size: 0.6rem;
+  }
+
+  .mission-footer-actions {
+    flex-direction: column-reverse;
+    gap: 10px;
+    margin-top: 24px;
+    padding-top: 16px;
+    align-items: stretch;
+  }
+
+  .mission-footer-actions .v-spacer {
+    display: none;
+  }
+
+  .mission-footer-actions > .d-flex {
+    width: 100%;
+    flex-direction: column;
+    gap: 10px;
+    order: 1;
+  }
+
+  .delete-btn {
+    order: 2;
+    width: 100%;
+  }
+
+  .footer-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .save-btn {
+    padding: 0 24px !important;
+  }
+
+  .glass-container {
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  .header-status-badges {
+    flex-shrink: 0;
+  }
+
+  .title-container {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .page-title-display {
+    font-size: 1.1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+/* Small mobile devices */
+@media (max-width: 599px) {
+  .mission-header-panel {
+    padding: 8px 12px;
+    border-radius: 10px;
+  }
+
+  .page-title-display {
+    font-size: 1rem;
+  }
+
+  .main-tactical-card :deep(.v-card-text) {
+    padding: 12px !important;
+  }
+
+  .mission-dates-grid {
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .date-info-box .label {
+    font-size: 0.55rem;
+  }
+
+  .date-info-box .value {
+    font-size: 0.9rem;
+  }
+
+  .section-tag {
+    font-size: 0.65rem;
+    margin-bottom: 8px;
+  }
+
+  .description-display-box {
+    padding: 10px;
+    min-height: 70px;
+    font-size: 0.85rem;
+  }
+
+  .settings-tactical-grid {
+    gap: 10px;
+  }
+
+  .setting-item {
+    padding: 8px 10px;
+  }
+
+  .mission-footer-actions {
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 12px;
+    align-items: stretch;
+  }
+
+  .mission-footer-actions > .d-flex {
+    gap: 8px;
+  }
+
+  .footer-btn {
+    min-height: 44px;
+  }
+
+  .glass-container {
+    padding: 10px;
+    border-radius: 10px;
+  }
+
+  .header-status-badges .v-chip {
+    font-size: 0.7rem !important;
+    height: 20px !important;
+  }
+
+  .header-status-badges .v-icon {
+    font-size: 14px !important;
+  }
+
+  .back-tactical-btn {
+    min-width: 36px !important;
+    width: 36px !important;
+    height: 36px !important;
+  }
+}
+</style>
 <script setup>
 import { reactive, ref, watch, computed, nextTick, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -592,7 +676,7 @@ const challengeTypeLabel = computed(() => {
 
 const challengeTypeColor = computed(() => {
   if (!challenge.value?.challengeType) return 'secondary'
-  return challenge.value.challengeType === 'habit' ? 'success' : 'warning'
+  return challenge.value.challengeType === 'habit' ? '#7048E8' : '#4FD1C5'
 })
 
 const titleErrorMessages = computed(() => {
@@ -1218,658 +1302,6 @@ onMounted(async () => {
   loadChallenge()
 })
 </script>
-
-<style scoped>
-.challenge-edit-page {
-  min-height: calc(100vh - 64px);
-  padding: 8px 0;
-  display: flex;
-  flex-direction: column;
-}
-
-@media (min-width: 600px) {
-  .challenge-edit-page {
-  padding: 16px 0;
-  }
-}
-
-.challenge-edit-page .v-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.challenge-edit-page .v-card {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.challenge-edit-page .v-card-text {
-  flex: 1;
-  overflow-y: auto;
-  min-height: 0;
-}
-
-.page-header {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 8px 0;
-}
-
-@media (min-width: 600px) {
-  .page-header {
-    flex-direction: row;
-  align-items: center;
-    flex-wrap: wrap;
-    gap: 12px;
-    padding: 16px 0;
-  }
-}
-
-@media (min-width: 960px) {
-  .page-header {
-  gap: 16px;
-    padding: 20px 0;
-  }
-}
-
-.header-top-row {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  gap: 6px;
-}
-
-@media (min-width: 600px) {
-  .header-top-row {
-    gap: 12px;
-  }
-}
-
-@media (min-width: 960px) {
-  .header-top-row {
-    gap: 16px;
-  }
-}
-
-.back-button {
-  margin-right: 2px;
-  flex-shrink: 0;
-  padding: 4px !important;
-}
-
-@media (min-width: 600px) {
-.back-button {
-  margin-right: 8px;
-    padding: 8px !important;
-  }
-}
-
-.header-badges {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-  gap: 2px;
-  flex-wrap: wrap;
-}
-
-.mobile-badges {
-  display: flex;
-  margin-left: 40px;
-  gap: 4px;
-}
-
-@media (min-width: 600px) {
-  .mobile-badges {
-    display: none;
-  }
-  
-  .header-badges {
-    gap: 8px;
-  }
-}
-
-.desktop-badges {
-  display: none;
-}
-
-@media (min-width: 600px) {
-  .desktop-badges {
-    display: flex;
-  }
-}
-
-.mobile-hidden {
-  display: none;
-}
-
-@media (min-width: 600px) {
-  .mobile-hidden {
-    display: block;
-  }
-}
-
-.share-btn {
-  flex-shrink: 0;
-  min-width: auto;
-  padding: 4px 8px !important;
-  font-size: 0.75rem;
-}
-
-.share-btn :deep(.v-btn__prepend) {
-  margin-inline-end: 4px;
-}
-
-@media (min-width: 600px) {
-  .share-btn {
-    padding: 6px 12px !important;
-    font-size: 0.875rem;
-  }
-  
-  .share-btn :deep(.v-btn__prepend) {
-    margin-inline-end: 6px;
-  }
-}
-
-.header-badges :deep(.v-chip) {
-  height: 20px;
-  font-size: 0.6875rem;
-  padding: 0 6px;
-}
-
-@media (min-width: 600px) {
-  .header-badges :deep(.v-chip) {
-    height: 24px;
-    font-size: 0.75rem;
-    padding: 0 8px;
-  }
-}
-
-.privacy-icon {
-  font-size: 18px !important;
-}
-
-@media (min-width: 600px) {
-  .privacy-icon {
-    font-size: 24px !important;
-  }
-}
-
-.page-title {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-  line-height: 1.2;
-}
-
-@media (min-width: 600px) {
-  .page-title {
-    font-size: 1.5rem;
-    line-height: 1.4;
-  }
-}
-
-@media (min-width: 960px) {
-  .page-title {
-    font-size: 2rem;
-  }
-}
-
-.privacy-icon {
-  flex-shrink: 0;
-}
-
-@media (min-width: 600px) {
-  .privacy-icon {
-    size: 24;
-  }
-}
-
-.frequency-privacy-row {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-}
-
-@media (min-width: 600px) {
-  .frequency-privacy-row:not(.single-column) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-.dates-row {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-@media (min-width: 600px) {
-  .dates-row {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    gap: 16px;
-  }
-}
-
-.start-date-text,
-.end-date-text {
-  font-size: 0.8125rem;
-  color: rgba(0, 0, 0, 0.6);
-  margin: 0;
-  flex: 0 0 auto;
-  word-break: break-word;
-}
-
-@media (min-width: 600px) {
-  .start-date-text,
-  .end-date-text {
-    font-size: 0.875rem;
-  }
-}
-
-.end-date-text {
-  text-align: left;
-}
-
-@media (min-width: 600px) {
-  .end-date-text {
-    text-align: right;
-  }
-}
-
-.duration-row {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-}
-
-@media (min-width: 600px) {
-  .duration-row {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-.habit-calendar {
-  width: 100%;
-}
-
-.habit-calendar :deep(.v-card--variant-outlined) {
-  border-radius: 12px;
-}
-
-.habit-calendar :deep(.v-card-text) {
-  padding: 12px;
-  width: 100%;
-}
-
-@media (min-width: 600px) {
-  .habit-calendar :deep(.v-card-text) {
-    padding: 16px;
-  }
-}
-
-.duration-privacy-row {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-}
-
-.duration-privacy-row .privacy-select {
-  grid-column: 1;
-  grid-row: 1;
-}
-
-.duration-privacy-row .duration-select {
-  grid-column: 1;
-  grid-row: 2;
-}
-
-@media (min-width: 600px) {
-  .duration-privacy-row {
-    grid-template-columns: 1fr 1fr;
-  }
-  
-  .duration-privacy-row .privacy-select {
-    grid-column: 1;
-    grid-row: 1;
-  }
-  
-  .duration-privacy-row .duration-select {
-    grid-column: 2;
-    grid-row: 1;
-  }
-}
-
-.buttons-area {
-  border-top: 1px solid rgba(0, 0, 0, 0.12);
-  padding: 12px 16px !important;
-  margin-top: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-@media (min-width: 600px) {
-  .buttons-area {
-    padding: 16px 20px !important;
-  }
-}
-
-@media (min-width: 960px) {
-  .buttons-area {
-    padding: 16px 24px !important;
-  }
-}
-
-.buttons-container {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-@media (min-width: 600px) {
-  .buttons-container {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-  }
-}
-
-.secondary-buttons-row {
-  display: flex;
-  gap: 8px;
-  width: 100%;
-}
-
-@media (min-width: 600px) {
-  .secondary-buttons-row {
-    width: auto;
-    margin-left: 0;
-    order: -1;
-  }
-  
-  .save-button {
-    order: 1;
-  }
-}
-
-
-.action-button {
-  font-weight: 600;
-  text-transform: none;
-  letter-spacing: 0.5px;
-  height: 40px;
-  padding: 0 24px;
-  border-radius: 24px !important;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.save-button {
-  width: 100%;
-  min-width: 120px;
-}
-
-@media (min-width: 600px) {
-  .save-button {
-    width: auto;
-  }
-}
-
-.secondary-button {
-  flex: 1;
-  min-width: 100px;
-  height: 36px;
-  padding: 0 16px;
-  font-size: 0.875rem;
-}
-
-@media (min-width: 600px) {
-  .secondary-button {
-    flex: 0 0 auto;
-    min-width: 90px;
-  }
-}
-
-@media (max-width: 599px) {
-  .buttons-area .v-spacer {
-    display: none;
-  }
-}
-
-.delete-button.secondary-button {
-  border-color: rgba(211, 47, 47, 0.5) !important;
-  color: #d32f2f !important;
-}
-
-.delete-button.secondary-button:hover:not(:disabled) {
-  background-color: rgba(211, 47, 47, 0.08) !important;
-  border-color: #d32f2f !important;
-  transform: translateY(-1px);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 4px rgba(211, 47, 47, 0.2);
-}
-
-.save-button {
-  background: linear-gradient(135deg, #1FA0F6 0%, #2196F3 100%) !important;
-  color: white !important;
-  box-shadow: 0 2px 4px rgba(31, 160, 246, 0.2);
-}
-
-.save-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, #2196F3 0%, #1FA0F6 100%) !important;
-  box-shadow: 0 4px 12px rgba(31, 160, 246, 0.4);
-  transform: translateY(-2px);
-}
-
-.cancel-button {
-  border-width: 2px;
-  border-color: rgba(31, 160, 246, 0.5) !important;
-  color: #1FA0F6 !important;
-}
-
-.cancel-button:hover:not(:disabled) {
-  background-color: rgba(31, 160, 246, 0.08) !important;
-  border-color: #1FA0F6 !important;
-  transform: translateY(-2px);
-  box-shadow: 0 2px 8px rgba(31, 160, 246, 0.2);
-}
-
-.calendar-mode-toggle {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 16px;
-}
-
-.calendar-toggle-group {
-  background-color: #f5f5f5;
-  border-radius: 8px;
-  padding: 4px;
-}
-
-.title-section {
-  width: 100%;
-}
-
-.editable-title.disabled,
-.editable-description.disabled,
-.editable-field.disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-  pointer-events: none;
-}
-
-.editable-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin: 0;
-  padding: 10px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  color: rgba(0, 0, 0, 0.87);
-  word-break: break-word;
-}
-
-.editable-title:hover {
-  background-color: rgba(0, 0, 0, 0.04);
-}
-
-.editable-title:empty::before {
-  content: attr(data-placeholder);
-  color: rgba(0, 0, 0, 0.38);
-}
-
-@media (min-width: 600px) {
-  .editable-title {
-    font-size: 2rem;
-    padding: 16px 20px;
-  }
-}
-
-.description-section {
-  width: 100%;
-}
-
-.editable-description {
-  font-size: 0.9375rem;
-  line-height: 1.6;
-  margin: 0;
-  padding: 10px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  min-height: 56px;
-  color: rgba(0, 0, 0, 0.87);
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
-
-.editable-description:hover {
-  background-color: rgba(0, 0, 0, 0.04);
-}
-
-.editable-description:empty::before {
-  content: attr(data-placeholder);
-  color: rgba(0, 0, 0, 0.38);
-}
-
-@media (min-width: 600px) {
-  .editable-description {
-    font-size: 1rem;
-    padding: 12px 16px;
-    min-height: 60px;
-  }
-}
-
-@media (min-width: 960px) {
-  .editable-description {
-    font-size: 1.125rem;
-    padding: 16px 20px;
-    min-height: 80px;
-  }
-}
-
-.editable-field-section {
-  width: 100%;
-}
-
-.editable-field {
-  font-size: 0.9375rem;
-  line-height: 1.6;
-  margin: 0;
-  padding: 10px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  color: rgba(0, 0, 0, 0.87);
-}
-
-@media (min-width: 600px) {
-  .editable-field {
-    font-size: 1rem;
-    padding: 12px 16px;
-  }
-}
-
-.editable-field:hover {
-  background-color: rgba(0, 0, 0, 0.04);
-}
-
-.editable-field strong {
-  font-weight: 600;
-  margin-right: 8px;
-}
-
-.card-content {
-  padding: 16px !important;
-}
-
-@media (min-width: 600px) {
-  .card-content {
-    padding: 20px !important;
-  }
-  
-  .editable-field {
-    font-size: 1rem;
-    padding: 12px 16px;
-  }
-}
-
-@media (min-width: 960px) {
-  .card-content {
-    padding: 24px !important;
-  }
-}
-
-.actions-plan-wrapper {
-  display: flex;
-  flex-direction: column;
-  height: 400px;
-}
-
-.actions-plan-container {
-  height: 100%;
-  max-height: 400px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  flex: 1;
-}
-
-.actions-plan-container :deep(.v-card) {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.actions-plan-container :deep(.v-card-text) {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-.actions-plan-footer {
-  padding: 12px 0;
-  margin-top: 8px;
-  }
-
-.actions-plan-footer .add-action-btn {
-  border-radius: 8px !important;
-}
-</style>
-
 
 
 

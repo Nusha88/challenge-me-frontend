@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "ChallengeMe"
+    "name": "Ignite"
   },
   "navigation": {
     "home": "Home",
@@ -25,31 +25,36 @@
     "interested": "Interested"
   },
   "home": {
-    "welcome": "Welcome to ChallengeMe",
-    "description": "Create, join, and conquer challenges together.",
+    "welcome": "Welcome to Ignite",
+    "description": "Create, join, and conquer missions together.",
+    "systemOnline": "SYSTEM: ONLINE",
     "title": "Achieve goals together with friends",
-    "subtitle": "Turn routine into a game. Create personal challenges, compete with your team and track progress.",
-    "createFirstChallenge": "Start first mission",
-    "benefitsTitle": "What makes ChallengeMe special",
+    "subtitle": "Turn routine into a game. Create personal missions, compete with your team and track progress in real time.",
+    "createFirstChallenge": "START FIRST MISSION",
+    "getStarted": "INITIALIZATION",
+    "joinHeroes": "JOIN 1,240+ HEROES",
+    "benefitsTitle": "What makes Ignite special",
+    "readyToStart": "READY FOR YOUR MISSION?",
+    "allRightsReserved": "ALL RIGHTS RESERVED",
     "benefits": {
       "block1": {
-        "title": "Turn habits into a game",
-        "description": "Mini-challenges, levels, rewards - everything to not give up what you started."
+        "title": "Life Gamification",
+        "description": "Earn experience (XP) and level up by completing daily rituals and epic quests."
       },
       "block2": {
-        "title": "Move together with friends",
-        "description": "Team challenges increase motivation by 3 times. Share progress, support each other and compete."
+        "title": "Teamwork",
+        "description": "Complete missions together with friends. Support and healthy competition are the best keys to success."
       },
       "block3": {
-        "title": "Track your progress",
-        "description": "Charts, streaks, checklists - everything at hand. You can see how you grow day by day."
+        "title": "Tactical Control",
+        "description": "Convenient calendar and tracking system will help you not miss any important step towards your goal."
       },
       "block4": {
-        "title": "Create challenges tailored to you",
-        "description": "Flexible settings: deadlines, checklists, levels, reminders. Everything tailored to your lifestyle."
+        "title": "Visual Progress",
+        "description": "Watch your growth through detailed statistics and interactive achievement charts."
       }
     },
-    "copyright": "© {year} ChallengeMe. All rights reserved.",
+    "copyright": "© {year} Ignite. All rights reserved.",
     "loggedIn": {
       "greeting": "Hello, {name}",
       "motivational": "You're already closer to your goal than yesterday",
@@ -118,7 +123,7 @@
     "joinCommunity": "JOIN THE COMMUNITY",
     "motivationText": "Thousands of heroes are already changing their lives. Start your path to discipline and mastery right now.",
     "registerPageTitle": "Create your account",
-    "registerDescription": "Join ChallengeMe and achieve goals together with friends",
+    "registerDescription": "Join Ignite and achieve goals together with friends",
     "registerTitle": "Create Account",
     "alreadyHaveAccount": "Already have an account?",
     "welcomeBack": "WELCOME BACK, HERO",
@@ -212,14 +217,14 @@
   "users": {
     "title": "Registered Users",
     "name": "Name",
-    "challenges": "Challenges",
+    "challenges": "Missions",
     "daysOnSite": "Days on Site",
     "noUsers": "No users found",
     "noUsersFound": "No users found matching your search",
     "searchPlaceholder": "Search by name",
     "search": "Search",
-    "userChallenges": "User Challenges",
-    "noChallenges": "This user has no challenges yet",
+    "userChallenges": "User Missions",
+    "noChallenges": "This user has no missions yet",
     "userNotFound": "User not found"
   },
   "challenges": {
@@ -341,18 +346,19 @@
     "viewProfile": "View Profile",
     "actions": "Actions",
     "dateRange": "From {start} to {end}",
-    "noChallenges": "No challenges have been created yet.",
-    "noMyChallenges": "You haven't created or joined any challenges yet.",
+    "noChallenges": "No missions have been created yet.",
+    "noMyChallenges": "You haven't created or joined any missions yet.",
     "join": "Join",
     "leave": "Give up",
-    "joinInfo": "You can join this challenge.",
-    "joinSuccess": "You are participating in this challenge.",
+    "clickToIgnite": "Click to ignite",
+    "joinInfo": "You can join this mission.",
+    "joinSuccess": "You are participating in this mission.",
     "watch": "Follow",
     "unwatch": "Unfollow",
     "watchedListTitle": "Following",
-    "noWatchedChallenges": "You haven't followed any challenges yet.",
-    "watchError": "Failed to follow challenge",
-    "unwatchError": "Failed to unfollow challenge",
+    "noWatchedChallenges": "You haven't followed any missions yet.",
+    "watchError": "Failed to follow mission",
+    "unwatchError": "Failed to unfollow mission",
     "moreParticipants": "+{count} more",
     "upcoming": "Starting soon",
     "successful": "Successful",
@@ -384,19 +390,19 @@
       "instagramCopied": "Link copied! Opening Instagram...",
       "instagramStoryCopied": "Link copied! Opening Instagram Story..."
     },
-    "loginPrompt": "Please log in to view your challenges.",
-    "mustBeLoggedIn": "You must be logged in to create a challenge.",
-    "detailsTitle": "Challenge Details",
-    "editTitle": "Challenge Details",
-    "notFound": "Challenge not found",
-    "notAuthorized": "You are not authorized to edit this challenge",
-    "challengeFinished": "This challenge is finished and cannot be edited",
+    "loginPrompt": "Please log in to view your missions.",
+    "mustBeLoggedIn": "You must be logged in to create a mission.",
+    "detailsTitle": "Mission Details",
+    "editTitle": "Mission Details",
+    "notFound": "Mission not found",
+    "notAuthorized": "You are not authorized to edit this mission",
+    "challengeFinished": "This mission is finished and cannot be edited",
     "delete": "Delete",
-    "deleteConfirmTitle": "Delete Challenge",
-    "deleteConfirmMessage": "Are you sure you want to delete this challenge? This action cannot be undone.",
+    "deleteConfirmTitle": "Delete Mission",
+    "deleteConfirmMessage": "Are you sure you want to delete this mission? This action cannot be undone.",
     "progressActions": "{done} of {total} actions done",
     "progressDays": "{passed} of {total} days passed",
-    "challengeCalendar": "Challenge Calendar",
+    "challengeCalendar": "Mission Calendar",
     "myProgress": "My Progress",
     "authorProgress": "Author's Progress",
     "teamProgress": "Team Progress",
@@ -410,17 +416,17 @@
     "saveProgress": "Save Progress",
     "notStarted": "Not started",
     "of": "of",
-    "finishedChallengeComments": "This challenge is finished. Comments are no longer available.",
+    "finishedChallengeComments": "This mission is finished. Comments are no longer available.",
     "completed": "Completed",
     "missed": "Missed",
     "today": "Today",
     "newsFeed": "Feed",
     "feedEmpty": "No recent activity",
     "feed": {
-      "joined": "joined {challenge}",
-      "progress": "made progress in {challenge}",
-      "finished": "finished {challenge}",
-      "commented": "commented in {challenge}"
+      "joined": "joined {mission}",
+      "progress": "made progress in {mission}",
+      "finished": "finished {mission}",
+      "commented": "commented in {mission}"
     },
     "calendarLegend": {
       "completed": "Completed",
@@ -434,7 +440,7 @@
       "addComment": "Add a comment...",
       "post": "Post",
       "noComments": "No comments yet. Be the first to comment!",
-      "disabled": "Comments are disabled for this challenge",
+      "disabled": "Comments are disabled for this mission",
       "justNow": "Just now",
       "minutesAgo": "{count} minute ago | {count} minutes ago",
       "hoursAgo": "{count} hour ago | {count} hours ago",
@@ -512,17 +518,17 @@
     "minutesAgo": "{count} minute ago | {count} minutes ago",
     "hoursAgo": "{count} hour ago | {count} hours ago",
     "daysAgo": "{count} day ago | {count} days ago",
-    "mentionedInComment": "mentioned you in a comment on {challenge}",
-    "newComment": "commented on {challenge}",
-    "userJoinedChallenge": "joined {challenge}",
-    "userWatchingChallenge": "started following {challenge}",
-    "challenge": "a challenge",
+    "mentionedInComment": "mentioned you in a comment on {mission}",
+    "newComment": "commented on {mission}",
+    "userJoinedChallenge": "joined {mission}",
+    "userWatchingChallenge": "started following {mission}",
+    "challenge": "a mission",
     "apiError": "Failed to load data",
-    "joinError": "Failed to join challenge",
-    "updateError": "Failed to update challenge",
-    "deleteChallengeError": "Failed to delete challenge",
-    "deleteSuccess": "Challenge deleted successfully",
-    "createError": "Failed to create challenge",
+    "joinError": "Failed to join mission",
+    "updateError": "Failed to update mission",
+    "deleteChallengeError": "Failed to delete mission",
+    "deleteSuccess": "Mission deleted successfully",
+    "createError": "Failed to create mission",
     "mustLogin": "You must be logged in to continue.",
     "profileError": "Error fetching profile",
     "usersError": "Error fetching users"

@@ -32,7 +32,7 @@
         :model-value="modelValue.type || 'all'"
         @update:model-value="updateFilter('type', $event)"
         mandatory
-        class="type-toggle-group-custom d-none d-md-flex"
+        class="type-toggle-group-custom"
       >
         <v-btn value="all" class="filter-nav-btn">
           <span class="btn-text">All</span>
@@ -46,11 +46,6 @@
         <v-btn value="habit" class="filter-nav-btn ritual-tab">
           <v-icon start size="18">mdi-fire</v-icon>
           <span class="btn-text">Ritual</span>
-        </v-btn>
-
-        <v-btn value="party" class="filter-nav-btn party-tab">
-          <v-icon start size="18">mdi-account-group</v-icon>
-          <span class="btn-text">Party</span>
         </v-btn>
       </v-btn-toggle>
 
@@ -227,9 +222,8 @@ watch(() => props.modelValue.owner, async (newOwner) => {
   color: white !important;
 }
 
-.v-btn--active.quest-tab { background: #A855F7 !important; box-shadow: 0 0 15px rgba(168, 85, 247, 0.4); }
-.v-btn--active.ritual-tab { background: #00CED1 !important; box-shadow: 0 0 15px rgba(0, 206, 209, 0.4); }
-.v-btn--active.party-tab { background: #3B82F6 !important; box-shadow: 0 0 15px rgba(59, 130, 246, 0.4); }
+.v-btn--active.quest-tab { background: #4FD1C5 !important; box-shadow: 0 0 15px rgba(79, 209, 197, 0.4); }
+.v-btn--active.ritual-tab { background: #7048E8 !important; box-shadow: 0 0 15px rgba(112, 72, 232, 0.4); }
 
 /* Advanced Panel */
 .advanced-panel-dark {
@@ -265,5 +259,110 @@ watch(() => props.modelValue.owner, async (newOwner) => {
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
   border-radius: 50px !important;
   height: 48px !important;
+}
+
+/* Mobile Styles */
+@media (max-width: 959px) {
+  .filter-wrapper {
+    padding: 0 !important;
+    margin-bottom: 16px !important;
+  }
+
+  .toolbar-main {
+    flex-direction: column;
+    gap: 12px !important;
+    align-items: stretch !important;
+  }
+
+  .search-bar-custom {
+    width: 100%;
+  }
+
+  .search-bar-custom :deep(.v-field) {
+    font-size: 14px !important;
+  }
+
+  .advanced-panel-dark {
+    padding: 16px !important;
+    border-radius: 16px !important;
+  }
+
+  .advanced-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  .advanced-grid .d-flex {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+
+  .custom-select-dark {
+    width: 100%;
+  }
+
+  .filter-nav-btn {
+    min-width: 70px !important;
+    font-size: 12px !important;
+    padding: 8px 12px !important;
+  }
+
+  .filter-nav-btn .btn-text {
+    font-size: 12px !important;
+  }
+
+  .filter-nav-btn .v-icon {
+    font-size: 16px !important;
+  }
+
+  .type-toggle-group-custom {
+    height: 44px !important;
+    padding: 3px !important;
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Small mobile devices */
+@media (max-width: 599px) {
+  .toolbar-main {
+    gap: 10px !important;
+  }
+
+  .advanced-panel-dark {
+    padding: 12px !important;
+    border-radius: 12px !important;
+  }
+
+  .advanced-grid {
+    gap: 12px !important;
+  }
+
+  .search-bar-custom :deep(.v-field) {
+    font-size: 13px !important;
+  }
+
+  .filter-nav-btn {
+    min-width: 60px !important;
+    padding: 6px 10px !important;
+  }
+
+  .filter-nav-btn .btn-text {
+    font-size: 11px !important;
+  }
+
+  .type-toggle-group-custom {
+    height: 40px !important;
+    padding: 2px !important;
+  }
+
+  .advanced-grid :deep(.v-label) {
+    font-size: 13px !important;
+  }
+
+  .advanced-grid :deep(.v-switch .v-label) {
+    font-size: 12px !important;
+  }
 }
 </style>

@@ -10,7 +10,27 @@
 </div>
 
     <v-progress-linear v-if="loading" indeterminate color="teal-accent-4" class="mb-4 shadow-neon"></v-progress-linear>
+    <div v-if="loading" class="surveillance-skeleton-layout">
+  <div class="main-feed-skeleton">
+    <v-card v-for="n in 3" :key="n" class="skeleton-card-dark rounded-xl mb-6">
+      <v-skeleton-loader
+      theme="dark"
+        type="heading, subtitle, text, actions"
+        class="custom-surveillance-skeleton"
+      ></v-skeleton-loader>
+    </v-card>
+  </div>
 
+  <div class="side-widgets-skeleton d-none d-lg-block">
+    <v-card class="skeleton-card-dark rounded-xl mb-6 pa-4">
+      <v-skeleton-loader type="table-heading, list-item-avatar-three-line@3"></v-skeleton-loader>
+    </v-card>
+    
+    <v-card class="skeleton-card-dark rounded-xl pa-4">
+      <v-skeleton-loader type="list-item-avatar-two-line@3"></v-skeleton-loader>
+    </v-card>
+  </div>
+</div>
     <v-row v-if="challenges.length" class="watched-layout">
       <v-col cols="12" md="8">
         <v-card
@@ -33,7 +53,7 @@
                 </div>
               </div>
               <v-chip
-                :color="challenge.challengeType === 'habit' ? 'teal-accent-4' : 'deep-purple-accent-2'"
+                :style="{ backgroundColor: challenge.challengeType === 'habit' ? '#7048E8' : '#4FD1C5', color: '#FFFFFF' }"
                 size="small"
                 variant="flat"
                 class="font-weight-black"
@@ -427,6 +447,31 @@
   .ml-13 {
     margin-left: 42px !important;
   }
+}
+.surveillance-skeleton-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px; /* Повторяем пропорции твоего макета */
+  gap: 24px;
+}
+
+/* На мобилках оставляем одну колонку */
+@media (max-width: 1264px) {
+  .surveillance-skeleton-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.skeleton-card-dark {
+  background: rgba(15, 23, 42, 0.6) !important;
+  border: 1px solid rgba(79, 209, 197, 0.1) !important;
+}
+
+/* Имитация неонового прогресс-бара внутри скелетона */
+:deep(.v-skeleton-loader__text) {
+  height: 12px !important;
+  background: rgba(79, 209, 197, 0.15) !important; /* Легкий оттенок твоего неона */
+  margin-top: 20px;
+  border-radius: 6px;
 }
 }
 </style>

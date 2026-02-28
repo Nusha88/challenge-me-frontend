@@ -1,695 +1,273 @@
 <template>
-  <div class="home-container">
+  <div class="landing-page">
+    <div class="stars-overlay"></div>
+    
     <div class="content-wrapper">
-      <div class="home-grid">
-        <div class="home-left">
-          <h1 class="home-title">{{ t('home.title') }}</h1>
-          <p class="home-subtitle">{{ t('home.subtitle') }}</p>
-          <GradientButton to="/login">
-            {{ t('home.createFirstChallenge') }}
-          </GradientButton>
+      <section class="hero-grid">
+        <div class="hero-left">
+          <div class="status-badge">{{ t('home.systemOnline') || 'SYSTEM ONLINE' }}</div>
+          <h1 class="hero-title">
+            <span class="gradient-text">{{ t('home.title') }}</span>
+          </h1>
+          <p class="hero-subtitle">{{ t('home.subtitle') }}</p>
+          <div class="hero-actions">
+            <GradientButton to="/login" class="main-cta">
+              {{ t('home.createFirstChallenge') }}
+            </GradientButton>
+            <div class="user-stats-mini">
+              <v-icon color="#4FD1C5" size="20">mdi-flash</v-icon>
+              <span>{{ t('home.joinHeroes') || 'Join 1000+ Heroes' }}</span>
+            </div>
+          </div>
         </div>
-        <div class="home-right">
-          <img :src="homePagePicture" alt="ChallengeMe" class="home-page-image" />
-        </div>
-      </div>
-
-      <!-- Benefits Section -->
-      <div class="benefits-section">
-        <h2 class="benefits-title">
-          <v-icon color="primary" class="benefits-title-icon">mdi-star-circle</v-icon>
-          {{ t('home.benefitsTitle') }}
-        </h2>
         
-        <div class="benefits-list">
-          <!-- Block 1 - Odd (image left) -->
-          <div class="benefit-block benefit-block-odd">
-            <div class="benefit-image-wrapper">
-              <img :src="benefitImage1" alt="" class="benefit-image" />
-            </div>
-            <div class="benefit-content">
-              <h3 class="benefit-title">{{ t('home.benefits.block1.title') }}</h3>
-              <p class="benefit-description">{{ t('home.benefits.block1.description') }}</p>
-            </div>
-          </div>
-
-          <!-- Block 2 - Even (image right) -->
-          <div class="benefit-block benefit-block-even">
-            <div class="benefit-image-wrapper">
-              <img :src="benefitImage2" alt="" class="benefit-image" />
-            </div>
-            <div class="benefit-content">
-              <h3 class="benefit-title">{{ t('home.benefits.block2.title') }}</h3>
-              <p class="benefit-description">{{ t('home.benefits.block2.description') }}</p>
-            </div>
-          </div>
-
-          <!-- Block 3 - Odd (image left) -->
-          <div class="benefit-block benefit-block-odd">
-            <div class="benefit-image-wrapper">
-              <img :src="benefitImage3" alt="" class="benefit-image" />
-            </div>
-            <div class="benefit-content">
-              <h3 class="benefit-title">{{ t('home.benefits.block3.title') }}</h3>
-              <p class="benefit-description">{{ t('home.benefits.block3.description') }}</p>
-            </div>
-          </div>
-
-          <!-- Block 4 - Even (image right) -->
-          <div class="benefit-block benefit-block-even">
-            <div class="benefit-image-wrapper">
-              <img :src="benefitImage4" alt="" class="benefit-image" />
-            </div>
-            <div class="benefit-content">
-              <h3 class="benefit-title">{{ t('home.benefits.block4.title') }}</h3>
-              <p class="benefit-description">{{ t('home.benefits.block4.description') }}</p>
-            </div>
+        <div class="hero-right">
+          <div class="artifact-container">
+            <img :src="homePagePicture" alt="Artifact" class="floating-artifact" />
+            <div class="artifact-glow"></div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <!-- Demo Section -->
-      <div class="demo-section">
-        <div class="demo-image-wrapper">
-          <img :src="demoImage" alt="Demo" class="demo-image" />
+      <section class="features-section">
+        <div class="section-header">
+          <h2 class="section-title">{{ t('home.benefitsTitle') }}</h2>
+          <div class="title-line"></div>
         </div>
-      </div>
+        
+        <div class="features-grid">
+          <div v-for="i in 4" :key="i" class="feature-card glass-card">
+            <div class="feature-icon-box">
+              <v-icon class="neon-icon">{{ getFeatureIcon(i) }}</v-icon>
+            </div>
+            <h3 class="feature-card-title">{{ t(`home.benefits.block${i}.title`) }}</h3>
+            <p class="feature-card-desc">{{ t(`home.benefits.block${i}.description`) }}</p>
+          </div>
+        </div>
+      </section>
 
-      <!-- Copyright Section -->
-      <div class="copyright-section">
-        <p class="copyright-text">{{ t('home.copyright', { year: new Date().getFullYear() }) }}</p>
-      </div>
+      <section class="final-cta glass-card">
+        <div class="cta-content">
+          <h2 class="cta-title">{{ t('home.readyToStart') || 'READY FOR YOUR MISSION?' }}</h2>
+          <GradientButton to="/login">{{ t('home.getStarted') || 'INITIALIZE' }}</GradientButton>
+        </div>
+        <img :src="demoImage" class="demo-bg-fade" />
+      </section>
+
+      <footer class="footer-simple">
+        <p>© {{ new Date().getFullYear() }} IGNITE COMMAND CENTER. {{ t('home.allRightsReserved') }}</p>
+      </footer>
     </div>
   </div>
 </template>
 
 <script setup>
 import { useI18n } from 'vue-i18n'
-import homePagePicture from '../assets/Adobe Express - file.png'
-import benefitImage1 from '../assets/01.png'
-import benefitImage2 from '../assets/02.png'
-import benefitImage3 from '../assets/03.png'
-import benefitImage4 from '../assets/04.png'
+import homePagePicture from '../assets/home_page.jpg' // Замени на кристалл
 import demoImage from '../assets/demo.png'
 import GradientButton from './GradientButton.vue'
 
 const { t } = useI18n()
+
+const getFeatureIcon = (index) => {
+  const icons = ['mdi-target-variant', 'mdi-sword-cross', 'mdi-shield-check', 'mdi-trophy-variant']
+  return icons[index - 1]
+}
 </script>
 
 <style scoped>
-.home-container {
-  min-height: auto;
-  width: 100%;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 0 0.75em;
-  padding-top: 0.75em;
-  box-sizing: border-box;
+.landing-page {
+  background-color: #0f172a;
+  color: #f8fafc;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+  font-family: 'Montserrat', sans-serif;
 }
 
-@media (min-width: 400px) {
-  .home-container {
-    padding: 0 1em;
-    padding-top: 1em;
-  }
-}
-
-@media (min-width: 600px) {
-  .home-container {
-    padding: 0 1.5em;
-    padding-top: 1.5em;
-  }
-}
-
-@media (min-width: 960px) {
-  .home-container {
-    padding: 0 24px;
-    padding-top: 2em;
-  }
-}
-
-@media (min-width: 1280px) {
-  .home-container {
-    padding: 0 48px;
-    padding-top: 2.5em;
-  }
+/* Эффект звезд на фоне */
+.stars-overlay {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.05) 1px, transparent 0);
+  background-size: 40px 40px;
+  pointer-events: none;
 }
 
 .content-wrapper {
-  width: 100%;
-  max-width: 1400px;
+  max-width: 1200px;
   margin: 0 auto;
+  padding: 40px 20px;
+  position: relative;
+  z-index: 1;
 }
 
-.home-grid {
+/* HERO */
+.hero-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 1em;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 60px;
   align-items: center;
+  padding: 60px 0;
 }
 
-@media (min-width: 400px) {
-  .home-grid {
-    gap: 1.25em;
-  }
+@media (max-width: 960px) {
+  .hero-grid { grid-template-columns: 1fr; text-align: center; }
+  .hero-actions { justify-content: center; }
 }
 
-@media (min-width: 600px) {
-  .home-grid {
-    gap: 2em;
-  }
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  background: rgba(79, 209, 197, 0.1);
+  border: 1px solid rgba(79, 209, 197, 0.3);
+  border-radius: 20px;
+  color: #4FD1C5;
+  font-size: 0.7rem;
+  letter-spacing: 2px;
+  margin-bottom: 20px;
 }
 
-@media (min-width: 960px) {
-  .home-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 2em;
-  }
+.hero-title {
+  font-size: clamp(2.5rem, 8vw, 4.5rem);
+  line-height: 1.1;
+  font-weight: 900;
+  margin-bottom: 24px;
 }
 
-@media (min-width: 1280px) {
-  .home-grid {
-    gap: 3em;
-  }
+.gradient-text {
+  background: linear-gradient(135deg, #fff 30%, #4FD1C5 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
-.home-left {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75em;
-  order: 2;
+.hero-subtitle {
+  font-size: 1.2rem;
+  color: #94a3b8;
+  max-width: 600px;
+  margin-bottom: 40px;
 }
 
-@media (min-width: 400px) {
-  .home-left {
-    gap: 1em;
-  }
-}
-
-@media (min-width: 960px) {
-  .home-left {
-    order: 1;
-  }
-}
-
-.home-title {
-  font-size: 1.75rem;
-  font-weight: 700;
-  line-height: 1.2;
-  color: rgba(0, 0, 0, 0.87);
-  margin: 0;
-  word-wrap: break-word;
-}
-
-@media (min-width: 400px) {
-  .home-title {
-    font-size: 2rem;
-  }
-}
-
-@media (min-width: 600px) {
-  .home-title {
-    font-size: 3rem;
-  }
-}
-
-@media (min-width: 960px) {
-  .home-title {
-    font-size: 4rem;
-  }
-}
-
-.home-subtitle {
-  font-size: 0.9rem;
-  line-height: 1.6;
-  color: rgba(0, 0, 0, 0.6);
-  margin: 0;
-  word-wrap: break-word;
-}
-
-@media (min-width: 400px) {
-  .home-subtitle {
-    font-size: 1rem;
-  }
-}
-
-@media (min-width: 600px) {
-  .home-subtitle {
-    font-size: 1.25rem;
-  }
-}
-
-.gradient-button {
-  width: 100%;
-  max-width: 100%;
-  margin-top: 0.5em;
-}
-
-@media (min-width: 400px) {
-  .gradient-button {
-    max-width: 350px;
-  }
-}
-
-@media (min-width: 600px) {
-  .gradient-button {
-    max-width: 400px;
-    font-size: 0.95rem;
-  }
-}
-
-.home-right {
+.hero-actions {
   display: flex;
   align-items: center;
-  justify-content: center;
-  order: 1;
-  margin-bottom: 1em;
-}
-
-@media (min-width: 960px) {
-  .home-right {
-    order: 2;
-    margin-bottom: 0;
-  }
-}
-
-.home-page-image {
-  width: 100%;
-  height: auto;
-  max-width: 100%;
-  object-fit: contain;
-  border-radius: 12px;
-}
-
-@media (min-width: 400px) {
-  .home-page-image {
-    border-radius: 14px;
-  }
-}
-
-@media (min-width: 960px) {
-  .home-page-image {
-    max-width: 120%;
-    border-radius: 16px;
-    transform: scale(1.2);
-  }
-}
-
-/* Benefits Section */
-.benefits-section {
-  width: 100%;
-  margin-top: 1.5em;
-  padding: 1em 0;
-}
-
-@media (min-width: 400px) {
-  .benefits-section {
-    margin-top: 2em;
-    padding: 1.5em 0;
-  }
-}
-
-@media (min-width: 600px) {
-  .benefits-section {
-    margin-top: 2.5em;
-    padding: 2em 0;
-  }
-}
-
-@media (min-width: 960px) {
-  .benefits-section {
-    margin-top: 3em;
-    padding: 2.5em 0;
-  }
-}
-
-.benefits-title {
-  font-size: 1.25rem;
-  font-weight: 700;
-  text-align: center;
-  color: rgba(0, 0, 0, 0.87);
-  margin: 0 0 1em 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  gap: 24px;
   flex-wrap: wrap;
-  gap: 0.5em;
 }
 
-.benefits-title-icon {
-  font-size: 1.25rem !important;
-  margin-right: 0;
-}
-
-@media (min-width: 400px) {
-  .benefits-title {
-    font-size: 1.5rem;
-    margin-bottom: 1.25em;
-  }
-  
-  .benefits-title-icon {
-    font-size: 1.5rem !important;
-    margin-right: 0.5em;
-  }
-}
-
-@media (min-width: 600px) {
-  .benefits-title {
-    font-size: 1.75rem;
-    margin-bottom: 2em;
-  }
-  
-  .benefits-title-icon {
-    font-size: 1.75rem !important;
-  }
-}
-
-@media (min-width: 960px) {
-  .benefits-title {
-    font-size: 2rem;
-    margin-bottom: 2.5em;
-  }
-  
-  .benefits-title-icon {
-    font-size: 2rem !important;
-  }
-}
-
-.benefits-list {
+/* ARTIFACT ANIMATION */
+.artifact-container {
+  position: relative;
   display: flex;
-  flex-direction: column;
-  gap: 1.25em;
+  justify-content: center;
 }
 
-@media (min-width: 400px) {
-  .benefits-list {
-    gap: 1.5em;
-  }
-}
-
-@media (min-width: 600px) {
-  .benefits-list {
-    gap: 2em;
-  }
-}
-
-@media (min-width: 960px) {
-  .benefits-list {
-    gap: 2.5em;
-  }
-}
-
-.benefit-block {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75em;
+  .floating-artifact {
   width: 100%;
+  max-width: 450px;
+  filter: drop-shadow(0 0 30px rgba(79, 209, 197, 0.3));
+  animation: float 6s ease-in-out infinite;
+  -webkit-mask-image: radial-gradient(circle, black 40%, transparent 80%);
+  mask-image: radial-gradient(circle, black 40%, transparent 80%);
+  
+  /* Дополнительно можно чуть подтянуть контраст, чтобы черный стал чернее */
+  filter: brightness(1.1) contrast(1.1);
+  
+  width: 100%;
+  max-width: 450px;
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
 }
 
-@media (min-width: 400px) {
-  .benefit-block {
-    gap: 1em;
-  }
+/* FEATURES */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 24px;
+  margin-top: 60px;
 }
 
-@media (min-width: 600px) {
-  .benefit-block {
-    gap: 1.25em;
-  }
+.glass-card {
+  background: rgba(30, 41, 59, 0.5);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 24px;
+  padding: 32px;
+  transition: all 0.3s ease;
 }
 
-@media (min-width: 960px) {
-  .benefit-block {
-    flex-direction: row;
-    align-items: center;
-    gap: 2em;
-  }
-
-  .benefit-block-odd {
-    flex-direction: row;
-  }
-
-  .benefit-block-even {
-    flex-direction: row-reverse;
-  }
+.feature-card:hover {
+  border-color: rgba(79, 209, 197, 0.4);
+  transform: translateY(-10px);
+  background: rgba(30, 41, 59, 0.8);
 }
 
-.benefit-image-wrapper {
-  flex: 1;
+.feature-icon-box {
+  width: 50px;
+  height: 50px;
+  background: rgba(79, 209, 197, 0.1);
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  max-width: 280px;
+  margin-bottom: 20px;
 }
 
-@media (min-width: 400px) {
-  .benefit-image-wrapper {
-    max-width: 320px;
-  }
+.neon-icon {
+  color: #4FD1C5 !important;
+  filter: drop-shadow(0 0 5px #4FD1C5);
 }
 
-@media (min-width: 600px) {
-  .benefit-image-wrapper {
-    max-width: 400px;
-  }
+.feature-card-title {
+  font-size: 1.25rem;
+  margin-bottom: 12px;
+  color: #fff;
 }
 
-@media (min-width: 960px) {
-  .benefit-image-wrapper {
-    flex: 0 0 40%;
-    max-width: 350px;
-  }
+.feature-card-desc {
+  font-size: 0.95rem;
+  color: #94a3b8;
+  line-height: 1.6;
 }
 
-.benefit-image {
-  width: 100%;
-  height: auto;
-  max-height: 200px;
-  object-fit: contain;
-  border-radius: 10px;
-}
-
-@media (min-width: 400px) {
-  .benefit-image {
-    max-height: 230px;
-    border-radius: 11px;
-  }
-}
-
-@media (min-width: 600px) {
-  .benefit-image {
-    max-height: 280px;
-    border-radius: 12px;
-  }
-}
-
-@media (min-width: 960px) {
-  .benefit-image {
-    max-height: 300px;
-  }
-}
-
-.benefit-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5em;
+/* FINAL CTA */
+.final-cta {
+  margin-top: 100px;
   text-align: center;
-  width: 100%;
-}
-
-@media (min-width: 400px) {
-  .benefit-content {
-    gap: 0.75em;
-  }
-}
-
-@media (min-width: 960px) {
-  .benefit-content {
-    flex: 0 0 50%;
-    text-align: left;
-  }
-}
-
-.benefit-title {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: rgba(0, 0, 0, 0.87);
-  margin: 0;
-  word-wrap: break-word;
-}
-
-@media (min-width: 400px) {
-  .benefit-title {
-    font-size: 1.25rem;
-  }
-}
-
-@media (min-width: 600px) {
-  .benefit-title {
-    font-size: 1.5rem;
-  }
-}
-
-@media (min-width: 960px) {
-  .benefit-title {
-    font-size: 1.75rem;
-  }
-}
-
-.benefit-description {
-  font-size: 0.85rem;
-  line-height: 1.5;
-  color: rgba(0, 0, 0, 0.6);
-  margin: 0;
-  word-wrap: break-word;
-}
-
-@media (min-width: 400px) {
-  .benefit-description {
-    font-size: 0.9rem;
-  }
-}
-
-@media (min-width: 600px) {
-  .benefit-description {
-    font-size: 1rem;
-  }
-}
-
-@media (min-width: 960px) {
-  .benefit-description {
-    font-size: 1.05rem;
-  }
-}
-
-/* Demo Section */
-.demo-section {
-  width: 100%;
-  margin-top: 1.5em;
-  padding: 0;
-}
-
-@media (min-width: 400px) {
-  .demo-section {
-    margin-top: 2em;
-  }
-}
-
-@media (min-width: 600px) {
-  .demo-section {
-    margin-top: 2.5em;
-  }
-}
-
-@media (min-width: 960px) {
-  .demo-section {
-    margin-top: 3em;
-  }
-}
-
-.demo-image-wrapper {
-  width: 100%;
-  padding: 2px;
-  background: linear-gradient(135deg, #1FA0F6 0%, #A62EE8 100%);
-  border-radius: 12px;
+  position: relative;
   overflow: hidden;
+  padding: 80px 40px;
+  background: radial-gradient(circle at center, rgba(79, 209, 197, 0.15) 0%, #0f172a 100%);
+  border: 1px solid rgba(79, 209, 197, 0.2);
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
 }
 
-@media (min-width: 400px) {
-  .demo-image-wrapper {
-    border-radius: 14px;
-  }
+.demo-bg-fade {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 120%;
+  opacity: 0.1;
+  filter: blur(20px);
+  z-index: -1;
 }
 
-@media (min-width: 600px) {
-  .demo-image-wrapper {
-    border-radius: 16px;
-  }
+.cta-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 32px;
 }
 
-.demo-image {
-  width: 100%;
-  height: auto;
-  display: block;
-  object-fit: contain;
-  border-radius: 10px;
-}
-
-@media (min-width: 400px) {
-  .demo-image {
-    border-radius: 12px;
-  }
-}
-
-@media (min-width: 600px) {
-  .demo-image {
-    border-radius: 14px;
-  }
-}
-
-/* Copyright Section */
-.copyright-section {
-  width: 100%;
-  margin-top: 1.5em;
-  padding: 1em 0.75em;
-  background: linear-gradient(135deg, #1FA0F6 0%, #A62EE8 100%);
-  border-radius: 12px;
-  box-sizing: border-box;
-}
-
-@media (min-width: 400px) {
-  .copyright-section {
-    margin-top: 2em;
-    padding: 1.5em 1em;
-    border-radius: 14px;
-  }
-}
-
-@media (min-width: 600px) {
-  .copyright-section {
-    margin-top: 2.5em;
-    padding: 2em 1.5em;
-    border-radius: 16px;
-  }
-}
-
-@media (min-width: 960px) {
-  .copyright-section {
-    margin-top: 3em;
-    padding: 2.5em 2em;
-  }
-}
-
-.copyright-text {
+.footer-simple {
+  margin-top: 80px;
+  padding: 40px 0;
+  border-top: 1px solid rgba(255,255,255,0.05);
   text-align: center;
-  color: white;
   font-size: 0.8rem;
-  margin: 0;
-  font-weight: 500;
-  word-wrap: break-word;
-  padding: 0 0.5em;
-}
-
-@media (min-width: 400px) {
-  .copyright-text {
-    font-size: 0.85rem;
-    padding: 0;
-  }
-}
-
-@media (min-width: 600px) {
-  .copyright-text {
-    font-size: 0.9rem;
-  }
-}
-
-@media (min-width: 960px) {
-  .copyright-text {
-    font-size: 1rem;
-  }
+  color: #64748b;
+  letter-spacing: 1px;
 }
 </style>

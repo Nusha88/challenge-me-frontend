@@ -49,17 +49,21 @@
       >
         <v-tooltip activator="parent" location="top">{{ day.label }}</v-tooltip>
       </div>
-    </div>
-
+          </div>
+          
     <div class="action-row">
       <div v-if="isTodayCompleted" class="streak-active">
-        <v-icon size="16" class="mr-1">mdi-fire</v-icon>
+        <span class="flame-icon-wrapper">
+          <Flame :size="16" color="#00CED1" />
+        </span>
         <span class="streak-val">{{ streakDays }} DAY STREAK</span>
       </div>
       
       <div v-else class="ignite-trigger" @click.stop="completeDay">
         <div class="ignite-pill">
-          <v-icon size="18" class="fire-icon">mdi-fire-outline</v-icon>
+          <span class="flame-icon-wrapper">
+          <Flame :size="16" color="#00CED1" />
+        </span>
           <span class="ignite-text">{{ t('challenges.clickToIgnite') }}</span>
         </div>
       </div>
@@ -73,9 +77,9 @@
     </div>
     <div v-if="showJoinButton" class="join-prompt">
        View details to join
-    </div>
-  </div>
-</div>
+          </div>
+        </div>
+      </div>
 
       <v-spacer></v-spacer>
 
@@ -83,10 +87,10 @@
         <div class="progress-header">
           <span class="percent-num">{{ progressPercentage }}%</span>
           <span class="status-text">Complete</span>
-        </div>
+          </div>
         <v-progress-linear
           :model-value="progressPercentage"
-          :color="challenge.challengeType === 'habit' ? '#00CED1' : '#7048E8'"
+          :color="challenge.challengeType === 'habit' ? '#7048E8' : '#4FD1C5'"
           height="6"
           rounded
           class="mission-progress"
@@ -175,8 +179,8 @@
   border-radius: 6px;
   background: rgba(0, 0, 0, 0.5);
 }
-.type-tag.habit { color: #00CED1; border: 1px solid rgba(0, 206, 209, 0.3); }
-.type-tag.result { color: #F4A782; border: 1px solid rgba(244, 167, 130, 0.3); }
+.type-tag.habit { color: #7048E8; border: 1px solid rgba(112, 72, 232, 0.3); }
+.type-tag.result { color: #4FD1C5; border: 1px solid rgba(79, 209, 197, 0.3); }
 
 /* Мини-сетка 7 дней */
 .mini-history-grid {
@@ -201,6 +205,13 @@
 .history-dot.today {
   border: 1px solid #00CED1;
   position: relative;
+}
+
+/* Action Row */
+.action-row {
+  position: relative;
+  z-index: 10;
+  margin-top: 8px;
 }
 
 /* Ignite Логика */
@@ -239,6 +250,18 @@
   margin-left: 8px;
 }
 
+.challenge-card:hover .ignite-pill .flame-icon-wrapper svg {
+  stroke: #ff9800 !important;
+  filter: drop-shadow(0 0 5px rgba(255, 152, 0, 0.8));
+  animation: flicker 0.8s infinite alternate;
+}
+
+.challenge-card:hover .ignite-pill .flame-icon-wrapper svg path,
+.challenge-card:hover .ignite-pill .flame-icon-wrapper svg line,
+.challenge-card:hover .ignite-pill .flame-icon-wrapper svg polyline {
+  stroke: #ff9800 !important;
+}
+
 .challenge-card:hover .fire-icon {
   color: #ff9800;
   filter: drop-shadow(0 0 5px orange);
@@ -255,6 +278,25 @@
   background: rgba(0, 206, 209, 0.1);
   padding: 5px 15px;
   border-radius: 30px;
+  position: relative;
+  z-index: 10;
+}
+
+.flame-icon-wrapper {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 4px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 11;
+}
+
+.streak-active svg {
+  flex-shrink: 0;
+  display: block;
+  position: relative;
+  z-index: 11;
+  pointer-events: none;
 }
 
 /* Прогресс */
@@ -266,8 +308,31 @@
   font-weight: 700;
   letter-spacing: 0.5px;
 }
+/* Базовый контейнер прогресс-бара */
+.mission-progress {
+  background: rgba(255, 255, 255, 0.05) !important;
+  overflow: visible !important; /* Важно: чтобы свечение не обрезалось */
+}
 
-.mission-progress { background: rgba(255, 255, 255, 0.03) !important; }
+/* Стилизация внутренней полосы заполнения */
+.mission-progress :deep(.v-progress-linear__determinate) {
+  transition: all 0.3s ease;
+  border-radius: 20px;
+}
+
+/* Фиолетовое свечение (для Habit) */
+.mission-progress :deep(.v-progress-linear__determinate[style*="background-color: rgb(112, 72, 232)"]),
+.mission-progress :deep(.v-progress-linear__determinate[style*="background-color: #7048E8"]) {
+  box-shadow: 0 0 12px 2px rgba(112, 72, 232, 0.7), 
+              0 0 20px 0px rgba(112, 72, 232, 0.4);
+}
+
+/* Бирюзовое свечение (для Result/Challenge) */
+.mission-progress :deep(.v-progress-linear__determinate[style*="background-color: rgb(79, 209, 197)"]),
+.mission-progress :deep(.v-progress-linear__determinate[style*="background-color: #4FD1C5"]) {
+  box-shadow: 0 0 12px 2px rgba(79, 209, 197, 0.7), 
+              0 0 20px 0px rgba(79, 209, 197, 0.4);
+}
 
 /* Финишный бейдж */
 .finish-tag {
@@ -508,11 +573,11 @@ const participantCount = computed(() => {
 })
 const isFinished = computed(() => {
   if (props.challenge.endDate) {
-    try {
-      const endDate = new Date(props.challenge.endDate)
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      endDate.setHours(0, 0, 0, 0)
+  try {
+    const endDate = new Date(props.challenge.endDate)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    endDate.setHours(0, 0, 0, 0)
       if (endDate < today) return true
     } catch { /* continue */ }
   }
@@ -524,7 +589,7 @@ const isFinished = computed(() => {
       if (action.children?.length) return action.children.every(child => child.checked)
       return true
     })
-  }
+    }
   return false
 })
 
@@ -552,10 +617,10 @@ const isUpcoming = computed(() => {
 
 const streakDays = computed(() => {
   if (props.challenge.challengeType !== 'habit' || !props.currentUserId || !props.challenge.participants) return 0
-  
-  const participant = props.challenge.participants.find(p => {
-    const userId = p.userId?._id || p.userId || p._id
-    return userId && userId.toString() === props.currentUserId.toString()
+    
+    const participant = props.challenge.participants.find(p => {
+        const userId = p.userId?._id || p.userId || p._id
+        return userId && userId.toString() === props.currentUserId.toString()
   })
   
   if (!participant?.completedDays?.length) return 0
@@ -565,29 +630,29 @@ const streakDays = computed(() => {
   
   let startDate = new Date()
   startDate.setHours(0,0,0,0)
-  if (!completedDateStrings.includes(todayStr)) {
-    startDate.setDate(startDate.getDate() - 1)
-  }
-  
-  let streak = 0
-  let currentDate = new Date(startDate)
-  for (let i = 0; i < 365; i++) {
-    const dateStr = formatDateString(currentDate)
-    if (completedDateStrings.includes(dateStr)) {
-      streak++
-      currentDate.setDate(currentDate.getDate() - 1)
-    } else {
-      break
+    if (!completedDateStrings.includes(todayStr)) {
+      startDate.setDate(startDate.getDate() - 1)
     }
-  }
-  return streak
+    
+    let streak = 0
+    let currentDate = new Date(startDate)
+    for (let i = 0; i < 365; i++) {
+        const dateStr = formatDateString(currentDate)
+        if (completedDateStrings.includes(dateStr)) {
+          streak++
+      currentDate.setDate(currentDate.getDate() - 1)
+        } else {
+          break
+        }
+      }
+    return streak
 })
 
 const isTodayCompleted = computed(() => {
   if (props.challenge.challengeType !== 'habit' || !props.currentUserId || !props.challenge.participants) return false
-  const participant = props.challenge.participants.find(p => {
-    const userId = p.userId?._id || p.userId || p._id
-    return userId && userId.toString() === props.currentUserId.toString()
+    const participant = props.challenge.participants.find(p => {
+        const userId = p.userId?._id || p.userId || p._id
+        return userId && userId.toString() === props.currentUserId.toString()
   })
   const todayStr = formatDateString(new Date())
   return (participant?.completedDays || []).some(d => normalizeDate(d) === todayStr)
@@ -700,7 +765,7 @@ async function completeDay() {
     const userId = p.userId?._id || p.userId || p._id
     return userId && userId.toString() === props.currentUserId.toString()
   })
-
+  
   const newCompletedDays = [...(participant?.completedDays || []), todayStr]
 
   try {
@@ -728,9 +793,9 @@ function handleWatchClick() {
 function navigateToOwner() {
   const ownerId = props.challenge.owner?._id || props.challenge.owner
   if (ownerId) {
-    emit('owner-navigated')
-    router.push(`/heroes/${ownerId}`)
-  }
+  emit('owner-navigated')
+  router.push(`/heroes/${ownerId}`)
+}
 }
 
 function restartChallenge() {

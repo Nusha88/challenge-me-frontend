@@ -1,11 +1,11 @@
 <template>
   <div class="add-challenge">
-    <div class="header-section">
-      <div class="header-content">
-        <h1 class="page-header">{{ t('challenges.addTitle') }}</h1>
-        <p class="text-subtitle-1 motive-text">{{ t('challenges.motiveText') }}</p>
+    <div class="header-section text-left mb-10 reveal-animation">
+      <div class="d-flex align-center mb-1">
+        <v-icon color="teal-accent-4" size="40" class="mr-3">mdi-flare</v-icon>
+        <h1 class="page-title-dark">{{ t('challenges.addTitle') }}</h1>
       </div>
-      <img :src="treeImage" alt="Tree" class="tree-image" />
+      <p class="journal-subtitle-dark mt-2">{{ t('challenges.motiveText') }}</p>
     </div>
     <div class="form-container">
         <v-form @submit.prevent="handleSubmit">
@@ -511,7 +511,6 @@ import { challengeService } from '../services/api'
 import { useI18n } from 'vue-i18n'
 import ChallengeImageUpload from './ChallengeImageUpload.vue'
 import SuccessModal from './SuccessModal.vue'
-import treeImage from '../assets/tree.png'
 
 const router = useRouter()
 const { t, locale } = useI18n()
@@ -1142,65 +1141,6 @@ function resetForm() {
 }
 
 .header-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 40px;
-  position: relative;
-}
-
-.header-content {
-  flex: 1;
-}
-
-.tree-image {
-  width: 360px;
-  opacity: 0.2; /* Делаем дерево более призрачным для темной темы */
-  filter: drop-shadow(0 0 20px rgba(112, 72, 232, 0.2));
-  height: auto;
-  object-fit: contain;
-  position: absolute;
-  top: 0;
-  right: 0;
-  opacity: 0.6;
-  z-index: 1;
-}
-
-@media (max-width: 960px) {
-  .tree-image {
-    width: 240px;
-    opacity: 0.4;
-  }
-}
-
-@media (max-width: 600px) {
-  .tree-image {
-    width: 180px;
-    opacity: 0.3;
-    top: -20px !important;
-    right: -40px !important;
-  }
-}
-
-.page-header {
-  font-size: 2.8rem;
-  font-weight: 800;
-  letter-spacing: -1px;
-  margin-bottom: 12px;
-  /* Градиент от фиолетового к персику */
-  background: linear-gradient(135deg, #7048E8 0%, #F4A782 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.motive-text {
-  color: gba(255, 255, 255, 0.6);
-  font-style: italic;
-  opacity: 0.8;
-  border-left: 3px solid #7e46c4;
-  padding-left: 15px;
-  margin-top: 8px;
   margin-bottom: 40px;
 }
 
@@ -1219,7 +1159,7 @@ function resetForm() {
   text-transform: uppercase;
   font-size: 0.8rem;
   letter-spacing: 1px;
-  color: #F4A782;
+  color: #4FD1C5;
   margin-bottom: 8px;
   margin-top: 16px;
 }
@@ -1235,7 +1175,7 @@ function resetForm() {
 .duration-selector .field-label {
   font-size: 0.9rem;
   font-weight: 700;
-  color: #F4A782;
+  color: #4FD1C5;
   margin-bottom: 12px;
   letter-spacing: 0.5px;
 }
@@ -1369,7 +1309,7 @@ function resetForm() {
 }
 
 .custom-chips-group .chip-btn .v-icon {
-  color: #f4a782;
+  color: #4FD1C5;
   margin-right: 6px;
 }
 
@@ -1434,7 +1374,7 @@ function resetForm() {
   font-weight: 800;
   font-size: 1.2rem;
   text-align: center;
-  color: #F4A782 !important;
+  color: #4FD1C5 !important;
   border-right-color: rgba(255, 255, 255, 0.1);
   padding-right: 15px;
 }
@@ -1444,7 +1384,7 @@ function resetForm() {
 }
 
 .custom-slider-container .ignite-slider :deep(.v-slider-track__fill) {
-  background: linear-gradient(90deg, #7e46c4, #f4a782) !important;
+  background: linear-gradient(90deg, #7e46c4, #4FD1C5) !important;
 }
 
 .custom-slider-container .ignite-slider :deep(.v-slider-thumb) {
@@ -1473,7 +1413,7 @@ function resetForm() {
   font-size: 0.85rem;
   font-weight: 700;
   /* Персиковый заголовок для единообразия */
-  color: #F4A782 !important;
+  color: #4FD1C5 !important;
   margin-bottom: 12px;
   display: block;
   text-transform: uppercase;
@@ -1637,6 +1577,7 @@ function resetForm() {
 
 .type-card .selection-indicator .v-icon {
   font-size: 26px;
+  color: inherit;
 }
 
 /* ЭФФЕКТЫ ПРИ ВЫБОРЕ (Habit - Purple) */
@@ -1653,24 +1594,24 @@ function resetForm() {
 }
 
 .type-card.habit-style.is-active .selection-indicator .v-icon {
-  color: #7e46c4;
+  color: #7e46c4 !important;
 }
 
 /* ЭФФЕКТЫ ПРИ ВЫБОРЕ (Result - Orange) */
 .type-card.result-style.is-active {
-  border-color: #F4A782 !important;
-  background: rgba(244, 167, 130, 0.1) !important;
-  box-shadow: 0 0 20px rgba(244, 167, 130, 0.2)
+  border-color: #4FD1C5 !important;
+  background: rgba(79, 209, 197, 0.1) !important;
+  box-shadow: 0 0 20px rgba(79, 209, 197, 0.2)
 }
 
 .type-card.result-style.is-active .icon-box {
-  background: #F4A782;
+  background: #4FD1C5;
   color: #ffffff;
-  box-shadow: 0 4px 12px rgba(244, 167, 130, 0.3);
+  box-shadow: 0 4px 12px rgba(79, 209, 197, 0.3);
 }
 
 .type-card.result-style.is-active .selection-indicator .v-icon {
-  color: #f4a782;
+  color: #4FD1C5 !important;
 }
 
 /* Ховер эффект */
@@ -1787,7 +1728,7 @@ function resetForm() {
 /* --- ПРЕВЬЮ ПРИ ПУБЛИЧНОМ РЕЖИМЕ --- */
 .social-settings-block .public-preview-box {
   /* Градиент в стиле "магической пыли" */
-  background: linear-gradient(135deg, rgba(112, 72, 232, 0.08) 0%, rgba(244, 167, 130, 0.08) 100%);
+  background: linear-gradient(135deg, rgba(112, 72, 232, 0.08) 0%, rgba(79, 209, 197, 0.08) 100%);
   border: 1px solid rgba(112, 72, 232, 0.3);
   border-radius: 16px;
   position: relative;
@@ -1802,7 +1743,7 @@ function resetForm() {
   left: 0;
   width: 4px;
   height: 100%;
-  background: linear-gradient(to bottom, #7048E8, #F4A782); /* Фиолетово-персиковая полоска */
+  background: linear-gradient(to bottom, #7048E8, #4FD1C5); /* Фиолетово-персиковая полоска */
 }
 
 /* Стилизация чекбокса внутри блока */
@@ -1821,7 +1762,7 @@ function resetForm() {
   font-size: 0.75rem;
   font-weight: 800;
   text-transform: uppercase;
-  color: #F4A782; /* Персиковый акцент для меток */
+  color: #4FD1C5; /* Персиковый акцент для меток */
   letter-spacing: 1px;
 }
 
@@ -2045,7 +1986,7 @@ function resetForm() {
 
 .deadline-selector .time-left-hint {
   font-size: 0.8rem;
-  color: #F4A782;
+  color: #4FD1C5;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -2064,7 +2005,7 @@ function resetForm() {
   }
 
   .v-date-picker-controls .v-btn {
-    color: #F4A782 !important; /* Стрелки и управление — персик */
+    color: #4FD1C5 !important; /* Стрелки и управление — персик */
   }
 
   .v-date-picker-header__title {
@@ -2256,7 +2197,7 @@ function resetForm() {
 }
 
 .diff-option.active.heroic {
-  border-color: #F4A782; background: rgba(244, 167, 130, 0.1);;
+  border-color: #4FD1C5; background: rgba(79, 209, 197, 0.1);;
   animation: shake 0.5s ease-in-out;
 }
 

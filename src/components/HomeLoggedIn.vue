@@ -16,8 +16,9 @@
           {{ t('home.loggedIn.needInspiration') }}
         </button>
       </div>
-      <div class="greeting-image">
-        <img src="@/assets/roket.png" alt="Rocket" class="rocket-img" />
+      <div class="artifact-container">
+        <img src="@/assets/crystal.png" alt="Rocket" class="magic-artifact" />
+        <div class="artifact-glow"></div>
       </div>
     </div>
     
@@ -1688,7 +1689,7 @@ onBeforeUnmount(() => {
   text-align: left;
   padding-left: 20px;
   border-left: 4px solid;
-  border-image: linear-gradient(to bottom, #7048E8, rgba(112, 72, 232, 0)) 1;
+  border-image: linear-gradient(to bottom, #4FD1C5, rgba(112, 72, 232, 0.5)) 1;
 }
 
 .greeting-image {
@@ -1735,7 +1736,7 @@ onBeforeUnmount(() => {
 }
 
 .greeting-text {
-  background: linear-gradient(90deg, #F4A782 0%, #7048E8 100%);
+  background: linear-gradient(90deg, #4FD1C5 0%, #7048E8 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1849,8 +1850,8 @@ onBeforeUnmount(() => {
 .streak-display-mobile {
   width: 100%;
   background: linear-gradient(135deg, #FFF5F0 0%, #FFEDE3 100%);
-  color: #FF8C42;
-  border: 1px solid rgba(255, 140, 66, 0.3);
+  color: #4FD1C5;
+  border: 1px solid rgba(79, 209, 197, 0.3);
   padding: 8px 16px;
   border-radius: 14px;
   font-family: 'Montserrat', sans-serif;
@@ -1891,10 +1892,14 @@ onBeforeUnmount(() => {
 }
 
 .section-subtitle {
+  color: #4FD1C5 !important; /* Твой оранжевый */
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-weight: 800;
+  /* Добавляем мягкое свечение, чтобы он "горел" на темном фоне */
+  text-shadow: 0 0 10px rgba(79, 209, 197, 0.4);
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 1.1rem;
-  font-weight: 700;
-  color: #F4A782;
   margin-bottom: 16px;
   padding-left: 4px;
 }
@@ -1902,7 +1907,7 @@ onBeforeUnmount(() => {
 .copy-to-tomorrow-btn {
   font-size: 0.75rem !important;
   font-weight: 600 !important;
-  color: #F4A782 !important;
+  color: #4FD1C5 !important;
   text-transform: none !important;
   padding: 4px 12px !important;
   min-width: auto !important;
@@ -2107,7 +2112,7 @@ onBeforeUnmount(() => {
 .progress-fill-vibrant {
   height: 100%;
   /* Градиент от фиолетового к розовому — выглядит энергично */
-  background: linear-gradient(90deg, #7048E8 0%, #BE4BDB 100%);
+  background: linear-gradient(90deg, #4FD1C5 0%, #7048E8 100%);
   border-radius: 20px;
   box-shadow: 0 2px 10px rgba(112, 72, 232, 0.3);
   transition: width 0.5s ease-in-out;
@@ -2124,13 +2129,13 @@ onBeforeUnmount(() => {
   transform: translateY(-50%);
   width: 10px;
   height: 10px;
-  background: #F4A782; /* Твой оранжевый Ignite */
+  background: #4FD1C5; /* Твой оранжевый Ignite */
   border-radius: 50%;
   
   /* Создаем эффект свечения */
   box-shadow: 
-    0 0 10px #F4A782, 
-    0 0 20px #F4A782, 
+    0 0 10px #4FD1C5, 
+    0 0 20px #4FD1C5, 
     0 0 5px #FFFFFF;
     
   /* Добавим легкую пульсацию, чтобы "огонек" казался живым */
@@ -2145,7 +2150,7 @@ onBeforeUnmount(() => {
   to {
     transform: translateY(-50%) scale(1.3);
     opacity: 1;
-    box-shadow: 0 0 15px #F4A782, 0 0 25px #F4A782;
+    box-shadow: 0 0 15px #4FD1C5, 0 0 25px #4FD1C5;
   }
 }
 
@@ -2238,7 +2243,7 @@ onBeforeUnmount(() => {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #F4A782;
+  color: #4FD1C5;
   opacity: 0.8;
   transition: color 0.3s ease, opacity 0.3s ease;
   margin-left: auto;
@@ -2348,7 +2353,7 @@ onBeforeUnmount(() => {
   transform: translateX(-50%);
   width: 250px;
   height: 250px;
-  background: radial-gradient(circle, rgba(244, 167, 130, 0.15) 0%, rgba(126, 70, 196, 0.1) 50%, transparent 70%);
+  background: radial-gradient(circle, rgba(79, 209, 197, 0.15) 0%, rgba(126, 70, 196, 0.1) 50%, transparent 70%);
   z-index: 0;
   pointer-events: none;
 }
@@ -2357,7 +2362,7 @@ onBeforeUnmount(() => {
 .icon-circle {
   width: 100px;
   height: 100px;
-  background: linear-gradient(135deg, #7E46C4 0%, #F4A782 100%);
+  background: linear-gradient(135deg, #7E46C4 0%, #4FD1C5 100%);
   border-radius: 30px;
   display: flex;
   align-items: center;
@@ -2374,7 +2379,7 @@ onBeforeUnmount(() => {
   font-size: 1.85rem;
   color: #FFFFFF;
   /* Легкое свечение текста в тон персика */
-  text-shadow: 0 0 15px rgba(244, 167, 130, 0.2);
+  text-shadow: 0 0 15px rgba(79, 209, 197, 0.2);
 }
 
 /* Сообщение */
@@ -2386,8 +2391,8 @@ onBeforeUnmount(() => {
 
 /* ОБНОВЛЕННАЯ КНОПКА (Твой градиент) */
 .celebration-button {
-  /* Градиент от #7E46C4 к #F4A782 */
-  background: linear-gradient(90deg, #7E46C4 0%, #F4A782 100%) !important;
+  /* Градиент от #7E46C4 к #4FD1C5 */
+  background: linear-gradient(90deg, #7E46C4 0%, #4FD1C5 100%) !important;
   color: white !important;
   border-radius: 18px !important;
   font-weight: 800 !important;
@@ -2402,7 +2407,7 @@ onBeforeUnmount(() => {
 .celebration-button:hover {
   transform: scale(1.03) translateY(-3px);
   /* Усиливаем свечение при наведении */
-  box-shadow: 0 15px 35px rgba(244, 167, 130, 0.4) !important;
+  box-shadow: 0 15px 35px rgba(79, 209, 197, 0.4) !important;
   filter: brightness(1.1);
 }
 
@@ -2454,14 +2459,14 @@ onBeforeUnmount(() => {
 }
 
 .plan-step-btn {
-  background: linear-gradient(135deg, #FF8C42 0%, #7048E8 100%) !important;
+  background: linear-gradient(135deg, #4FD1C5 0%, #7048E8 100%) !important;
   color: white !important;
   border-radius: 14px !important;
   font-weight: 700 !important;
   font-size: 1rem !important;
   padding: 6px 32px !important;
   text-transform: none !important;
-  box-shadow: 0 4px 15px rgba(255, 140, 66, 0.25) !important;
+  box-shadow: 0 4px 15px rgba(79, 209, 197, 0.25) !important;
   transition: all 0.3s ease !important;
 }
 
@@ -2601,7 +2606,7 @@ onBeforeUnmount(() => {
 
 .plan-step-btn {
   background: rgba(112, 72, 232, 0.1) !important;
-  color: #F4A782 !important; /* Персиковый акцент */
+  color: #4FD1C5 !important; /* Персиковый акцент */
   border: 1px solid rgba(112, 72, 232, 0.3) !important;
   text-transform: none !important;
   font-weight: 700 !important;
@@ -2672,5 +2677,40 @@ onBeforeUnmount(() => {
   box-sizing: border-box;
   overflow: visible !important;
   padding: 16px !important;
+}
+.artifact-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.magic-artifact {
+  width: 320px; /* Отрегулируй под свой макет */
+  /* Добавляем теплый оттенок самому изображению, чтобы оно не было слишком холодным */
+  filter: drop-shadow(0 0 20px rgba(112, 72, 232, 0.4)) sepia(20%) saturate(120%);
+  animation: floatArtifact 6s ease-in-out infinite;
+  mask-image: linear-gradient(to bottom, black 80%, transparent 100%); /* Мягкое растворение снизу */
+}
+
+.artifact-glow {
+  position: absolute;
+  width: 250px;
+  height: 250px;
+  /* Смешиваем фиолетовый и оранжевый в фоне артефакта */
+  background: radial-gradient(circle, rgba(79, 209, 197, 0.15) 0%, rgba(112, 72, 232, 0.1) 70%);
+  filter: blur(40px);
+  z-index: -1;
+  animation: pulseGlow 4s ease-in-out infinite;
+}
+
+@keyframes floatArtifact {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-20px) scale(1.02); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.3); }
 }
 </style>

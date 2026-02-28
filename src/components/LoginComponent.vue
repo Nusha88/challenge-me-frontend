@@ -256,10 +256,10 @@ function closeSuccessModal() {
 
 /* Кнопки и ссылки */
 .hero-gradient-btn {
-  background: linear-gradient(135deg, #7E46C4 0%, #F4A782 100%) !important;
+  background: linear-gradient(135deg, #7048E8 0%, #4FD1C5 100%) !important;
   border-radius: 16px !important;
   text-transform: none !important;
-  box-shadow: 0 10px 25px rgba(126, 70, 196, 0.3) !important;
+  box-shadow: 0 10px 25px rgba(112, 72, 232, 0.3) !important;
   color: white !important;
 }
 
@@ -276,7 +276,7 @@ function closeSuccessModal() {
 }
 
 .signup-text-btn {
-  color: #F4A782 !important; /* Акцентный цвет из градиента кнопки */
+  color: #4FD1C5 !important; /* Turquoise accent from gradient */
   font-weight: 800 !important;
   text-transform: none;
 }
@@ -366,14 +366,14 @@ function closeSuccessModal() {
 
 /* Цвет кнопки Sign Up, чтобы она не сливалась */
 .signup-text-btn {
-  color: #F4A782 !important; /* Оранжево-персиковый акцент из вашего градиента */
+  color: #4FD1C5 !important; /* Turquoise accent from gradient */
   font-weight: 800 !important;
   text-transform: none !important;
   letter-spacing: 0.5px;
 }
 
 .signup-text-btn:hover {
-  text-shadow: 0 0 10px rgba(244, 167, 130, 0.5);
+  text-shadow: 0 0 10px rgba(79, 209, 197, 0.5);
 }
 
 /* Дополнительно убедимся, что основной заголовок белый */
@@ -414,10 +414,10 @@ h2.text-h3 {
 /* Базовый стиль кнопки (убедись, что класс совпадает с тем, что в HTML) */
 /* Кнопки и ссылки */
 .hero-gradient-btn {
-  background: linear-gradient(135deg, #7E46C4 0%, #F4A782 100%) !important;
+  background: linear-gradient(135deg, #7048E8 0%, #4FD1C5 100%) !important;
   border-radius: 16px !important;
   text-transform: none !important;
-  box-shadow: 0 10px 25px rgba(126, 70, 196, 0.3) !important;
+  box-shadow: 0 10px 25px rgba(112, 72, 232, 0.3) !important;
   color: white !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   position: relative;
@@ -426,7 +426,7 @@ h2.text-h3 {
 
 .hero-gradient-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 15px 30px rgba(126, 70, 196, 0.6) !important;
+  box-shadow: 0 15px 30px rgba(112, 72, 232, 0.6) !important;
   filter: brightness(1.1);
 }
 

@@ -16,7 +16,7 @@
         
         <div class="ritual-badge-container mb-6">
           <v-chip
-            color="teal-accent-4"
+            :style="{ backgroundColor: '#7048E8', color: '#FFFFFF' }"
             variant="flat"
             label
             size="small"

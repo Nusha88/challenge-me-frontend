@@ -7,10 +7,22 @@
       </div>
       <p class="journal-subtitle-dark">{{ t('home.loggedIn.checklistHistory.subtitle') }}</p>
     </div>
-    
-    <div v-if="loading" class="journal-loading-container">
-      <IgniteLoader :loading-text="t('home.loggedIn.checklistHistory.loading', 'Loading your legend...')" />
-    </div>
+    <v-progress-linear v-if="loading" indeterminate color="teal-accent-4" class="mb-4 shadow-neon"></v-progress-linear>
+    <div v-if="loading" class="diary-skeleton-wrapper pa-6">
+  <div class="timeline-line-skeleton"></div>
+
+  <div v-for="n in 3" :key="n" class="timeline-item-skeleton mb-10">
+    <div class="timeline-dot-skeleton"></div>
+
+    <v-card class="skeleton-card-dark rounded-xl pa-5 ml-8">
+      <v-skeleton-loader type="subtitle" class="mb-4" theme="dark"></v-skeleton-loader>
+      
+      <v-skeleton-loader type="list-item-avatar@2" theme="dark"></v-skeleton-loader>
+      
+      <v-skeleton-loader type="actions" class="mt-4" theme="dark"></v-skeleton-loader>
+    </v-card>
+  </div>
+</div>
     
     <v-alert v-else-if="error" type="error" variant="tonal" class="mb-6 shadow-neon-red">
       {{ error }}
@@ -124,7 +136,10 @@
 .journal-header-dark {
   font-size: 2.2rem;
   font-weight: 900;
-  color: #FFFFFF;
+  background: linear-gradient(90deg, #4FD1C5 0%, #7048E8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
   letter-spacing: -1px;
   text-transform: uppercase;
 }
@@ -311,6 +326,51 @@
   .timeline-item-dark { padding-left: 24px; }
   .challenge-text-dark, .task-text-dark { font-size: 0.85rem !important; }
   .diamond-check { width: 12px; height: 12px; margin-right: 12px; }
+}
+.shadow-neon-line {
+  box-shadow: 0 0 10px rgba(79, 209, 197, 0.5);
+  border-radius: 4px;
+}
+
+/* Фикс белого цвета для скелетонов, если тема не подхватилась */
+:deep(.v-skeleton-loader) {
+  background-color: rgba(15, 23, 42, 0.6) !important;
+}
+
+:deep(.v-skeleton-loader__bone) {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+.diary-skeleton-wrapper {
+  position: relative;
+  max-width: 900px;
+}
+
+/* Вертикальная линия */
+.timeline-line-skeleton {
+  position: absolute;
+  left: 31px; /* Выровняй точно под свою линию из скрина */
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(79, 209, 197, 0.1);
+}
+
+/* Точки на линии */
+.timeline-dot-skeleton {
+  position: absolute;
+  left: 24px;
+  width: 16px;
+  height: 16px;
+  background: rgba(15, 23, 42, 1);
+  border: 2px solid rgba(79, 209, 197, 0.2);
+  border-radius: 4px; /* У тебя на скрине они квадратные/ромбовидные */
+  transform: rotate(45deg);
+  z-index: 2;
+}
+
+.skeleton-card-dark {
+  background: rgba(15, 23, 42, 0.6) !important;
+  border: 1px solid rgba(79, 209, 197, 0.1) !important;
 }
 </style>
 

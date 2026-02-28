@@ -46,7 +46,7 @@ defineProps({
   height: 64px;
   object-fit: contain;
   z-index: 10;
-  filter: drop-shadow(0 0 15px rgba(126, 70, 196, 0.8));
+  filter: drop-shadow(0 0 15px rgba(79, 209, 197, 0.6));
   animation: crystalFloat 3s ease-in-out infinite;
 }
 
@@ -56,7 +56,7 @@ defineProps({
   top: 32px; /* Центр кристалла */
   left: 50%;
   transform: translate(-50%, -50%);
-  border: 2px solid rgba(244, 167, 130, 0.4);
+  border: 2px solid rgba(79, 209, 197, 0.3);
   border-radius: 50%;
   z-index: 1;
   pointer-events: none;
@@ -80,9 +80,9 @@ defineProps({
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 3px;
-  color: #7E46C4;
+  color: #4FD1C5;
+  text-shadow: 0 0 10px rgba(79, 209, 197, 0.4);
   text-transform: uppercase;
-  text-shadow: 0 0 10px rgba(126, 70, 196, 0.3);
   font-family: 'Montserrat', sans-serif;
   white-space: nowrap;
 }
@@ -91,12 +91,11 @@ defineProps({
 
 @keyframes crystalFloat {
   0%, 100% { 
-    transform: translateY(0) scale(1);
-    filter: drop-shadow(0 0 15px rgba(126, 70, 196, 0.8));
+    filter: drop-shadow(0 0 15px rgba(79, 209, 197, 0.6));
   }
   50% { 
-    transform: translateY(-10px) scale(1.05);
-    filter: drop-shadow(0 0 25px rgba(244, 167, 130, 0.6));
+    filter: drop-shadow(0 0 25px rgba(79, 209, 197, 0.9));
+    transform: translateY(-12px) scale(1.08); /* Чуть больше динамики */
   }
 }
 

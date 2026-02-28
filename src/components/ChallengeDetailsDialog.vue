@@ -7,92 +7,69 @@
     @update:model-value="handleVisibility"
   >
     <v-card v-if="challenge" class="challenge-details-card rounded-xl overflow-hidden">
-      <!-- Header with Image -->
       <v-img
         :src="challenge.imageUrl || 'https://images.unsplash.com/photo-149485981460c-3834b3a25b5c?auto=format&fit=crop&q=80&w=1200'"
         height="280"
         cover
         class="align-end text-white header-image"
       >
-        <!-- Top Right Corner Icons -->
         <div class="header-actions">
-          <!-- Settings Button for Owners -->
           <v-btn
             v-if="isOwner"
             icon="mdi-pencil"
             variant="text"
             size="small"
-            color="white"
             @click.stop="router.push(`/missions/edit/${challenge._id}`)"
-            class="action-btn settings-btn"
+            class="action-btn"
           ></v-btn>
-          <!-- Share Menu -->
+          
           <v-menu location="bottom end">
             <template #activator="{ props: menuProps }">
               <v-btn
                 variant="text"
                 size="small"
-                color="white"
                 v-bind="menuProps"
-                class="action-btn share-btn"
+                class="action-btn"
                 icon="mdi-share-variant"
               ></v-btn>
             </template>
-            <v-list>
+            <v-list class="dark-menu-list">
               <v-list-item @click="copyLink">
-                <template #prepend>
-                  <v-icon>mdi-link</v-icon>
-                </template>
+                <template #prepend><v-icon size="18">mdi-link</v-icon></template>
                 <v-list-item-title>{{ t('challenges.share.copyLink') }}</v-list-item-title>
-              </v-list-item>
-              <v-list-item @click="shareToTelegram">
-                <template #prepend>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="#0088cc" xmlns="http://www.w3.org/2000/svg" style="margin-right: 31px;">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.13-.31-1.09-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.45.08-.01.15-.01.22-.01.23.01.33.05.45.12.1.06.13.1.15.17.01.07.01.22-.01.38z"/>
-                  </svg>
-                </template>
-                <v-list-item-title>{{ t('challenges.share.telegram') }}</v-list-item-title>
               </v-list-item>
             </v-list>
           </v-menu>
+
           <v-btn
             icon="mdi-close"
             variant="text"
             size="small"
-            color="white"
             @click.stop="handleVisibility(false)"
-            class="action-btn close-btn"
+            class="action-btn"
           ></v-btn>
         </div>
 
         <div class="header-overlay">
-          <div class="header-content px-6 py-4">
-            <div class="d-flex align-center gap-2 mb-2">
+          <div class="header-content px-6 py-6">
+            <div class="d-flex align-center gap-2 mb-3">
               <v-chip
                 size="x-small"
-                :color="challenge.challengeType === 'habit' ? 'teal-accent-3' : 'deep-purple-accent-2'"
-                class="font-weight-black text-uppercase"
-                variant="elevated"
+                :class="challenge.challengeType === 'habit' ? 'chip-habit' : 'chip-result'"
+                class="font-weight-black text-uppercase px-3"
               >
                 {{ challenge.challengeType === 'habit' ? t('challenges.typeHabitLabel') : t('challenges.typeResultLabel') }}
-          </v-chip>
-        <v-icon
-          v-if="challenge.privacy === 'private'"
-                color="white"
-                size="16"
-                class="ml-1"
-        >
-          mdi-lock
-        </v-icon>
+              </v-chip>
+              <v-icon v-if="challenge.privacy === 'private'" color="rgba(255,255,255,0.5)" size="14">mdi-lock</v-icon>
             </div>
             
             <h2 class="text-h4 font-weight-bold mb-2 challenge-title">
               {{ challenge.title }}
             </h2>
 
-            <div class="d-flex align-center date-info opacity-90">
-              <v-icon size="16" class="mr-2">mdi-calendar-clock</v-icon>
-              <span class="text-caption">
+            <div class="d-flex align-center date-info">
+              <v-icon size="16" color="#4FD1C5" class="mr-2">mdi-calendar-clock</v-icon>
+              <span class="text-caption opacity-80">
                 {{ formatDisplayDate(challenge.startDate) }} — {{ formatDisplayDate(challenge.endDate) }}
               </span>
             </div>
@@ -100,269 +77,355 @@
         </div>
       </v-img>
 
-      <!-- Tabs -->
-      <v-card-text class="pa-0 bg-grey-lighten-4">
-        <v-tabs v-model="tab" grow bg-color="white" color="primary">
-          <v-tab value="progress">{{ t('challenges.progress') }}</v-tab>
-          <v-tab value="details">{{ t('challenges.about') }}</v-tab>
-          <v-tab value="community">{{ t('challenges.diary.title') }}</v-tab>
-        </v-tabs>
+      <v-tabs v-model="tab" grow class="custom-tabs">
+        <v-tab value="progress">{{ t('challenges.progress') }}</v-tab>
+        <v-tab value="details">{{ t('challenges.about') }}</v-tab>
+        <v-tab value="community">{{ t('challenges.diary.title') }}</v-tab>
+      </v-tabs>
 
+      <v-card-text class="pa-0 modal-body-bg">
         <v-window v-model="tab" class="pa-6">
-          <!-- Progress Tab -->
+          
           <v-window-item value="progress">
-            <template v-if="challenge.challengeType === 'habit' && challenge.startDate && challenge.endDate">
-              <v-card variant="flat" class="pa-4 rounded-lg border mb-4">
-                <div class="d-flex justify-space-between align-center mb-4">
-                  <span class="text-subtitle-1 font-weight-bold"></span>
-                  <v-chip size="small" variant="tonal" color="primary">
-                    {{ currentDayText }}
-                  </v-chip>
+            <div class="tab-content-wrapper">
+              <template v-if="challenge.challengeType === 'habit'">
+                <div class="d-flex justify-space-between align-center mb-6">
+                  <h3 class="section-title">{{ t('challenges.progress') }}</h3>
+                  <v-chip size="small" variant="outlined" color="#4FD1C5">{{ currentDayText }}</v-chip>
                 </div>
-                
-                <!-- Calendar Mode Toggle for Team View -->
-                <div v-if="challenge.privacy !== 'private' && canViewPersonalProgress && challenge.participants.length > 1" class="calendar-mode-toggle mb-4">
-                <v-btn-toggle
-                  v-model="calendarViewMode"
-                  mandatory
-                  class="calendar-toggle-group"
-                  color="primary"
-                  variant="outlined"
-                    density="compact"
-                >
-                  <v-btn value="personal">{{ t('challenges.myProgress') }}</v-btn>
-                  <v-btn value="team">{{ t('challenges.teamProgress') }}</v-btn>
-                </v-btn-toggle>
-            </div>
 
-                <!-- Calendar Grid -->
-                <div v-if="challenge.privacy === 'private' || (canViewPersonalProgress && calendarViewMode === 'personal')" class="calendar-wrapper">
-
-                  <div class="calendar-grid">
-                    <div 
-                      v-for="day in calendarDays" 
-                      :key="day.date"
-                      class="day-cell"
-                      :class="getDayClass(day)"
-                      @click="toggleDay(day)"
+                <div class="calendar-grid">
+                  <div 
+                    v-for="day in calendarDays" 
+                    :key="day.date"
+                    class="day-cell"
+                    :class="getDayClass(day)"
+                    @click="toggleDay(day)"
+                  >
+                    <span class="day-number">{{ day.number }}</span>
+                    <v-icon 
+                      v-if="day.isToday && day.isCompleted" 
+                      size="12" 
+                      color="#4CAF50" 
+                      class="today-checkmark"
                     >
-                      <span class="day-number">{{ day.number }}</span>
-                      <div v-if="day.isCompleted" class="status-dot"></div>
-                    </div>
+                      mdi-check-circle
+                    </v-icon>
                   </div>
+                </div>
 
-                  <div class="calendar-legend d-flex flex-wrap gap-4 mt-6">
-                    <div class="legend-item">
-                      <span class="dot completed"></span>
-                      {{ t('challenges.completed') }}
-                    </div>
-                    <div class="legend-item">
-                      <span class="dot missed"></span>
-                      {{ t('challenges.missed') }}
-                    </div>
-                    <div class="legend-item">
-                      <span class="dot today"></span>
-                      {{ t('challenges.today') }}
-                    </div>
-                  </div>
-              </div>
+                <div class="calendar-legend mt-8">
+                  <div class="legend-item"><span class="dot completed"></span> {{ t('challenges.completed') }}</div>
+                  <div class="legend-item"><span class="dot missed"></span> {{ t('challenges.missed') }}</div>
+                  <div class="legend-item"><span class="dot today"></span> {{ t('challenges.today') }}</div>
+                </div>
+              </template>
 
-                <!-- Team Calendar View -->
-                <div v-else>
-                  <TeamCalendarView
-                    :start-date="challenge.startDate"
-                    :end-date="challenge.endDate"
-                    :participants="challenge.participants || []"
-                    :frequency="challenge.frequency"
-                    @participant-clicked="handleParticipantClick"
-                  />
-              </div>
-              </v-card>
-            </template>
-            <template v-else-if="challenge.challengeType === 'result'">
-              <v-card variant="flat" class="pa-4 rounded-lg border">
-                <div class="d-flex justify-space-between align-center mb-4">
-                  <span class="text-subtitle-1 font-weight-bold">{{ t('challenges.progress') }}</span>
-                  <v-chip size="small" variant="tonal" color="primary">
-                    {{ progressPercentage }}%
-                  </v-chip>
-              </div>
+              <template v-else>
+                <div class="d-flex justify-space-between mb-2">
+                  <span class="section-title">{{ progressPercentage }}% {{ t('challenges.completed') }}</span>
+                </div>
                 <v-progress-linear
                   :model-value="progressPercentage"
-                  color="primary"
-                  height="24"
+                  color="#4FD1C5"
+                  height="10"
                   rounded
-                  class="mb-4"
+                  class="mission-progress mb-6"
                 ></v-progress-linear>
-              <ChallengeActions
-                  :model-value="challenge.actions || []"
-                  :readonly="!isOwner"
-              />
-              </v-card>
-            </template>
-          </v-window-item>
-
-          <!-- About Tab -->
-          <v-window-item value="details">
-            <div class="about-section pa-4">
-              <v-row dense class="mb-6">
-                <v-col cols="4" v-for="item in missionStats" :key="item.label">
-                  <v-card variant="tonal" class="pa-3 text-center rounded-lg" :color="item.color">
-                    <v-icon :icon="item.icon" size="20" class="mb-1"></v-icon>
-                    <div class="text-caption text-uppercase font-weight-bold" style="font-size: 0.65rem">
-                      {{ item.label }}
-                    </div>
-                    <div class="text-body-2 font-weight-black">{{ item.value }}</div>
-                  </v-card>
-                </v-col>
-              </v-row>
-
-              <h3 class="text-h6 font-weight-bold mb-2">{{ t('challenges.description') }}</h3>
-              <p class="text-body-2 text-grey-darken-2 mb-6">
-                {{ challenge.description }}
-              </p>
-
-              <v-divider class="mb-6"></v-divider>
-
-              <div class="d-flex align-center bg-grey-lighten-4 pa-3 rounded-xl">
-                <v-avatar size="40" :image="challenge.owner?.avatarUrl" class="mr-3">
-                  <span v-if="!challenge.owner?.avatarUrl">{{ getOwnerInitial() }}</span>
-                </v-avatar>
-                <div>
-                  <div class="text-caption text-grey">{{ t('challenges.createdByLabel') }}</div>
-                  <div class="text-body-2 font-weight-bold">{{ challenge.owner?.name || t('common.unknown') }}</div>
-                </div>
-              <v-spacer></v-spacer>
-              <v-btn 
-                  variant="text" 
-                  size="small" 
-                color="primary" 
-                  @click="navigateToOwner"
-              >
-                  {{ t('challenges.viewProfile') }}
-              </v-btn>
-          </div>
+                <ChallengeActions :model-value="challenge.actions || []" :readonly="!isOwner" />
+              </template>
             </div>
           </v-window-item>
 
-          <!-- Diary Tab -->
+          <v-window-item value="details">
+            <v-row dense class="mb-8">
+              <v-col cols="4" v-for="item in missionStats" :key="item.label">
+                <div class="stat-card">
+                  <v-icon :icon="item.icon" size="18" :color="item.color || '#4FD1C5'"></v-icon>
+                  <div class="stat-label">{{ item.label }}</div>
+                  <div class="stat-value">{{ item.value }}</div>
+                </div>
+              </v-col>
+            </v-row>
+
+            <h3 class="section-title mb-3">{{ t('challenges.description') }}</h3>
+            <p class="description-text mb-8">{{ challenge.description }}</p>
+
+            <div class="owner-box pa-4 rounded-lg">
+              <v-avatar size="40" class="owner-avatar mr-4">
+                <v-img v-if="challenge.owner?.avatarUrl" :src="challenge.owner.avatarUrl" cover></v-img>
+                <span v-else>{{ getOwnerInitial() }}</span>
+              </v-avatar>
+              <div>
+                <div class="text-caption opacity-60">{{ t('challenges.createdByLabel') }}</div>
+                <div class="font-weight-bold">{{ challenge.owner?.name || 'Unknown Hero' }}</div>
+              </div>
+              <v-spacer></v-spacer>
+              <v-btn variant="text" size="small" color="#4FD1C5" @click="navigateToOwner">
+                {{ t('challenges.viewProfile') }}
+              </v-btn>
+            </div>
+          </v-window-item>
+
           <v-window-item value="community">
-            <v-card variant="flat" class="pa-4 rounded-lg border">
-              <div v-if="!isFinished">
-                <CommentsComponent
-                  :challenge-id="challenge._id"
-                  :allow-comments="isOwner ? editForm.allowComments : (challenge.allowComments !== undefined ? challenge.allowComments : true)"
-                  :current-user-id="currentUserId"
-                  :is-owner="isOwner"
-                  :challenge-start-date="isOwner ? editForm.startDate : challenge.startDate"
-                  :challenge-end-date="isOwner ? editForm.endDate : challenge.endDate"
-                  :challenge-type="challenge.challengeType"
-                  :challenge-owner="challenge.owner"
-                  :challenge-participants="challenge.participants || []"
-                  @comment-added="handleCommentAdded"
-                  @comment-deleted="handleCommentDeleted"
-                  @user-navigated="handleUserNavigated"
-                  @join="emitJoin"
-                />
-          </div>
-              <v-alert v-else type="info">
+            <div class="diary-container">
+              <CommentsComponent
+                v-if="!isFinished"
+                :challenge-id="challenge._id"
+                :allow-comments="challenge.allowComments"
+                :current-user-id="currentUserId"
+                :is-owner="isOwner"
+                :challenge-type="challenge.challengeType"
+                :challenge-start-date="challenge.startDate"
+                :challenge-end-date="challenge.endDate"
+                :challenge-owner="challenge.owner"
+                :challenge-participants="challenge.participants || []"
+                @join="emitJoin"
+              />
+              <v-alert v-else type="info" variant="tonal" class="rounded-xl">
                 {{ t('challenges.finishedChallengeComments') }}
-          </v-alert>
-            </v-card>
+              </v-alert>
+            </div>
           </v-window-item>
         </v-window>
       </v-card-text>
 
-      <v-divider></v-divider>
-      <v-card-actions class="modal-actions-footer px-6 py-4">
-  <div class="d-flex align-center gap-2">
-        <v-btn 
-      variant="text" 
-      color="grey-darken-1" 
-      class="text-none font-weight-medium"
-          @click="handleClose"
-        >
+      <v-card-actions class="modal-footer px-6 py-4">
+        <v-btn variant="text" color="rgba(255,255,255,0.5)" @click="handleClose">
           {{ t('common.close') }}
         </v-btn>
-
-    <v-btn
-      v-if="showLeaveButton"
-      color="error"
-      variant="text"
-      size="small"
-      class="text-none opacity-70"
-      :loading="leaveLoading"
-      @click="emitLeave"
-    >
-      {{ t('challenges.giveUp') }}
-    </v-btn>
-  </div>
+        
+        <v-btn v-if="showLeaveButton" color="#ff5252" variant="text" @click="emitLeave">
+          {{ t('challenges.giveUp') }}
+        </v-btn>
 
         <v-spacer></v-spacer>
 
-  <div class="d-flex align-center gap-3">
-        <v-btn
-      v-if="!isOwner && !isFinished && currentUserId"
-      :variant="isWatched ? 'text' : 'outlined'"
-      :color="isWatched ? 'grey-darken-2' : 'primary'"
-      class="text-none px-4 rounded-lg"
-      :loading="watchingId === challenge._id"
-      @click="isWatched ? handleUnwatch() : handleWatch()"
-    >
-      <v-icon start size="small">
-        {{ isWatched ? 'mdi-eye-off-outline' : 'mdi-eye-outline' }}
-      </v-icon>
-      {{ isWatched ? t('challenges.unwatch') : t('challenges.watch') }}
-        </v-btn>
+        <div class="d-flex gap-3">
+          <v-btn
+            v-if="!isOwner && !isFinished && currentUserId && !isCurrentUserParticipant"
+            variant="outlined"
+            :color="isWatched ? '#4FD1C5' : 'rgba(255,255,255,0.3)'"
+            class="rounded-lg action-outline-btn"
+            @click="isWatched ? handleUnwatch() : handleWatch()"
+          >
+            <v-icon start size="18">{{ isWatched ? 'mdi-eye-off' : 'mdi-eye' }}</v-icon>
+            {{ isWatched ? t('challenges.unwatch') : t('challenges.watch') }}
+          </v-btn>
 
-        <v-btn
-      v-if="showJoinButton || (isCurrentUserParticipant && challenge.challengeType === 'habit')"
-          color="primary"
-      variant="elevated"
-      elevation="4"
-      class="main-action-btn text-none px-10"
-      :loading="joinLoading || participantSaveLoading"
-      @click="showJoinButton ? emitJoin() : handleParticipantSave()"
-    >
-      {{ showJoinButton ? t('challenges.joinMission') : t('challenges.saveProgress') }}
-        </v-btn>
-  </div>
+          <v-btn
+            v-if="showJoinButton || (isCurrentUserParticipant && challenge.challengeType === 'habit' && !isFinished)"
+            class="main-action-btn"
+            :loading="joinLoading"
+            @click="showJoinButton ? emitJoin() : handleParticipantSave()"
+          >
+            {{ showJoinButton ? t('challenges.joinMission') : t('challenges.saveProgress') }}
+          </v-btn>
+        </div>
       </v-card-actions>
     </v-card>
-
-    <!-- Delete Confirmation Dialog -->
-    <v-dialog v-model="deleteConfirmDialog" max-width="500" persistent>
-      <v-card>
-        <v-card-title class="text-h6">
-          {{ t('challenges.deleteConfirmTitle') }}
-        </v-card-title>
-        <v-card-text>
-          {{ t('challenges.deleteConfirmMessage') }}
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn
-            variant="text"
-            @click="deleteConfirmDialog = false"
-            :disabled="deleteLoading"
-          >
-            {{ t('common.cancel') }}
-          </v-btn>
-          <v-btn
-            variant="flat"
-            color="error"
-            @click="confirmDelete"
-            :loading="deleteLoading"
-            :disabled="deleteLoading"
-          >
-            {{ t('challenges.delete') }}
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
   </v-dialog>
 </template>
 
+<style scoped>
+/* --- ПЕРЕМЕННЫЕ И БАЗА --- */
+.challenge-details-card {
+  background: #0f172a !important; /* Глубокий темно-синий из твоей темы */
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.modal-body-bg { background: #0f172a !important; }
+
+/* --- HEADER --- */
+.header-overlay {
+  background: linear-gradient(to bottom, rgba(15, 23, 42, 0) 0%, rgba(15, 23, 42, 0.95) 100%);
+}
+
+.header-actions {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(30, 41, 59, 0.7);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.action-btn { color: white !important; opacity: 0.8; }
+.action-btn:hover { opacity: 1; background: rgba(255,255,255,0.1); }
+
+.chip-habit { background-color: #7048E8 !important; box-shadow: 0 0 10px rgba(112, 72, 232, 0.4); }
+.chip-result { background-color: #4FD1C5 !important; box-shadow: 0 0 10px rgba(79, 209, 197, 0.4); }
+
+/* --- TABS --- */
+.custom-tabs {
+  background: #1e293b !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.custom-tabs :deep(.v-tab) {
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+.custom-tabs :deep(.v-tab--selected) { color: #4FD1C5 !important; }
+
+/* --- CALENDAR --- */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+}
+.day-cell {
+  aspect-ratio: 1;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.4);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+  position: relative;
+}
+.day-cell.is-completed {
+  background: rgba(79, 209, 197, 0.1) !important;
+  border-color: #4FD1C5 !important;
+  color: #4FD1C5 !important;
+  box-shadow: inset 0 0 8px rgba(79, 209, 197, 0.2);
+}
+.day-cell.is-today {
+  border-color: #F4A782 !important;
+  color: #F4A782 !important;
+}
+
+/* --- PROGRESS BAR (GLOW) --- */
+.mission-progress {
+  background: rgba(255, 255, 255, 0.05) !important;
+  overflow: visible !important;
+}
+.mission-progress :deep(.v-progress-linear__determinate) {
+  box-shadow: 0 0 15px 2px rgba(79, 209, 197, 0.4);
+  border-radius: 10px;
+}
+
+/* --- STATS --- */
+.stat-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 12px;
+  border-radius: 14px;
+  text-align: center;
+}
+.stat-label { font-size: 0.65rem; text-transform: uppercase; opacity: 0.5; margin-top: 4px; }
+.stat-value { font-size: 0.9rem; font-weight: 800; }
+
+.owner-box {
+  background: rgba(30, 41, 59, 0.5);
+  display: flex;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.owner-avatar {
+  border: 2px solid rgba(79, 209, 197, 0.3) !important;
+  flex-shrink: 0;
+}
+
+.owner-avatar span {
+  color: #FFFFFF;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+/* --- FOOTER --- */
+.modal-footer {
+  background: #0f172a !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+.main-action-btn {
+  background: linear-gradient(135deg, #7048E8 0%, #4FD1C5 100%) !important;
+  color: white !important;
+  font-weight: 800 !important;
+  text-transform: uppercase;
+  border-radius: 12px !important;
+  padding: 0 32px !important;
+  box-shadow: 0 4px 15px rgba(79, 209, 197, 0.3) !important;
+}
+
+.action-outline-btn { text-transform: none; border-color: rgba(255, 255, 255, 0.1) !important; }
+
+.section-title {
+  color: #4FD1C5;
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+/* Контейнер легенды */
+.calendar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 24px;
+  justify-content: flex-start;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Общий стиль для индикаторов (вместо простых точек) */
+.dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px; /* Мягкий квадрат как в сетке */
+  border: 1px solid transparent;
+  transition: all 0.3s ease;
+}
+
+/* Конкретные состояния для легенды и сетки */
+.dot.completed, .day-cell.is-completed {
+  background: rgba(79, 209, 197, 0.1) !important;
+  border: 1px solid #4FD1C5 !important;
+  box-shadow: 0 0 8px rgba(79, 209, 197, 0.3);
+}
+
+.dot.missed, .day-cell.is-missed {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.dot.today, .day-cell.is-today {
+  background: rgba(244, 167, 130, 0.05) !important;
+  border: 1px solid #F4A782 !important;
+  box-shadow: 0 0 10px rgba(244, 167, 130, 0.4);
+  position: relative;
+}
+
+.today-checkmark {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  filter: drop-shadow(0 0 3px rgba(76, 175, 80, 0.6));
+  z-index: 2;
+}
+.legend-item {
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  font-size: 0.7rem;
+}
+</style>
 <script setup>
 import { reactive, ref, watch, computed, nextTick, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -1455,300 +1518,3 @@ async function handleUnwatch() {
   }
 }
 </script>
-
-<style scoped>
-/* Header Image */
-.header-image {
-  position: relative;
-}
-
-/* Header Actions - Top Right Corner */
-.header-actions {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(4px);
-  border-radius: 24px;
-  padding: 4px;
-}
-
-.action-btn {
-  color: white !important;
-  min-width: 36px !important;
-  width: 36px !important;
-  height: 36px !important;
-}
-
-.action-btn:hover {
-  background-color: rgba(255, 255, 255, 0.2) !important;
-}
-
-/* Header Overlay */
-.header-overlay {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: flex-end;
-  background: linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0) 0%,
-    rgba(0, 0, 0, 0.2) 40%,
-    rgba(0, 0, 0, 0.8) 100%
-  );
-}
-
-.header-content {
-  width: 100%;
-  backdrop-filter: blur(2px);
-}
-
-.challenge-title {
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-  line-height: 1.2;
-  letter-spacing: -0.5px;
-}
-
-.date-info {
-  font-family: 'Roboto', sans-serif;
-  letter-spacing: 0.5px;
-}
-
-/* Tabs */
-:deep(.v-tabs) {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-:deep(.v-tab) {
-  text-transform: none !important;
-  font-weight: 600;
-  letter-spacing: 0;
-}
-
-/* Calendar Grid */
-.calendar-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 12px;
-  max-width: 450px;
-  margin: 0 auto;
-}
-
-.day-cell {
-  aspect-ratio: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: #f1f5f9;
-  color: #64748b;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  position: relative;
-  border: 2px solid transparent;
-}
-
-.day-cell.is-completed {
-  background: #ecfdf5;
-  color: #059669;
-}
-
-.day-cell.is-missed {
-  background: #fef2f2;
-  color: #dc2626;
-}
-
-.day-cell.is-today {
-  border-color: #0d9488;
-  color: #0d9488;
-  font-weight: 700;
-  box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.2);
-}
-
-.day-cell.is-locked {
-  opacity: 0.5;
-  cursor: not-allowed;
-  background: #f8fafc;
-}
-
-.day-cell:hover:not(.is-locked) {
-  transform: scale(1.1);
-  filter: brightness(0.95);
-}
-
-.status-dot {
-  width: 4px;
-  height: 4px;
-  background: currentColor;
-  border-radius: 50%;
-  margin-top: 2px;
-}
-
-.calendar-legend {
-  font-size: 0.75rem;
-  color: #64748b;
-  justify-content: center;
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  margin-right: 16px;
-}
-
-.dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  margin-right: 6px;
-}
-
-.dot.completed {
-  background: #059669;
-}
-
-.dot.missed {
-  background: #dc2626;
-}
-
-.dot.today {
-  border: 2px solid #0d9488;
-}
-
-.calendar-wrapper {
-  padding: 0;
-}
-
-.calendar-header {
-  margin-bottom: 16px;
-}
-
-.days-counter {
-  font-size: 0.875rem;
-}
-
-.frequency-privacy-row {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-}
-
-@media (min-width: 600px) {
-  .frequency-privacy-row {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-.duration-row {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-}
-
-.duration-privacy-row {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-}
-
-@media (min-width: 600px) {
-  .duration-privacy-row {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-.calendar-mode-toggle {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 16px;
-}
-
-.calendar-toggle-group {
-  background-color: #f5f5f5;
-  border-radius: 8px;
-  padding: 4px;
-}
-
-/* About Section Styles */
-.about-section {
-  line-height: 1.6;
-}
-
-.about-section h3 {
-  letter-spacing: -0.5px;
-  color: #1a202c;
-}
-
-/* Effect for stats cards */
-.v-card--variant-tonal {
-  opacity: 0.9;
-  transition: transform 0.2s;
-}
-
-.v-card--variant-tonal:hover {
-  transform: translateY(-2px);
-  opacity: 1;
-}
-.modal-actions-footer {
-  background: #ffffff;
-  border-top: 1px solid #f1f5f9;
-  /* Для iPhone с челкой снизу */
-  padding-bottom: calc(16px + env(safe-area-inset-bottom)) !important;
-}
-
-/* Сетка для кнопок */
-.gap-2 { gap: 8px; }
-.gap-3 { gap: 12px; }
-
-/* Главная кнопка с градиентом или акцентом */
-.main-action-btn {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
-  border-radius: 12px !important; /* Более мягкий квадрат, чем pill */
-  height: 44px !important;
-  font-size: 0.95rem !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.5px;
-  transition: all 0.2s ease;
-}
-
-.main-action-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 15px rgba(37, 99, 235, 0.3) !important;
-}
-
-/* Улучшаем читаемость кнопок с текстом */
-.opacity-70 {
-  opacity: 0.7;
-}
-.opacity-70:hover {
-  opacity: 1;
-}
-
-/* Мобильная адаптация: если кнопок много, они не должны слипаться */
-@media (max-width: 600px) {
-  .modal-actions-footer {
-    flex-direction: column-reverse; /* Главная кнопка будет сверху под пальцем */
-    gap: 12px;
-  }
-  
-  .modal-actions-footer .v-spacer {
-    display: none;
-  }
-  
-  .main-action-btn {
-    width: 100%; /* На мобилках кнопка на всю ширину удобнее */
-  }
-  
-  .d-flex {
-    width: 100%;
-    justify-content: center;
-  }
-}
-</style>

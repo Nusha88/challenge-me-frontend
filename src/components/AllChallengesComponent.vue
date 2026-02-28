@@ -8,15 +8,23 @@
   <div class="text-overline text-teal-accent-4 tracking-widest ml-13">Strategic Operations Center</div>
   <p class="journal-subtitle-dark mt-2">Join existing squads or discover new rituals to master.</p>
 </div>
-
+<v-progress-linear
+      v-if="loadingMainRitual"
+      indeterminate
+      color="teal-accent-4"
+      height="4"
+      class="mb-6 shadow-neon-line"
+    ></v-progress-linear>
     <!-- Main Ritual Card with Skeleton -->
-    <div v-if="loadingMainRitual" class="main-ritual-skeleton mb-8">
-      <v-skeleton-loader
-        type="image, article"
-        height="400"
-        class="main-ritual-skeleton-loader"
-      ></v-skeleton-loader>
-    </div>
+    <div v-if="loadingMainRitual" class="main-ritual-loading-wrapper mb-8">
+  <v-card class="skeleton-card-dark rounded-xl overflow-hidden">
+    <v-skeleton-loader
+      type="image, list-item-two-line, actions"
+      class="main-ritual-skeleton-loader"
+      theme="dark"
+    ></v-skeleton-loader>
+  </v-card>
+</div>
     <MainRitualCard
       v-else-if="mainRitual"
       :challenge="mainRitual"
@@ -29,13 +37,18 @@
     <FilterPanel v-model="filters" @search="handleFilterSearch" />
 
     <div class="content-section">
-      <div v-if="loading && !loadingMore" class="challenges-grid">
-  <v-skeleton-loader
+      <div v-if="loading" class="challenges-grid-skeleton">
+  <v-card
     v-for="n in 6"
     :key="n"
-    type="card, list-item-two-line"
-    class="skeleton-card"
-  ></v-skeleton-loader>
+    class="skeleton-card-dark rounded-xl overflow-hidden mb-6"
+    variant="flat"
+  >
+    <v-skeleton-loader
+      type="image, list-item-two-line, text"
+      class="custom-skeleton"
+    ></v-skeleton-loader>
+  </v-card>
 </div>
 
       <transition-group v-else name="staggered-fade" tag="div" class="challenges-grid">
@@ -1003,6 +1016,55 @@ function handleOwnerNavigated() {
   gap: 20px; /* Увеличили зазор для "маневра" карточек */
   padding: 20px 4px; /* Чтобы поднятая карточка не обрезалась сверху */
 }
+/* Обертка с мягким неоновым свечением по краям */
+.main-ritual-loading-wrapper {
+  position: relative;
+  background: rgba(15, 23, 42, 0.5); /* Цвет твоего фона из скринов */
+  border-radius: 24px;
+  border: 1px solid rgba(79, 209, 197, 0.1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.skeleton-card-dark {
+  background: #0B0E14 !important; /* Глубокий черный как на карточках */
+}
+
+/* Кастомизация самого лоадера под Cyberpunk стиль */
+:deep(.main-ritual-skeleton-loader) {
+  background: transparent !important;
+}
+
+/* Цвет костей скелетона */
+:deep(.v-skeleton-loader__bone) {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Анимация перелива (блика) */
+:deep(.v-skeleton-loader__bone::after) {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(79, 209, 197, 0.1), /* Твой фирменный бирюзовый в блике */
+    transparent
+  ) !important;
+}
+
+/* Специфичные правки для блоков */
+:deep(.v-skeleton-loader__image) {
+  height: 240px !important;
+  margin-bottom: 16px;
+}
+
+:deep(.v-skeleton-loader__text),
+:deep(.v-skeleton-loader__heading) {
+  background: rgba(255, 255, 255, 0.08) !important;
+  margin: 12px 24px;
+}
+
+:deep(.v-skeleton-loader__actions) {
+  padding: 16px 24px;
+  justify-content: flex-start !important;
+}
 
 /* Анимация появления карточек */
 .staggered-fade-enter-active,
@@ -1075,4 +1137,74 @@ function handleOwnerNavigated() {
 .main-ritual-skeleton-loader {
   border-radius: 20px;
   }
+  /* Контейнер сетки (используй те же настройки, что и для реальной сетки) */
+.challenges-grid-skeleton {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 24px;
+}
+
+/* Темная подложка карточки */
+.skeleton-card-dark {
+  background: rgba(15, 23, 42, 0.6) !important; /* Цвет фона карточки */
+  border: 1px solid rgba(79, 209, 197, 0.1) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* Глубокая кастомизация костей скелетона */
+:deep(.custom-skeleton) {
+  background: transparent !important;
+}
+
+/* Цвет самих "костей" */
+:deep(.v-skeleton-loader__bone) {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Эффект блика (анимация перелива) */
+:deep(.v-skeleton-loader__bone::after) {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(79, 209, 197, 0.08), /* Бирюзовое свечение вместо белого */
+    transparent
+  ) !important;
+}
+
+/* Настройка высоты элементов */
+:deep(.v-skeleton-loader__image) {
+  height: 180px !important;
+}
+
+:deep(.v-skeleton-loader__list-item-two-line) {
+  padding: 16px !important;
+  background: transparent !important;
+}
+
+:deep(.v-skeleton-loader__text) {
+  margin: 0 16px 16px 16px !important;
+  max-width: 80%;
+  height: 8px !important; /* Имитация тонкого прогресс-бара */
+}
+
+/* Адаптация под мобилки */
+@media (max-width: 480px) {
+  .challenges-grid-skeleton {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+.shadow-neon-line {
+  box-shadow: 0 0 10px rgba(79, 209, 197, 0.5);
+  border-radius: 4px;
+}
+
+/* Фикс белого цвета для скелетонов, если тема не подхватилась */
+:deep(.v-skeleton-loader) {
+  background-color: rgba(15, 23, 42, 0.6) !important;
+}
+
+:deep(.v-skeleton-loader__bone) {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
 </style>

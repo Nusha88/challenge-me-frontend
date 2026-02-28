@@ -1,52 +1,290 @@
 <template>
-  <div class="calendar-wrapper">
-    <div class="challenge-calendar" :class="{ 'has-scroll': needsScroll }">
-      <div
-        v-for="(day, index) in days"
-        :key="index"
-        class="day-circle"
-        :class="{
-          'day-marked': day.marked,
-          'day-today': day.isToday,
-          'day-disabled': day.disabled,
-          'day-in-range': day.inRange,
-          'day-missed': day.missed
-        }"
-        @click="toggleDay(day)"
-      >
-        <span class="day-number">
-          {{ formatDay(day.date) }}
-          <span v-if="day.marked" class="day-check">✔</span>
-        </span>
+  <div class="calendar-tactical-wrapper">
+    <div class="calendar-container glass-card">
+      <div class="challenge-calendar" :class="{ 'has-scroll': needsScroll }">
+        <div
+          v-for="(day, index) in days"
+          :key="index"
+          class="day-slot"
+          :class="{
+            'day-marked': day.marked,
+            'day-today': day.isToday,
+            'day-disabled': day.disabled,
+            'day-missed': day.missed && !day.marked
+          }"
+          @click="toggleDay(day)"
+        >
+          <div class="day-hex-bg"></div>
+          <div class="day-content">
+            <span class="day-label">{{ formatDay(day.date) }}</span>
+            <v-icon v-if="day.marked" size="10" class="status-icon">mdi-check-bold</v-icon>
+            <v-icon v-else-if="day.missed && !day.marked" size="10" class="status-icon">mdi-close-thick</v-icon>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="calendar-legend">
-      <div class="legend-item">
-        <span class="legend-dot legend-marked"></span>
-        <span>{{ t('challenges.calendarLegend.completed') }}</span>
-      </div>
-
-      <div class="legend-item">
-        <span class="legend-dot legend-missed"></span>
-        <span>{{ t('challenges.calendarLegend.missed') }}</span>
-      </div>
-
-      <div class="legend-item">
-        <span class="legend-dot legend-today"></span>
-        <span>{{ t('challenges.calendarLegend.today') }}</span>
-      </div>
-
-      <div class="legend-item">
-        <span class="legend-dot legend-disabled"></span>
-        <span>{{ t('challenges.calendarLegend.unavailable') }}</span>
+    <div class="calendar-legend-bar">
+      <div class="legend-item" v-for="item in legendItems" :key="item.key">
+        <div class="legend-indicator" :class="item.class"></div>
+        <span class="legend-text">{{ t(`challenges.calendarLegend.${item.key}`) }}</span>
       </div>
     </div>
   </div>
 </template>
 
+<style scoped>
+.calendar-tactical-wrapper {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
 
+.glass-card {
+  background: rgba(30, 41, 59, 0.4);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+  padding: 16px;
+}
 
+.challenge-calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+  width: 100%;
+}
+
+/* Ячейка дня */
+.day-slot {
+  position: relative;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+.day-hex-bg {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: inherit;
+}
+
+.day-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.day-label {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* СОСТОЯНИЯ */
+
+/* Выполнено - Неоновый бирюзовый */
+.day-marked .day-hex-bg {
+  background: rgba(79, 209, 197, 0.15);
+  border-color: #4FD1C5;
+  box-shadow: inset 0 0 10px rgba(79, 209, 197, 0.2),
+              0 0 15px rgba(79, 209, 197, 0.1);
+}
+.day-marked .day-label, .day-marked .status-icon {
+  color: #4FD1C5;
+}
+
+/* Пропущено - Приглушенный красный */
+.day-missed .day-hex-bg {
+  background: rgba(255, 82, 82, 0.05);
+  border-color: rgba(255, 82, 82, 0.3);
+}
+.day-missed .day-label, .day-missed .status-icon {
+  color: #FF5252;
+  opacity: 0.7;
+}
+
+/* Сегодня - Акцентный синий бордер */
+.day-today .day-hex-bg {
+  border: 2px solid #2196f3;
+  box-shadow: 0 0 12px rgba(33, 150, 243, 0.4);
+}
+.day-today .day-label {
+  color: #fff;
+  text-shadow: 0 0 8px rgba(33, 150, 243, 0.5);
+}
+
+/* Заблокировано */
+.day-disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.day-disabled .day-hex-bg {
+  background: transparent;
+  border-style: dashed;
+}
+
+/* ХОВЕР */
+.day-slot:hover:not(.day-disabled) {
+  transform: translateY(-2px) scale(1.05);
+}
+.day-slot:hover:not(.day-disabled) .day-hex-bg {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* ЛЕГЕНДА */
+.calendar-legend-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 12px;
+  background: rgba(15, 23, 42, 0.3);
+  border-radius: 12px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.legend-text {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.bg-marked { background: #4FD1C5; box-shadow: 0 0 8px #4FD1C5; }
+.bg-missed { background: #FF5252; opacity: 0.6; }
+.bg-today { border: 2px solid #2196f3; }
+.bg-disabled { border: 1px dashed rgba(255, 255, 255, 0.3); }
+
+/* Адаптивность под скролл */
+.challenge-calendar.has-scroll {
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.challenge-calendar.has-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.challenge-calendar.has-scroll::-webkit-scrollbar-thumb {
+  background: rgba(79, 209, 197, 0.2);
+  border-radius: 10px;
+}
+
+/* Mobile Styles */
+@media (max-width: 959px) {
+  .calendar-tactical-wrapper {
+    gap: 16px;
+  }
+
+  .glass-card {
+    padding: 12px;
+    border-radius: 16px;
+  }
+
+  .challenge-calendar {
+    gap: 6px;
+  }
+
+  .day-label {
+    font-size: 0.75rem;
+  }
+
+  .status-icon {
+    font-size: 8px !important;
+  }
+
+  .calendar-legend-bar {
+    gap: 12px;
+    padding: 10px;
+    border-radius: 10px;
+  }
+
+  .legend-item {
+    gap: 6px;
+  }
+
+  .legend-indicator {
+    width: 8px;
+    height: 8px;
+  }
+
+  .legend-text {
+    font-size: 0.7rem;
+  }
+}
+
+/* Small mobile devices */
+@media (max-width: 599px) {
+  .calendar-tactical-wrapper {
+    gap: 12px;
+  }
+
+  .glass-card {
+    padding: 10px;
+    border-radius: 12px;
+  }
+
+  .challenge-calendar {
+    gap: 4px;
+  }
+
+  .day-label {
+    font-size: 0.7rem;
+  }
+
+  .status-icon {
+    font-size: 7px !important;
+  }
+
+  .calendar-legend-bar {
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .legend-item {
+    gap: 6px;
+  }
+
+  .legend-indicator {
+    width: 7px;
+    height: 7px;
+  }
+
+  .legend-text {
+    font-size: 0.65rem;
+  }
+
+  .challenge-calendar.has-scroll {
+    max-height: 240px;
+  }
+}
+</style>
 <script setup>
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -157,7 +395,12 @@ const days = computed(() => {
     return []
   }
 })
-
+const legendItems = [
+  { key: 'completed', class: 'bg-marked' },
+  { key: 'missed', class: 'bg-missed' },
+  { key: 'today', class: 'bg-today' },
+  { key: 'unavailable', class: 'bg-disabled' }
+];
 // Calculate number of rows needed
 const calendarRows = computed(() => {
   return Math.ceil(days.value.length / 7)
@@ -201,221 +444,4 @@ function toggleDay(day) {
   localCompletedDays.value = updatedDays
 }
 </script>
-
-<style scoped>
-.calendar-wrapper :deep(.v-card--variant-outlined) {
-  border-radius: 12px;
-}
-
-.challenge-calendar {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 8px;
-  padding: 12px 0;
-  flex: 1;
-  width: 100%;
-}
-
-@media (min-width: 600px) {
-  .challenge-calendar {
-    gap: 12px;
-    padding: 16px 0;
-  }
-}
-
-.challenge-calendar.has-scroll {
-  max-height: calc(4 * 44px + 3 * 8px); /* 4 rows: 4 circles + 3 gaps */
-  overflow-y: auto;
-}
-
-@media (min-width: 600px) {
-  .challenge-calendar.has-scroll {
-    max-height: calc(4 * 44px + 3 * 12px);
-  }
-}
-
-.day-circle {
-  width: 100%;
-  aspect-ratio: 1;
-  max-width: 44px;
-  border-radius: 50%;
-  background-color: rgba(255, 152, 0, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: 2px solid transparent;
-  position: relative;
-  animation: fadeIn 0.3s ease-in;
-  margin: 0 auto;
-}
-
-@media (min-width: 600px) {
-  .day-circle {
-    max-width: 60px;
-  }
-}
-
-.day-circle:hover {
-  transform: scale(1.1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
-.day-circle.day-marked {
-  background-color: #4caf50;
-  color: black;
-  box-shadow: 0 0 6px rgba(76, 175, 80, 0.6);
-}
-
-
-.day-circle.day-disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-  background-color: #e0e0e0;
-}
-
-.day-circle.day-disabled:hover {
-  transform: none;
-  box-shadow: none;
-}
-
-/* Keep green background for completed dates even when disabled */
-.day-circle.day-marked.day-disabled {
-  background-color: #4caf50;
-  opacity: 0.8;
-}
-
-/* Keep red background for missed dates even when disabled */
-.day-circle.day-missed.day-disabled {
-  background-color: #f44336;
-  opacity: 0.8;
-}
-
-.day-number {
-  font-size: 14px;
-  font-weight: 500;
-  color: #333;
-}
-
-.day-circle.day-marked .day-number {
-  color: black !important;
-}
-
-.day-circle.day-disabled .day-number {
-  color: #999;
-}
-
-/* Ensure marked dates have black text even when disabled */
-.day-circle.day-marked.day-disabled .day-number {
-  color: black !important;
-}
-
-/* Missed days - dates before today that were not completed */
-.day-circle.day-missed {
-  background-color: #ef5350; 
-  border: 2px solid #c62828;
-}
-
-.calendar-title { text-align: center; font-size: 18px; font-weight: 600; margin-bottom: 12px; }
-.day-circle.day-missed .day-number {
-  color: white;
-}
-.day-icon { font-size: 10px; margin-left: 4px; color: #2e7d32; }
-
-/* Ensure marked days override missed days */
-.day-circle.day-marked.day-missed {
-  background-color: #4caf50;
-}
-.calendar-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  align-items: flex-start;
-  width: 100%;
-}
-
-@media (min-width: 768px) {
-  .calendar-wrapper {
-    flex-direction: row;
-    gap: 24px;
-  }
-}
-
-.calendar-legend {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding-top: 10px;
-  min-width: 140px;
-  width: 100%;
-}
-
-@media (min-width: 768px) {
-  .calendar-legend {
-    width: auto;
-  }
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: #444;
-}
-
-.legend-dot {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  display: inline-block;
-  border: 2px solid transparent;
-}
-
-/* ✅ Цвета легенды совпадают с календарём */
-.legend-marked {
-  background-color: #4caf50;
-}
-
-.legend-missed {
-  background-color: #f44336;
-}
-
-.legend-today {
-  border-color: #2196f3;
-  background: linear-gradient(135deg, #e3f2fd, #bbdefb);
-}
-
-.legend-disabled {
-  background-color: #e0e0e0;
-}
-.day-number {
-  font-size: 14px;
-  font-weight: 500;
-  color: #333;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-}
-
-.day-check {
-  font-size: 11px;
-  color: #1b5e20;
-}
-
-/* Сегодня — визуально заметен, но не мешает зелёному/красному состоянию */
-.day-circle.day-today {
-  border-color: #2196f3;
-  border-width: 2px;
-  box-shadow: 0 0 6px rgba(33, 150, 243, 0.6);
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: scale(0.8); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-</style>
 

@@ -1,6 +1,6 @@
 {
-  "name": "ChallengeMe",
-  "short_name": "ChallengeMe",
+  "name": "Ignite",
+  "short_name": "Ignite",
   "description": "Create, join, and conquer challenges together.",
   "start_url": "/",
   "display": "standalone",

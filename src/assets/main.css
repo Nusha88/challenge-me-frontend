@@ -60,7 +60,10 @@ h1, h2, .text-h4 {
 .page-title-dark {
   font-size: 2.5rem;
   font-weight: 900;
-  color: #FFFFFF;
+  background: linear-gradient(90deg, #4FD1C5 0%, #7048E8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
   text-transform: uppercase;
   letter-spacing: -1px;
   line-height: 1;

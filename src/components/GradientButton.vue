@@ -53,32 +53,16 @@ defineEmits(['click'])
 .gradient-button {
   border-radius: 24px !important;
   /* ЗАМЕНЕНО: Фиолетово-персиковый градиент вместо синего */
-  background: linear-gradient(135deg, #7048E8 0%, #F4A782 100%) !important;
+  background: linear-gradient(135deg, #4fd1c5 0%, #a62ee8 100%);
   color: white !important;
   font-size: 1.1rem;
-  font-weight: 600;
-  padding: 16px 32px;
-  height: auto;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
-  border: none !important;
-}
-
-/* Эффект блика при наведении */
-.gradient-button::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-  transition: left 0.6s ease-in-out;
-}
-
-.gradient-button:hover::before {
-  left: 100%;
+  letter-spacing: 1.5px;
+  /* Добавляем мягкое свечение */
+  box-shadow: 0 0 20px rgba(79, 209, 197, 0.3);
+  transition: all 0.3s ease;
+  font-weight: 800;
+  border: none;
+  text-transform: uppercase;
 }
 
 /* ЗАМЕНЕНО: Исправляем оверлей Vuetify, чтобы он не подмешивал синий или серый */
@@ -87,11 +71,10 @@ defineEmits(['click'])
 }
 
 .gradient-button:hover {
-  /* Легкое изменение градиента при наведении */
-  background: linear-gradient(135deg, #815bf0 0%, #f7b89a 100%) !important;
   transform: translateY(-2px);
-  /* ЗАМЕНЕНО: Свечение в тон фиолетового */
-  box-shadow: 0 8px 20px rgba(112, 72, 232, 0.4) !important;
+  /* Усиливаем свечение при наведении */
+  box-shadow: 0 0 30px rgba(79, 209, 197, 0.5), 
+              0 0 10px rgba(166, 46, 232, 0.4);
 }
 
 .gradient-button:active {

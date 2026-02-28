@@ -1,136 +1,206 @@
 <template>
-  <v-card class="mb-4" variant="outlined">
-    <v-card-title class="text-h6 actions-title">
-      {{ t('challenges.actions') }}
-    </v-card-title>
-    <v-card-text>
+  <div class="actions-tactical-section mb-6">
+    <div class="d-flex align-center justify-space-between mb-4">
+      <h3 class="section-title">
+        <v-icon start size="18" color="#4FD1C5">mdi-target-variant</v-icon>
+        {{ t('challenges.actions') }}
+      </h3>
+      <div class="tactical-counter">
+        <span class="count-done">{{ actionsDoneCount }}</span>
+        <span class="count-separator">/</span>
+        <span class="count-total">{{ totalActionsCount }}</span>
+      </div>
+    </div>
+
+    <div class="actions-container">
       <div
         v-for="(action, index) in localActions"
         :key="`action-${index}-${action.checked}`"
-        class="action-item mb-3"
+        class="tactical-action-item mb-4"
+        :class="{ 'is-completed': action.checked, 'is-editing': editingActions[index] }"
       >
-        <!-- Parent Action -->
-        <div class="d-flex align-center mb-1">
-          <v-checkbox
-            v-if="!readonly"
-            :model-value="action.checked"
-            @update:model-value="(val) => updateActionChecked(index, val)"
-            hide-details
-            class="mr-2"
-            :disabled="!action.text || action.text.trim() === ''"
-            color="primary"
-          ></v-checkbox>
-          <div class="flex-grow-1 editable-action-text">
-            <span
-              v-if="readonly || !editingActions[index]"
-              class="action-text"
-              :class="{ 'text-strikethrough': action.checked, 'readonly-text': readonly }"
-              @click="!readonly && startEditingAction(index)"
-            >
-              {{ action.text || t('challenges.actionPlaceholder') }}
-            </span>
-            <v-text-field
-              v-else
-              v-model="action.text"
-              variant="outlined"
-              density="compact"
-              hide-details
-              class="flex-grow-1"
-              :placeholder="t('challenges.actionPlaceholder')"
-              autofocus
-              @blur="stopEditingAction(index)"
-              @keyup.enter="stopEditingAction(index)"
-              @keyup.esc="stopEditingAction(index)"
-            ></v-text-field>
-          </div>
-          <template v-if="!readonly">
-            <v-btn
-              icon="mdi-plus"
-              variant="text"
-              size="small"
-              class="ml-2"
-              :title="t('challenges.addChildAction')"
-              @click="addChildAction(index)"
-            ></v-btn>
-            <v-btn
-              v-if="localActions.length > 1"
-              icon="mdi-delete"
-              variant="text"
-              size="small"
-              class="ml-1"
-              @click="removeAction(index)"
-            ></v-btn>
-          </template>
-        </div>
-        
-        <!-- Child Actions -->
-        <div v-if="action.children && action.children.length > 0" class="child-actions ml-8">
-          <div
-            v-for="(child, childIndex) in action.children"
-            :key="`child-${index}-${childIndex}-${child.checked}`"
-            class="d-flex align-center mb-1"
-          >
-            <v-checkbox
-              v-if="!readonly"
-              :model-value="child.checked"
-              @update:model-value="(val) => updateChildActionChecked(index, childIndex, val)"
-              hide-details
-              class="mr-2"
-              :disabled="!child.text || child.text.trim() === ''"
-              color="primary"
-            ></v-checkbox>
+        <div class="status-sidebar"></div>
+
+        <div class="action-main-content pa-3">
+          <div class="d-flex align-center">
+            <div class="action-check-wrapper mr-3">
+              <v-checkbox-btn
+                v-if="!readonly"
+                :model-value="action.checked"
+                @update:model-value="(val) => updateActionChecked(index, val)"
+                :disabled="!action.text || action.text.trim() === ''"
+                color="#4FD1C5"
+                density="compact"
+              ></v-checkbox-btn>
+              <v-icon v-else-if="action.checked" color="#4FD1C5" size="20">mdi-check-decagram</v-icon>
+              <v-icon v-else color="rgba(255,255,255,0.1)" size="20">mdi-circle-outline</v-icon>
+            </div>
+
             <div class="flex-grow-1 editable-action-text">
-              <span
-                v-if="readonly || !editingChildActions[`${index}-${childIndex}`]"
-                class="action-text"
-                :class="{ 'text-strikethrough': child.checked, 'readonly-text': readonly }"
-                @click="!readonly && startEditingChildAction(index, childIndex)"
+              <div
+                v-if="readonly || !editingActions[index]"
+                class="text-display"
+                :class="{ 'strikethrough': action.checked }"
+                @click="!readonly && startEditingAction(index)"
               >
-                {{ child.text || t('challenges.childActionPlaceholder') }}
-              </span>
+                {{ action.text || t('challenges.actionPlaceholder') }}
+              </div>
               <v-text-field
                 v-else
-                v-model="child.text"
-                variant="outlined"
+                v-model="action.text"
+                variant="plain"
                 density="compact"
                 hide-details
-                class="flex-grow-1"
-                :placeholder="t('challenges.childActionPlaceholder')"
+                class="text-input-tactical"
                 autofocus
-                @blur="stopEditingChildAction(index, childIndex)"
-                @keyup.enter="stopEditingChildAction(index, childIndex)"
-                @keyup.esc="stopEditingChildAction(index, childIndex)"
+                @blur="stopEditingAction(index)"
+                @keyup.enter="stopEditingAction(index)"
               ></v-text-field>
             </div>
-            <v-btn
-              v-if="!readonly"
-              icon="mdi-delete"
-              variant="text"
-              size="small"
-              class="ml-2"
-              @click="removeChildAction(index, childIndex)"
-            ></v-btn>
+
+            <div v-if="!readonly" class="action-controls ml-2">
+              <v-btn icon="mdi-plus-box-outline" variant="text" size="x-small" color="rgba(255,255,255,0.3)" @click="addChildAction(index)"></v-btn>
+              <v-btn icon="mdi-delete-outline" variant="text" size="x-small" color="#FF5252" @click="removeAction(index)"></v-btn>
+            </div>
+          </div>
+
+          <div v-if="action.children && action.children.length > 0" class="child-actions-wrapper mt-3 ml-10">
+            <div
+              v-for="(child, childIndex) in action.children"
+              :key="`child-${index}-${childIndex}`"
+              class="child-item d-flex align-center mb-2"
+              :class="{ 'is-completed': child.checked }"
+            >
+              <v-checkbox-btn
+                v-if="!readonly"
+                :model-value="child.checked"
+                @update:model-value="(val) => updateChildActionChecked(index, childIndex, val)"
+                color="#4FD1C5"
+                density="compact"
+                class="mr-2"
+              ></v-checkbox-btn>
+              <div class="child-text flex-grow-1" @click="!readonly && startEditingChildAction(index, childIndex)">
+                <span v-if="!editingChildActions[`${index}-${childIndex}`]" :class="{ 'strikethrough': child.checked }">
+                  {{ child.text || '...' }}
+                </span>
+                <v-text-field v-else v-model="child.text" variant="plain" density="compact" hide-details class="text-input-tactical" @blur="stopEditingChildAction(index, childIndex)"></v-text-field>
+              </div>
+              <v-btn v-if="!readonly" icon="mdi-close" variant="text" size="x-small" @click="removeChildAction(index, childIndex)"></v-btn>
+            </div>
           </div>
         </div>
       </div>
-      <div class="d-flex align-center justify-space-between">
-        <v-btn
-          v-if="!readonly && !hideAddButton"
-          prepend-icon="mdi-plus"
-          variant="outlined"
-          color="primary"
-          class="add-action-btn"
-          @click="addAction"
-        >
-          {{ t('challenges.addAction') }}
-        </v-btn>
-        <span class="text-body-2 text-medium-emphasis actions-counter">
-          {{ actionsDoneCount }}/{{ totalActionsCount }}
-        </span>
-      </div>
-    </v-card-text>
-  </v-card>
+    </div>
+
+    <v-btn
+      v-if="!readonly && !hideAddButton"
+      block
+      variant="outlined"
+      color="#4FD1C5"
+      class="add-tactical-btn mt-4"
+      prepend-icon="mdi-plus"
+      @click="addAction"
+    >
+      {{ t('challenges.addAction') }}
+    </v-btn>
+  </div>
 </template>
+
+<style scoped>
+/* Стили заголовка как на скриншоте 2 */
+.section-title {
+  color: #4FD1C5;
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  display: flex;
+  align-items: center;
+}
+
+/* Счетчик прогресса */
+.tactical-counter {
+  font-family: 'Montserrat', sans-serif;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-weight: 700;
+}
+.count-done { color: #4FD1C5; }
+.count-separator { opacity: 0.3; margin: 0 4px; }
+.count-total { opacity: 0.6; }
+
+/* Карточка задачи */
+.tactical-action-item {
+  background: rgba(30, 41, 59, 0.4) !important;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.tactical-action-item:hover {
+  background: rgba(30, 41, 59, 0.6) !important;
+  border-color: rgba(79, 209, 197, 0.2);
+}
+
+/* Линия статуса слева */
+.status-sidebar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  transition: all 0.4s ease;
+}
+
+.is-completed .status-sidebar {
+  background: #4FD1C5;
+  box-shadow: 0 0 10px rgba(79, 209, 197, 0.5);
+}
+
+/* Тексты */
+.text-display {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  min-height: 24px;
+}
+
+.strikethrough {
+  text-decoration: line-through;
+  opacity: 0.4;
+  color: #4FD1C5;
+}
+
+/* Инпуты при редактировании */
+.text-input-tactical :deep(input) {
+  color: #4FD1C5 !important;
+  font-weight: 600;
+  padding: 0 !important;
+}
+
+/* Кнопка добавления */
+.add-tactical-btn {
+  border-radius: 12px !important;
+  border: 1px dashed rgba(79, 209, 197, 0.4) !important;
+  text-transform: none;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+/* Подзадачи */
+.child-item {
+  font-size: 0.85rem;
+  opacity: 0.8;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  padding-bottom: 4px;
+}
+</style>
 
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
@@ -303,75 +373,3 @@ function stopEditingChildAction(parentIndex, childIndex) {
 }
 </script>
 
-<style scoped>
-.text-strikethrough :deep(.v-field__input) {
-  text-decoration: line-through;
-  opacity: 0.7;
-}
-
-.actions-counter {
-  font-weight: 500;
-  margin-left: auto;
-}
-
-.action-item {
-  border-left: 2px dashed #1FA0F6;
-  padding-left: 8px;
-}
-
-.child-actions {
-  border-left: 2px dashed #1FA0F6;
-  padding-left: 8px;
-  margin-top: 4px;
-}
-
-.add-action-btn {
-  border-radius: 8px !important;
-}
-
-.actions-title {
-  font-weight: 700 !important;
-}
-
-.editable-action-text {
-  min-height: 40px;
-  display: flex;
-  align-items: center;
-}
-
-.action-text {
-  font-size: 1rem;
-  line-height: 1.3;
-  padding: 10px 14px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  color: rgba(0, 0, 0, 0.87);
-  flex: 1;
-  min-height: 28px;
-  display: flex;
-  align-items: center;
-}
-
-.action-text:hover {
-  background-color: rgba(0, 0, 0, 0.04);
-}
-
-.action-text.text-strikethrough {
-  text-decoration: line-through;
-  opacity: 0.7;
-}
-
-.action-text:empty::before {
-  content: attr(data-placeholder);
-  color: rgba(0, 0, 0, 0.38);
-}
-
-.readonly-text {
-  cursor: default;
-}
-
-.readonly-text:hover {
-  background-color: transparent;
-}
-</style>
