@@ -345,6 +345,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, onActivated, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
+import { useUserStore } from '../stores/user'
 import { Sparkles, Plus, Trash2 } from 'lucide-vue-next'
 import DailyChecklist from './DailyChecklist.vue'
 import IgniteLoader from './IgniteLoader.vue'
@@ -360,6 +361,7 @@ import { generateCompletionImage as generateImage } from '../utils/imageGenerato
 const { t, locale } = useI18n()
 const router = useRouter()
 const route = useRoute()
+const userStore = useUserStore()
 
 const userName = ref('')
 const streakDays = ref(0)
@@ -387,28 +389,24 @@ const selectedIsOwner = ref(false)
 const selectedIsParticipant = ref(false)
 const selectedLeaveLoading = ref(false)
 
-function readStoredUser() {
-  try {
-    const stored = localStorage.getItem('user')
-    return stored ? JSON.parse(stored) : null
-  } catch (error) {
-    return null
-  }
-}
-
 function getCurrentUserId() {
-  const storedUser = localStorage.getItem('user')
-  if (!storedUser) return null
-  try {
-    const parsed = JSON.parse(storedUser)
-    return parsed?.id || parsed?._id || null
-  } catch {
-    return null
-  }
+  return userStore.userId
 }
 
-function updateUser() {
-  const user = readStoredUser()
+async function updateUser() {
+  // Fetch fresh user data from API and update store
+  try {
+    const response = await userService.getProfile()
+    if (response.data?.user) {
+      userStore.setUser(response.data.user)
+      // Update userName for greeting
+      userName.value = response.data.user.name || ''
+      // Dispatch event to notify other components
+      window.dispatchEvent(new Event('auth-changed'))
+    }
+  } catch (error) {
+    // Error fetching user profile
+  }
   userName.value = user?.name || ''
 }
 
@@ -1204,15 +1202,9 @@ async function tryAwardDailyBonusXp() {
     }
 
     if (response?.data?.user) {
-      try {
-        const stored = localStorage.getItem('user')
-        const storedUser = stored ? JSON.parse(stored) : {}
-        const merged = { ...storedUser, ...response.data.user }
-        localStorage.setItem('user', JSON.stringify(merged))
-        window.dispatchEvent(new Event('auth-changed'))
-      } catch {
-        // ignore storage errors
-      }
+      // Update store with new user data
+      userStore.updateUser(response.data.user)
+      window.dispatchEvent(new Event('auth-changed'))
     }
   } catch (err) {
     // Don't block UI; just avoid infinite retries this session

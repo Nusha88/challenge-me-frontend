@@ -3,10 +3,10 @@
     <div class="header-section text-left mb-10 reveal-animation">
   <div class="d-flex align-center mb-1">
     <v-icon color="teal-accent-4" size="40" class="mr-3">mdi-shield-account</v-icon>
-    <h1 class="page-title-dark">My Command Post</h1>
+    <h1 class="page-title-dark">{{ t('myChallenges.title') }}</h1>
   </div>
-  <div class="text-overline text-teal-accent-4 tracking-widest ml-13">Personal Tactical Briefing</div>
-  <p class="journal-subtitle-dark mt-2">Manage your active rituals and track your ascent to legend.</p>
+  <div class="text-overline text-teal-accent-4 tracking-widest ml-13">{{ t('myChallenges.subtitle') }}</div>
+  <p class="journal-subtitle-dark mt-2">{{ t('myChallenges.description') }}</p>
 </div>
 <v-progress-linear
       v-if="loading"
@@ -159,6 +159,7 @@
 <script setup>
 import { ref, onMounted, computed, watch, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useUserStore } from '../stores/user'
 import { challengeService } from '../services/api'
 import { useI18n } from 'vue-i18n'
 import ChallengeCard from './ChallengeCard.vue'
@@ -166,6 +167,7 @@ import ChallengeDetailsDialog from './ChallengeDetailsDialog.vue'
 
 const router = useRouter()
 const route = useRoute()
+const userStore = useUserStore()
 const { t } = useI18n()
 
 const challenges = ref([])
@@ -175,19 +177,8 @@ const error = ref('')
 const detailsDialogOpen = ref(false)
 const selectedChallenge = ref(null)
 
-// Get current user ID
-function getCurrentUserId() {
-  const storedUser = localStorage.getItem('user')
-  if (!storedUser) return null
-  try {
-    const parsed = JSON.parse(storedUser)
-    return parsed?.id || null
-  } catch {
-    return null
-  }
-}
-
-const currentUserId = ref(getCurrentUserId())
+// Get current user ID from store
+const currentUserId = computed(() => userStore.userId)
 
 // Helper functions to determine if challenge is finished
 function isChallengeEnded(challenge) {

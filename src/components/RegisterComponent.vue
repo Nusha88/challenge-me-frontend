@@ -134,12 +134,14 @@ import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { authService } from '../services/api'
 import { useI18n } from 'vue-i18n'
+import { useUserStore } from '../stores/user'
 import GradientButton from './GradientButton.vue'
 import SuccessDialog from './SuccessDialog.vue'
 import swardImage from '../assets/sward.png'
 import registerBgImage from '../assets/register.png'
 
 const router = useRouter()
+const userStore = useUserStore()
 const loading = ref(false)
 const error = ref('')
 const errors = ref({})
@@ -312,9 +314,9 @@ const handleSubmit = async () => {
       email: trimmedEmail,
       password: formData.value.password
     })
-    // Store JWT token and user info
-    localStorage.setItem('token', response.data.token)
-    localStorage.setItem('user', JSON.stringify(response.data.user))
+    // Store user data and token in Pinia store
+    userStore.setUser(response.data.user)
+    userStore.setToken(response.data.token)
     // Show success dialog - don't dispatch auth-changed yet to prevent sidebar from showing
     showSuccess.value = true
   } catch (err) {

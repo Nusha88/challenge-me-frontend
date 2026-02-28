@@ -588,6 +588,7 @@ import { reactive, ref, watch, computed, nextTick, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useDisplay } from 'vuetify'
 import { useRouter, useRoute } from 'vue-router'
+import { useUserStore } from '../stores/user'
 import ChallengeImageUpload from './ChallengeImageUpload.vue'
 import ChallengeActions from './ChallengeActions.vue'
 import ChallengeCalendar from './ChallengeCalendar.vue'
@@ -617,16 +618,10 @@ const descriptionDisplay = ref(null)
 const descriptionTextarea = ref(null)
 const descriptionRows = ref(5)
 
-// Get current user ID
+// Get current user ID from store
+const userStore = useUserStore()
 function getCurrentUserId() {
-  const storedUser = localStorage.getItem('user')
-  if (!storedUser) return null
-  try {
-    const parsed = JSON.parse(storedUser)
-    return parsed?.id || parsed?._id || null
-  } catch {
-    return null
-  }
+  return userStore.userId
 }
 
 const currentUserId = ref(getCurrentUserId())
@@ -1116,17 +1111,10 @@ async function updateParticipantCompletedDaysIfChanged(challengeId, challengeTyp
         currentCompletedDaysSorted
       )
       
-      // Update stored user XP if backend returned it
+      // Update store with new user data if backend returned it
       if (response?.data?.user) {
-        try {
-          const stored = localStorage.getItem('user')
-          const storedUser = stored ? JSON.parse(stored) : {}
-          const merged = { ...storedUser, ...response.data.user }
-          localStorage.setItem('user', JSON.stringify(merged))
-          window.dispatchEvent(new Event('auth-changed'))
-        } catch {
-          // ignore
-        }
+        userStore.updateUser(response.data.user)
+        window.dispatchEvent(new Event('auth-changed'))
       }
     } catch (error) {
       console.error('Error updating participant completed days:', error)

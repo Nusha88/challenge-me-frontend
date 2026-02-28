@@ -114,7 +114,7 @@
               :loading="generatingImage"
             >
               <v-icon left size="18" class="mr-2">mdi-auto-fix</v-icon>
-              Mint Legend Card
+              {{ t('home.loggedIn.checklistHistory.mintLegendCard') }}
             </v-btn>
           </div>
         </div>

@@ -55,7 +55,7 @@
       </section>
 
       <footer class="footer-simple">
-        <p>© {{ new Date().getFullYear() }} IGNITE COMMAND CENTER. {{ t('home.allRightsReserved') }}</p>
+        <p>© {{ new Date().getFullYear() }} IGNITE. START YOUR MISSION. {{ t('home.allRightsReserved') }}</p>
       </footer>
     </div>
   </div>

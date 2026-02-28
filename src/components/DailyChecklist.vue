@@ -62,6 +62,7 @@
 import { ref, computed, onMounted, defineExpose } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useDisplay } from 'vuetify'
+import { useUserStore } from '../stores/user'
 import { userService } from '../services/api'
 import { Plus, Trash2, Footprints } from 'lucide-vue-next'
 
@@ -74,6 +75,7 @@ const props = defineProps({
 
 const { t } = useI18n()
 const { mobile } = useDisplay()
+const userStore = useUserStore()
 
 const todaySteps = ref([])
 const newStepText = ref('')
@@ -134,17 +136,10 @@ const saveTodaySteps = async () => {
     }))
     const response = await userService.updateTodayChecklist(tasks)
 
-    // Update stored user XP if backend returned it
+    // Update store with new user data if backend returned it
     if (response?.data?.user) {
-      try {
-        const stored = localStorage.getItem('user')
-        const storedUser = stored ? JSON.parse(stored) : {}
-        const merged = { ...storedUser, ...response.data.user }
-        localStorage.setItem('user', JSON.stringify(merged))
-        window.dispatchEvent(new Event('auth-changed'))
-      } catch {
-        // ignore storage errors
-      }
+      userStore.updateUser(response.data.user)
+      window.dispatchEvent(new Event('auth-changed'))
     }
     // Dispatch event to update streak in header
     window.dispatchEvent(new Event('checklist-updated'))

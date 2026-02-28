@@ -158,7 +158,7 @@
               </v-avatar>
               <div>
                 <div class="text-caption opacity-60">{{ t('challenges.createdByLabel') }}</div>
-                <div class="font-weight-bold">{{ challenge.owner?.name || 'Unknown Hero' }}</div>
+                <div class="font-weight-bold">{{ challenge.owner?.name || t('challenges.unknownHero') }}</div>
               </div>
               <v-spacer></v-spacer>
               <v-btn variant="text" size="small" color="#4FD1C5" @click="navigateToOwner">
@@ -357,6 +357,9 @@
   padding: 0 32px !important;
   box-shadow: 0 4px 15px rgba(79, 209, 197, 0.3) !important;
 }
+.v-card-text.pa-0.modal-body-bg {
+  height: 400px;
+}
 
 .action-outline-btn { text-transform: none; border-color: rgba(255, 255, 255, 0.1) !important; }
 
@@ -431,6 +434,7 @@ import { reactive, ref, watch, computed, nextTick, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
+import { useUserStore } from '../stores/user'
 import ChallengeImageUpload from './ChallengeImageUpload.vue'
 import ChallengeActions from './ChallengeActions.vue'
 import CommentsComponent from './CommentsComponent.vue'
@@ -500,16 +504,10 @@ const dialogModel = computed({
   set: (value) => handleVisibility(value)
 })
 
-// Get current user ID
+// Get current user ID from store
+const userStore = useUserStore()
 function getCurrentUserId() {
-  const storedUser = localStorage.getItem('user')
-  if (!storedUser) return null
-  try {
-    const parsed = JSON.parse(storedUser)
-    return parsed?.id || parsed?._id || null
-  } catch {
-    return null
-  }
+  return userStore.userId
 }
 
 const currentUserId = ref(getCurrentUserId())
@@ -1359,15 +1357,9 @@ async function handleOwnerCompletedDaysUpdate(completedDays) {
     )
 
     if (response?.data?.user) {
-      try {
-        const stored = localStorage.getItem('user')
-        const storedUser = stored ? JSON.parse(stored) : {}
-        const merged = { ...storedUser, ...response.data.user }
-        localStorage.setItem('user', JSON.stringify(merged))
-        window.dispatchEvent(new Event('auth-changed'))
-      } catch {
-        // ignore
-      }
+      // Update store with new user data
+      userStore.updateUser(response.data.user)
+      window.dispatchEvent(new Event('auth-changed'))
     }
     emit('update')
   } catch (error) {
@@ -1404,15 +1396,9 @@ async function handleParticipantSave() {
     )
 
     if (response?.data?.user) {
-      try {
-        const stored = localStorage.getItem('user')
-        const storedUser = stored ? JSON.parse(stored) : {}
-        const merged = { ...storedUser, ...response.data.user }
-        localStorage.setItem('user', JSON.stringify(merged))
-        window.dispatchEvent(new Event('auth-changed'))
-      } catch {
-        // ignore
-      }
+      // Update store with new user data
+      userStore.updateUser(response.data.user)
+      window.dispatchEvent(new Event('auth-changed'))
     }
     emit('update')
     emit('update:modelValue', false)

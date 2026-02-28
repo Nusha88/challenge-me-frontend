@@ -103,3 +103,45 @@ export function getXpPerLevel(level) {
   const rank = getRankForLevel(lvl)
   return rank ? rank.xpPerLevel : 100
 }
+
+// Get comprehensive level info (rank, color, xpPerLvl, rankKey)
+export function getLevelInfo(level) {
+  const lvl = Math.max(1, Math.floor(Number(level) || 1))
+  const rank = getRank(lvl)
+  const xpPerLvl = getXpPerLevel(lvl)
+  
+  // Get rank key for translation based on level
+  let rankKey = 'explorer'
+  if (lvl >= 100) rankKey = 'legend'
+  else if (lvl >= 41) rankKey = 'grandmaster'
+  else if (lvl >= 21) rankKey = 'master'
+  else if (lvl >= 11) rankKey = 'warrior'
+  else if (lvl >= 6) rankKey = 'adept'
+  
+  // Get color based on rank
+  let color = '#2196F3' // Explorer - blue
+  if (rank === 'VI') color = '#FF4500' // Legend - orange red
+  else if (rank === 'V') color = '#9400D3' // Grandmaster - purple
+  else if (rank === 'IV') color = '#FFD700' // Master - gold
+  else if (rank === 'III') color = '#C0C0C0' // Warrior - silver
+  else if (rank === 'II') color = '#4CAF50' // Adept - green
+  else color = '#2196F3' // Explorer - blue
+  
+  return {
+    rank,
+    color,
+    xpPerLvl,
+    rankKey
+  }
+}
+
+// Get icon for rank (for UI display)
+export function getRankIcon(level) {
+  const lvl = Math.max(1, Math.floor(Number(level) || 1))
+  if (lvl >= 100) return 'mdi-star-circles'
+  if (lvl >= 41) return 'mdi-auto-fix'
+  if (lvl >= 21) return 'mdi-crown'
+  if (lvl >= 11) return 'mdi-sword'
+  if (lvl >= 6) return 'mdi-shield-check'
+  return 'mdi-compass-outline'
+}

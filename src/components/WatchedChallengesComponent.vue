@@ -3,10 +3,10 @@
     <div class="header-section text-left mb-10 reveal-animation">
   <div class="d-flex align-center mb-1">
     <v-icon color="teal-accent-4" size="40" class="mr-3">mdi-radar</v-icon>
-    <h1 class="page-title-dark">Strategic Surveillance</h1>
+    <h1 class="page-title-dark">{{ t('watched.title') }}</h1>
   </div>
-  <div class="text-overline text-teal-accent-4 tracking-widest ml-13">Active Monitoring Ops</div>
-  <p class="journal-subtitle-dark mt-2">Tracking high-priority targets and progress across the global network.</p>
+  <div class="text-overline text-teal-accent-4 tracking-widest ml-13">{{ t('watched.subtitle') }}</div>
+  <p class="journal-subtitle-dark mt-2">{{ t('watched.description') }}</p>
 </div>
 
     <v-progress-linear v-if="loading" indeterminate color="teal-accent-4" class="mb-4 shadow-neon"></v-progress-linear>
@@ -58,13 +58,13 @@
                 variant="flat"
                 class="font-weight-black"
               >
-                {{ challenge.challengeType === 'habit' ? 'RITUAL' : 'QUEST' }}
+                {{ challenge.challengeType === 'habit' ? t('watched.ritual') : t('watched.quest') }}
               </v-chip>
             </div>
 
             <div v-if="challenge.owner" class="author-progress-block mb-6">
               <div class="d-flex justify-space-between mb-2 align-center">
-                <span class="text-overline grey-text">Hero's Progress</span>
+                <span class="text-overline grey-text">{{ t('watched.heroProgress') }}</span>
                 <span class="progress-val font-weight-black text-teal-accent-4">
                   {{ getOwnerProgressPercentage(challenge) }}%
                 </span>
@@ -112,7 +112,7 @@
         <v-card class="sidebar-widget mb-6" variant="flat">
           <div class="widget-header pa-4 d-flex align-center">
             <v-icon color="amber" class="mr-2">mdi-trophy-variant</v-icon>
-            <span class="text-overline font-weight-black">Elite Performers</span>
+            <span class="text-overline font-weight-black">{{ t('watched.elitePerformers') }}</span>
           </div>
           <v-card-text class="pa-4 pt-0">
             <div v-for="(p, i) in topPerformers" :key="i" class="performer-row d-flex align-center mb-4">
@@ -132,7 +132,7 @@
         <v-card class="sidebar-widget" variant="flat">
           <div class="widget-header pa-4 d-flex align-center">
             <v-icon color="teal-accent-4" class="mr-2">mdi-broadcast</v-icon>
-            <span class="text-overline font-weight-black">Surveillance Feed</span>
+            <span class="text-overline font-weight-black">{{ t('watched.surveillanceFeed') }}</span>
           </div>
           <div class="feed-scroll no-scrollbar px-2">
             <div v-for="act in feedActivities" :key="act.id" class="activity-entry pa-3">

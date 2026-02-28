@@ -1,6 +1,7 @@
 import './assets/main.css'
 
 import { createApp } from 'vue'
+import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 import i18n from './i18n'
@@ -30,10 +31,18 @@ const vuetify = createVuetify({
   },
 })
 
+const pinia = createPinia()
+
 const app = createApp(App)
+  .use(pinia)
   .use(router)
   .use(i18n)
   .use(vuetify)
+
+// Initialize user store from localStorage on app load
+import { useUserStore } from './stores/user'
+const userStore = useUserStore()
+userStore.initializeFromStorage()
 
 app.mount('#app')
 

@@ -7,14 +7,14 @@
         <v-icon color="teal-accent-4" size="40" class="mr-3">mdi-shield-crown</v-icon>
         <h1 class="page-title-dark">{{ t('users.title') }}</h1>
       </div>
-      <div class="text-overline text-teal-accent-4 tracking-widest ml-13">Global Hall of Fame</div>
-      <p class="journal-subtitle-dark mt-2">The most dedicated heroes who shape the history of this realm.</p>
+      <div class="text-overline text-teal-accent-4 tracking-widest ml-13">{{ t('users.subtitle') }}</div>
+      <p class="journal-subtitle-dark mt-2">{{ t('users.description') }}</p>
     </div>
     
     <div class="hero-counter-block d-none d-sm-flex">
       <div class="text-right">
-        <div class="text-overline grey-text">Total Strength</div>
-        <div class="hero-count">{{ users.length }} Active</div>
+        <div class="text-overline grey-text">{{ t('users.totalStrength') }}</div>
+        <div class="hero-count">{{ users.length }} {{ t('users.active') }}</div>
       </div>
       <v-icon color="teal-accent-4" size="32" class="ml-4 opacity-50">mdi-account-group</v-icon>
     </div>
@@ -116,8 +116,8 @@
                 </div>
 
                 <h3 class="hero-name-premium mt-4">{{ user.name }}</h3>
-                <div class="hero-rank-tag text-overline" :style="{ color: getLevelInfo(getUserLevel(user)).color }">
-                  {{ getLevelInfo(getUserLevel(user)).rankName }}
+                <div class="hero-rank-tag text-overline" :style="{ color: getLevelInfoLocal(getUserLevel(user)).color }">
+                  {{ getLevelInfoLocal(getUserLevel(user)).rankName }}
                 </div>
 
                 <div class="px-6 py-4">
@@ -127,8 +127,8 @@
                       <span class="white--text font-weight-bold">{{ getUserCurrentXp(user) }} XP</span>
                     </div>
                     <v-progress-linear 
-                      :model-value="(getUserCurrentXp(user) / getLevelInfo(getUserLevel(user)).xpPerLvl) * 100" 
-                      :color="getLevelInfo(getUserLevel(user)).color" 
+                      :model-value="(getUserCurrentXp(user) / getLevelInfoLocal(getUserLevel(user)).xpPerLvl) * 100" 
+                      :color="getLevelInfoLocal(getUserLevel(user)).color" 
                       height="8" 
                       rounded
                       class="hero-xp-bar"
@@ -584,7 +584,7 @@ import { ref, onMounted, computed, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { userService } from '../services/api'
 import { useI18n } from 'vue-i18n'
-import { getLevelFromXp, getXpForLevel, getRank, getXpPerLevel } from '../utils/levelSystem'
+import { getLevelFromXp, getXpForLevel, getRank, getXpPerLevel, getLevelInfo } from '../utils/levelSystem'
 
 const router = useRouter()
 
@@ -755,34 +755,12 @@ const getUserCurrentXp = (user) => {
   return xp - xpForCurrentLevel
 }
 
-// Get level info (rank, color, xpPerLvl, rankName)
-const getLevelInfo = (level) => {
-  const lvl = Math.max(1, Math.floor(Number(level) || 1))
-  const rank = getRank(lvl)
-  const xpPerLvl = getXpPerLevel(lvl)
-  
-  // Get rank name based on level
-  let rankName = 'Explorer'
-  if (lvl >= 100) rankName = 'Legend'
-  else if (lvl >= 41) rankName = 'Grandmaster'
-  else if (lvl >= 21) rankName = 'Master'
-  else if (lvl >= 11) rankName = 'Warrior'
-  else if (lvl >= 6) rankName = 'Adept'
-  
-  // Get color based on rank
-  let color = '#2196F3' // Explorer - blue
-  if (rank === 'VI') color = '#FF4500' // Legend - orange red
-  else if (rank === 'V') color = '#9400D3' // Grandmaster - purple
-  else if (rank === 'IV') color = '#FFD700' // Master - gold
-  else if (rank === 'III') color = '#C0C0C0' // Warrior - silver
-  else if (rank === 'II') color = '#4CAF50' // Adept - green
-  else color = '#2196F3' // Explorer - blue
-  
+// Get level info using helper from levelSystem
+const getLevelInfoLocal = (level) => {
+  const levelInfo = getLevelInfo(level)
   return {
-    rank,
-    color,
-    xpPerLvl,
-    rankName
+    ...levelInfo,
+    rankName: t(`profile.ranks.${levelInfo.rankKey}`)
   }
 }
 

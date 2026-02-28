@@ -328,6 +328,12 @@ export const pushService = {
   },
   getStatus: () => {
     return api.get('/push/status')
+  },
+  getDailyRecapSettings: () => {
+    return api.get('/push/daily-recap-settings')
+  },
+  updateDailyRecapSettings: (payload) => {
+    return api.put('/push/daily-recap-settings', payload)
   }
 }
 

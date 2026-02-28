@@ -30,7 +30,7 @@
     <div class="card-content">
       <div class="header-row">
         <span :class="['type-tag', challenge.challengeType]">
-          {{ challenge.challengeType === 'habit' ? 'DAILY RITUAL' : 'EPIC QUEST' }}
+          {{ challenge.challengeType === 'habit' ? t('missions.dailyRitual') : t('missions.epicQuest') }}
         </span>
         <v-spacer></v-spacer>
         <v-icon v-if="challenge.privacy === 'private'" size="14" class="privacy-icon">mdi-lock</v-icon>
@@ -56,7 +56,7 @@
         <span class="flame-icon-wrapper">
           <Flame :size="16" color="#00CED1" />
         </span>
-        <span class="streak-val">{{ streakDays }} DAY STREAK</span>
+        <span class="streak-val">{{ streakDays }} {{ t('missions.dayStreak') }}</span>
       </div>
       
       <div v-else class="ignite-trigger" @click.stop="completeDay">
@@ -73,10 +73,10 @@
   <div v-else-if="!isParticipant && !isFinished" class="guest-info-zone">
     <div class="participant-stats">
       <v-icon size="14" color="rgba(255,255,255,0.5)">mdi-account-group</v-icon>
-      <span class="ml-1">{{ participantCount }} heroes in line</span>
+      <span class="ml-1">{{ participantCount }} {{ t('missions.heroesInLine') }}</span>
     </div>
     <div v-if="showJoinButton" class="join-prompt">
-       View details to join
+       {{ t('missions.viewDetailsToJoin') }}
           </div>
         </div>
       </div>
@@ -86,7 +86,7 @@
       <div class="footer-stats">
         <div class="progress-header">
           <span class="percent-num">{{ progressPercentage }}%</span>
-          <span class="status-text">Complete</span>
+          <span class="status-text">{{ t('missions.complete') }}</span>
           </div>
         <v-progress-linear
           :model-value="progressPercentage"
@@ -100,7 +100,7 @@
 
     <div v-if="isFinished" class="finish-tag" :class="{ 'failed': !isSuccessful }">
       <v-icon size="14" class="mr-1">{{ isSuccessful ? 'mdi-check-decagram' : 'mdi-skull' }}</v-icon>
-      {{ isSuccessful ? 'FINISHED' : 'FAILED' }}
+      {{ isSuccessful ? t('missions.finished') : t('missions.failed') }}
     </div>
   </v-card>
 </template>

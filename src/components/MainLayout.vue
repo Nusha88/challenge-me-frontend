@@ -4,62 +4,52 @@ import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useDisplay } from 'vuetify'
 import { SUPPORTED_LOCALES, setLocale } from '../i18n'
+import { useUserStore } from '../stores/user'
 import NotificationsComponent from './NotificationsComponent.vue'
 import { notificationService, userService, challengeService } from '../services/api'
 import { initializePushNotifications, syncPushSubscriptionToServer } from '../utils/pushNotifications'
-import { getLevelFromXp, getXpForLevel, getXpForNextLevel, getLevelName, getRank, getXpPerLevel } from '../utils/levelSystem'
+import { getLevelFromXp, getXpForLevel, getXpForNextLevel, getLevelName, getRank, getXpPerLevel, getLevelInfo } from '../utils/levelSystem'
 import { Sparkles, Mountain, BookOpen, Compass, Eye, Trophy, Star, Globe2, Coins, LogOut } from 'lucide-vue-next'
 import awaImage from '../assets/awa.png'
 
 const router = useRouter()
 const route = useRoute()
+const userStore = useUserStore()
 const currentRoute = computed(() => route.name)
-const isLoggedIn = ref(!!localStorage.getItem('token'))
 const notificationsDrawerOpen = ref(false)
 const unreadNotificationCount = ref(0)
 const streakDays = ref(0)
 const yesterdayStreakDays = ref(0)
 const hasTodayCompletedTasks = ref(false)
 
-function readStoredUser() {
-  try {
-    const stored = localStorage.getItem('user')
-    return stored ? JSON.parse(stored) : null
-  } catch (error) {
-    return null
-  }
-}
 const isAuthPage = computed(() => {
   return ['login', 'register', 'forgot-password'].includes(route.name) || 
          route.path === '/login' || 
          route.path === '/register'
 })
 
-const currentUser = ref(readStoredUser())
 const { t, locale } = useI18n()
 const { mobile, mdAndUp } = useDisplay()
 const availableLocales = SUPPORTED_LOCALES
 
+// Use store getters for user data
+const isLoggedIn = computed(() => userStore.isLoggedIn)
+const userName = computed(() => userStore.userName)
+const userAvatarUrl = computed(() => userStore.userAvatarUrl)
+const userXp = computed(() => userStore.userXp)
+
 function updateAuthState() {
-  const wasLoggedIn = isLoggedIn.value
-  isLoggedIn.value = !!localStorage.getItem('token')
-  currentUser.value = readStoredUser()
-  
+  // Store is reactive, so we just need to check if user logged in
   // Initialize push notifications when user logs in
   // Wait a bit to ensure token is stored and axios interceptors are ready
-  if (isLoggedIn.value && !wasLoggedIn) {
+  if (userStore.isLoggedIn) {
     setTimeout(() => {
-      const token = localStorage.getItem('token')
-      if (token) {
+      if (userStore.token) {
         initializePushNotifications()
       }
     }, 1000)
   }
 }
-
-const userName = computed(() => currentUser.value?.name || null)
-const userAvatarUrl = computed(() => currentUser.value?.avatarUrl || null)
-const userXp = computed(() => Number(currentUser.value?.xp || 0))
 const userLevel = computed(() => getLevelFromXp(userXp.value))
 const userRank = computed(() => getRank(userLevel.value))
 const userLevelName = computed(() => getLevelName(userLevel.value, locale.value))
@@ -78,37 +68,6 @@ const levelProgressPercentage = computed(() => {
 // Get current XP (XP progress within current level)
 const getCurrentXp = () => {
   return userXp.value - xpForCurrentLevel.value
-}
-
-// Get level info (rank, color, xpPerLvl, rankName)
-const getLevelInfo = (level) => {
-  const lvl = Math.max(1, Math.floor(Number(level) || 1))
-  const rank = getRank(lvl)
-  const xpPerLvl = getXpPerLevel(lvl)
-  
-  // Get rank name based on level
-  let rankName = 'Explorer'
-  if (lvl >= 100) rankName = 'Legend'
-  else if (lvl >= 41) rankName = 'Grandmaster'
-  else if (lvl >= 21) rankName = 'Master'
-  else if (lvl >= 11) rankName = 'Warrior'
-  else if (lvl >= 6) rankName = 'Adept'
-  
-  // Get color based on rank
-  let color = '#2196F3' // Explorer - blue
-  if (rank === 'VI') color = '#FF4500' // Legend - orange red
-  else if (rank === 'V') color = '#9400D3' // Grandmaster - purple
-  else if (rank === 'IV') color = '#FFD700' // Master - gold
-  else if (rank === 'III') color = '#C0C0C0' // Warrior - silver
-  else if (rank === 'II') color = '#4CAF50' // Adept - green
-  else color = '#2196F3' // Explorer - blue
-  
-  return {
-    rank,
-    color,
-    xpPerLvl,
-    rankName
-  }
 }
 
 const getUserInitials = (name) => {
@@ -158,8 +117,7 @@ onBeforeUnmount(() => {
 })
 
 function logout() {
-  localStorage.removeItem('token')
-  localStorage.removeItem('user')
+  userStore.clearUser()
   window.dispatchEvent(new Event('auth-changed'))
   router.push('/login')
 }
@@ -169,14 +127,7 @@ function changeLanguage(code) {
 }
 
 function getCurrentUserId() {
-  const storedUser = localStorage.getItem('user')
-  if (!storedUser) return null
-  try {
-    const parsed = JSON.parse(storedUser)
-    return parsed?.id || parsed?._id || null
-  } catch {
-    return null
-  }
+  return userStore.userId
 }
 
 async function loadUnreadNotificationCount() {
@@ -646,6 +597,13 @@ watch(() => route.path, () => {
   </v-list-item>
 </div>
 
+<div class="menu-divider"></div>
+
+<a href="https://t.me/Ignite_support_team_bot" target="_blank" class="menu-item support-item">
+  <v-icon class="mr-2">mdi-lifebuoy</v-icon>
+  <span>{{ t('navigation.reportBug') }}</span>
+</a>
+
 <div class="sidebar-menu-card logout-card mt-auto mb-4">
   <v-list-item class="logout-item" @click="logout(); if(drawerOpen) drawerOpen = false">
     <template v-slot:prepend>
@@ -766,9 +724,16 @@ watch(() => route.path, () => {
     <template v-slot:prepend>
       <Trophy :size="20" class="sidebar-lucide-icon mr-2" />
     </template>
-    <v-list-item-title>{{ t('navigation.allUsers') }}</v-list-item-title>
+  <v-list-item-title>{{ t('navigation.allUsers') }}</v-list-item-title>
   </v-list-item>
 </div>
+
+<div class="menu-divider"></div>
+
+<a href="https://t.me/Ignite_support_team_bot" target="_blank" class="menu-item support-item">
+  <v-icon class="mr-2">mdi-lifebuoy</v-icon>
+  <span>{{ t('navigation.reportBug') }}</span>
+</a>
 
 <div class="sidebar-menu-card logout-card mt-auto mb-4">
   <v-list-item class="logout-item" @click="logout(); if(drawerOpen) drawerOpen = false">
@@ -779,9 +744,9 @@ watch(() => route.path, () => {
   </v-list-item>
 </div>
 
-      </v-list>
-      </div>
-    </v-navigation-drawer>
+          </v-list>
+          </div>
+        </v-navigation-drawer>
 
     <!-- Notifications Sidebar -->
     <NotificationsComponent
@@ -1859,6 +1824,53 @@ watch(() => route.path, () => {
   filter: drop-shadow(0 0 8px rgba(255, 82, 82, 0.5));
   transform: translateX(3px); /* Небольшой сдвиг вправо для динамики */
 }
+
+/* Menu Divider */
+.menu-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.05);
+  margin: 20px 12px;
+}
+
+.mobile-drawer .menu-divider {
+  margin: 20px 16px;
+}
+
+/* Support Item */
+.menu-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  margin: 0 12px 12px 12px;
+  text-decoration: none;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.mobile-drawer .menu-item {
+  margin: 0 16px 12px 16px;
+}
+
+.support-item {
+  color: #94a3b8;
+  transition: all 0.3s ease;
+}
+
+.support-item:hover {
+  color: #4FD1C5;
+  text-shadow: 0 0 10px rgba(79, 209, 197, 0.5);
+  background: rgba(79, 209, 197, 0.05);
+}
+
+.support-item .v-icon {
+  color: inherit;
+}
+
+.support-item span {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
 /* Основной контейнер группы меню */
 .sidebar-menu-card {
   background: rgba(255, 255, 255, 0.03) !important; /* Тот же Glass-эффект */

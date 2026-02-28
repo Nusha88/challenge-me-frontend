@@ -1,15 +1,16 @@
 <script setup>
 import { ref, onMounted, computed, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { userService, challengeService } from '../services/api'
+import { userService, challengeService, pushService } from '../services/api'
 import { useI18n } from 'vue-i18n'
 import { SUPPORTED_LOCALES, setLocale } from '../i18n'
+import { useUserStore } from '../stores/user'
 import { 
   getNotificationPermission, 
   requestAndSubscribeToPushNotifications,
   isSubscribedToPushNotifications 
 } from '../utils/pushNotifications'
-import { getLevelFromXp, getXpForLevel, getXpForNextLevel, getRank } from '../utils/levelSystem'
+import { getLevelFromXp, getXpForLevel, getXpForNextLevel, getRank, getLevelInfo, getRankIcon } from '../utils/levelSystem'
 
 const props = defineProps({
   userId: {
@@ -20,6 +21,7 @@ const props = defineProps({
 
 const route = useRoute()
 const router = useRouter()
+const userStore = useUserStore()
 const { t, locale } = useI18n()
 const availableLocales = SUPPORTED_LOCALES
 
@@ -47,24 +49,18 @@ const pushNotificationStatus = ref('default')
 const isPushSubscribed = ref(false)
 const pushNotificationError = ref('')
 const pushNotificationSuccess = ref('')
+const dailyRecapEnabled = ref(false)
+const dailyRecapTime = ref('20:00')
+const dailyRecapSaving = ref(false)
+const dailyRecapError = ref('')
+const dailyRecapSuccess = ref('')
 const fileInputRef = ref(null)
 
 // Hardcoded ImgBB API key for all users
 const IMGBB_API_KEY = 'd8a4925b372143b44469009f92023386'
 
-// Get current user ID
-function getCurrentUserId() {
-  const storedUser = localStorage.getItem('user')
-  if (!storedUser) return null
-  try {
-    const parsed = JSON.parse(storedUser)
-    return parsed?.id || null
-  } catch {
-    return null
-  }
-}
-
-const currentUserId = ref(getCurrentUserId())
+// Get current user ID from store
+const currentUserId = computed(() => userStore.userId)
 
 // Level and rank calculations
 const userXp = computed(() => Number(user.value?.xp || 0))
@@ -83,15 +79,15 @@ const levelProgressPercentage = computed(() => {
 const xpDisplayCurrent = computed(() => userXp.value)
 const xpDisplayNeeded = computed(() => xpForNextLevel.value)
 
-// Get hero rank information based on level
+// Get hero rank information based on level (using helper function)
 const getHeroRank = (level) => {
-  if (level >= 100) return { title: 'Legend', color: '#FF4500', icon: 'mdi-star-circles' };
-  if (level >= 41) return { title: 'Grandmaster', color: '#9400D3', icon: 'mdi-auto-fix' };
-  if (level >= 21) return { title: 'Master', color: '#FFD700', icon: 'mdi-crown' };
-  if (level >= 11) return { title: 'Warrior', color: '#C0C0C0', icon: 'mdi-sword' };
-  if (level >= 6) return { title: 'Adept', color: '#4CAF50', icon: 'mdi-shield-check' };
-  return { title: 'Explorer', color: '#2196F3', icon: 'mdi-compass-outline' };
-};
+  const levelInfo = getLevelInfo(level)
+  return {
+    title: t(`profile.ranks.${levelInfo.rankKey}`),
+    color: levelInfo.color,
+    icon: getRankIcon(level)
+  }
+}
 
 // Determine if viewing own profile
 const isOwnProfile = computed(() => {
@@ -227,6 +223,8 @@ const fetchUser = async () => {
       const response = await userService.getProfile()
       if (response.data?.user) {
         user.value = response.data.user
+        // Update store with fresh user data
+        userStore.setUser(response.data.user)
         // Checklist history will be fetched in fetchHeatmapData for own profile
       } else {
         error.value = t('profile.noData')
@@ -234,8 +232,7 @@ const fetchUser = async () => {
     } catch (err) {
       if (err.response?.status === 401 || err.response?.status === 403) {
         error.value = t('profile.invalidToken')
-        localStorage.removeItem('token')
-        localStorage.removeItem('user')
+        userStore.clearUser()
         window.dispatchEvent(new Event('auth-changed'))
       } else {
         error.value = err.response?.data?.message || t('notifications.profileError')
@@ -361,8 +358,59 @@ watch(() => user.value, async (newUser, oldUser) => {
 watch(isOwnProfile, (newValue) => {
   if (newValue) {
     checkPushNotificationStatus()
+    loadDailyRecapSettings()
   }
 }, { immediate: true })
+
+function getBrowserTimezone() {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+  } catch {
+    return 'UTC'
+  }
+}
+
+function getRecapLanguageCode() {
+  return String(locale.value || 'en').startsWith('ru') ? 'ru' : 'en'
+}
+
+async function loadDailyRecapSettings() {
+  if (!isOwnProfile.value) return
+  dailyRecapError.value = ''
+  try {
+    const response = await pushService.getDailyRecapSettings()
+    dailyRecapEnabled.value = !!response.data?.dailyRecapEnabled
+    dailyRecapTime.value = response.data?.dailyRecapTime || '20:00'
+  } catch {
+    dailyRecapError.value = t('profile.dailyRecapError')
+  }
+}
+
+async function saveDailyRecapSettings() {
+  if (!isOwnProfile.value) return
+  dailyRecapSaving.value = true
+  dailyRecapError.value = ''
+  dailyRecapSuccess.value = ''
+
+  try {
+    await pushService.updateDailyRecapSettings({
+      dailyRecapEnabled: !!dailyRecapEnabled.value,
+      dailyRecapTime: dailyRecapTime.value || '20:00',
+      dailyRecapTimezone: getBrowserTimezone(),
+      dailyRecapLanguage: getRecapLanguageCode()
+    })
+    dailyRecapSuccess.value = t('profile.dailyRecapSaved')
+  } catch {
+    dailyRecapError.value = t('profile.dailyRecapError')
+  } finally {
+    dailyRecapSaving.value = false
+  }
+}
+
+async function handleDailyRecapToggle(value) {
+  dailyRecapEnabled.value = !!value
+  await saveDailyRecapSettings()
+}
 
 const readFileAsBase64 = (file) => {
   return new Promise((resolve, reject) => {
@@ -435,15 +483,10 @@ const handleAvatarSelection = async (files) => {
     const updateResponse = await userService.updateProfile({ avatarUrl: imageUrl })
     user.value = updateResponse.data.user
 
-    try {
-      const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
-      storedUser.avatarUrl = imageUrl
-      if (user.value?.name) {
-        storedUser.name = user.value.name
-      }
-      localStorage.setItem('user', JSON.stringify(storedUser))
-    } catch (storageError) {
-      // Unable to update localStorage user payload
+    // Update store with new avatar URL
+    userStore.updateUser({ avatarUrl: imageUrl })
+    if (user.value?.name) {
+      userStore.updateUser({ name: user.value.name })
     }
 
     uploadSuccess.value = t('profile.uploadSuccess')
@@ -799,6 +842,7 @@ onMounted(async () => {
   // Only check push notification status if viewing own profile
   if (isOwnProfile.value) {
     checkPushNotificationStatus()
+    loadDailyRecapSettings()
   }
 })
 </script>
@@ -861,8 +905,8 @@ onMounted(async () => {
 
             <div class="xp-mini-card mb-md-4 mr-md-4">
               <div class="d-flex justify-space-between text-caption font-weight-bold mb-1 xp-label">
-                <span>RANK {{ userRank }}</span>
-                <span>LEVEL {{ userLevel }}</span>
+                <span>{{ t('profile.rankLabel') }} {{ userRank }}</span>
+                <span>{{ t('profile.levelLabel') }} {{ userLevel }}</span>
               </div>
               <v-progress-linear 
                 :model-value="levelProgressPercentage" 
@@ -881,17 +925,17 @@ onMounted(async () => {
         <div class="d-flex flex-column flex-sm-row align-start align-sm-center justify-space-between mb-6">
           <h3 class="section-title">
             <v-icon color="#7048E8" class="mr-2">mdi-sword-cross</v-icon>
-            Activity Journey
+            {{ t('profile.activityJourney') }}
           </h3>
           <div class="heatmap-legend-container">
-            <span class="legend-label">Less</span>
+            <span class="legend-label">{{ t('profile.heatmapLess') }}</span>
             <div class="heatmap-legend">
               <div class="dot level-0"></div>
               <div class="dot level-1"></div>
               <div class="dot level-2"></div>
               <div class="dot level-3"></div>
             </div>
-            <span class="legend-label">More</span>
+            <span class="legend-label">{{ t('profile.heatmapMore') }}</span>
           </div>
         </div>
 
@@ -916,9 +960,9 @@ onMounted(async () => {
       <v-card v-if="!isOwnProfile" class="activity-card mt-6" @click="goToUserMissions" style="cursor: pointer;">
         <div class="d-flex align-center justify-space-between">
           <div>
-            <h3 class="section-title mb-1">Missions Archive</h3>
+            <h3 class="section-title mb-1">{{ t('profile.missionsArchive') }}</h3>
             <div class="text-caption opacity-60">
-              {{ activeUserMissions.length }} Active • {{ finishedUserMissions.length }} Completed
+              {{ activeUserMissions.length }} {{ t('profile.active') }} • {{ finishedUserMissions.length }} {{ t('profile.completed') }}
             </div>
           </div>
           <v-btn icon="mdi-arrow-right" variant="text" color="#7048E8"></v-btn>
@@ -1018,6 +1062,42 @@ onMounted(async () => {
               </v-chip>
             </div>
 
+            <div class="setting-row d-flex align-center py-2">
+              <div class="d-flex flex-column flex-grow-1">
+                <span class="text-white opacity-70">{{ t('profile.dailyRecap') }}</span>
+                <span class="text-caption text-white opacity-50 mt-1">
+                  {{ t('profile.dailyRecapHint') }}
+                </span>
+                <div v-if="dailyRecapEnabled" class="d-flex align-center mt-2 gap-2">
+                  <v-text-field
+                    v-model="dailyRecapTime"
+                    type="time"
+                    density="compact"
+                    hide-details
+                    variant="outlined"
+                    color="#7048E8"
+                    class="daily-recap-time-input"
+                  />
+                  <v-btn
+                    variant="outlined"
+                    color="#7048E8"
+                    size="small"
+                    :loading="dailyRecapSaving"
+                    @click="saveDailyRecapSettings"
+                  >
+                    {{ t('profile.dailyRecapSave') }}
+                  </v-btn>
+                </div>
+              </div>
+              <v-switch
+                :model-value="dailyRecapEnabled"
+                color="#7048E8"
+                hide-details
+                :disabled="dailyRecapSaving"
+                @update:model-value="handleDailyRecapToggle"
+              />
+            </div>
+
             <v-alert
               v-if="pushNotificationError"
               type="error"
@@ -1037,6 +1117,26 @@ onMounted(async () => {
               @click:close="pushNotificationSuccess = ''"
             >
               {{ pushNotificationSuccess }}
+            </v-alert>
+            <v-alert
+              v-if="dailyRecapError"
+              type="error"
+              variant="tonal"
+              density="compact"
+              class="mt-2"
+              @click:close="dailyRecapError = ''"
+            >
+              {{ dailyRecapError }}
+            </v-alert>
+            <v-alert
+              v-if="dailyRecapSuccess"
+              type="success"
+              variant="tonal"
+              density="compact"
+              class="mt-2"
+              @click:close="dailyRecapSuccess = ''"
+            >
+              {{ dailyRecapSuccess }}
             </v-alert>
           </v-expansion-panel-text>
         </v-expansion-panel>

@@ -22,16 +22,17 @@
     "xp": "XP",
     "yourJourney": "YOUR JOURNEY",
     "world": "WORLD",
-    "interested": "Interested"
+    "interested": "Interested",
+    "reportBug": "Report a bug"
   },
   "home": {
     "welcome": "Welcome to Ignite",
     "description": "Create, join, and conquer missions together.",
-    "systemOnline": "SYSTEM: ONLINE",
-    "title": "Achieve goals together with friends",
-    "subtitle": "Turn routine into a game. Create personal missions, compete with your team and track progress in real time.",
+    "systemOnline": "STATUS: READY TO IGNITE",
+   "title": "Reach Your Peak in Every Mission",
+  "subtitle": "Turn discipline into results. Launch ambitious missions and track your ascent to the top.",
     "createFirstChallenge": "START FIRST MISSION",
-    "getStarted": "INITIALIZATION",
+    "getStarted": "IGNITE NOW",
     "joinHeroes": "JOIN 1,240+ HEROES",
     "benefitsTitle": "What makes Ignite special",
     "readyToStart": "READY FOR YOUR MISSION?",
@@ -86,7 +87,8 @@
         "loadError": "Failed to load checklist history",
         "today": "Today",
         "yesterday": "Yesterday",
-        "noTasks": "No tasks"
+        "noTasks": "No tasks",
+        "mintLegendCard": "Mint Legend Card"
       },
       "completionImage": {
         "title": "🎉 All Done, {name}!",
@@ -212,10 +214,38 @@
     "pushNotificationsEnabledSuccess": "Push notifications enabled successfully!",
     "pushNotificationsPermissionDenied": "Notification permission was denied. Please enable it in your browser settings.",
     "pushNotificationsEnableError": "Failed to enable push notifications. Please try again.",
-    "settings": "Settings"
+    "settings": "Settings",
+    "dailyRecap": "Daily Recap",
+    "dailyRecapEn": "Daily Recap",
+    "dailyRecapHint": "A nudge about pending mission steps.",
+    "dailyRecapHintEn": "A nudge about pending mission steps.",
+    "dailyRecapTime": "Notification time",
+    "dailyRecapSave": "Save",
+    "dailyRecapSaved": "Daily recap settings updated.",
+    "dailyRecapError": "Failed to update daily recap settings.",
+    "activityJourney": "Activity Journey",
+    "heatmapLess": "Less",
+    "heatmapMore": "More",
+    "rankLabel": "RANK",
+    "levelLabel": "LEVEL",
+    "missionsArchive": "Missions Archive",
+    "active": "Active",
+    "completed": "Completed",
+    "ranks": {
+      "explorer": "Explorer",
+      "adept": "Adept",
+      "warrior": "Warrior",
+      "master": "Master",
+      "grandmaster": "Grandmaster",
+      "legend": "Legend"
+    }
   },
   "users": {
-    "title": "Registered Users",
+   "title": "Community Leaders",
+  "subtitle": "Global Achievement Hall",
+  "description": "Those who reshape their reality through discipline and mission completion.",
+  "totalStrength": "Total Energy",
+    "active": "Active",
     "name": "Name",
     "challenges": "Missions",
     "daysOnSite": "Days on Site",
@@ -378,6 +408,8 @@
     "createdByMe": "Created by me",
     "activityActive": "Active",
     "activityFinished": "Finished",
+    "viewDetailsToJoin": "View details to join",
+    "unknownHero": "Unknown Hero",
     "share": {
       "share": "Share",
       "copyLink": "Copy Link",
@@ -472,6 +504,21 @@
       "streakBadge": "Streak"
     }
   },
+"allChallenges": {
+    "title": "Global Missions",
+    "subtitle": "Growth & Inspiration Hub",
+    "description": "Join active communities or discover new horizons for your progress."
+  },
+  "missions": {
+    "dailyRitual": "Daily Ritual",
+    "epicQuest": "Epic Quest",
+    "finished": "COMPLETED",
+    "failed": "PAUSED",
+    "dayStreak": "DAY STREAK",
+    "complete": "Complete",
+    "heroesInLine": "members in motion",
+    "viewDetailsToJoin": "View details to join"
+  },
   "filters": {
     "type": "Type",
     "activity": "Activity",
@@ -479,6 +526,7 @@
     "creationDate": "Creation Date",
     "searchTitle": "Search by title",
     "searchPlaceholder": "Find your next adventure...",
+    "searchMissionsPlaceholder": "Search missions...",
     "owner": "Owner",
     "popularity": "Popularity",
     "popularityMost": "Most Popular",
@@ -494,7 +542,26 @@
     "participantsFew": "1-5",
     "participantsMany": "6+",
     "showUpcoming": "Show Upcoming",
-    "showCompleted": "Show Completed"
+    "showCompleted": "Show Completed",
+    "createdBy": "Created by",
+    "sortBy": "Sort by",
+    "upcoming": "Upcoming",
+    "completed": "Completed"
+  },
+"myChallenges": {
+    "title": "Mission Center",
+    "subtitle": "Personal Progress Hub",
+    "description": "Manage your active missions, build discipline, and stay on the path to mastery."
+  },
+  "watched": {
+    "title": "Achievement Radar",
+    "subtitle": "Community Insight & Focus",
+    "description": "Follow high-priority missions and track progress across the global network.",
+    "elitePerformers": "Top Performers",
+    "surveillanceFeed": "Activity Feed",
+    "ritual": "Ritual",
+    "quest": "Quest",
+    "heroProgress": "Hero Result"
   },
   "validation": {
     "titleRequired": "Title is required",

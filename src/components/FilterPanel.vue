@@ -6,7 +6,7 @@
       <v-text-field
         :model-value="modelValue.title"
         @update:model-value="updateFilter('title', $event)"
-        placeholder="Search missions..."
+        :placeholder="t('filters.searchMissionsPlaceholder')"
         variant="outlined"
         density="comfortable"
         hide-details
@@ -58,7 +58,7 @@
             <v-select
               :model-value="modelValue.owner"
               :items="ownerOptions"
-              label="Created by"
+              :label="t('filters.createdBy')"
               variant="outlined"
               density="comfortable"
               class="custom-select-dark"
@@ -68,7 +68,7 @@
             <v-select
               :model-value="modelValue.popularity"
               :items="popularityOptions"
-              label="Sort by"
+              :label="t('filters.sortBy')"
               variant="outlined"
               density="comfortable"
               class="custom-select-dark"
@@ -80,14 +80,14 @@
               class="mr-2"
                 :model-value="modelValue.showUpcoming !== false"
                 @update:model-value="updateFilter('showUpcoming', $event)"
-                label="Upcoming"
+                :label="t('filters.upcoming')"
                 color="teal-accent-4"
                 hide-details
               ></v-switch>
               <v-switch
                 :model-value="modelValue.isCompleted === true"
                 @update:model-value="updateFilter('isCompleted', $event)"
-                label="Completed"
+                :label="t('filters.completed')"
                 color="teal-accent-4"
                 hide-details
               ></v-switch>
