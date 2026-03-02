@@ -97,7 +97,7 @@ import demoImage from '../assets/demo.png'
 import GradientButton from './GradientButton.vue'
 
 const { t, locale } = useI18n()
-const totalUsers = ref(1000)
+const totalUsers = ref(100)
 
 const formattedUsersCount = computed(() => {
   return new Intl.NumberFormat(locale.value).format(totalUsers.value)
