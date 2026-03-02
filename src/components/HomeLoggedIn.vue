@@ -406,8 +406,8 @@ async function updateUser() {
     }
   } catch (error) {
     // Error fetching user profile
+    userName.value = userStore.userName || ''
   }
-  userName.value = user?.name || ''
 }
 
 function checkDayCompletion(date, checklists, habitChallenges, userId) {

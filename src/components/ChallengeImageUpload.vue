@@ -209,12 +209,12 @@ const handleImageSelection = async (event) => {
   position: relative;
   overflow: hidden;
   transition: all 0.3s ease;
-  background-color: #fafafa;
+  background-color: transparent;
 }
 
 .image-upload-area:hover {
   border-color: #1976d2;
-  background-color: #f5f5f5;
+  background-color: transparent;
 }
 
 .image-upload-area.uploading {

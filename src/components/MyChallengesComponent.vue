@@ -96,23 +96,28 @@
           <div v-if="upcomingChallenges.length > 0" :class="{ 'upcoming-section': activeChallenges.length > 0 }">
             <h2 class="section-title mb-4" :class="{ 'mt-8': activeChallenges.length > 0 }">{{ t('challenges.upcoming') }}</h2>
             <div class="challenges-grid">
-              <ChallengeCard
+              <div
                 v-for="challenge in upcomingChallenges"
                 :key="challenge._id"
-                :challenge="challenge"
-                :current-user-id="currentUserId"
-                :show-join-button="false"
-                :joining-id="joiningId"
-                :leaving-id="leavingId"
-                :watching-id="watchingId"
-                :is-watched="isWatched(challenge)"
-                @click="handleChallengeClick"
-                @join="joinChallenge"
-                @leave="leaveChallenge"
-                @watch="watchChallenge"
-                @unwatch="unwatchChallenge"
-                @owner-navigated="handleOwnerNavigated"
-              />
+                class="upcoming-card-disabled"
+              >
+                <ChallengeCard
+                  :challenge="challenge"
+                  :current-user-id="currentUserId"
+                  :show-join-button="false"
+                  :joining-id="joiningId"
+                  :leaving-id="leavingId"
+                  :watching-id="watchingId"
+                  :is-watched="isWatched(challenge)"
+                  @click="handleChallengeClick"
+                  @join="joinChallenge"
+                  @leave="leaveChallenge"
+                  @watch="watchChallenge"
+                  @unwatch="unwatchChallenge"
+                  @owner-navigated="handleOwnerNavigated"
+                />
+                <div class="upcoming-blur-overlay"></div>
+              </div>
             </div>
           </div>
 
@@ -699,6 +704,24 @@ watch(() => route.query.challengeId, async (newChallengeId) => {
   border-top: 2px solid rgba(0, 0, 0, 0.12);
   padding-top: 24px;
   margin-top: 24px;
+}
+
+.upcoming-card-disabled {
+  position: relative;
+}
+
+.upcoming-card-disabled :deep(.challenge-card) {
+  pointer-events: none;
+}
+
+.upcoming-blur-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  background: rgba(13, 17, 28, 0.38);
+  backdrop-filter: blur(3px);
+  z-index: 5;
+  pointer-events: all;
 }
 /* Контейнер сетки (используй те же настройки, что и для реальной сетки) */
 .challenges-grid-skeleton {

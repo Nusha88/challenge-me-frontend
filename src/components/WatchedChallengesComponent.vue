@@ -176,6 +176,24 @@
         {{ t('watched.findHeroes') }}
       </v-btn>
     </div>
+
+    <ChallengeDetailsDialog
+      v-model="detailsDialogOpen"
+      :challenge="selectedChallenge"
+      :is-owner="selectedIsOwner"
+      :is-participant="selectedIsParticipant"
+      :show-join-button="showDialogJoinButton"
+      :show-leave-button="showDialogLeaveButton"
+      :join-loading="selectedJoinLoading"
+      :leave-loading="selectedLeaveLoading"
+      :save-loading="saveLoading"
+      :save-error="saveError"
+      :delete-loading="deleteLoading"
+      @join="handleDialogJoin"
+      @leave="handleDialogLeave"
+      @delete="handleDialogDelete"
+      @update="handleDialogUpdate"
+    />
   </div>
 </template>
 
@@ -1028,7 +1046,9 @@ async function leaveChallenge(challenge) {
 }
 
 async function handleDialogJoin(challenge) {
-  await joinChallenge(challenge)
+  const challengeToJoin = challenge || selectedChallenge.value
+  if (!challengeToJoin) return
+  await joinChallenge(challengeToJoin)
 }
 
 async function handleDialogLeave() {

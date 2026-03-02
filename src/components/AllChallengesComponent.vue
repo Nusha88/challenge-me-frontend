@@ -61,7 +61,7 @@
           :joining-id="joiningId"
           :leaving-id="leavingId"
           :watching-id="watchingId"
-          all-challenges="true"
+          :all-challenges="true"
           :is-watched="isWatched(challenge)"
           @click="openDetails"
           @join="joinChallenge"
@@ -86,24 +86,29 @@
     <div v-if="upcomingChallenges.length > 0 && filters.showUpcoming !== false" class="upcoming-section mt-8">
       <h2 class="section-title mb-4">{{ t('challenges.upcoming') }}</h2>
       <div class="challenges-grid">
-          <ChallengeCard
-          v-for="challenge in upcomingChallenges"
+          <div
+            v-for="challenge in upcomingChallenges"
             :key="challenge._id"
-            :challenge="challenge"
-            :current-user-id="currentUserId"
-            :show-join-button="true"
-            :joining-id="joiningId"
-          :leaving-id="leavingId"
-          :watching-id="watchingId"
-          all-challenges="true"
-          :is-watched="isWatched(challenge)"
-            @click="openDetails"
-            @join="joinChallenge"
-          @leave="leaveChallenge"
-          @watch="watchChallenge"
-          @unwatch="unwatchChallenge"
-          @owner-navigated="handleOwnerNavigated"
-          />
+            class="upcoming-card-disabled"
+          >
+            <ChallengeCard
+              :challenge="challenge"
+              :current-user-id="currentUserId"
+              :show-join-button="true"
+              :joining-id="joiningId"
+              :leaving-id="leavingId"
+              :watching-id="watchingId"
+              :all-challenges="true"
+              :is-watched="isWatched(challenge)"
+              @click="openDetails"
+              @join="joinChallenge"
+              @leave="leaveChallenge"
+              @watch="watchChallenge"
+              @unwatch="unwatchChallenge"
+              @owner-navigated="handleOwnerNavigated"
+            />
+            <div class="upcoming-blur-overlay"></div>
+          </div>
         </div>
     </div>
 
@@ -137,9 +142,11 @@ import FilterPanel from './FilterPanel.vue'
 import ChallengeCard from './ChallengeCard.vue'
 import MainRitualCard from './MainRitualCard.vue'
 import { useI18n } from 'vue-i18n'
+import { useUserStore } from '../stores/user'
 
 const router = useRouter()
 const route = useRoute()
+const userStore = useUserStore()
 
 const challenges = ref([])
 const allHabitChallenges = ref([]) // Store all habit challenges for main ritual selection
@@ -147,7 +154,7 @@ const loading = ref(false)
 const loadingMainRitual = ref(false)
 const loadingMore = ref(false)
 const errorMessage = ref('')
-const currentUserId = ref(getCurrentUserId())
+const currentUserId = computed(() => userStore.userId)
 const joiningId = ref(null)
 const leavingId = ref(null)
 const watchingId = ref(null)
@@ -270,18 +277,6 @@ watch(detailsDialogOpen, value => {
     }
   }
 })
-
-function getCurrentUserId() {
-  const storedUser = localStorage.getItem('user')
-  if (!storedUser) return null
-
-  try {
-    const parsed = JSON.parse(storedUser)
-    return parsed?.id || null
-  } catch (error) {
-    return null
-  }
-}
 
 function formatDate(dateString) {
   if (!dateString) return ''
@@ -1115,6 +1110,24 @@ function handleOwnerNavigated() {
   border-top: 2px solid rgba(0, 0, 0, 0.12);
   padding-top: 24px;
   margin-top: 24px;
+}
+
+.upcoming-card-disabled {
+  position: relative;
+}
+
+.upcoming-card-disabled :deep(.challenge-card) {
+  pointer-events: none;
+}
+
+.upcoming-blur-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  background: rgba(13, 17, 28, 0.38);
+  backdrop-filter: blur(3px);
+  z-index: 5;
+  pointer-events: all;
 }
 
 .main-ritual-skeleton-loader {

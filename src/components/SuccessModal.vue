@@ -73,6 +73,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'addAnother'])
 const router = useRouter()
 const { t } = useI18n()
+const SHARE_BASE_URL = 'https://ignite-me.app'
 
 const showModal = computed({
   get: () => props.modelValue,
@@ -81,13 +82,9 @@ const showModal = computed({
 
 const shareLink = computed(() => {
   if (props.challengeId) {
-    // Use current origin or default to production URL
-    const baseUrl = typeof window !== 'undefined' 
-      ? window.location.origin 
-      : 'https://challenge-me-space.netlify.app'
-    return `${baseUrl}/missions/edit/${props.challengeId}`
+    return `${SHARE_BASE_URL}/missions/edit/${props.challengeId}`
   }
-  return 'https://challenge-me-space.netlify.app/missions/edit/...'
+  return `${SHARE_BASE_URL}/missions/edit/...`
 })
 
 const successMessage = computed(() => {
@@ -106,11 +103,7 @@ function copyLink() {
 }
 
 function navigateToMission() {
-  if (props.challengeId) {
-    router.push(`/missions/${props.challengeId}`)
-  } else {
-    router.push('/missions/my')
-  }
+  router.push('/missions/my')
   closeModal()
 }
 

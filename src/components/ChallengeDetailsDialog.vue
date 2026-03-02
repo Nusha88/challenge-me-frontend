@@ -91,7 +91,14 @@
               <template v-if="challenge.challengeType === 'habit'">
                 <div class="d-flex justify-space-between align-center mb-6">
                   <h3 class="section-title">{{ t('challenges.progress') }}</h3>
-                  <v-chip size="small" variant="outlined" color="#4FD1C5">{{ currentDayText }}</v-chip>
+                  <v-chip
+                    v-if="!isFinished"
+                    size="small"
+                    variant="outlined"
+                    color="#4FD1C5"
+                  >
+                    {{ currentDayText }}
+                  </v-chip>
                 </div>
 
                 <div class="calendar-grid">
@@ -103,6 +110,12 @@
                     @click="toggleDay(day)"
                   >
                     <span class="day-number">{{ day.number }}</span>
+                    <span
+                      v-if="showParticipantsProgressInCells && !day.isLocked"
+                      class="day-participants-progress"
+                    >
+                      {{ day.completedParticipantsCount }}/{{ totalParticipantsCount }}
+                    </span>
                     <v-icon 
                       v-if="day.isToday && day.isCompleted" 
                       size="12" 
@@ -132,7 +145,12 @@
                   rounded
                   class="mission-progress mb-6"
                 ></v-progress-linear>
-                <ChallengeActions :model-value="challenge.actions || []" :readonly="!isOwner" />
+                <ChallengeActions
+                  :model-value="challenge.actions || []"
+                  :readonly="true"
+                  :hide-add-button="true"
+                  :simplified-view="true"
+                />
               </template>
             </div>
           </v-window-item>
@@ -165,6 +183,46 @@
                 {{ t('challenges.viewProfile') }}
               </v-btn>
             </div>
+
+            <div v-if="totalParticipantsCount > 1 && visibleParticipants.length" class="participants-box mt-4">
+              <div class="text-caption opacity-60 mb-2">{{ t('challenges.participants') }}</div>
+              <div class="participants-row">
+                <v-tooltip
+                  v-for="participant in visibleParticipants"
+                  :key="participant.id"
+                  location="top"
+                >
+                  <template #activator="{ props: tooltipProps }">
+                    <v-avatar
+                      v-bind="tooltipProps"
+                      size="32"
+                      class="participant-avatar"
+                      @click.stop="navigateToParticipant(participant.id)"
+                    >
+                      <v-img v-if="participant.avatarUrl" :src="participant.avatarUrl" cover></v-img>
+                      <span v-else>{{ getParticipantInitial(participant.name) }}</span>
+                    </v-avatar>
+                  </template>
+                  <span>{{ participant.name || t('challenges.unknownHero') }}</span>
+                </v-tooltip>
+
+                <v-tooltip
+                  v-if="remainingParticipantsCount > 0"
+                  location="top"
+                >
+                  <template #activator="{ props: tooltipProps }">
+                    <v-avatar
+                      v-bind="tooltipProps"
+                      size="32"
+                      class="participant-avatar participant-avatar-more"
+                    >
+                      <span>+{{ remainingParticipantsCount }}</span>
+                    </v-avatar>
+                  </template>
+                  <span>{{ t('challenges.participants') }}</span>
+                </v-tooltip>
+              </div>
+            </div>
           </v-window-item>
 
           <v-window-item value="community">
@@ -182,7 +240,10 @@
                 :challenge-participants="challenge.participants || []"
                 @join="emitJoin"
               />
-              <v-alert v-else type="info" variant="tonal" class="rounded-xl">
+              <v-alert v-else type="info" variant="tonal" class="info-message">
+                <template #prepend>
+                  <v-icon class="info-message-icon">mdi-information</v-icon>
+                </template>
                 {{ t('challenges.finishedChallengeComments') }}
               </v-alert>
             </div>
@@ -214,12 +275,12 @@
           </v-btn>
 
           <v-btn
-            v-if="showJoinButton || (isCurrentUserParticipant && challenge.challengeType === 'habit' && !isFinished)"
-            class="main-action-btn"
+            v-if="showJoinActionButton || (isCurrentUserParticipant && challenge.challengeType === 'habit' && !isFinished)"
+            class="main-action-btn ml-2"
             :loading="joinLoading"
-            @click="showJoinButton ? emitJoin() : handleParticipantSave()"
+            @click="showJoinActionButton ? emitJoin() : handleParticipantSave()"
           >
-            {{ showJoinButton ? t('challenges.joinMission') : t('challenges.saveProgress') }}
+            {{ showJoinActionButton ? t('challenges.joinMission') : t('challenges.saveProgress') }}
           </v-btn>
         </div>
       </v-card-actions>
@@ -293,6 +354,19 @@
   transition: 0.2s;
   position: relative;
 }
+.day-cell.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+.day-participants-progress {
+  position: absolute;
+  left: 6px;
+  bottom: 4px;
+  font-size: 9px;
+  line-height: 1;
+  font-weight: 700;
+  opacity: 0.8;
+}
 .day-cell.is-completed {
   background: rgba(79, 209, 197, 0.1) !important;
   border-color: #4FD1C5 !important;
@@ -341,6 +415,54 @@
   color: #FFFFFF;
   font-weight: 700;
   font-size: 16px;
+}
+
+.participants-box {
+  background: rgba(30, 41, 59, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.participants-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.participant-avatar {
+  border: 1px solid rgba(79, 209, 197, 0.45);
+  background: rgba(15, 23, 42, 0.9);
+  color: #FFFFFF;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.participant-avatar:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 10px rgba(79, 209, 197, 0.35);
+}
+
+.participant-avatar-more {
+  border-color: rgba(112, 72, 232, 0.6);
+  background: rgba(112, 72, 232, 0.2);
+}
+
+.info-message {
+  background-color: #1a1e2e !important;
+  border: 1px solid transparent;
+  border-image: linear-gradient(to right, #a78bfa, #2dd4bf) 1 !important;
+  color: #e2e8f0 !important;
+  padding: 16px 20px !important;
+  box-shadow: 0 0 15px rgba(45, 212, 191, 0.2) !important;
+}
+
+.info-message-icon {
+  color: #2dd4bf !important;
+  filter: drop-shadow(0 0 5px rgba(45, 212, 191, 0.5));
 }
 
 /* --- FOOTER --- */
@@ -707,6 +829,7 @@ const calendarDays = computed(() => {
   while (current <= end) {
     const dateStr = formatDateString(current)
     const isCompleted = normalizedCompletedDays.includes(dateStr)
+    const completedParticipantsCount = getCompletedParticipantsCountForDay(dateStr)
     const isToday = dateStr === todayStr
     const isLocked = current > today
     
@@ -714,6 +837,7 @@ const calendarDays = computed(() => {
       date: dateStr,
       number: dayNumber,
       isCompleted,
+      completedParticipantsCount,
       isToday,
       isLocked,
       isMissed: !isCompleted && !isLocked && current < today
@@ -747,6 +871,13 @@ const currentDayText = computed(() => {
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1
   return `${t('challenges.day')} ${diffDays} ${t('challenges.of')} ${totalDays.value}`
 })
+
+const totalParticipantsCount = computed(() => {
+  if (!props.challenge?.participants || !Array.isArray(props.challenge.participants)) return 0
+  return props.challenge.participants.length
+})
+
+const showParticipantsProgressInCells = computed(() => totalParticipantsCount.value > 1)
 
 // Mission stats for About tab
 const missionStats = computed(() => {
@@ -809,12 +940,45 @@ function getDayClass(day) {
     'is-completed': day.isCompleted,
     'is-missed': day.isMissed,
     'is-today': day.isToday,
-    'is-locked': day.isLocked
+    'is-locked': day.isLocked,
+    'is-disabled': isFinished.value || day.isLocked || day.isMissed
   }
 }
 
+function normalizeDayValue(value) {
+  if (!value) return null
+  const dateStr = String(value)
+  if (dateStr.includes('T')) {
+    return dateStr.split('T')[0].substring(0, 10)
+  }
+  return dateStr.substring(0, 10)
+}
+
+function getCompletedParticipantsCountForDay(dateStr) {
+  if (!props.challenge?.participants || !Array.isArray(props.challenge.participants)) return 0
+
+  return props.challenge.participants.reduce((count, participant) => {
+    const participantId = participant?.userId?._id || participant?.userId || participant?._id || participant?.id
+    const participantCompletedDays = Array.isArray(participant?.completedDays) ? participant.completedDays : []
+
+    // Reflect local unsaved progress immediately for current participant.
+    const sourceDays =
+      participantId &&
+      currentUserId.value &&
+      participantId.toString() === currentUserId.value.toString()
+        ? (localCurrentUserCompletedDays.value.length > 0 ? localCurrentUserCompletedDays.value : participantCompletedDays)
+        : participantCompletedDays
+
+    const normalizedDays = sourceDays
+      .map(normalizeDayValue)
+      .filter(Boolean)
+
+    return normalizedDays.includes(dateStr) ? count + 1 : count
+  }, 0)
+}
+
 async function toggleDay(day) {
-  if (day.isLocked || !isCurrentUserParticipant.value) return
+  if (isFinished.value || day.isLocked || day.isMissed || !isCurrentUserParticipant.value) return
   
   const completedDays = localCurrentUserCompletedDays.value.length > 0 
     ? [...localCurrentUserCompletedDays.value]
@@ -899,6 +1063,49 @@ const isCurrentUserParticipant = computed(() => {
     return userId && userId.toString() === currentUserId.value.toString()
   })
 })
+
+const canJoinPublicHabit = computed(() => {
+  if (!props.challenge || !currentUserId.value) return false
+  if (isFinished.value) return false
+  if (props.challenge.challengeType !== 'habit') return false
+  if (props.challenge.privacy === 'private') return false
+  if (props.isOwner) return false
+  if (isCurrentUserParticipant.value) return false
+  return true
+})
+
+const showJoinActionButton = computed(() => {
+  return props.showJoinButton || canJoinPublicHabit.value
+})
+
+const MAX_VISIBLE_PARTICIPANTS = 10
+const participantUsers = computed(() => {
+  if (!props.challenge?.participants || !Array.isArray(props.challenge.participants)) return []
+
+  const uniqueUsers = new Map()
+
+  props.challenge.participants.forEach(participant => {
+    const participantUser = participant?.userId && typeof participant.userId === 'object'
+      ? participant.userId
+      : participant
+
+    const id = participantUser?._id || participantUser?.id || participant?._id || participant?.id
+    if (!id || uniqueUsers.has(String(id))) return
+
+    uniqueUsers.set(String(id), {
+      id: String(id),
+      name: participantUser?.name || participant?.name || '',
+      avatarUrl: participantUser?.avatarUrl || participant?.avatarUrl || ''
+    })
+  })
+
+  return Array.from(uniqueUsers.values())
+})
+
+const visibleParticipants = computed(() => participantUsers.value.slice(0, MAX_VISIBLE_PARTICIPANTS))
+const remainingParticipantsCount = computed(() =>
+  Math.max(0, participantUsers.value.length - MAX_VISIBLE_PARTICIPANTS)
+)
 
 // Check if user can view personal progress (must be owner or participant)
 const canViewPersonalProgress = computed(() => {
@@ -1321,10 +1528,20 @@ function getOwnerInitial() {
   return props.challenge.owner.name.charAt(0).toUpperCase()
 }
 
+function getParticipantInitial(name) {
+  if (!name) return '?'
+  return String(name).trim().charAt(0).toUpperCase() || '?'
+}
+
 function navigateToOwner() {
   if (!props.challenge?.owner?._id && !props.challenge?.owner) return
   const ownerId = props.challenge.owner._id || props.challenge.owner
   router.push(`/heroes/${ownerId}`)
+}
+
+function navigateToParticipant(participantId) {
+  if (!participantId) return
+  router.push(`/heroes/${participantId}`)
 }
 
 function handleCommentAdded() {

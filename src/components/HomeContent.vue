@@ -16,7 +16,7 @@
             </GradientButton>
             <div class="user-stats-mini">
               <v-icon color="#4FD1C5" size="20">mdi-flash</v-icon>
-              <span>{{ t('home.joinHeroes') || 'Join 1000+ Heroes' }}</span>
+              <span>{{ joinHeroesText }}</span>
             </div>
           </div>
         </div>
@@ -45,29 +45,79 @@
           </div>
         </div>
       </section>
+      <section class="features-section mt-12">
+        <div class="section-header mb-12">
+          <h2 class="section-title">{{ t('home.demoPreviewTitle') }}</h2>
+          <div class="title-line"></div>
+        </div>
+        <img :src="demoImage" alt="Ignite demo" class="demo-preview-image" />
+      </section>
+
+      <section class="quote-section my-16">
+        <v-container>
+          <div class="quote-container text-center">
+            <v-icon color="rgba(79, 209, 197, 0.2)" size="48" class="mb-4">
+              mdi-format-quote-open
+            </v-icon>
+
+            <h2 class="quote-text mb-4">
+              {{ t('home.quoteTitle') }}
+            </h2>
+
+            <p class="quote-subtext">
+              {{ t('home.quoteLine1') }}<br>
+              {{ t('home.quoteLine2') }}
+            </p>
+
+            <div class="quote-divider mt-8"></div>
+          </div>
+        </v-container>
+      </section>
 
       <section class="final-cta glass-card">
         <div class="cta-content">
           <h2 class="cta-title">{{ t('home.readyToStart') || 'READY FOR YOUR MISSION?' }}</h2>
           <GradientButton to="/login">{{ t('home.getStarted') || 'INITIALIZE' }}</GradientButton>
         </div>
-        <img :src="demoImage" class="demo-bg-fade" />
       </section>
 
       <footer class="footer-simple">
-        <p>© {{ new Date().getFullYear() }} IGNITE. START YOUR MISSION. {{ t('home.allRightsReserved') }}</p>
+        <p>© {{ new Date().getFullYear() }} IGNITE-ME.APP. YOUR JORNEY TO MASTERY. {{ t('home.allRightsReserved') }}</p>
       </footer>
     </div>
   </div>
 </template>
 
 <script setup>
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { userService } from '../services/api'
 import homePagePicture from '../assets/home_page.jpg' // Замени на кристалл
 import demoImage from '../assets/demo.png'
 import GradientButton from './GradientButton.vue'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const totalUsers = ref(1000)
+
+const formattedUsersCount = computed(() => {
+  return new Intl.NumberFormat(locale.value).format(totalUsers.value)
+})
+
+const joinHeroesText = computed(() => {
+  return t('home.joinHeroesDynamic', { count: formattedUsersCount.value })
+})
+
+onMounted(async () => {
+  try {
+    const response = await userService.getAllUsers({ page: 1, limit: 1 })
+    const total = Number(response?.data?.pagination?.total || 0)
+    if (Number.isFinite(total) && total > 0) {
+      totalUsers.value = total
+    }
+  } catch {
+    // Keep default value if request fails
+  }
+})
 
 const getFeatureIcon = (index) => {
   const icons = ['mdi-target-variant', 'mdi-sword-cross', 'mdi-shield-check', 'mdi-trophy-variant']
@@ -138,6 +188,7 @@ const getFeatureIcon = (index) => {
 .gradient-text {
   background: linear-gradient(135deg, #fff 30%, #4FD1C5 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -187,6 +238,64 @@ const getFeatureIcon = (index) => {
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 24px;
   margin-top: 60px;
+}
+
+.demo-preview-wrap {
+  margin: 42px auto 0;
+  width: 90%;
+}
+
+.demo-preview-title {
+  margin-bottom: 14px;
+  text-align: center;
+}
+
+.demo-preview-image {
+  display: block;
+  width: 100%;
+  border-radius: 18px;
+  border: 1px solid rgba(79, 209, 197, 0.45);
+  box-shadow:
+    0 0 22px rgba(79, 209, 197, 0.35),
+    0 0 48px rgba(112, 72, 232, 0.25);
+}
+
+.quote-section {
+  position: relative;
+  overflow: hidden;
+}
+
+.quote-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+.quote-text {
+  font-size: 2.2rem;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #ffffff 0%, #4FD1C5 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 15px rgba(79, 209, 197, 0.3));
+}
+
+.quote-subtext {
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+.quote-divider {
+  height: 1px;
+  width: 100px;
+  margin: 0 auto;
+  background: linear-gradient(90deg, transparent, #4FD1C5, transparent);
+  opacity: 0.5;
 }
 
 .glass-card {
@@ -259,6 +368,25 @@ const getFeatureIcon = (index) => {
   font-size: 2.5rem;
   font-weight: 800;
   margin-bottom: 32px;
+}
+
+@media (max-width: 600px) {
+  .quote-section {
+    margin-top: 24px !important;
+    margin-bottom: 24px !important;
+  }
+
+  .quote-container {
+    padding: 24px 12px;
+  }
+
+  .quote-text {
+    font-size: 1.6rem;
+  }
+
+  .quote-subtext {
+    font-size: 0.95rem;
+  }
 }
 
 .footer-simple {

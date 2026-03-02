@@ -39,8 +39,6 @@
             {{ challengeTypeLabel }}
           </v-chip>
             <v-icon v-if="challenge?.privacy === 'private'" color="#4FD1C5" size="18" class="ml-2">mdi-lock-outline</v-icon>
-            
-            <v-btn icon="mdi-share-variant" variant="text" size="small" color="rgba(255,255,255,0.5)" class="ml-2"></v-btn>
           </div>
         </div>
       </div>
@@ -906,47 +904,6 @@ function clearErrors() {
 function goBack() {
   // Navigate to My Challenges page
   router.push('/missions/my')
-}
-
-// Share functionality
-const getShareUrl = () => {
-  if (!challenge.value?._id) return ''
-  return `${window.location.origin}/missions/${challenge.value._id}`
-}
-
-const getShareText = () => {
-  if (!challenge.value) return ''
-  return challenge.value.title || ''
-}
-
-const copyLink = async () => {
-  const url = getShareUrl()
-  try {
-    await navigator.clipboard.writeText(url)
-    snackbarText.value = t('challenges.share.linkCopied')
-    snackbar.value = true
-  } catch (err) {
-    console.error('Failed to copy link:', err)
-    // Fallback for older browsers
-    const textArea = document.createElement('textarea')
-    textArea.value = url
-    document.body.appendChild(textArea)
-    textArea.select()
-    try {
-      document.execCommand('copy')
-      snackbarText.value = t('challenges.share.linkCopied')
-      snackbar.value = true
-    } catch (e) {
-      console.error('Fallback copy failed:', e)
-    }
-    document.body.removeChild(textArea)
-  }
-}
-
-const shareToTelegram = () => {
-  const url = encodeURIComponent(getShareUrl())
-  const text = encodeURIComponent(getShareText())
-  window.open(`https://t.me/share/url?url=${url}&text=${text}`, '_blank', 'width=600,height=400')
 }
 
 const actionsScrollContainer = ref(null)

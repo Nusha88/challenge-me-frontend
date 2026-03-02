@@ -509,11 +509,13 @@ import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { challengeService } from '../services/api'
 import { useI18n } from 'vue-i18n'
+import { useUserStore } from '../stores/user'
 import ChallengeImageUpload from './ChallengeImageUpload.vue'
 import SuccessModal from './SuccessModal.vue'
 
 const router = useRouter()
 const { t, locale } = useI18n()
+const userStore = useUserStore()
 
 const form = ref({
   title: '',
@@ -818,12 +820,16 @@ const isFormValid = computed(() => {
 })
 
 function getCurrentUserId() {
+  if (userStore.userId) {
+    return userStore.userId
+  }
+
   const storedUser = localStorage.getItem('user')
   if (!storedUser) return null
 
   try {
     const parsed = JSON.parse(storedUser)
-    return parsed?.id || null
+    return parsed?.id || parsed?._id || null
   } catch (error) {
     return null
   }
