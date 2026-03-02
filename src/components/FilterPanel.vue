@@ -35,17 +35,17 @@
         class="type-toggle-group-custom"
       >
         <v-btn value="all" class="filter-nav-btn">
-          <span class="btn-text">All</span>
+          <span class="btn-text">{{t('challenges.allTypes')}}</span>
         </v-btn>
         
         <v-btn value="result" class="filter-nav-btn quest-tab">
           <v-icon start size="18">mdi-sword</v-icon>
-          <span class="btn-text">Quest</span>
+          <span class="btn-text">{{t('challenges.typeResultLabel')}}</span>
         </v-btn>
 
         <v-btn value="habit" class="filter-nav-btn ritual-tab">
           <v-icon start size="18">mdi-fire</v-icon>
-          <span class="btn-text">Ritual</span>
+          <span class="btn-text">{{t('challenges.typeHabitLabel')}}</span>
         </v-btn>
       </v-btn-toggle>
 

@@ -152,6 +152,30 @@
         </v-card>
       </v-col>
     </v-row>
+
+    <div v-else class="empty-radar-container">
+      <div class="radar-ping">
+        <div class="ring"></div>
+        <div class="ring"></div>
+        <div class="ring"></div>
+        <v-icon color="teal-accent-4" size="48">mdi-radar</v-icon>
+      </div>
+
+      <p class="empty-text-dark mt-6">
+        {{ t('watched.emptyStateStart') }}
+        <span>{{ t('watched.emptyStateHighlight') }}</span>{{ t('watched.emptyStateEnd') }}
+      </p>
+
+      <v-btn
+        color="teal-accent-4"
+        variant="outlined"
+        rounded="pill"
+        class="mt-4"
+        to="/heroes"
+      >
+        {{ t('watched.findHeroes') }}
+      </v-btn>
+    </div>
   </div>
 </template>
 
@@ -326,6 +350,60 @@
   color: #FFFFFF !important;
   letter-spacing: 2px !important;
 }
+
+.empty-radar-container {
+  min-height: 50vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+}
+
+.radar-ping {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100px;
+  height: 100px;
+}
+
+.radar-ping .ring {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border: 2px solid rgba(45, 212, 191, 0.5);
+  border-radius: 50%;
+  animation: radar-beam 4s infinite linear;
+  opacity: 0;
+}
+
+.radar-ping .ring:nth-child(2) {
+  animation-delay: 1.3s;
+}
+
+.radar-ping .ring:nth-child(3) {
+  animation-delay: 2.6s;
+}
+
+@keyframes radar-beam {
+  0% {
+    transform: scale(0.5);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(3);
+    opacity: 0;
+  }
+}
+
+.empty-text-dark span {
+  color: #a78bfa;
+  font-weight: bold;
+}
+
 @media (max-width: 480px) {
   /* 1. Контейнер и заголовок секции */
   .watched-challenges-page {

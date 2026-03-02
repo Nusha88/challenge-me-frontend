@@ -29,10 +29,23 @@
     </v-alert>
     
     <div v-else-if="checklists.length === 0" class="empty-journal-dark">
-      <div class="empty-icon-glow">✨</div>
-      <p class="empty-text-dark">{{ t('home.loggedIn.checklistHistory.empty') }}</p>
-      <v-btn color="teal-accent-4" variant="outlined" rounded="pill" class="mt-4" to="/missions">
-        Start First Mission
+      <div class="empty-icon-glow">
+        <v-icon color="teal-accent-4" size="64">mdi-auto-fix</v-icon>
+      </div>
+
+      <p class="empty-text-dark">
+        {{ t('home.loggedIn.checklistHistory.empty') }}
+      </p>
+
+      <v-btn
+        color="teal-accent-4"
+        variant="outlined"
+        rounded="pill"
+        class="mt-4 action-btn-ignite"
+        to="/missions/add"
+        elevation="4"
+      >
+        {{ t('home.loggedIn.checklistHistory.launchFirstMission') }}
       </v-btn>
     </div>
     
@@ -150,6 +163,62 @@
   border-left: 2px solid #4FD1C5;
   padding-left: 16px;
   font-style: italic;
+}
+
+.empty-journal-dark {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.empty-icon-glow {
+  font-size: 48px;
+  margin-bottom: 24px;
+  position: relative;
+  display: inline-block;
+  animation: pulse-glow 3s infinite ease-in-out;
+}
+
+.empty-icon-glow::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80px;
+  height: 80px;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.3) 0%, transparent 70%);
+  border-radius: 50%;
+  z-index: -1;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+    filter: drop-shadow(0 0 15px rgba(45, 212, 191, 0.6));
+  }
+}
+
+.empty-text-dark {
+  color: #94a3b8;
+  font-size: 1.1rem;
+  max-width: 400px;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+.action-btn-ignite {
+  border-color: rgba(45, 212, 191, 0.5) !important;
+  color: #e2e8f0 !important;
+  box-shadow: 0 0 15px rgba(45, 212, 191, 0.2) !important;
 }
 
 /* Timeline Logic */

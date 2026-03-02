@@ -84,6 +84,7 @@
         "title": "Hero's Journal",
         "subtitle": "The legend is being written. Every step is a part of your story.",
         "empty": "No checklists found. Start creating your daily checklists!",
+        "launchFirstMission": "Launch First Mission",
         "loadError": "Failed to load checklist history",
         "today": "Today",
         "yesterday": "Yesterday",
@@ -120,6 +121,11 @@
     "cancel": "Cancel",
     "save": "Save",
     "back": "Back"
+  },
+  "notFound": {
+    "signalLost": "Signal Lost",
+    "message": "Looks like you've gone beyond explored space. Even great heroes sometimes need to return to base and regroup.",
+    "backToMissionsCenter": "Return to Mission Center"
   },
   "auth": {
     "joinCommunity": "JOIN THE COMMUNITY",
@@ -226,6 +232,9 @@
     "activityJourney": "Activity Journey",
     "heatmapLess": "Less",
     "heatmapMore": "More",
+    "emptyActivityTextStart": "Your story begins with the first step. Fill this calendar with your ",
+    "emptyActivityTextHighlight": "victories",
+    "emptyActivityTextEnd": ".",
     "rankLabel": "RANK",
     "levelLabel": "LEVEL",
     "missionsArchive": "Missions Archive",
@@ -258,6 +267,7 @@
     "userNotFound": "User not found"
   },
   "challenges": {
+    "allTypes": "All",
     "addTitle": "Start Mission",
     "motiveText": "Every epic saga begins with a single choice. Define your path, Hero.",
     "title": "Title",
@@ -377,7 +387,7 @@
     "actions": "Actions",
     "dateRange": "From {start} to {end}",
     "noChallenges": "No missions have been created yet.",
-    "noMyChallenges": "You haven't created or joined any missions yet.",
+    "noMyChallenges": "Your journey to greatness starts here. Launch your first mission!",
     "join": "Join",
     "leave": "Give up",
     "clickToIgnite": "Click to ignite",
@@ -402,6 +412,7 @@
     "mainRitualOfWeek": "Main ritual of the week",
     "defaultRitualTitle": "Beautiful Breakfasts",
     "heroesInLine": "heroes in line",
+    "waitingForYou": "Waiting for you",
     "acceptChallenge": "Join mission",
     "joined": "Joined",
     "activeAdventures": "active adventures",
@@ -557,6 +568,10 @@
     "title": "Achievement Radar",
     "subtitle": "Community Insight & Focus",
     "description": "Follow high-priority missions and track progress across the global network.",
+    "emptyStateStart": "No active missions found. Follow other ",
+    "emptyStateHighlight": "heroes",
+    "emptyStateEnd": " to fuel your inspiration.",
+    "findHeroes": "Find Heroes",
     "elitePerformers": "Top Performers",
     "surveillanceFeed": "Activity Feed",
     "ritual": "Ritual",

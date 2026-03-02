@@ -922,7 +922,7 @@ onMounted(async () => {
       </v-card>
 
       <v-card class="activity-card mb-6">
-        <div class="d-flex flex-column flex-sm-row align-start align-sm-center justify-space-between mb-6">
+        <div v-if="heatmapDays.length > 0" class="d-flex flex-column flex-sm-row align-start align-sm-center justify-space-between mb-6">
           <h3 class="section-title">
             <v-icon color="#7048E8" class="mr-2">mdi-sword-cross</v-icon>
             {{ t('profile.activityJourney') }}
@@ -939,7 +939,13 @@ onMounted(async () => {
           </div>
         </div>
 
-        <div class="heatmap-scroll-wrapper">
+        <div class="heatmap-scroll-wrapper" :class="{ 'is-empty': heatmapDays.length === 0 }">
+          <div v-if="heatmapDays.length === 0" class="empty-activity-overlay">
+            <p class="empty-activity-text">
+              {{ t('profile.emptyActivityTextStart') }}
+              <span>{{ t('profile.emptyActivityTextHighlight') }}</span>{{ t('profile.emptyActivityTextEnd') }}
+            </p>
+          </div>
           <div class="heatmap-grid">
             <div 
               v-for="day in heatmapDays" 
@@ -1284,6 +1290,11 @@ onMounted(async () => {
   overflow-y: hidden; /* Запрещаем вертикальный рост */
   padding: 15px 5px;
   display: block; /* Важно для корректного overflow */
+  position: relative;
+}
+
+.heatmap-scroll-wrapper.is-empty {
+  min-height: 140px;
 }
 
 .heatmap-grid {
@@ -1306,6 +1317,39 @@ onMounted(async () => {
   border-radius: 3px;
   background: rgba(255, 255, 255, 0.05);
   transition: transform 0.2s ease;
+}
+
+.empty-activity-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(13, 17, 28, 0.6);
+  backdrop-filter: blur(2px);
+  border-radius: 12px;
+  z-index: 2;
+  transition: opacity 0.5s ease;
+}
+
+.empty-activity-text {
+  color: #94a3b8;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+  max-width: 280px;
+  line-height: 1.4;
+  padding: 10px 20px;
+  border-left: 2px solid #a78bfa;
+  background: linear-gradient(90deg, rgba(167, 139, 250, 0.05) 0%, transparent 100%);
+}
+
+.empty-activity-text span {
+  color: #2dd4bf;
+  text-shadow: 0 0 8px rgba(45, 212, 191, 0.3);
 }
 
 /* Дополнительно: убедимся, что карточка не растягивается внутренним контентом */

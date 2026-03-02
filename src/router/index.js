@@ -7,6 +7,7 @@ import AllChallengesComponent from '../components/AllChallengesComponent.vue'
 import AddChallengeComponent from '../components/AddChallengeComponent.vue'
 import ChallengeEditPage from '../components/ChallengeEditPage.vue'
 import WatchedChallengesComponent from '../components/WatchedChallengesComponent.vue'
+import NotFoundPage from '../components/NotFoundPage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -85,6 +86,11 @@ const router = createRouter({
       path: '/checklists/history',
       name: 'checklists-history',
       component: () => import('../components/DailyChecklistsHistory.vue')
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'not-found',
+      component: NotFoundPage
     }
   ]
 })

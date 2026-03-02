@@ -50,7 +50,7 @@
             
             <div class="ml-4 text-left">
               <div class="stats-count">{{ participantCount }} {{ t('challenges.heroesInLine') }}</div>
-              <div class="stats-label">Waiting for you</div>
+              <div class="stats-label">{{ t('challenges.waitingForYou') }}</div>
             </div>
 
             <v-divider vertical class="mx-6 my-2" color="rgba(255,255,255,0.2)"></v-divider>

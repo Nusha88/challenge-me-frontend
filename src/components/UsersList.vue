@@ -124,10 +124,10 @@
                   <div class="xp-container-dark">
                     <div class="d-flex justify-space-between text-overline mb-1">
                       <span class="grey-text">Lvl {{ getUserLevel(user) }}</span>
-                      <span class="white--text font-weight-bold">{{ getUserCurrentXp(user) }} XP</span>
+                      <span class="white--text font-weight-bold">{{ getUserTotalXp(user) }} XP</span>
                     </div>
                     <v-progress-linear 
-                      :model-value="(getUserCurrentXp(user) / getLevelInfoLocal(getUserLevel(user)).xpPerLvl) * 100" 
+                      :model-value="getUserLevelProgressPercent(user)" 
                       :color="getLevelInfoLocal(getUserLevel(user)).color" 
                       height="8" 
                       rounded
@@ -190,12 +190,16 @@
           <v-icon size="12" class="stat-icon-dim">mdi-fire</v-icon>
           {{ user.daysOnSite }}d
         </span>
+        <span class="text-caption grey-text">
+          <v-icon size="12" class="stat-icon-dim">mdi-star-four-points</v-icon>
+          {{ getUserTotalXp(user) }} XP
+        </span>
       </div>
       
       <v-progress-linear
-        :model-value="45" 
+        :model-value="getUserLevelProgressPercent(user)"
         height="2"
-        color="teal-accent-4"
+        :color="getLevelInfoLocal(getUserLevel(user)).color"
         class="mt-2 opacity-50"
         rounded
       ></v-progress-linear>
@@ -736,18 +740,32 @@ const getDaysOnSiteNumber = (dateString) => {
   }
 }
 
+const getUserTotalXp = (user) => {
+  return Math.max(0, Number(user?.xp || 0))
+}
+
 // Get level for a user
 const getUserLevel = (user) => {
-  const xp = Number(user?.xp || 0)
+  const explicitLevel = Number(user?.level)
+  if (Number.isFinite(explicitLevel) && explicitLevel > 0) {
+    return Math.floor(explicitLevel)
+  }
+  const xp = getUserTotalXp(user)
   return getLevelFromXp(xp)
 }
 
 // Get current XP (XP progress within current level)
 const getUserCurrentXp = (user) => {
-  const xp = Number(user?.xp || 0)
+  const xp = getUserTotalXp(user)
   const level = getUserLevel(user)
   const xpForCurrentLevel = getXpForLevel(level)
-  return xp - xpForCurrentLevel
+  return Math.max(0, xp - xpForCurrentLevel)
+}
+
+const getUserLevelProgressPercent = (user) => {
+  const currentXp = getUserCurrentXp(user)
+  const xpPerLevel = getLevelInfoLocal(getUserLevel(user)).xpPerLvl || 1
+  return Math.min(100, Math.max(0, (currentXp / xpPerLevel) * 100))
 }
 
 // Get level info using helper from levelSystem

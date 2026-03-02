@@ -34,13 +34,17 @@
         {{ error }}
         </v-alert>
 
-      <v-alert v-else-if="challenges.length === 0" type="info">
+      <v-alert
+        v-else-if="challenges.length === 0 || filteredChallenges.length === 0"
+        type="info"
+        variant="tonal"
+        class="info-message"
+      >
+        <template #prepend>
+          <v-icon class="info-message-icon">mdi-information</v-icon>
+        </template>
         {{ t('challenges.noMyChallenges') }}
-        </v-alert>
-
-      <v-alert v-else-if="filteredChallenges.length === 0" type="info">
-          {{ t('challenges.noMyChallenges') }}
-        </v-alert>
+      </v-alert>
 
       <div v-else>
           <!-- Active Challenges -->
@@ -756,6 +760,20 @@ watch(() => route.query.challengeId, async (newChallengeId) => {
 .shadow-neon-line {
   box-shadow: 0 0 10px rgba(79, 209, 197, 0.5);
   border-radius: 4px;
+}
+
+.info-message {
+  background-color: #1a1e2e !important;
+  border: 1px solid transparent;
+  border-image: linear-gradient(to right, #a78bfa, #2dd4bf) 1 !important;
+  color: #e2e8f0 !important;
+  padding: 16px 20px !important;
+  box-shadow: 0 0 15px rgba(45, 212, 191, 0.2) !important;
+}
+
+.info-message-icon {
+  color: #2dd4bf !important;
+  filter: drop-shadow(0 0 5px rgba(45, 212, 191, 0.5));
 }
 
 /* Фикс белого цвета для скелетонов, если тема не подхватилась */
