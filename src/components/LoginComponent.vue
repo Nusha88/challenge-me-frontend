@@ -117,7 +117,7 @@ function closeSuccessModal() {
               <div class="brand-glow-effect"></div>
             </div>
             <h2 class="text-h3 font-weight-bold text-white mb-2">{{ t('auth.loginPageTitle') }}</h2>
-            <p class="text-body-1 text-slate-400">Enter your credentials to continue</p>
+            <p class="text-body-1 text-slate-400">{{ t('auth.loginSubtitle') }}</p>
           </div>
 
           <v-form @submit.prevent="handleLogin">
@@ -169,9 +169,9 @@ function closeSuccessModal() {
 
           <div class="text-center mt-8">
             <p class="text-slate-400">
-              Don't have an account?
+              {{ t('auth.noAccountYet') }}
               <v-btn variant="text" @click="router.push('/register')" class="signup-text-btn px-1">
-                Sign Up
+                {{ t('auth.signUp') }}
               </v-btn>
             </p>
           </div>
@@ -194,8 +194,8 @@ function closeSuccessModal() {
               ⚔️ {{ t('auth.welcomeBack') }}
             </v-chip>
             <h1 class="text-h2 font-weight-black text-white mb-6 leading-tight">
-              Resume Your Saga.<br/>
-              <span class="text-gradient-gold">Continue the Journey.</span>
+              {{ t('auth.loginHeroTitleLine1') }}<br/>
+              <span class="text-gradient-gold">{{ t('auth.loginHeroTitleLine2') }}</span>
             </h1>
             <p class="text-h6 text-slate-300 mb-8 font-weight-regular" style="max-width: 600px;">
               {{ t('auth.loginDescription') }}

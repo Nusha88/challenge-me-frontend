@@ -18,8 +18,8 @@
               ✨ {{ t('auth.joinCommunity') }}
             </v-chip>
             <h1 class="text-h2 font-weight-black text-white mb-6 leading-tight">
-              Forge Your Path.<br/>
-              <span class="text-gradient-gold">Become a Legend.</span>
+              {{ t('auth.registerHeroTitleLine1') }}<br/>
+              <span class="text-gradient-gold">{{ t('auth.registerHeroTitleLine2') }}</span>
             </h1>
             <p class="text-h6 text-slate-300 mb-8 font-weight-regular" style="max-width: 600px;">
               {{ t('auth.motivationText') }}
@@ -37,7 +37,7 @@
               <div class="brand-glow-effect"></div>
             </div>
             <h2 class="text-h3 font-weight-bold text-white mb-2">{{ t('auth.registerPageTitle') }}</h2>
-            <p class="text-body-1 text-slate-400">Create your account to start your journey</p>
+            <p class="text-body-1 text-slate-400">{{ t('auth.registerSubtitle') }}</p>
           </div>
 
           <v-form @submit.prevent="handleSubmit">
@@ -110,7 +110,7 @@
             <p class="text-slate-400">
               {{ t('auth.alreadyHaveAccount') }}
               <v-btn variant="text" @click="router.push('/login')" class="signup-text-btn px-1">
-                Login
+                {{ t('auth.loginCta') }}
               </v-btn>
             </p>
           </div>

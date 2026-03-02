@@ -4,7 +4,7 @@
   <div class="d-flex align-center mb-1">
     <v-icon color="teal-accent-4" size="40" class="mr-3">mdi-compass-rose</v-icon>
     <h1 class="page-title-dark">{{ t('allChallenges.title') }}</h1>
-  </div>
+    </div>
   <div class="text-overline text-teal-accent-4 tracking-widest ml-13">{{ t('allChallenges.subtitle') }}</div>
   <p class="journal-subtitle-dark mt-2">{{ t('allChallenges.description') }}</p>
 </div>
@@ -18,13 +18,13 @@
     <!-- Main Ritual Card with Skeleton -->
     <div v-if="loadingMainRitual" class="main-ritual-loading-wrapper mb-8">
   <v-card class="skeleton-card-dark rounded-xl overflow-hidden">
-    <v-skeleton-loader
+      <v-skeleton-loader
       type="image, list-item-two-line, actions"
-      class="main-ritual-skeleton-loader"
+        class="main-ritual-skeleton-loader"
       theme="dark"
-    ></v-skeleton-loader>
+      ></v-skeleton-loader>
   </v-card>
-</div>
+    </div>
     <MainRitualCard
       v-else-if="mainRitual"
       :challenge="mainRitual"
@@ -47,7 +47,7 @@
     <v-skeleton-loader
       type="image, list-item-two-line, text"
       class="custom-skeleton"
-    ></v-skeleton-loader>
+  ></v-skeleton-loader>
   </v-card>
 </div>
 
@@ -87,26 +87,26 @@
       <h2 class="section-title mb-4">{{ t('challenges.upcoming') }}</h2>
       <div class="challenges-grid">
           <div
-            v-for="challenge in upcomingChallenges"
+          v-for="challenge in upcomingChallenges"
             :key="challenge._id"
             class="upcoming-card-disabled"
           >
             <ChallengeCard
-              :challenge="challenge"
-              :current-user-id="currentUserId"
-              :show-join-button="true"
-              :joining-id="joiningId"
-              :leaving-id="leavingId"
-              :watching-id="watchingId"
+            :challenge="challenge"
+            :current-user-id="currentUserId"
+            :show-join-button="true"
+            :joining-id="joiningId"
+          :leaving-id="leavingId"
+          :watching-id="watchingId"
               :all-challenges="true"
-              :is-watched="isWatched(challenge)"
-              @click="openDetails"
-              @join="joinChallenge"
-              @leave="leaveChallenge"
-              @watch="watchChallenge"
-              @unwatch="unwatchChallenge"
-              @owner-navigated="handleOwnerNavigated"
-            />
+          :is-watched="isWatched(challenge)"
+            @click="openDetails"
+            @join="joinChallenge"
+          @leave="leaveChallenge"
+          @watch="watchChallenge"
+          @unwatch="unwatchChallenge"
+          @owner-navigated="handleOwnerNavigated"
+          />
             <div class="upcoming-blur-overlay"></div>
           </div>
         </div>
@@ -857,21 +857,21 @@ const isSyncingFromUrl = ref(false)
 watch(() => filters.value.type, () => {
   if (!isSyncingFromUrl.value) {
     syncFiltersToUrl()
-    fetchChallenges(1, false)
+  fetchChallenges(1, false)
   }
 })
 
 watch(() => filters.value.owner, () => {
   if (!isSyncingFromUrl.value) {
     syncFiltersToUrl()
-    fetchChallenges(1, false)
+  fetchChallenges(1, false)
   }
 })
 
 watch(() => filters.value.popularity, () => {
   if (!isSyncingFromUrl.value) {
     syncFiltersToUrl()
-    fetchChallenges(1, false)
+  fetchChallenges(1, false)
   }
 })
 
@@ -1202,5 +1202,5 @@ function handleOwnerNavigated() {
 
 :deep(.v-skeleton-loader__bone) {
   background: rgba(255, 255, 255, 0.05) !important;
-}
+  }
 </style>
