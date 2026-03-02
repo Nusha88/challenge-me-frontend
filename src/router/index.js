@@ -3,6 +3,7 @@ import HomeComponent from '../components/HomeComponent.vue'
 import RegisterComponent from '../components/RegisterComponent.vue'
 import UsersList from '../components/UsersList.vue'
 import LoginComponent from '../components/LoginComponent.vue'
+import HomeLoggedIn from '../components/HomeLoggedIn.vue'
 import AllChallengesComponent from '../components/AllChallengesComponent.vue'
 import AddChallengeComponent from '../components/AddChallengeComponent.vue'
 import ChallengeEditPage from '../components/ChallengeEditPage.vue'
@@ -16,6 +17,12 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: HomeComponent
+    },
+    {
+      path: '/today',
+      name: 'today',
+      component: HomeLoggedIn,
+      meta: { requiresAuth: true }
     },
     {
       path: '/register',
@@ -93,6 +100,26 @@ const router = createRouter({
       component: NotFoundPage
     }
   ]
+})
+
+router.beforeEach((to) => {
+  const requiresAuth = to.matched.some(r => r.meta?.requiresAuth)
+  const token = (() => {
+    try {
+      return localStorage.getItem('token')
+    } catch {
+      return null
+    }
+  })()
+
+  if (requiresAuth && !token) {
+    return { name: 'login', query: { redirect: to.fullPath } }
+  }
+
+  // If user is already logged in, keep them out of auth pages
+  if ((to.name === 'login' || to.name === 'register') && token) {
+    return { name: 'today' }
+  }
 })
 
 export default router 

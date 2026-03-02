@@ -12,6 +12,7 @@ import { getLevelFromXp, getXpForLevel, getXpForNextLevel, getLevelName, getRank
 import { useOnboarding } from '../composables/useOnboarding'
 import { Sparkles, Mountain, BookOpen, Compass, Eye, Trophy, Star, Globe2, Coins, LogOut } from 'lucide-vue-next'
 import awaImage from '../assets/awa.png'
+import crystalImage from '../assets/crystal.png'
 
 const router = useRouter()
 const route = useRoute()
@@ -123,6 +124,10 @@ function logout() {
   userStore.clearUser()
   window.dispatchEvent(new Event('auth-changed'))
   router.push('/login')
+}
+
+function goToToday() {
+  router.push('/today')
 }
 
 function changeLanguage(code) {
@@ -456,6 +461,16 @@ watch(
         <!-- Right Section: Buttons (desktop or logged in) -->
         <div class="header-section header-right">
       <v-btn
+        v-if="isLoggedIn"
+        icon
+        variant="text"
+        class="mr-1 crystal-header-btn"
+        @click="goToToday"
+        :title="t('navigation.today')"
+      >
+        <img :src="crystalImage" alt="Today" class="crystal-header-icon" />
+      </v-btn>
+      <v-btn
         v-if="!isLoggedIn && route.path !== '/register' && (!mobile || route.path !== '/')"
         to="/register"
         variant="elevated"
@@ -574,7 +589,7 @@ watch(
     {{ t('navigation.yourJourney') }}
   </v-list-subheader>
 
-  <v-list-item to="/" :active="currentRoute === 'home'" color="primary">
+  <v-list-item to="/today" :active="currentRoute === 'today' || currentRoute === 'home'" color="primary">
     <template v-slot:prepend>
       <Sparkles :size="20" class="sidebar-lucide-icon mr-2" />
     </template>
@@ -705,7 +720,7 @@ watch(
     {{ t('navigation.yourJourney') }}
   </v-list-subheader>
 
-  <v-list-item to="/" :active="currentRoute === 'home'" color="primary">
+  <v-list-item to="/today" :active="currentRoute === 'today' || currentRoute === 'home'" color="primary">
     <template v-slot:prepend>
       <Sparkles :size="20" class="sidebar-lucide-icon mr-2" />
     </template>
@@ -2023,5 +2038,22 @@ watch(
 @keyframes star-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.7; transform: scale(1.2); }
+}
+
+.crystal-header-btn {
+  padding: 0 !important;
+}
+
+.crystal-header-icon {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 10px rgba(112, 72, 232, 0.45));
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.crystal-header-btn:hover .crystal-header-icon {
+  transform: translateY(-1px) scale(1.06);
+  filter: drop-shadow(0 0 16px rgba(79, 209, 197, 0.55));
 }
 </style> 

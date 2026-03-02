@@ -1545,7 +1545,7 @@ onActivated(async () => {
 
 // Watch route changes to recalculate streak when navigating to home
 watch(() => route.path, async (newPath) => {
-  if (newPath === '/') {
+  if (newPath === '/' || newPath === '/today') {
     await calculateStreak()
     await loadTodaysChallenges()
     loadTomorrowSteps()

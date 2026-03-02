@@ -339,7 +339,7 @@ function closeSuccessModal() {
   window.dispatchEvent(new Event('auth-changed'))
   // Use replace instead of push to remove register page from history
   // This ensures the user can't go back to the register page
-  router.replace('/')
+  router.replace('/today')
 }
 </script>
 
