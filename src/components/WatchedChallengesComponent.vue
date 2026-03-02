@@ -337,10 +337,6 @@
     margin-left: 8px !important;
   }
 
-  .page-title {
-    font-size: 1.5rem !important; /* Уменьшаем "Following" */
-  }
-
   .header-section .text-overline {
     font-size: 7px !important; /* "STRATEGIC SURVEILLANCE" совсем мелко */
     letter-spacing: 2px !important;

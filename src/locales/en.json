@@ -562,6 +562,34 @@
     "ritual": "Ritual",
     "quest": "Quest",
     "heroProgress": "Hero Result"
+   },
+  "onboarding": {
+    "nextBtnText": "Next",
+    "prevBtnText": "Back",
+    "doneBtnText": "Start Mission",
+    "closeBtnText": "Close",
+    "mobile": {
+      "title": "Welcome, Agent",
+      "description": "Your mission control is ready. Focus on your goals and ignite your potential today."
+    },
+    "steps": {
+      "startMission": {
+        "title": "Mission Launch",
+        "description": "Your path begins here. Activate your first mission and turn discipline into results."
+      },
+      "myMissions": {
+        "title": "Active Operations",
+        "description": "Your personal command center for all current missions. Track every step toward your goal."
+      },
+      "achievementRadar": {
+        "title": "Achievement Radar",
+        "description": "Watch the best. Learn community leaders' tactics and get inspired by their success."
+      },
+      "settings": {
+        "title": "System Sync",
+        "description": "Configure notifications and Daily Recap so the system keeps your focus at maximum."
+      }
+    }
   },
   "validation": {
     "titleRequired": "Title is required",

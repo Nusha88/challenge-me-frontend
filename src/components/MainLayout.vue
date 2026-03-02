@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, watch, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useDisplay } from 'vuetify'
@@ -9,6 +9,7 @@ import NotificationsComponent from './NotificationsComponent.vue'
 import { notificationService, userService, challengeService } from '../services/api'
 import { initializePushNotifications, syncPushSubscriptionToServer } from '../utils/pushNotifications'
 import { getLevelFromXp, getXpForLevel, getXpForNextLevel, getLevelName, getRank, getXpPerLevel, getLevelInfo } from '../utils/levelSystem'
+import { useOnboarding } from '../composables/useOnboarding'
 import { Sparkles, Mountain, BookOpen, Compass, Eye, Trophy, Star, Globe2, Coins, LogOut } from 'lucide-vue-next'
 import awaImage from '../assets/awa.png'
 
@@ -30,7 +31,9 @@ const isAuthPage = computed(() => {
 
 const { t, locale } = useI18n()
 const { mobile, mdAndUp } = useDisplay()
+const { startTour } = useOnboarding()
 const availableLocales = SUPPORTED_LOCALES
+const onboardingStarted = ref(false)
 
 // Use store getters for user data
 const isLoggedIn = computed(() => userStore.isLoggedIn)
@@ -371,6 +374,30 @@ watch(() => route.path, () => {
     calculateStreak()
   }
 })
+
+async function maybeStartOnboarding() {
+  if (onboardingStarted.value || !isLoggedIn.value) return
+  if (localStorage.getItem('onboarding_complete') === 'true') return
+  if (localStorage.getItem('onboarding_pending') !== 'true') return
+
+  onboardingStarted.value = true
+  await nextTick()
+  setTimeout(() => {
+    try {
+      startTour()
+    } catch {
+      onboardingStarted.value = false
+    }
+  }, 500)
+}
+
+watch(
+  () => [isLoggedIn.value, route.path, mdAndUp.value],
+  () => {
+    maybeStartOnboarding()
+  },
+  { immediate: true }
+)
 </script>
 
 <template>
@@ -451,7 +478,7 @@ watch(() => route.path, () => {
   to="/missions/add"
   variant="elevated"
   size="large"
-  class="mr-2 cta-button-cyber d-none d-md-inline-flex"
+  class="mr-2 cta-button-cyber d-none d-md-inline-flex start-mission-btn"
 >
   <template v-slot:prepend>
     <v-icon class="icon-pulse">mdi-flare</v-icon>
@@ -483,7 +510,7 @@ watch(() => route.path, () => {
       <v-btn
        v-if="isLoggedIn && !isAuthPage"
       to="/missions/add"
-      class="fab-button d-md-none"
+      class="fab-button d-md-none start-mission-btn"
       color="primary"
       icon="mdi-plus"
       size="large"
@@ -506,7 +533,7 @@ watch(() => route.path, () => {
           <v-list>
               <!-- User Section -->
               <div class="sidebar-user-section pa-3">
-                <div class="d-flex align-center mb-3 sidebar-user-clickable" @click="router.push('/profile')">
+                <div class="d-flex align-center mb-3 sidebar-user-clickable settings-icon" @click="router.push('/profile')">
                   <v-avatar size="40" class="sidebar-avatar mr-3">
                     <v-img v-if="userAvatarUrl" :src="userAvatarUrl" :alt="userName || ''" cover></v-img>
                     <span v-else class="sidebar-avatar-initials">{{ getUserInitials(userName) }}</span>
@@ -554,7 +581,7 @@ watch(() => route.path, () => {
     <v-list-item-title>{{ t('navigation.today') }}</v-list-item-title>
   </v-list-item>
 
-  <v-list-item to="/missions/my" :active="currentRoute === 'my-challenges'" color="primary">
+  <v-list-item to="/missions/my" :active="currentRoute === 'my-challenges'" color="primary" class="my-missions-link">
     <template v-slot:prepend>
       <Mountain :size="20" class="sidebar-lucide-icon mr-2" />
     </template>
@@ -582,7 +609,7 @@ watch(() => route.path, () => {
     <v-list-item-title>{{ t('navigation.allChallenges') }}</v-list-item-title>
   </v-list-item>
 
-  <v-list-item to="/missions/watched" :active="currentRoute === 'watched-challenges'" color="primary">
+  <v-list-item to="/missions/watched" :active="currentRoute === 'watched-challenges'" color="primary" class="achievement-radar">
     <template v-slot:prepend>
       <Eye :size="20" class="sidebar-lucide-icon mr-2" />
     </template>
@@ -637,7 +664,7 @@ watch(() => route.path, () => {
       <v-list>
         <!-- User Section -->
         <div class="sidebar-user-section pa-3">
-          <div class="d-flex align-center mb-3 sidebar-user-clickable" @click="router.push('/profile'); drawerOpen = false">
+          <div class="d-flex align-center mb-3 sidebar-user-clickable settings-icon" @click="router.push('/profile'); drawerOpen = false">
             <v-avatar size="40" class="sidebar-avatar mr-3">
               <v-img v-if="userAvatarUrl" :src="userAvatarUrl" :alt="userName || ''" cover></v-img>
               <span v-else class="sidebar-avatar-initials">{{ getUserInitials(userName) }}</span>
@@ -685,7 +712,7 @@ watch(() => route.path, () => {
     <v-list-item-title>{{ t('navigation.today') }}</v-list-item-title>
   </v-list-item>
 
-  <v-list-item to="/missions/my" :active="currentRoute === 'my-challenges'" color="primary">
+  <v-list-item to="/missions/my" :active="currentRoute === 'my-challenges'" color="primary" class="my-missions-link">
     <template v-slot:prepend>
       <Mountain :size="20" class="sidebar-lucide-icon mr-2" />
     </template>
@@ -713,7 +740,7 @@ watch(() => route.path, () => {
     <v-list-item-title>{{ t('navigation.allChallenges') }}</v-list-item-title>
   </v-list-item>
 
-  <v-list-item to="/missions/watched" :active="currentRoute === 'watched-challenges'" color="primary">
+  <v-list-item to="/missions/watched" :active="currentRoute === 'watched-challenges'" color="primary" class="achievement-radar">
     <template v-slot:prepend>
       <Eye :size="20" class="sidebar-lucide-icon mr-2" />
     </template>
@@ -1443,46 +1470,12 @@ watch(() => route.path, () => {
   right: 4px;
 }
 
-.language-button {
-  min-width: auto;
-  white-space: nowrap;
-}
-
-/* Sidebar Logo */
-.sidebar-logo {
-  padding: 16px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-}
-
-.sidebar-logo-text {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #2E2A47;
-  letter-spacing: 0.02em;
-}
-
-
 .sidebar-section-icon {
   color: #BDBDBD;
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
 }
-
-/* Sidebar Icons (Emoji) */
-.sidebar-icon {
-  font-size: 1.25rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-}
-
-.sidebar-icon-small {
-  font-size: 1rem;
-}
-
 
 /* Основной контейнер в сайдбаре */
 .sidebar-user-section {
@@ -1527,22 +1520,6 @@ watch(() => route.path, () => {
   opacity: 0.8;
 }
 
-.full-width-progress {
-  width: calc(100% + 24px);
-  margin-left: -12px;
-  margin-right: -12px;
-}
-
-.settings-button {
-  color: #2E2A47 !important;
-  opacity: 0.7;
-}
-
-.settings-button:hover {
-  opacity: 1;
-  background-color: rgba(0, 0, 0, 0.05) !important;
-}
-
 .sidebar-content-wrapper {
   display: flex;
   flex-direction: column;
@@ -1553,12 +1530,6 @@ watch(() => route.path, () => {
 .desktop-sidebar .sidebar-content-wrapper > .v-list {
   flex: 1;
   overflow-y: visible;
-}
-
-.sidebar-logout-section {
-  margin-top: auto;
-  padding: 8px 0;
-  background-color: #F9F9FB;
 }
 
 .logout-item {

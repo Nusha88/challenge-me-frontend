@@ -12,6 +12,7 @@
     "@mdi/font": "^7.4.47",
     "axios": "^1.10.0",
     "canvas-confetti": "^1.9.4",
+    "driver.js": "^1.4.0",
     "html2canvas": "^1.4.1",
     "lucide-vue-next": "^0.562.0",
     "pinia": "^3.0.4",

@@ -421,11 +421,6 @@
     padding: 8px !important;
   }
   
-  .page-title {
-    font-size: 1.25rem !important;
-    margin-bottom: 4px !important;
-  }
-
   /* 2. Поиск - делаем ниже, чтобы не занимал много места */
   .search-wrapper {
     margin-bottom: 16px !important;

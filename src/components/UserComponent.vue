@@ -1082,6 +1082,7 @@ onMounted(async () => {
                     variant="outlined"
                     color="#7048E8"
                     size="small"
+                    class="ml-2"
                     :loading="dailyRecapSaving"
                     @click="saveDailyRecapSettings"
                   >
@@ -1338,6 +1339,23 @@ onMounted(async () => {
   align-items: center;
   padding: 12px 0;
   border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.daily-recap-time-input {
+  max-width: 120px;
+}
+
+.daily-recap-time-input :deep(.v-field) {
+  min-height: 34px !important;
+}
+
+.daily-recap-time-input :deep(input) {
+  color: #fff !important;
+  font-size: 0.8rem;
+}
+
+.daily-recap-time-input :deep(input::-webkit-calendar-picker-indicator) {
+  filter: brightness(0) invert(1);
 }
 /* Стили для самого контейнера тултипа */
 :deep(.v-tooltip > .v-overlay__content) {

@@ -332,6 +332,9 @@ const handleSubmit = async () => {
 
 function closeSuccessModal() {
   showSuccess.value = false
+  if (localStorage.getItem('onboarding_complete') !== 'true') {
+    localStorage.setItem('onboarding_pending', 'true')
+  }
   // Dispatch auth-changed event to update layout (show sidebar)
   window.dispatchEvent(new Event('auth-changed'))
   // Use replace instead of push to remove register page from history

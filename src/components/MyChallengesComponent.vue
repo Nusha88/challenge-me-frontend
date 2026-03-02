@@ -611,30 +611,6 @@ watch(() => route.query.challengeId, async (newChallengeId) => {
   padding: 16px;
 }
 
-.page-title {
-  font-size: 1.75rem;
-  font-weight: 600;
-  color: rgba(0, 0, 0, 0.87);
-  margin-bottom: 4px;
-}
-
-.page-subtitle {
-  font-size: 0.9rem;
-  font-weight: 400;
-  color: #64748b;
-  margin: 0;
-}
-
-@media (min-width: 600px) {
-  .page-title {
-    font-size: 2rem;
-  }
-  
-  .page-subtitle {
-    font-size: 1rem;
-  }
-}
-
 .content-section {
   position: relative;
   min-height: 400px;
@@ -660,10 +636,6 @@ watch(() => route.query.challengeId, async (newChallengeId) => {
   .challenges-grid {
     grid-template-columns: repeat(3, 1fr);
   }
-}
-
-.skeleton-card {
-  width: 100%;
 }
 
 /* Quests grid - 2 per row */

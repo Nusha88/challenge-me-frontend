@@ -100,3 +100,138 @@ h1, h2, .text-h4 {
     margin-bottom: 24px !important;
   }
 }
+
+/* Driver.js onboarding popover */
+.driver-popover.ignite-popover {
+  background-color: #1a1e2e !important;
+  color: #ffffff !important;
+  border: 1px solid #3b82f6 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(59, 130, 246, 0.2) !important;
+  max-width: 320px !important;
+  padding: 20px !important;
+}
+
+.driver-popover.ignite-popover .driver-popover-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: #a78bfa !important;
+  margin-bottom: 8px !important;
+}
+
+.driver-popover.ignite-popover .driver-popover-description {
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+  color: #cbd5e1 !important;
+}
+
+.driver-popover.ignite-popover .driver-popover-navigation-btns {
+  margin-top: 15px !important;
+  justify-content: flex-end !important;
+  gap: 10px !important;
+}
+
+.driver-popover.ignite-popover .driver-popover-next-btn,
+.driver-popover.ignite-popover .driver-popover-prev-btn,
+.driver-popover.ignite-popover .driver-popover-close-btn {
+  border: none !important;
+  padding: 6px 16px !important;
+  border-radius: 6px !important;
+  font-weight: 600 !important;
+  text-shadow: none !important;
+  transition: all 0.2s ease !important;
+}
+
+.driver-popover.ignite-popover .driver-popover-close-btn {
+  color: #ffffff !important;
+  opacity: 1 !important;
+}
+
+.driver-popover.ignite-popover .driver-popover-close-btn:hover {
+  color: #ffffff !important;
+  opacity: 0.9 !important;
+}
+
+.driver-popover.ignite-popover .driver-popover-next-btn {
+  background: linear-gradient(135deg, #4ade80 0%, #a78bfa 100%) !important;
+  color: #ffffff !important;
+}
+
+.driver-popover.ignite-popover .driver-popover-next-btn:hover {
+  opacity: 0.9 !important;
+  transform: translateY(-1px) !important;
+}
+
+.driver-popover.ignite-popover .driver-popover-prev-btn {
+  background-color: transparent !important;
+  color: #94a3b8 !important;
+  border: 1px solid #334155 !important;
+}
+
+.driver-popover.ignite-popover .driver-popover-arrow {
+  border-color: transparent transparent #1a1e2e #1a1e2e !important;
+}
+
+.driver-popover.ignite-popover .driver-popover-progress-text {
+  color: #64748b !important;
+  font-size: 12px !important;
+}
+
+@media (max-width: 768px) {
+  .ignite-popover {
+    position: fixed !important;
+    bottom: 30px !important;
+    top: auto !important;
+    left: 15px !important;
+    right: 15px !important;
+    width: auto !important;
+    max-width: none !important;
+    background: rgba(26, 30, 46, 0.95) !important;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(139, 92, 246, 0.3) !important;
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6) !important;
+    animation: driverSlideUp 0.3s ease-out;
+  }
+
+  .driver-popover.ignite-popover .driver-popover-arrow {
+    display: none !important;
+  }
+
+  .driver-popover.ignite-popover .driver-popover-title {
+    font-size: 20px !important;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .driver-popover.ignite-popover .driver-popover-description {
+    text-align: center;
+    font-size: 15px !important;
+  }
+
+  .driver-popover.ignite-popover .driver-popover-navigation-btns {
+    justify-content: center !important;
+  }
+
+  .driver-popover.ignite-popover .driver-popover-prev-btn {
+    display: none !important;
+  }
+
+  .driver-popover.ignite-popover .driver-popover-next-btn,
+  .driver-popover.ignite-popover .driver-popover-prev-btn {
+    min-height: 44px !important;
+    padding: 10px 20px !important;
+  }
+}
+
+@keyframes driverSlideUp {
+  from {
+    transform: translateY(100px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

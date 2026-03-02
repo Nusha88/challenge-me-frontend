@@ -995,15 +995,6 @@ function handleOwnerNavigated() {
   padding: 16px;
   }
 
-/* Заголовок страницы */
-  .page-title {
-  font-size: 1.75rem;
-  font-weight: 600;
-  color: rgba(0, 0, 0, 0.87);
-  margin-bottom: 4px;
-}
-
-
 /* Секция контента без рамок */
 .content-section {
   position: relative;
@@ -1098,9 +1089,6 @@ function handleOwnerNavigated() {
     gap: 16px;
   }
   
-  .page-title {
-    font-size: 1.25rem;
-  }
 }
 
 /* Планшеты */
@@ -1127,11 +1115,6 @@ function handleOwnerNavigated() {
   border-top: 2px solid rgba(0, 0, 0, 0.12);
   padding-top: 24px;
   margin-top: 24px;
-}
-
-.main-ritual-skeleton {
-  border-radius: 20px;
-  overflow: hidden;
 }
 
 .main-ritual-skeleton-loader {
