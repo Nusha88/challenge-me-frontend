@@ -38,7 +38,7 @@
       </div>
     </div>
     
-    <div v-if="!hideAddStep" class="add-step-wrapper">
+    <div class="add-step-wrapper">
       <input
         v-model="newStepText"
         type="text"
@@ -66,13 +66,6 @@ import { useUserStore } from '../stores/user'
 import { userService } from '../services/api'
 import { Plus, Trash2, Footprints } from 'lucide-vue-next'
 
-const props = defineProps({
-  hideAddStep: {
-    type: Boolean,
-    default: false
-  }
-})
-
 const { t } = useI18n()
 const { mobile } = useDisplay()
 const userStore = useUserStore()
@@ -93,15 +86,6 @@ const totalSteps = computed(() => {
 const progressPercentage = computed(() => {
   if (totalSteps.value === 0) return 0
   return Math.round((completedSteps.value / totalSteps.value) * 100)
-})
-
-// Expose progress data to parent component
-defineExpose({
-  completedSteps,
-  totalSteps,
-  progressPercentage,
-  loading,
-  todaySteps // Expose steps for image generation
 })
 
 const loadTodaySteps = async () => {
@@ -127,6 +111,16 @@ const loadTodaySteps = async () => {
     loading.value = false
   }
 }
+
+// Expose progress data and reload function to parent component
+defineExpose({
+  completedSteps,
+  totalSteps,
+  progressPercentage,
+  loading,
+  todaySteps, // Expose steps for image generation
+  loadTodaySteps
+})
 
 const saveTodaySteps = async () => {
   try {

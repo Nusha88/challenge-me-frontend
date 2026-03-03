@@ -168,8 +168,8 @@ export async function generateCompletionImage(options) {
     })
     footer.innerHTML = `
       <div>
-        <div style="letter-spacing: 4px; font-weight: 900; font-size: 20px;">IGNITE<span style="color:#4FD1C5">.</span></div>
-        <div style="font-size: 9px; color: #94a3b8; letter-spacing: 1px;">START YOUR MISSION</div>
+        <div style="letter-spacing: 4px; font-weight: 900; color:#4FD1C5; font-size: 20px;">IGNITE-ME.APP</div>
+        <div style="font-size: 9px; color: #94a3b8; letter-spacing: 1px;">YOUR JOURNEY TO MASTERY BEGINS HERE</div>
       </div>
     `
     if (streakDays) {

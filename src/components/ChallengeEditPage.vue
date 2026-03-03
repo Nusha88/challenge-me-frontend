@@ -147,19 +147,8 @@
               <div class="section-tag mb-4">{{ t('challenges.actionsPlan') }}</div>
               <div class="actions-glass-wrapper pa-2">
                 <ChallengeActions v-model="editForm.actions" :readonly="isDisabled" />
-                  <v-btn
-                    v-if="!isDisabled"
-                  block
-                  variant="text"
-                  color="#4FD1C5"
-                  class="add-action-tactical-btn mt-2"
-                    prepend-icon="mdi-plus"
-                    @click="handleAddAction"
-                  >
-                    {{ t('challenges.addAction') }}
-                  </v-btn>
-                </div>
               </div>
+            </div>
 
             <div class="comments-section-wrapper mb-8">
               <div class="d-flex align-center justify-space-between mb-4">
@@ -222,6 +211,14 @@
   background: #0f172a;
   color: #fff;
   min-height: 100vh;
+}
+
+/* Ограничиваем ширину контента и центрируем страницу редактирования */
+.challenge-edit-page :deep(.v-container) {
+  max-width: 960px;
+  margin: 0 auto;
+  padding-left: 16px;
+  padding-right: 16px;
 }
 
 .mission-header-panel {
@@ -381,6 +378,12 @@
   border: 1px solid rgba(255, 255, 255, 0.03);
 }
 
+.actions-glass-wrapper {
+  background: rgba(255, 255, 255, 0.01);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
 /* Mobile Styles */
 @media (max-width: 959px) {
   .mission-header-panel {
@@ -481,6 +484,11 @@
     border-radius: 12px;
   }
 
+  .actions-glass-wrapper {
+    padding: 10px;
+    border-radius: 12px;
+  }
+
   .header-status-badges {
     flex-shrink: 0;
   }
@@ -499,7 +507,13 @@
 }
 
 /* Small mobile devices */
-@media (max-width: 599px) {
+@media (max-width: 440px) {
+  .challenge-edit-page :deep(.v-container) {
+    max-width: 440px;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+
   .mission-header-panel {
     padding: 8px 12px;
     border-radius: 10px;
@@ -644,6 +658,7 @@ const editForm = reactive({
   customDuration: '',
   frequency: '',
   privacy: 'public',
+  difficulty: '',
   actions: [],
   completedDays: [],
   allowComments: true
@@ -722,6 +737,7 @@ async function loadChallenge() {
     editForm.frequency = challenge.value.frequency || ''
     editForm.privacy = challenge.value.privacy || 'public'
     editForm.allowComments = challenge.value.allowComments !== undefined ? challenge.value.allowComments : true
+    editForm.difficulty = challenge.value.difficulty || (challenge.value.challengeType === 'result' ? 'normal' : '')
     
     if (challenge.value.challengeType === 'result') {
       editForm.actions = challenge.value.actions && challenge.value.actions.length > 0
@@ -906,25 +922,6 @@ function goBack() {
   router.push('/missions/my')
 }
 
-const actionsScrollContainer = ref(null)
-
-function handleAddAction() {
-  if (!editForm.actions || !Array.isArray(editForm.actions)) {
-    editForm.actions = []
-  }
-  editForm.actions.push({ text: '', checked: false, children: [] })
-  
-  // Scroll to the end of the actions list
-  nextTick(() => {
-    if (actionsScrollContainer.value) {
-      // Try to find the scrollable card-text element inside
-      const cardText = actionsScrollContainer.value.querySelector('.v-card-text')
-      const scrollTarget = cardText || actionsScrollContainer.value
-      scrollTarget.scrollTop = scrollTarget.scrollHeight
-    }
-  })
-}
-
 function handleDelete() {
   deleteConfirmDialog.value = true
 }
@@ -1044,6 +1041,8 @@ function prepareFormData() {
     formData.completedDays = normalizeCompletedDays(formData.completedDays)
   } else if (formData.challengeType === 'result') {
     formData.completedDays = []
+    // Preserve difficulty for result (quest) challenges
+    formData.difficulty = editForm.difficulty || challenge.value?.difficulty || 'normal'
   }
   
   return formData
@@ -1095,7 +1094,7 @@ async function handleSubmit() {
       formData.challengeType,
       formData.completedDays
     )
-    router.push('/')
+    router.back() // Navigate to previous page after successful save
   } catch (error) {
     saveError.value = error.response?.data?.message || t('notifications.updateError')
   } finally {

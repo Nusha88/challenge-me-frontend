@@ -111,9 +111,82 @@
                       <span v-if="getReactionCount(item, emoji) > 0" class="count ml-1">{{ getReactionCount(item, emoji) }}</span>
                     </div>
                   </div>
-                  <v-btn size="x-small" variant="text" color="#4FD1C5" class="ml-2 font-weight-bold" @click="startReply(item)">
+                  <v-btn 
+                    v-if="replyingToCommentId !== item._id"
+                    size="x-small" 
+                    variant="text" 
+                    color="#4FD1C5" 
+                    class="ml-2 font-weight-bold" 
+                    @click="startReply(item)"
+                  >
                     {{ t('challenges.comments.reply') }}
                   </v-btn>
+                </div>
+              </div>
+
+              <!-- Reply Input Section -->
+              <div v-if="replyingToCommentId === item._id" class="reply-input-container ml-6 mt-3 mb-3">
+                <div class="tactical-input-wrapper">
+                  <v-textarea
+                    v-model="replyTexts[item._id]"
+                    :placeholder="t('challenges.comments.replyPlaceholder', { name: getCommentName(item) })"
+                    auto-grow
+                    rows="1"
+                    max-rows="4"
+                    variant="plain"
+                    class="comment-field px-4 pt-3"
+                    hide-details
+                    :disabled="replyingCommentId === item._id"
+                  ></v-textarea>
+
+                  <div v-if="replyImagePreviews[item._id]" class="px-4 pb-3">
+                    <div class="preview-frame">
+                      <v-img :src="replyImagePreviews[item._id]" max-height="180" cover class="rounded-lg border-accent">
+                        <v-btn icon="mdi-close" size="x-small" color="error" class="remove-img-btn" @click="removeImagePreview('reply', item._id)"></v-btn>
+                      </v-img>
+                    </div>
+                  </div>
+
+                  <div class="input-footer d-flex align-center pa-2">
+                    <input 
+                      :ref="el => replyFileInputs[item._id] = el" 
+                      type="file" 
+                      accept="image/*" 
+                      class="d-none" 
+                      @change="handleImageSelect($event, 'reply', item._id)" 
+                    />
+                    <v-btn 
+                      icon="mdi-camera-plus-outline" 
+                      variant="text" 
+                      color="rgba(255,255,255,0.5)" 
+                      size="small" 
+                      @click="replyFileInputs[item._id]?.click()"
+                    ></v-btn>
+                    
+                    <v-spacer></v-spacer>
+                    
+                    <v-btn
+                      size="x-small"
+                      variant="text"
+                      color="rgba(255,255,255,0.5)"
+                      class="mr-2"
+                      @click="cancelReply(item._id)"
+                    >
+                      {{ t('common.cancel') }}
+                    </v-btn>
+                    
+                    <v-btn
+                      color="#4FD1C5"
+                      variant="flat"
+                      size="small"
+                      class="post-btn px-4 font-weight-black"
+                      :loading="replyingCommentId === item._id || uploadingReplyImages[item._id]"
+                      :disabled="(!replyTexts[item._id]?.trim() && !replyImageUrls[item._id]) || uploadingReplyImages[item._id]"
+                      @click="submitReply(item)"
+                    >
+                      {{ t('challenges.comments.post') }}
+                    </v-btn>
+                  </div>
                 </div>
               </div>
 
@@ -288,6 +361,27 @@
 
 .border-accent {
   border: 1px solid rgba(79, 209, 197, 0.2);
+}
+
+.reply-input-container {
+  margin-left: 24px;
+}
+
+.reply-input-container .tactical-input-wrapper {
+  background: rgba(30, 41, 59, 0.4);
+  border: 1px solid rgba(79, 209, 197, 0.2);
+}
+
+.preview-frame {
+  position: relative;
+  display: inline-block;
+}
+
+.remove-img-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
 }
 </style>
 <script setup>
@@ -918,19 +1012,37 @@ function cancelReply(commentId) {
 }
 
 async function submitReply(comment) {
-  if (!replyTexts.value[comment._id]?.trim() || !props.currentUserId || replyingCommentId.value) return
+  if ((!replyTexts.value[comment._id]?.trim() && !replyImageUrls.value[comment._id]) || !props.currentUserId || replyingCommentId.value) return
+
+  // Wait for image upload to complete if preview exists but URL doesn't
+  if (replyImagePreviews.value[comment._id] && !replyImageUrls.value[comment._id] && uploadingReplyImages.value[comment._id]) {
+    // Image is still uploading, wait a bit
+    await new Promise(resolve => setTimeout(resolve, 500))
+    if (!replyImageUrls.value[comment._id]) {
+      alert(t('challenges.uploadInProgress'))
+      return
+    }
+  }
 
   replyingCommentId.value = comment._id
   const commentUserId = comment.userId?._id || comment.userId
   
   try {
+    const replyText = replyTexts.value[comment._id]?.trim() || (replyImageUrls.value[comment._id] ? ' ' : '')
+    const imageUrl = replyImageUrls.value[comment._id] ? String(replyImageUrls.value[comment._id]).trim() : null
+    
+    if (!replyText && !imageUrl) {
+      replyingCommentId.value = null
+      return
+    }
+    
     await challengeService.replyToComment(
       props.challengeId,
       comment._id,
       props.currentUserId,
-      replyTexts.value[comment._id],
+      replyText,
       commentUserId.toString() === props.currentUserId.toString() ? null : commentUserId,
-      replyImageUrls.value[comment._id] || null
+      imageUrl
     )
     replyTexts.value[comment._id] = ''
     replyImageUrls.value[comment._id] = null

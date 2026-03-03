@@ -43,7 +43,21 @@
         <template #prepend>
           <v-icon class="info-message-icon">mdi-information</v-icon>
         </template>
-        {{ t('challenges.noMyChallenges') }}
+        <div>
+          <div class="mb-3">
+            {{ t('challenges.noMyChallenges') }}
+          </div>
+          <v-btn
+            color="teal-accent-4"
+            variant="outlined"
+            rounded="pill"
+            class="mt-1 action-btn-ignite"
+            to="/missions/add"
+            elevation="4"
+          >
+            {{ t('home.loggedIn.checklistHistory.launchFirstMission') }}
+          </v-btn>
+        </div>
       </v-alert>
 
       <div v-else>

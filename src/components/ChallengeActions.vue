@@ -63,7 +63,7 @@
                 ></v-text-field>
               </div>
 
-              <div v-if="!readonly && !simplifiedView" class="action-controls ml-2">
+              <div v-if="!readonly && !simplifiedView && !hideItemControls" class="action-controls ml-2">
                 <v-btn icon="mdi-plus-box-outline" variant="text" size="x-small" color="rgba(79, 209, 197, 0.6)" @click="addChildAction(index)"></v-btn>
                 <v-btn icon="mdi-delete-outline" variant="text" size="x-small" color="#FF5252" @click="removeAction(index)"></v-btn>
               </div>
@@ -236,7 +236,7 @@
 /* Инпуты */
 .text-input-tactical :deep(input),
 .text-input-child :deep(input) {
-  color: #4FD1C5 !important;
+  color: #FFFFFF !important;
   font-weight: 600;
   padding: 0 !important;
 }
@@ -291,7 +291,8 @@ const props = defineProps({
   modelValue: { type: Array, default: () => [] },
   readonly: { type: Boolean, default: false },
   hideAddButton: { type: Boolean, default: false },
-  simplifiedView: { type: Boolean, default: false }
+  simplifiedView: { type: Boolean, default: false },
+  hideItemControls: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['update:modelValue'])

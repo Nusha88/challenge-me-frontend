@@ -135,7 +135,7 @@
                 {{ t('home.loggedIn.dailyChecklist.copyToTomorrow') }} | {{ unfinishedStepsCount }}
               </v-btn>
             </div>
-            <DailyChecklist ref="checklistRef" :hide-add-step="isAllCompleted && !checklistLoading && totalItems > 0" />
+            <DailyChecklist ref="checklistRef" />
           </div>
           
         </v-card-text>
@@ -1461,7 +1461,10 @@ onMounted(async () => {
   window.addEventListener('auth-changed', updateUser)
   window.addEventListener('checklist-updated', () => {
     calculateStreak()
-    nextTick(() => {
+    nextTick(async () => {
+      if (checklistRef.value && typeof checklistRef.value.loadTodaySteps === 'function') {
+        await checklistRef.value.loadTodaySteps()
+      }
       updateChecklistLoading()
       // Check if we should show completion dialog after checklist update
       if (isAllCompleted.value && !hasShownCompletionDialog.value && !hasDismissedToday()) {

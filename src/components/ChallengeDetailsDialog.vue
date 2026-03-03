@@ -146,10 +146,11 @@
                   class="mission-progress mb-6"
                 ></v-progress-linear>
                 <ChallengeActions
-                  :model-value="challenge.actions || []"
-                  :readonly="true"
+                  v-model="actionsViewModel"
+                  :readonly="!isOwner"
                   :hide-add-button="true"
-                  :simplified-view="true"
+                  :simplified-view="!isOwner"
+                  :hide-item-controls="true"
                 />
               </template>
             </div>
@@ -157,9 +158,24 @@
 
           <v-window-item value="details">
             <v-row dense class="mb-8">
-              <v-col cols="4" v-for="item in missionStats" :key="item.label">
+              <v-col cols="6" md="4" v-for="item in missionStats" :key="item.label">
                 <div class="stat-card">
-                  <v-icon :icon="item.icon" size="18" :color="item.color || '#4FD1C5'"></v-icon>
+                  <div v-if="item.type === 'difficulty'" class="difficulty-icon-row">
+                    <v-icon
+                      v-for="n in item.zaps"
+                      :key="n"
+                      icon="mdi-flash"
+                      size="18"
+                      color="#FBBF24"
+                      class="mr-1"
+                    ></v-icon>
+                  </div>
+                  <v-icon
+                    v-else
+                    :icon="item.icon"
+                    size="18"
+                    :color="item.color || '#4FD1C5'"
+                  ></v-icon>
                   <div class="stat-label">{{ item.label }}</div>
                   <div class="stat-value">{{ item.value }}</div>
                 </div>
@@ -169,7 +185,11 @@
             <h3 class="section-title mb-3">{{ t('challenges.description') }}</h3>
             <p class="description-text mb-8">{{ challenge.description }}</p>
 
-            <div class="owner-box pa-4 rounded-lg">
+            <div
+              v-if="!isOwner"
+              class="owner-box pa-4 rounded-lg"
+              @click="navigateToOwner"
+            >
               <v-avatar size="40" class="owner-avatar mr-4">
                 <v-img v-if="challenge.owner?.avatarUrl" :src="challenge.owner.avatarUrl" cover></v-img>
                 <span v-else>{{ getOwnerInitial() }}</span>
@@ -178,10 +198,6 @@
                 <div class="text-caption opacity-60">{{ t('challenges.createdByLabel') }}</div>
                 <div class="font-weight-bold">{{ challenge.owner?.name || t('challenges.unknownHero') }}</div>
               </div>
-              <v-spacer></v-spacer>
-              <v-btn variant="text" size="small" color="#4FD1C5" @click="navigateToOwner">
-                {{ t('challenges.viewProfile') }}
-              </v-btn>
             </div>
 
             <div v-if="totalParticipantsCount > 1 && visibleParticipants.length" class="participants-box mt-4">
@@ -223,6 +239,14 @@
                 </v-tooltip>
               </div>
             </div>
+
+            <!-- Watchers Count -->
+            <div v-if="challenge.watchersCount > 0" class="watchers-count mt-4 d-flex align-center justify-end">
+              <Eye :size="18" class="mr-2 text-cyan" />
+              <span class="watchers-number">
+                {{ challenge.watchersCount }}
+              </span>
+            </div>
           </v-window-item>
 
           <v-window-item value="community">
@@ -252,22 +276,20 @@
       </v-card-text>
 
       <v-card-actions class="modal-footer px-6 py-4">
-        <v-btn variant="text" color="rgba(255,255,255,0.5)" @click="handleClose">
-          {{ t('common.close') }}
-        </v-btn>
-        
-        <v-btn v-if="showLeaveButton" color="#ff5252" variant="text" @click="emitLeave">
+        <v-btn v-if="showLeaveButton" color="#ff5252" variant="text" @click="openLeaveConfirm">
           {{ t('challenges.giveUp') }}
         </v-btn>
 
         <v-spacer></v-spacer>
 
-        <div class="d-flex gap-3">
+        <div class="footer-actions-wrapper d-flex gap-3">
           <v-btn
             v-if="!isOwner && !isFinished && currentUserId && !isCurrentUserParticipant"
             variant="outlined"
             :color="isWatched ? '#4FD1C5' : 'rgba(255,255,255,0.3)'"
             class="rounded-lg action-outline-btn"
+            :loading="watchingId === challenge._id"
+            :disabled="watchingId === challenge._id"
             @click="isWatched ? handleUnwatch() : handleWatch()"
           >
             <v-icon start size="18">{{ isWatched ? 'mdi-eye-off' : 'mdi-eye' }}</v-icon>
@@ -275,15 +297,56 @@
           </v-btn>
 
           <v-btn
-            v-if="showJoinActionButton || (isCurrentUserParticipant && challenge.challengeType === 'habit' && !isFinished)"
+            v-if="
+              showJoinActionButton ||
+              (isCurrentUserParticipant && challenge.challengeType === 'habit' && !isFinished) ||
+              (isOwner && challenge.challengeType === 'result' && !isFinished)
+            "
             class="main-action-btn ml-2"
-            :loading="joinLoading"
-            @click="showJoinActionButton ? emitJoin() : handleParticipantSave()"
+            :loading="joinLoading || (isOwner && challenge.challengeType === 'result' && saveLoading)"
+            @click="handleMainActionClick"
           >
-            {{ showJoinActionButton ? t('challenges.joinMission') : t('challenges.saveProgress') }}
+            {{
+              showJoinActionButton
+                ? t('challenges.joinMission')
+                : isOwner && challenge.challengeType === 'result'
+                  ? t('challenges.update')
+                  : t('challenges.saveProgress')
+            }}
           </v-btn>
         </div>
       </v-card-actions>
+
+      <!-- Leave confirmation dialog -->
+      <v-dialog
+        v-model="leaveConfirmDialog"
+        max-width="420"
+      >
+        <v-card class="leave-confirm-card">
+          <v-card-title class="text-h6 font-weight-bold">
+            {{ t('challenges.leaveConfirmTitle') }}
+          </v-card-title>
+          <v-card-text class="text-body-2">
+            {{ t('challenges.leaveConfirmText') }}
+          </v-card-text>
+          <v-card-actions class="justify-end">
+            <v-btn
+              variant="text"
+              color="rgba(255,255,255,0.6)"
+              @click="leaveConfirmDialog = false"
+            >
+              {{ t('common.cancel') }}
+            </v-btn>
+            <v-btn
+              color="#ff5252"
+              variant="flat"
+              @click="confirmLeave"
+            >
+              {{ t('challenges.giveUp') }}
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
     </v-card>
   </v-dialog>
 </template>
@@ -399,11 +462,26 @@
 .stat-label { font-size: 0.65rem; text-transform: uppercase; opacity: 0.5; margin-top: 4px; }
 .stat-value { font-size: 0.9rem; font-weight: 800; }
 
+.difficulty-icon-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
 .owner-box {
   background: rgba(30, 41, 59, 0.5);
   display: flex;
   align-items: center;
   border: 1px solid rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+}
+
+.owner-box:hover {
+  background: rgba(30, 41, 59, 0.7);
+  box-shadow: 0 0 12px rgba(79, 209, 197, 0.25);
+  transform: translateY(-1px);
 }
 
 .owner-avatar {
@@ -479,6 +557,10 @@
   padding: 0 32px !important;
   box-shadow: 0 4px 15px rgba(79, 209, 197, 0.3) !important;
 }
+.footer-actions-wrapper {
+  display: flex;
+  align-items: center;
+}
 .v-card-text.pa-0.modal-body-bg {
   height: 400px;
 }
@@ -550,9 +632,46 @@
   font-weight: 600;
   font-size: 0.7rem;
 }
+
+.leave-confirm-card {
+  background: #0f172a !important;
+  color: #ffffff !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+}
+
+.watchers-number {
+  color: #ffffff !important;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+@media (max-width: 600px) {
+  .modal-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .modal-footer .v-spacer {
+    display: none;
+  }
+
+  .footer-actions-wrapper {
+    width: 100%;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .modal-footer .v-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
 </style>
 <script setup>
 import { reactive, ref, watch, computed, nextTick, onMounted } from 'vue'
+import { Eye } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
@@ -613,6 +732,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'save', 'join', 'leave', 'delete', 'update'])
 
 const deleteConfirmDialog = ref(false)
+const leaveConfirmDialog = ref(false)
 const isInitializing = ref(true)
 const participantSaveLoading = ref(false)
 const snackbar = ref(false)
@@ -675,6 +795,24 @@ const titleErrorMessages = computed(() => {
 const isFormValid = computed(() => {
   return !errors.title && !errors.description && !errors.duration && !errors.frequency &&
     editForm.title && editForm.description && editForm.duration
+})
+
+// For quest (result) missions: owner can interactively check off actions in dialog (local only)
+const actionsViewModel = computed({
+  get() {
+    if (props.challenge?.challengeType !== 'result') {
+      return []
+    }
+    return props.isOwner ? editForm.actions : (props.challenge.actions || [])
+  },
+  set(newActions) {
+    // Only mission owner can modify actions from dialog; keep it local to avoid corrupting actions
+    if (!props.isOwner) return
+    // Deep copy to avoid reference issues
+    editForm.actions = newActions && Array.isArray(newActions) 
+      ? JSON.parse(JSON.stringify(newActions))
+      : []
+  }
 })
 
 // Progress calculations
@@ -930,10 +1068,44 @@ const missionStats = computed(() => {
       icon: 'mdi-account-group',
       color: 'purple'
     })
+
+    const difficulty = props.challenge.difficulty || 'normal'
+    stats.push({
+      label: t('challenges.difficultyTitle'),
+      value: getDifficultyLabel(difficulty),
+      icon: 'mdi-flash',
+      color: 'amber',
+      type: 'difficulty',
+      zaps: getDifficultyZapCount(difficulty)
+    })
   }
   
   return stats
 })
+
+function getDifficultyLabel(value) {
+  switch (value) {
+    case 'easy':
+      return t('challenges.difficultyEasy')
+    case 'heroic':
+      return t('challenges.difficultyHeroic')
+    case 'normal':
+    default:
+      return t('challenges.difficultyNormal')
+  }
+}
+
+function getDifficultyZapCount(value) {
+  switch (value) {
+    case 'easy':
+      return 1
+    case 'heroic':
+      return 3
+    case 'normal':
+    default:
+      return 2
+  }
+}
 
 function getDayClass(day) {
   return {
@@ -1210,7 +1382,8 @@ watch(
     editForm.allowComments = value.allowComments !== undefined ? value.allowComments : true
     
     if (value.challengeType === 'result') {
-      editForm.actions = value.actions && value.actions.length > 0
+      // Deep copy actions to avoid reference issues
+      editForm.actions = value.actions && Array.isArray(value.actions) && value.actions.length > 0
         ? value.actions.map(a => ({ 
             text: a.text || '', 
             checked: Boolean(a.checked),
@@ -1218,7 +1391,7 @@ watch(
               ? a.children.map(c => ({ text: c.text || '', checked: Boolean(c.checked) }))
               : []
           }))
-        : [{ text: '', checked: false, children: [] }]
+        : []
     } else {
       editForm.actions = []
     }
@@ -1391,6 +1564,65 @@ function emitJoin() {
 
 function emitLeave() {
   emit('leave')
+}
+
+function openLeaveConfirm() {
+  leaveConfirmDialog.value = true
+}
+
+function confirmLeave() {
+  leaveConfirmDialog.value = false
+  emitLeave()
+}
+
+function handleMainActionClick() {
+  if (showJoinActionButton.value) {
+    emitJoin()
+  } else if (
+    props.isOwner &&
+    props.challenge?.challengeType === 'result' &&
+    !isFinished.value
+  ) {
+    handleOwnerActionsSave()
+  } else {
+    handleParticipantSave()
+  }
+}
+
+async function handleOwnerActionsSave() {
+  if (!props.challenge || !props.isOwner) return
+  const c = props.challenge
+
+  // Use editForm.actions if available (owner's local edits), otherwise fall back to challenge actions
+  // Deep copy to ensure we're sending the current state, not a reference
+  const actionsToSave = editForm.actions && Array.isArray(editForm.actions) && editForm.actions.length > 0
+    ? JSON.parse(JSON.stringify(editForm.actions))
+    : (c.actions ? JSON.parse(JSON.stringify(c.actions)) : [])
+
+  const payload = {
+    title: c.title,
+    description: c.description,
+    startDate: c.startDate,
+    endDate: c.endDate,
+    imageUrl: c.imageUrl,
+    frequency: c.frequency,
+    privacy: c.privacy,
+    allowComments: c.allowComments,
+    challengeType: c.challengeType,
+    actions: actionsToSave,
+    difficulty: c.difficulty,
+    completedDays: Array.isArray(c.completedDays) ? c.completedDays : []
+  }
+
+  try {
+    await challengeService.updateChallenge(c._id, payload)
+    emit('update')
+    // Notify home screen / streak widgets that checklist-related data may have changed
+    window.dispatchEvent(new Event('checklist-updated'))
+    handleVisibility(false) // Close modal after successful save
+  } catch (error) {
+    console.error('Error saving owner quest actions from dialog:', error)
+  }
 }
 
 function handleDelete() {

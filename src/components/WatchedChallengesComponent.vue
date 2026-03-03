@@ -101,7 +101,7 @@
                 class="join-btn font-weight-black px-6"
                 @click.stop="joinChallenge(challenge)"
               >
-                JOIN MISSION
+                {{ t('challenges.joinMission') }}
               </v-btn>
             </div>
           </v-card-text>
@@ -115,7 +115,12 @@
             <span class="text-overline font-weight-black">{{ t('watched.elitePerformers') }}</span>
           </div>
           <v-card-text class="pa-4 pt-0">
-            <div v-for="(p, i) in topPerformers" :key="i" class="performer-row d-flex align-center mb-4">
+              <div
+                v-for="(p, i) in topPerformers"
+                :key="i"
+                class="performer-row d-flex align-center mb-4 clickable-performer"
+                @click="navigateToUser(p)"
+              >
               <div class="rank-badge">{{ i + 1 }}</div>
               <v-avatar size="36" class="mx-3 border-neon">
                 <v-img v-if="getParticipantAvatar(p)" :src="getParticipantAvatar(p)" />
@@ -318,6 +323,18 @@
   letter-spacing: 4px !important;
 }
 /* Имена в списке лидеров */
+.clickable-performer {
+  cursor: pointer;
+  padding: 8px;
+  margin: -8px;
+  border-radius: 12px;
+  transition: background-color 0.2s ease;
+}
+
+.clickable-performer:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
 .performer-row .text-body-2 {
   color: #FFFFFF !important;
   font-weight: 700 !important;
@@ -938,32 +955,6 @@ async function joinChallenge(challenge) {
   }
 }
 
-async function watchChallenge(challenge) {
-  if (!currentUserId.value) return
-
-  watchingId.value = challenge._id
-  
-  // Optimistically update watchers count
-  const challengeIndex = challenges.value.findIndex(c => c._id === challenge._id)
-  if (challengeIndex !== -1 && challenges.value[challengeIndex].watchersCount !== undefined) {
-    challenges.value[challengeIndex].watchersCount = (challenges.value[challengeIndex].watchersCount || 0) + 1
-  }
-  
-  try {
-    await challengeService.watchChallenge(challenge._id, currentUserId.value)
-    await loadWatchedChallenges()
-  } catch (error) {
-    // Revert optimistic update on error
-    if (challengeIndex !== -1 && challenges.value[challengeIndex].watchersCount !== undefined) {
-      challenges.value[challengeIndex].watchersCount = Math.max(0, (challenges.value[challengeIndex].watchersCount || 0) - 1)
-    }
-    console.error('Error watching challenge:', error)
-    alert(error.response?.data?.message || t('challenges.watchError'))
-  } finally {
-    watchingId.value = null
-  }
-}
-
 async function unwatchChallenge(challenge) {
   if (!currentUserId.value) return
 
@@ -996,15 +987,6 @@ async function unwatchChallenge(challenge) {
 function openDetails(challenge) {
   selectedChallenge.value = challenge
   detailsDialogOpen.value = true
-}
-
-function handleOwnerNavigated() {
-  // Close dialog when owner is navigated
-  detailsDialogOpen.value = false
-}
-
-async function handleDialogSave() {
-  // Not implemented for watched challenges
 }
 
 async function leaveChallenge(challenge) {
@@ -1073,15 +1055,6 @@ async function handleDialogUpdate() {
   } catch (error) {
     console.error('Error updating challenge:', error)
   }
-}
-
-// Format date range
-function formatDateRange(start, end) {
-  const startFormatted = formatDate(start)
-  const endFormatted = formatDate(end)
-  return startFormatted && endFormatted
-    ? `${startFormatted} - ${endFormatted}`
-    : startFormatted || endFormatted || ''
 }
 
 function formatDate(dateString) {
@@ -1162,27 +1135,6 @@ function getOwnerProgressPercentage(challenge) {
   return Math.round((done / total) * 100)
 }
 
-function getProgressBarColor(challenge) {
-  const percentage = getOwnerProgressPercentage(challenge)
-  
-  if (percentage === 100) {
-    return 'success' // Green for 100%
-  } else if (percentage >= 31) {
-    return 'primary' // Bright accent blue/purple for 31-99%
-  } else {
-    return 'info' // Will be overridden with dark blue via CSS
-  }
-}
-
-function getProgressBarColorClass(challenge) {
-  const percentage = getOwnerProgressPercentage(challenge)
-  
-  if (percentage <= 30) {
-    return 'progress-low'
-  }
-  return ''
-}
-
 function getChallengeTotalDays(challenge) {
   if (!challenge.startDate || !challenge.endDate) return 0
   
@@ -1251,12 +1203,32 @@ const topPerformers = computed(() => {
     .slice(0, 5)
   
   // Store progress percentage on participant for display
-  return sorted.map(item => {
+  const result = sorted.map(item => {
     const participant = { ...item.participant }
     participant._cachedProgressPercentage = item.progressPercentage
     participant._cachedChallenge = item.challenge
     return participant
   })
+  
+  // If no performers, show owners of watched challenges
+  if (result.length === 0) {
+    const ownersMap = new Map()
+    challenges.value.forEach(challenge => {
+      if (challenge.owner) {
+        const ownerId = getParticipantId(challenge.owner)
+        if (!ownersMap.has(ownerId)) {
+          ownersMap.set(ownerId, {
+            ...challenge.owner,
+            _cachedProgressPercentage: 0,
+            _cachedChallenge: challenge
+          })
+        }
+      }
+    })
+    return Array.from(ownersMap.values()).slice(0, 5)
+  }
+  
+  return result
 })
 
 function getParticipantProgress(participant, challenge) {
@@ -1325,7 +1297,7 @@ function canJoin(challenge) {
 
 function navigateToUser(user) {
   if (!user) return
-  const userId = user._id || user
+  const userId = getParticipantId(user)
   if (!userId) return
   router.push(`/heroes/${userId}`)
 }
