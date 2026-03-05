@@ -1,15 +1,15 @@
 <template>
-  <div v-if="initialDataLoading" class="home-loading-container">
+  <div v-if="state.initialDataLoading" class="home-loading-container">
     <IgniteLoader :loading-text="t('home.loggedIn.loading.initial', 'Channelling Power...')" />
   </div>
   <div v-else class="home-logged-in-container">
     <div class="greeting-section">
       <div class="greeting-content">
         <h1 class="greeting-title">
-          <span class="greeting-text">{{ t('home.loggedIn.greeting', { name: userName }) }}</span>
+          <span class="greeting-text">{{ t('home.loggedIn.greeting', { name: state.userName }) }}</span>
           <span class="wave-icon">👋</span>
         </h1>
-        <p v-if="!hasTodayCompletedTasks" class="motivational-text">{{ dailyMotivationalMessage }}</p>
+        <p v-if="!state.hasTodayCompletedTasks" class="motivational-text">{{ dailyMotivationalMessage }}</p>
         <p v-else class="motivational-text">{{ dailyMotivationalMessageCompleted }}</p>
         <button v-if="todaysChallenges.length === 0" class="inspiration-btn" @click="showInspiration">
           <Sparkles :size="16" class="inspiration-btn-icon" />
@@ -24,25 +24,25 @@
     
     <!-- Debug: Always show if yesterdayStreakDays > 0 -->
     <div
-      v-if="yesterdayStreakDays > 0 || displayStreakDays > 0"
+      v-if="state.yesterdayStreakDays > 0 || displayStreakDays > 0"
       class="streak-display-mobile d-md-none"
-      :class="{ 'streak-yesterday': !hasTodayCompletedTasks && yesterdayStreakDays > 0 }"
+      :class="{ 'streak-yesterday': !state.hasTodayCompletedTasks && state.yesterdayStreakDays > 0 }"
     >
       <i class="mdi mdi-fire"></i>
-      <span>{{ (!hasTodayCompletedTasks && yesterdayStreakDays > 0) ? yesterdayStreakDays : displayStreakDays }} {{ streakDaysText }}</span>
+      <span>{{ (!state.hasTodayCompletedTasks && state.yesterdayStreakDays > 0) ? state.yesterdayStreakDays : displayStreakDays }} {{ streakDaysText }}</span>
     </div>
     
     <!-- Tabs: Today / Tomorrow -->
-    <v-tabs v-model="activeTab" class="home-tabs" bg-color="transparent">
+    <v-tabs v-model="state.activeTab" class="home-tabs" bg-color="transparent">
       <v-tab value="today">{{ t('home.loggedIn.tabs.today') }}</v-tab>
       <v-tab value="tomorrow">{{ t('home.loggedIn.tabs.tomorrow') }}</v-tab>
     </v-tabs>
     
     <!-- Today Tab Content -->
-    <v-window v-model="activeTab">
+    <v-window v-model="state.activeTab">
       <v-window-item value="today">
         <!-- Combined Progress Card -->
-        <div v-if="!checklistLoading && totalItems > 0" class="hero-progress-light">
+        <div v-if="!state.checklistLoading && totalItems > 0" class="hero-progress-light">
           <div class="progress-header">
             <span class="level-badge">{{ completedItems }} / {{ totalItems }} {{ t('home.loggedIn.dailyChecklist.completed') }}</span>
             <span class="level-badge">{{ combinedProgressPercentage }}%</span>
@@ -202,11 +202,11 @@
                 <h3 class="section-subtitle">{{ t('home.loggedIn.tomorrowSteps.title') }}</h3>
                 
                 <!-- Empty State -->
-                <div v-if="tomorrowSteps.length === 0" class="tomorrow-steps-empty">
+                <div v-if="state.tomorrowSteps.length === 0" class="tomorrow-steps-empty">
                   <img :src="tomorrowImage" class="tomorrow-empty-icon" alt="Tomorrow">
                   <p class="tomorrow-empty-text">{{ t('home.loggedIn.tomorrowSteps.empty.text') }}</p>
                   <v-btn
-                    v-if="!showTomorrowStepsInput"
+                    v-if="!state.showTomorrowStepsInput"
                     class="plan-step-btn"
                     @click="planNewStep"
                   >
@@ -215,16 +215,16 @@
                 </div>
                 
                 <!-- Steps List -->
-                <div v-if="tomorrowSteps.length > 0 || showTomorrowStepsInput" class="tomorrow-steps-content">
-                  <div v-if="tomorrowSteps.length > 0" class="checklist-list">
+                <div v-if="state.tomorrowSteps.length > 0 || state.showTomorrowStepsInput" class="tomorrow-steps-content">
+                  <div v-if="state.tomorrowSteps.length > 0" class="checklist-list">
                     <div
-                      v-for="(step, index) in tomorrowSteps"
+                      v-for="(step, index) in state.tomorrowSteps"
                       :key="index"
                       class="checklist-item"
                     >
                       <input
-                        v-if="editingTomorrowStepIndex === index"
-                        v-model="editingTomorrowStepText"
+                        v-if="state.editingTomorrowStepIndex === index"
+                        v-model="state.editingTomorrowStepText"
                         type="text"
                         class="step-edit-input"
                         @keyup.enter="saveTomorrowStepEdit(index)"
@@ -246,14 +246,14 @@
                   <!-- Add Step Input -->
                   <div class="add-step-wrapper">
                     <input
-                      v-model="tomorrowStepText"
+                      v-model="state.tomorrowStepText"
                       type="text"
                       :placeholder="t('home.loggedIn.dailyChecklist.addStepPlaceholder')"
                       class="step-input"
                       @keyup.enter="addTomorrowStep"
                     />
                     <v-btn
-                      :disabled="!tomorrowStepText.trim()"
+                      :disabled="!state.tomorrowStepText.trim()"
                       class="add-step-btn"
                       icon
                       @click="addTomorrowStep"
@@ -271,7 +271,7 @@
     
     <!-- Completion Celebration Dialog -->
     <v-dialog 
-  v-model="showCompletionDialog" 
+  v-model="state.showCompletionDialog" 
   max-width="450" 
   persistent
   overlay-color="#1A1A2E"
@@ -313,7 +313,7 @@
         class="celebration-button mb-4 text-none"
         elevation="0"
         @click="generateCompletionImage"
-        :loading="generatingImage"
+        :loading="state.generatingImage"
       >
         <v-icon left class="mr-2">mdi-share-variant</v-icon>
         {{ t('home.loggedIn.generateCompletionImage') }}
@@ -324,14 +324,14 @@
 
     <!-- Challenge Details Dialog -->
     <ChallengeDetailsDialog
-      v-model="detailsDialogOpen"
-      :challenge="selectedChallenge"
-      :is-owner="selectedIsOwner"
-      :is-participant="selectedIsParticipant"
+      v-model="state.detailsDialogOpen"
+      :challenge="state.selectedChallenge"
+      :is-owner="state.selectedIsOwner"
+      :is-participant="state.selectedIsParticipant"
       :show-join-button="false"
-      :show-leave-button="selectedIsParticipant"
+      :show-leave-button="state.selectedIsParticipant"
       :join-loading="false"
-      :leave-loading="selectedLeaveLoading"
+      :leave-loading="state.selectedLeaveLoading"
       :save-loading="false"
       :save-error="''"
       :delete-loading="false"
@@ -342,7 +342,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, onActivated, watch, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount, onActivated, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user'
@@ -363,31 +363,33 @@ const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 
-const userName = ref('')
-const streakDays = ref(0)
-const yesterdayStreakDays = ref(0)
-const hasTodayCompletedTasks = ref(false)
-const challenges = ref([])
-const loadingChallenges = ref(false)
-const checklistRef = ref(null)
-const checklistLoading = ref(false)
-const generatingImage = ref(false)
-const initialDataLoading = ref(true)
-const showCompletionDialog = ref(false)
-const hasShownCompletionDialog = ref(false)
-const activeTab = ref('today')
-const showTomorrowStepsInput = ref(false)
-const tomorrowStepText = ref('')
-const tomorrowSteps = ref([])
-const editingTomorrowStepIndex = ref(-1)
-const editingTomorrowStepText = ref('')
+const state = reactive({
+  userName: '',
+  streakDays: 0,
+  yesterdayStreakDays: 0,
+  hasTodayCompletedTasks: false,
+  challenges: [],
+  loadingChallenges: false,
+  checklistLoading: false,
+  generatingImage: false,
+  initialDataLoading: true,
+  showCompletionDialog: false,
+  hasShownCompletionDialog: false,
+  activeTab: 'today',
+  showTomorrowStepsInput: false,
+  tomorrowStepText: '',
+  tomorrowSteps: [],
+  editingTomorrowStepIndex: -1,
+  editingTomorrowStepText: '',
+  // Challenge details dialog
+  detailsDialogOpen: false,
+  selectedChallenge: null,
+  selectedIsOwner: false,
+  selectedIsParticipant: false,
+  selectedLeaveLoading: false
+})
 
-// Challenge details dialog
-const detailsDialogOpen = ref(false)
-const selectedChallenge = ref(null)
-const selectedIsOwner = ref(false)
-const selectedIsParticipant = ref(false)
-const selectedLeaveLoading = ref(false)
+const checklistRef = ref(null)
 
 function getCurrentUserId() {
   return userStore.userId
@@ -400,13 +402,13 @@ async function updateUser() {
     if (response.data?.user) {
       userStore.setUser(response.data.user)
       // Update userName for greeting
-      userName.value = response.data.user.name || ''
+      state.userName = response.data.user.name || ''
       // Dispatch event to notify other components
       window.dispatchEvent(new Event('auth-changed'))
     }
   } catch (error) {
     // Error fetching user profile
-    userName.value = userStore.userName || ''
+    state.userName = userStore.userName || ''
   }
 }
 
@@ -462,10 +464,10 @@ async function calculateStreak() {
   const isLoggedIn = !!localStorage.getItem('token')
   
   if (!userId || !isLoggedIn) {
-    streakDays.value = 0
-    yesterdayStreakDays.value = 0
-    hasTodayCompletedTasks.value = false
-    initialDataLoading.value = false
+    state.streakDays = 0
+    state.yesterdayStreakDays = 0
+    state.hasTodayCompletedTasks = false
+    state.initialDataLoading = false
     return
   }
 
@@ -491,7 +493,7 @@ async function calculateStreak() {
     today.setHours(0, 0, 0, 0)
     
     // Check if today has any completed tasks
-    hasTodayCompletedTasks.value = checkDayCompletion(today, sortedChecklists, habitChallenges, userId)
+    state.hasTodayCompletedTasks = checkDayCompletion(today, sortedChecklists, habitChallenges, userId)
     
     // Calculate today's streak (starting from today)
     let todayStreak = 0
@@ -507,7 +509,7 @@ async function calculateStreak() {
       currentDate.setHours(0, 0, 0, 0)
     }
     
-    streakDays.value = todayStreak
+    state.streakDays = todayStreak
     
     // Calculate yesterday's streak (starting from yesterday)
     const yesterday = new Date(today)
@@ -527,24 +529,13 @@ async function calculateStreak() {
       currentDate.setHours(0, 0, 0, 0)
     }
     
-    yesterdayStreakDays.value = yesterdayStreak
-    
-    // Debug logging
-    console.log('Streak calculation:', {
-      hasTodayCompletedTasks: hasTodayCompletedTasks.value,
-      todayStreak: streakDays.value,
-      yesterdayStreak: yesterdayStreakDays.value,
-      displayStreakDays: displayStreakDays.value,
-      checklistsCount: sortedChecklists.length,
-      habitChallengesCount: habitChallenges.length
-    })
+    state.yesterdayStreakDays = yesterdayStreak
   } catch (error) {
-    console.error('Error calculating streak:', error)
-    streakDays.value = 0
-    yesterdayStreakDays.value = 0
-    hasTodayCompletedTasks.value = false
+    state.streakDays = 0
+    state.yesterdayStreakDays = 0
+    state.hasTodayCompletedTasks = false
   } finally {
-    initialDataLoading.value = false
+    state.initialDataLoading = false
   }
 }
 
@@ -747,17 +738,17 @@ async function loadTodaysChallenges() {
   const isLoggedIn = !!localStorage.getItem('token')
   
   if (!userId || !isLoggedIn) {
-    challenges.value = []
+    state.challenges = []
     return
   }
 
-  loadingChallenges.value = true
+  state.loadingChallenges = true
   try {
     const { data } = await challengeService.getChallengesByUser(userId, { excludePrivate: false })
     const allChallenges = data?.challenges || []
     
     // Filter for active challenges (including completed ones - they'll be marked as done)
-    challenges.value = allChallenges.filter(challenge => {
+    state.challenges = allChallenges.filter(challenge => {
       // Must be active (not finished)
       if (isChallengeFinished(challenge)) return false
       
@@ -798,9 +789,9 @@ async function loadTodaysChallenges() {
     })
   } catch (error) {
     console.error('Error loading today\'s challenges:', error)
-    challenges.value = []
+    state.challenges = []
   } finally {
-    loadingChallenges.value = false
+    state.loadingChallenges = false
   }
 }
 
@@ -811,37 +802,37 @@ async function navigateToChallenge(challenge) {
   // Fetch full challenge data to ensure we have populated owner and participants
   try {
     const { data } = await challengeService.getChallenge(challenge._id)
-    selectedChallenge.value = data
+    state.selectedChallenge = data
   } catch (error) {
     // Fallback to using the challenge from the list
-    selectedChallenge.value = challenge
+    state.selectedChallenge = challenge
   }
   
   // Determine if user is owner
-  const ownerId = selectedChallenge.value.owner?._id || selectedChallenge.value.owner
-  selectedIsOwner.value = ownerId && ownerId.toString() === userId?.toString()
+  const ownerId = state.selectedChallenge.owner?._id || state.selectedChallenge.owner
+  state.selectedIsOwner = ownerId && ownerId.toString() === userId?.toString()
   
   // Determine if user is participant
-  selectedIsParticipant.value = selectedChallenge.value.participants?.some(p => {
+  state.selectedIsParticipant = state.selectedChallenge.participants?.some(p => {
     const pUserId = p.userId?._id || p.userId || p._id
     return pUserId && pUserId.toString() === userId?.toString()
   }) || false
   
-  detailsDialogOpen.value = true
+  state.detailsDialogOpen = true
 }
 
 // Handle dialog update (refresh challenge data)
 async function handleDialogUpdate() {
-  if (!selectedChallenge.value?._id) return
+  if (!state.selectedChallenge?._id) return
   
   try {
-    const { data } = await challengeService.getChallenge(selectedChallenge.value._id)
-    selectedChallenge.value = data
+    const { data } = await challengeService.getChallenge(state.selectedChallenge._id)
+    state.selectedChallenge = data
     
     // Update local challenges list
-    const index = challenges.value.findIndex(c => c._id === data._id)
+    const index = state.challenges.findIndex(c => c._id === data._id)
     if (index !== -1) {
-      challenges.value[index] = data
+      state.challenges[index] = data
     }
     
     // Refresh challenges to update todaysChallenges computed property
@@ -854,18 +845,18 @@ async function handleDialogUpdate() {
 
 // Handle dialog leave
 async function handleDialogLeave() {
-  if (!selectedChallenge.value?._id || !getCurrentUserId()) return
+  if (!state.selectedChallenge?._id || !getCurrentUserId()) return
   
-  selectedLeaveLoading.value = true
+  state.selectedLeaveLoading = true
   try {
-    await challengeService.leaveChallenge(selectedChallenge.value._id, { userId: getCurrentUserId() })
+    await challengeService.leaveChallenge(state.selectedChallenge._id, { userId: getCurrentUserId() })
     
     // Refresh challenge data and challenges list
     await handleDialogUpdate()
   } catch (error) {
     console.error('Error leaving challenge:', error)
   } finally {
-    selectedLeaveLoading.value = false
+    state.selectedLeaveLoading = false
   }
 }
 
@@ -952,25 +943,25 @@ async function loadTomorrowSteps() {
   try {
     const response = await userService.getTomorrowChecklist()
     if (response.data?.checklist?.tasks) {
-      tomorrowSteps.value = response.data.checklist.tasks.map(task => ({
+      state.tomorrowSteps = response.data.checklist.tasks.map(task => ({
         title: task.title,
         done: false // Tomorrow's steps should always start as not done
       }))
-      if (tomorrowSteps.value.length > 0) {
-        showTomorrowStepsInput.value = true
+      if (state.tomorrowSteps.length > 0) {
+        state.showTomorrowStepsInput = true
       }
     } else {
-      tomorrowSteps.value = []
+      state.tomorrowSteps = []
     }
   } catch (err) {
     console.error('Error loading tomorrow\'s checklist:', err)
-    tomorrowSteps.value = []
+    state.tomorrowSteps = []
   }
 }
 
 async function saveTomorrowSteps() {
   try {
-    const tasks = tomorrowSteps.value.map(step => ({
+    const tasks = state.tomorrowSteps.map(step => ({
       title: step.title,
       done: false // Tomorrow's steps are always not done
     }))
@@ -981,29 +972,29 @@ async function saveTomorrowSteps() {
 }
 
 function planNewStep() {
-  showTomorrowStepsInput.value = true
+  state.showTomorrowStepsInput = true
 }
 
 async function addTomorrowStep() {
-  if (!tomorrowStepText.value.trim()) return
+  if (!state.tomorrowStepText.trim()) return
   
-  tomorrowSteps.value.push({
-    title: tomorrowStepText.value.trim(),
+  state.tomorrowSteps.push({
+    title: state.tomorrowStepText.trim(),
     done: false
   })
   
-  tomorrowStepText.value = ''
+  state.tomorrowStepText = ''
   await saveTomorrowSteps()
 }
 
 async function removeTomorrowStep(index) {
-  tomorrowSteps.value.splice(index, 1)
+  state.tomorrowSteps.splice(index, 1)
   await saveTomorrowSteps()
 }
 
 function startEditingTomorrowStep(index, currentText) {
-  editingTomorrowStepIndex.value = index
-  editingTomorrowStepText.value = currentText
+  state.editingTomorrowStepIndex = index
+  state.editingTomorrowStepText = currentText
   nextTick(() => {
     // Focus the input when it appears
     const input = document.querySelector(`.tomorrow-steps-content .step-edit-input`)
@@ -1015,10 +1006,10 @@ function startEditingTomorrowStep(index, currentText) {
 }
 
 async function saveTomorrowStepEdit(index) {
-  if (editingTomorrowStepIndex.value === index && editingTomorrowStepText.value.trim()) {
-    tomorrowSteps.value[index].title = editingTomorrowStepText.value.trim()
-    editingTomorrowStepIndex.value = -1
-    editingTomorrowStepText.value = ''
+  if (state.editingTomorrowStepIndex === index && state.editingTomorrowStepText.trim()) {
+    state.tomorrowSteps[index].title = state.editingTomorrowStepText.trim()
+    state.editingTomorrowStepIndex = -1
+    state.editingTomorrowStepText = ''
     await saveTomorrowSteps()
   } else {
     cancelTomorrowStepEdit()
@@ -1026,8 +1017,8 @@ async function saveTomorrowStepEdit(index) {
 }
 
 function cancelTomorrowStepEdit() {
-  editingTomorrowStepIndex.value = -1
-  editingTomorrowStepText.value = ''
+  state.editingTomorrowStepIndex = -1
+  state.editingTomorrowStepText = ''
 }
 
 async function copyUnfinishedStepsToTomorrow() {
@@ -1039,16 +1030,16 @@ async function copyUnfinishedStepsToTomorrow() {
   if (unfinishedSteps.length === 0) return
   
   // Load tomorrow's steps first if not already loaded
-  if (tomorrowSteps.value.length === 0) {
+  if (state.tomorrowSteps.length === 0) {
     await loadTomorrowSteps()
   }
   
   // Add unfinished steps to tomorrow's checklist
   for (const step of unfinishedSteps) {
     // Check if step already exists in tomorrow's list
-    const exists = tomorrowSteps.value.some(tomorrowStep => tomorrowStep.title === step.title)
+    const exists = state.tomorrowSteps.some(tomorrowStep => tomorrowStep.title === step.title)
     if (!exists) {
-      tomorrowSteps.value.push({
+      state.tomorrowSteps.push({
         title: step.title,
         done: false
       })
@@ -1059,13 +1050,13 @@ async function copyUnfinishedStepsToTomorrow() {
   await saveTomorrowSteps()
   
   // Show tomorrow tab if not already visible
-  if (activeTab.value !== 'tomorrow') {
-    activeTab.value = 'tomorrow'
+  if (state.activeTab !== 'tomorrow') {
+    state.activeTab = 'tomorrow'
   }
 }
 
 const todaysChallenges = computed(() => {
-  return challenges.value
+  return state.challenges
 })
 
 // Tomorrow's challenges - same logic as today but for tomorrow
@@ -1081,7 +1072,7 @@ const tomorrowsChallenges = computed(() => {
   tomorrow.setDate(tomorrow.getDate() + 1)
   tomorrow.setHours(0, 0, 0, 0)
 
-  return challenges.value.filter(challenge => {
+  return state.challenges.filter(challenge => {
     // Must be active (not finished)
     if (isChallengeFinished(challenge)) return false
     
@@ -1147,7 +1138,7 @@ const combinedProgressPercentage = computed(() => {
 
 // Tomorrow's progress (challenges + steps)
 const tomorrowTotalItems = computed(() => {
-  return tomorrowsChallenges.value.length + tomorrowSteps.value.length
+  return tomorrowsChallenges.value.length + state.tomorrowSteps.length
 })
 
 const tomorrowCompletedItems = computed(() => {
@@ -1173,7 +1164,7 @@ const unfinishedStepsCount = computed(() => {
 
 // Computed property to control dialog visibility - only show if actually completed
 const shouldShowCompletionDialog = computed(() => {
-  return showCompletionDialog.value && 
+  return state.showCompletionDialog && 
          isAllCompleted.value && 
          completedItems.value === totalItems.value && 
          totalItems.value > 0
@@ -1240,8 +1231,8 @@ function dismissDialogToday() {
 
 function closeCompletionDialog() {
   dismissDialogToday()
-  showCompletionDialog.value = false
-  hasShownCompletionDialog.value = true
+  state.showCompletionDialog = false
+  state.hasShownCompletionDialog = true
 }
 
 // Function to check and show completion dialog
@@ -1260,20 +1251,20 @@ function checkAndShowCompletionDialog() {
     total,
     allCompleted,
     isAllCompleted: isAllCompleted.value,
-    initialDataLoading: initialDataLoading.value,
-    checklistLoading: checklistLoading.value,
-    hasShownCompletionDialog: hasShownCompletionDialog.value,
+    initialDataLoading: state.initialDataLoading,
+    checklistLoading: state.checklistLoading,
+    hasShownCompletionDialog: state.hasShownCompletionDialog,
     dismissedToday: hasDismissedToday()
   })
   
   // Additional checks
   if (
-    !initialDataLoading.value &&
-    !checklistLoading.value &&
+    !state.initialDataLoading &&
+    !state.checklistLoading &&
     allCompleted &&
     isAllCompleted.value &&
     total > 0 &&
-    !hasShownCompletionDialog.value &&
+    !state.hasShownCompletionDialog &&
     !hasDismissedToday()
   ) {
     setTimeout(() => {
@@ -1282,8 +1273,8 @@ function checkAndShowCompletionDialog() {
       const finalTotal = totalItems.value
       if (finalTotal > 0 && finalCompleted === finalTotal && isAllCompleted.value && !hasDismissedToday()) {
         console.log('Showing completion dialog!')
-        showCompletionDialog.value = true
-        hasShownCompletionDialog.value = true
+        state.showCompletionDialog = true
+        state.hasShownCompletionDialog = true
       }
     }, 300)
   }
@@ -1307,11 +1298,11 @@ watch(isAllCompleted, (val, oldVal) => {
     }
   } else {
     // Close dialog and reset flags when tasks become incomplete
-    if (showCompletionDialog.value) {
-      showCompletionDialog.value = false
+    if (state.showCompletionDialog) {
+      state.showCompletionDialog = false
     }
     // Reset the shown flag so dialog can appear again when tasks are completed again
-    hasShownCompletionDialog.value = false
+    state.hasShownCompletionDialog = false
     // Clear dismissal so dialog can show again if user completes tasks again
     try {
       localStorage.removeItem(getDismissalKey())
@@ -1324,10 +1315,10 @@ watch(isAllCompleted, (val, oldVal) => {
 // Watch completion state and close dialog if tasks become incomplete
 watch([completedItems, totalItems], ([completed, total], [oldCompleted, oldTotal]) => {
   // If dialog is open but tasks are no longer all completed, close it immediately
-  if (showCompletionDialog.value) {
+  if (state.showCompletionDialog) {
     if (total === 0 || completed !== total) {
-      showCompletionDialog.value = false
-      hasShownCompletionDialog.value = false
+      state.showCompletionDialog = false
+      state.hasShownCompletionDialog = false
       // Clear dismissal so dialog can show again when tasks are completed again
       try {
         localStorage.removeItem(getDismissalKey())
@@ -1341,7 +1332,7 @@ watch([completedItems, totalItems], ([completed, total], [oldCompleted, oldTotal
   const wasCompleted = oldTotal > 0 && oldCompleted === oldTotal
   const isNowCompleted = total > 0 && completed === total
   
-  if (!wasCompleted && isNowCompleted && !initialDataLoading.value && !checklistLoading.value && !hasShownCompletionDialog.value && !hasDismissedToday()) {
+  if (!wasCompleted && isNowCompleted && !state.initialDataLoading && !state.checklistLoading && !state.hasShownCompletionDialog && !hasDismissedToday()) {
     // User just completed all tasks - show dialog
     setTimeout(() => {
       checkAndShowCompletionDialog()
@@ -1350,7 +1341,7 @@ watch([completedItems, totalItems], ([completed, total], [oldCompleted, oldTotal
   
   // Reset flag and clear dismissal when tasks become incomplete so dialog can show again
   if (wasCompleted && !isNowCompleted) {
-    hasShownCompletionDialog.value = false
+    state.hasShownCompletionDialog = false
     try {
       localStorage.removeItem(getDismissalKey())
     } catch {
@@ -1361,12 +1352,12 @@ watch([completedItems, totalItems], ([completed, total], [oldCompleted, oldTotal
 
 // Display streak: show yesterday's streak in grey if today isn't completed, otherwise show today's streak
 const displayStreakDays = computed(() => {
-  if (hasTodayCompletedTasks.value) {
-    return streakDays.value
-  } else if (yesterdayStreakDays.value > 0) {
-    return yesterdayStreakDays.value
+  if (state.hasTodayCompletedTasks) {
+    return state.streakDays
+  } else if (state.yesterdayStreakDays > 0) {
+    return state.yesterdayStreakDays
   }
-  return streakDays.value
+  return state.streakDays
 })
 
 // Get daily motivational message based on date (when no tasks completed)
@@ -1417,8 +1408,8 @@ function getRussianDayWord(days) {
 }
 
 const streakDaysText = computed(() => {
-  const days = (!hasTodayCompletedTasks.value && yesterdayStreakDays.value > 0) 
-    ? yesterdayStreakDays.value 
+  const days = (!state.hasTodayCompletedTasks && state.yesterdayStreakDays > 0) 
+    ? state.yesterdayStreakDays 
     : displayStreakDays.value
   return getRussianDayWord(days)
 })
@@ -1426,7 +1417,7 @@ const streakDaysText = computed(() => {
 // Watch for checklist loading state
 const updateChecklistLoading = () => {
   if (checklistRef.value) {
-    checklistLoading.value = checklistRef.value.loading || false
+    state.checklistLoading = checklistRef.value.loading || false
   }
 }
 
@@ -1442,7 +1433,7 @@ watch(() => checklistRef.value?.completedSteps, () => {
   updateChecklistLoading()
   // Check if we should show completion dialog after checklist update
   nextTick(() => {
-    if (isAllCompleted.value && !hasShownCompletionDialog.value && !hasDismissedToday()) {
+    if (isAllCompleted.value && !state.hasShownCompletionDialog && !hasDismissedToday()) {
       checkAndShowCompletionDialog()
     }
   })
@@ -1450,12 +1441,12 @@ watch(() => checklistRef.value?.completedSteps, () => {
 
 watch(() => checklistRef.value?.loading, (newVal) => {
   if (newVal !== undefined) {
-    checklistLoading.value = newVal
+    state.checklistLoading = newVal
   }
 })
 
 onMounted(async () => {
-  updateUser()
+  await updateUser()
   await calculateStreak()
   await loadTodaysChallenges()
   window.addEventListener('auth-changed', updateUser)
@@ -1467,7 +1458,7 @@ onMounted(async () => {
       }
       updateChecklistLoading()
       // Check if we should show completion dialog after checklist update
-      if (isAllCompleted.value && !hasShownCompletionDialog.value && !hasDismissedToday()) {
+      if (isAllCompleted.value && !state.hasShownCompletionDialog && !hasDismissedToday()) {
         setTimeout(() => {
           checkAndShowCompletionDialog()
         }, 500)
@@ -1483,7 +1474,7 @@ onMounted(async () => {
     calculateStreak()
     // Check if we should show completion dialog after challenge completion
     nextTick(() => {
-      if (isAllCompleted.value && !hasShownCompletionDialog.value && !hasDismissedToday()) {
+      if (isAllCompleted.value && !state.hasShownCompletionDialog && !hasDismissedToday()) {
         setTimeout(() => {
           checkAndShowCompletionDialog()
         }, 500)
@@ -1502,7 +1493,7 @@ onMounted(async () => {
   // Wait for checklist to finish loading
   let attempts = 0
   const maxAttempts = 10
-  while ((checklistLoading.value || initialDataLoading.value) && attempts < maxAttempts) {
+  while ((state.checklistLoading || state.initialDataLoading) && attempts < maxAttempts) {
     await new Promise(resolve => setTimeout(resolve, 100))
     attempts++
   }
@@ -1510,7 +1501,7 @@ onMounted(async () => {
   
   // Check if all tasks are completed after initial load
   setTimeout(() => {
-    if (isAllCompleted.value && !hasShownCompletionDialog.value && !hasDismissedToday()) {
+    if (isAllCompleted.value && !state.hasShownCompletionDialog && !hasDismissedToday()) {
       checkAndShowCompletionDialog()
     }
   }, 500)
@@ -1524,7 +1515,7 @@ onActivated(async () => {
   // Wait for checklist to finish loading
   let attempts = 0
   const maxAttempts = 15
-  while ((checklistLoading.value || initialDataLoading.value) && attempts < maxAttempts) {
+  while ((state.checklistLoading || state.initialDataLoading) && attempts < maxAttempts) {
     await new Promise(resolve => setTimeout(resolve, 100))
     attempts++
   }
@@ -1535,12 +1526,12 @@ onActivated(async () => {
       completed: completedItems.value,
       total: totalItems.value,
       isAllCompleted: isAllCompleted.value,
-      hasShown: hasShownCompletionDialog.value,
+      hasShown: state.hasShownCompletionDialog,
       dismissed: hasDismissedToday(),
-      checklistLoading: checklistLoading.value,
-      initialLoading: initialDataLoading.value
+      checklistLoading: state.checklistLoading,
+      initialLoading: state.initialDataLoading
     })
-    if (isAllCompleted.value && !hasShownCompletionDialog.value && !hasDismissedToday()) {
+    if (isAllCompleted.value && !state.hasShownCompletionDialog && !hasDismissedToday()) {
       checkAndShowCompletionDialog()
     }
   }, 1000)
@@ -1555,7 +1546,7 @@ watch(() => route.path, async (newPath) => {
     // Wait for checklist to finish loading
     let attempts = 0
     const maxAttempts = 15
-    while ((checklistLoading.value || initialDataLoading.value) && attempts < maxAttempts) {
+    while ((state.checklistLoading || state.initialDataLoading) && attempts < maxAttempts) {
       await new Promise(resolve => setTimeout(resolve, 100))
       attempts++
     }
@@ -1566,12 +1557,12 @@ watch(() => route.path, async (newPath) => {
         completed: completedItems.value,
         total: totalItems.value,
         isAllCompleted: isAllCompleted.value,
-        hasShown: hasShownCompletionDialog.value,
+        hasShown: state.hasShownCompletionDialog,
         dismissed: hasDismissedToday(),
-        checklistLoading: checklistLoading.value,
-        initialLoading: initialDataLoading.value
+        checklistLoading: state.checklistLoading,
+        initialLoading: state.initialDataLoading
       })
-      if (isAllCompleted.value && !hasShownCompletionDialog.value && !hasDismissedToday()) {
+      if (isAllCompleted.value && !state.hasShownCompletionDialog && !hasDismissedToday()) {
         checkAndShowCompletionDialog()
       }
     }, 1000)
@@ -1579,7 +1570,7 @@ watch(() => route.path, async (newPath) => {
 })
 
 // Watch activeTab to load tomorrow's steps when switching to tomorrow tab
-watch(activeTab, (newTab) => {
+watch(() => state.activeTab, (newTab) => {
   if (newTab === 'tomorrow') {
     loadTomorrowSteps()
   }
@@ -1588,9 +1579,9 @@ watch(activeTab, (newTab) => {
 async function generateCompletionImage() {
   // Dismiss dialog for today when user generates image
   dismissDialogToday()
-  showCompletionDialog.value = false
-  hasShownCompletionDialog.value = true
-  generatingImage.value = true
+  state.showCompletionDialog = false
+  state.hasShownCompletionDialog = true
+  state.generatingImage = true
   try {
     await nextTick()
     
@@ -1602,11 +1593,11 @@ async function generateCompletionImage() {
     const checklistTasks = (checklistRef.value?.todaySteps?.filter(s => s.done) || []).map(s => ({ title: s.title, done: true }))
     
     await generateImage({
-      userName: userName.value,
+      userName: state.userName,
       date: new Date(),
       challenges: challenges,
       checklistTasks: checklistTasks,
-      streakDays: streakDays.value,
+      streakDays: state.streakDays,
       locale: locale.value,
       t: t,
       includeMotivationalMessage: true,
@@ -1615,7 +1606,7 @@ async function generateCompletionImage() {
   } catch (error) {
     console.error('Generation failed', error)
   } finally {
-    generatingImage.value = false
+    state.generatingImage = false
   }
 }
 
@@ -2235,7 +2226,7 @@ onBeforeUnmount(() => {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 0.95rem;
   font-weight: 500;
-  color: FFFFFF;
+  color: #FFFFFF;
   transition: color 0.3s ease;
   flex: 1;
   cursor: pointer;

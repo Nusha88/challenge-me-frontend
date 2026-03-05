@@ -5,15 +5,15 @@
         <v-icon color="#4FD1C5" size="small">mdi-message-text-clock-outline</v-icon>
       </div>
       <h3 class="text-h6 font-weight-bold text-white mb-0">{{ t('challenges.diary.title') }}</h3>
-      <v-chip v-if="comments.length > 0" size="x-small" color="#4FD1C5" class="ml-3 tactical-count-chip">
-        {{ comments.length }}
+      <v-chip v-if="state.comments.length > 0" size="x-small" color="#4FD1C5" class="ml-3 tactical-count-chip">
+        {{ state.comments.length }}
       </v-chip>
     </div>
 
     <div v-if="canComment" class="add-comment-container mb-8">
       <div class="tactical-input-wrapper">
         <v-textarea
-          v-model="newCommentText"
+          v-model="state.newCommentText"
           :placeholder="commentPlaceholder"
           auto-grow
           rows="1"
@@ -21,12 +21,12 @@
           variant="plain"
           class="comment-field px-4 pt-3"
           hide-details
-          :disabled="addingComment"
+          :disabled="state.addingComment"
         ></v-textarea>
 
-        <div v-if="newCommentImagePreview" class="px-4 pb-3">
+        <div v-if="state.newCommentImagePreview" class="px-4 pb-3">
           <div class="preview-frame">
-            <v-img :src="newCommentImagePreview" max-height="180" cover class="rounded-lg border-accent">
+            <v-img :src="state.newCommentImagePreview" max-height="180" cover class="rounded-lg border-accent">
               <v-btn icon="mdi-close" size="x-small" color="error" class="remove-img-btn" @click="removeImagePreview('comment')"></v-btn>
             </v-img>
           </div>
@@ -43,8 +43,8 @@
             variant="flat"
             size="small"
             class="post-btn px-6 font-weight-black"
-            :loading="addingComment || uploadingImage"
-            :disabled="(!newCommentText.trim() && !newCommentImageUrl) || uploadingImage"
+            :loading="state.addingComment || state.uploadingImage"
+            :disabled="(!state.newCommentText.trim() && !state.newCommentImageUrl) || state.uploadingImage"
             @click="addComment"
           >
             {{ t('challenges.comments.post') }}
@@ -101,7 +101,7 @@
                 <div class="d-flex align-center mt-3 gap-2">
                   <div class="reactions-row d-flex">
                     <div
-                      v-for="emoji in ['👏', '🔥', '💪']"
+                      v-for="emoji in ['👏', '🔥', '💪', '😢']"
                       :key="emoji"
                       class="reaction-capsule"
                       :class="{ 'active': hasUserReacted(item, emoji) }"
@@ -112,7 +112,7 @@
                     </div>
                   </div>
                   <v-btn 
-                    v-if="replyingToCommentId !== item._id"
+                    v-if="state.replyingToCommentId !== item._id"
                     size="x-small" 
                     variant="text" 
                     color="#4FD1C5" 
@@ -125,10 +125,10 @@
               </div>
 
               <!-- Reply Input Section -->
-              <div v-if="replyingToCommentId === item._id" class="reply-input-container ml-6 mt-3 mb-3">
+              <div v-if="state.replyingToCommentId === item._id" class="reply-input-container ml-6 mt-3 mb-3">
                 <div class="tactical-input-wrapper">
                   <v-textarea
-                    v-model="replyTexts[item._id]"
+                    v-model="state.replyTexts[item._id]"
                     :placeholder="t('challenges.comments.replyPlaceholder', { name: getCommentName(item) })"
                     auto-grow
                     rows="1"
@@ -136,12 +136,12 @@
                     variant="plain"
                     class="comment-field px-4 pt-3"
                     hide-details
-                    :disabled="replyingCommentId === item._id"
+                    :disabled="state.replyingCommentId === item._id"
                   ></v-textarea>
 
-                  <div v-if="replyImagePreviews[item._id]" class="px-4 pb-3">
+                  <div v-if="state.replyImagePreviews[item._id]" class="px-4 pb-3">
                     <div class="preview-frame">
-                      <v-img :src="replyImagePreviews[item._id]" max-height="180" cover class="rounded-lg border-accent">
+                      <v-img :src="state.replyImagePreviews[item._id]" max-height="180" cover class="rounded-lg border-accent">
                         <v-btn icon="mdi-close" size="x-small" color="error" class="remove-img-btn" @click="removeImagePreview('reply', item._id)"></v-btn>
                       </v-img>
                     </div>
@@ -180,8 +180,8 @@
                       variant="flat"
                       size="small"
                       class="post-btn px-4 font-weight-black"
-                      :loading="replyingCommentId === item._id || uploadingReplyImages[item._id]"
-                      :disabled="(!replyTexts[item._id]?.trim() && !replyImageUrls[item._id]) || uploadingReplyImages[item._id]"
+                      :loading="state.replyingCommentId === item._id || state.uploadingReplyImages[item._id]"
+                      :disabled="(!state.replyTexts[item._id]?.trim() && !state.replyImageUrls[item._id]) || state.uploadingReplyImages[item._id]"
                       @click="submitReply(item)"
                     >
                       {{ t('challenges.comments.post') }}
@@ -385,15 +385,12 @@
 }
 </style>
 <script setup>
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { challengeService } from '../services/api'
 import { useI18n } from 'vue-i18n'
-import { useDisplay } from 'vuetify'
-import { Flame } from 'lucide-vue-next'
 
 const router = useRouter()
-const { mobile, smAndUp } = useDisplay()
 
 const props = defineProps({
   challengeId: {
@@ -442,11 +439,11 @@ const emit = defineEmits(['comment-added', 'comment-deleted', 'user-navigated', 
 
 const { t, locale } = useI18n()
 
-// Store selected placeholder index in a ref to persist across re-renders
-const selectedPlaceholderIndex = ref(Math.floor(Math.random() * 5))
-
 // Dynamic placeholder for comment input
 const commentPlaceholder = computed(() => {
+  if (!isCurrentUserParticipant.value) {
+    return t('challenges.comments.placeholder5')
+  }
   const placeholders = [
     t('challenges.comments.placeholder1'),
     t('challenges.comments.placeholder2'),
@@ -454,7 +451,7 @@ const commentPlaceholder = computed(() => {
     t('challenges.comments.placeholder4'),
     t('challenges.comments.placeholder5')
   ]
-  return placeholders[selectedPlaceholderIndex.value]
+  return placeholders[state.selectedPlaceholderIndex]
 })
 
 // Image upload helper
@@ -476,7 +473,7 @@ const readFileAsBase64 = (file) => {
 }
 
 async function uploadImage(file) {
-  uploadingImage.value = true
+  state.uploadingImage = true
   try {
     const base64 = await readFileAsBase64(file)
     const formData = new URLSearchParams()
@@ -504,7 +501,7 @@ async function uploadImage(file) {
 
     return imageUrl
   } finally {
-    uploadingImage.value = false
+    state.uploadingImage = false
   }
 }
 
@@ -526,21 +523,21 @@ async function handleImageSelect(event, type = 'comment', commentId = null, repl
 
   // Set uploading state
   if (type === 'reply') {
-    uploadingReplyImages.value[commentId] = true
+    state.uploadingReplyImages[commentId] = true
   } else if (type === 'nestedReply') {
-    uploadingReplyToReplyImages.value[replyId] = true
+    state.uploadingReplyToReplyImages[replyId] = true
   }
 
   // Show preview and store filename
   const reader = new FileReader()
   reader.onload = (e) => {
     if (type === 'comment') {
-      newCommentImagePreview.value = e.target.result
-      newCommentImageName.value = file.name
+      state.newCommentImagePreview = e.target.result
+      state.newCommentImageName = file.name
     } else if (type === 'reply') {
-      replyImagePreviews.value[commentId] = e.target.result
+      state.replyImagePreviews[commentId] = e.target.result
     } else if (type === 'nestedReply') {
-      replyToReplyImagePreviews.value[replyId] = e.target.result
+      state.replyToReplyImagePreviews[replyId] = e.target.result
     }
   }
   reader.readAsDataURL(file)
@@ -549,44 +546,43 @@ async function handleImageSelect(event, type = 'comment', commentId = null, repl
   try {
     const imageUrl = await uploadImage(file)
     if (type === 'comment') {
-      newCommentImageUrl.value = imageUrl
+      state.newCommentImageUrl = imageUrl
     } else if (type === 'reply') {
-      replyImageUrls.value[commentId] = imageUrl
-      uploadingReplyImages.value[commentId] = false
+      state.replyImageUrls[commentId] = imageUrl
+      state.uploadingReplyImages[commentId] = false
     } else if (type === 'nestedReply') {
-      replyToReplyImageUrls.value[replyId] = imageUrl
-      uploadingReplyToReplyImages.value[replyId] = false
+      state.replyToReplyImageUrls[replyId] = imageUrl
+      state.uploadingReplyToReplyImages[replyId] = false
     }
   } catch (error) {
-    console.error('Image upload failed:', error)
     alert(error.message || t('challenges.uploadError'))
     if (type === 'comment') {
-      newCommentImagePreview.value = null
-      newCommentImageName.value = null
-      newCommentImageUrl.value = null
+      state.newCommentImagePreview = null
+      state.newCommentImageName = null
+      state.newCommentImageUrl = null
     } else if (type === 'reply') {
-      replyImagePreviews.value[commentId] = null
-      replyImageUrls.value[commentId] = null
-      uploadingReplyImages.value[commentId] = false
+      state.replyImagePreviews[commentId] = null
+      state.replyImageUrls[commentId] = null
+      state.uploadingReplyImages[commentId] = false
     } else if (type === 'nestedReply') {
-      replyToReplyImagePreviews.value[replyId] = null
-      replyToReplyImageUrls.value[replyId] = null
-      uploadingReplyToReplyImages.value[replyId] = false
+      state.replyToReplyImagePreviews[replyId] = null
+      state.replyToReplyImageUrls[replyId] = null
+      state.uploadingReplyToReplyImages[replyId] = false
     }
   }
 }
 
 function removeImagePreview(type = 'comment', commentId = null, replyId = null) {
   if (type === 'comment') {
-    newCommentImageUrl.value = null
-    newCommentImagePreview.value = null
-    newCommentImageName.value = null
+    state.newCommentImageUrl = null
+    state.newCommentImagePreview = null
+    state.newCommentImageName = null
   } else if (type === 'reply') {
-    replyImageUrls.value[commentId] = null
-    replyImagePreviews.value[commentId] = null
+    state.replyImageUrls[commentId] = null
+    state.replyImagePreviews[commentId] = null
   } else if (type === 'nestedReply') {
-    replyToReplyImageUrls.value[replyId] = null
-    replyToReplyImagePreviews.value[replyId] = null
+    state.replyToReplyImageUrls[replyId] = null
+    state.replyToReplyImagePreviews[replyId] = null
   }
 }
 
@@ -727,7 +723,7 @@ function getParticipantStreak(userId) {
 // Combined feed with system events
 const feedItems = computed(() => {
   const systemEvents = generateSystemEvents()
-  const allItems = [...comments.value, ...systemEvents]
+  const allItems = [...state.comments, ...systemEvents]
   
   return allItems.sort((a, b) => {
     const dateA = new Date(a.createdAt)
@@ -736,35 +732,37 @@ const feedItems = computed(() => {
   })
 })
 
-const comments = ref([])
-const loading = ref(false)
-const addingComment = ref(false)
-const deletingCommentId = ref(null)
-const newCommentText = ref('')
-const newCommentImageUrl = ref(null)
-const newCommentImagePreview = ref(null)
-const newCommentImageName = ref(null)
-const uploadingImage = ref(false)
-const replyingToCommentId = ref(null)
-const replyTexts = ref({})
-const replyImageUrls = ref({})
-const replyImagePreviews = ref({})
-const uploadingReplyImages = ref({})
-const replyingCommentId = ref(null)
-const deletingReplyId = ref(null)
-const replyingToReplyId = ref(null)
-const replyToReplyTexts = ref({})
-const replyToReplyImageUrls = ref({})
-const replyToReplyImagePreviews = ref({})
-const uploadingReplyToReplyImages = ref({})
-const replyingToReplyCommentId = ref(null)
-const reactingCommentId = ref(null)
-const reactingReplyId = ref(null)
-const reactingNestedReplyId = ref(null)
+const state = reactive({
+  comments: [],
+  loading: false,
+  addingComment: false,
+  deletingCommentId: null,
+  newCommentText: '',
+  newCommentImageUrl: null,
+  newCommentImagePreview: null,
+  newCommentImageName: null,
+  uploadingImage: false,
+  replyingToCommentId: null,
+  replyTexts: {},
+  replyImageUrls: {},
+  replyImagePreviews: {},
+  uploadingReplyImages: {},
+  replyingCommentId: null,
+  deletingReplyId: null,
+  replyingToReplyId: null,
+  replyToReplyTexts: {},
+  replyToReplyImageUrls: {},
+  replyToReplyImagePreviews: {},
+  uploadingReplyToReplyImages: {},
+  replyingToReplyCommentId: null,
+  reactingCommentId: null,
+  reactingReplyId: null,
+  reactingNestedReplyId: null,
+  selectedPlaceholderIndex: Math.floor(Math.random() * 5)
+})
 
 const fileInputRef = ref(null)
 const replyFileInputs = ref({})
-const replyToReplyFileInputs = ref({})
 
 // ImgBB API key
 const IMGBB_API_KEY = 'd8a4925b372143b44469009f92023386'
@@ -772,37 +770,36 @@ const IMGBB_API_KEY = 'd8a4925b372143b44469009f92023386'
 async function loadComments() {
   if (!props.challengeId || props.allowComments === false) return
 
-  loading.value = true
+  state.loading = true
   try {
     const { data } = await challengeService.getComments(props.challengeId)
-    comments.value = data.comments || []
+    state.comments = data.comments || []
   } catch (error) {
-    console.error('Error loading comments:', error)
   } finally {
-    loading.value = false
+    state.loading = false
   }
 }
 
 async function addComment() {
-  if ((!newCommentText.value.trim() && !newCommentImageUrl.value) || !props.currentUserId || addingComment.value) return
+  if ((!state.newCommentText.trim() && !state.newCommentImageUrl) || !props.currentUserId || state.addingComment) return
 
   // Wait for image upload to complete if preview exists but URL doesn't
-  if (newCommentImagePreview.value && !newCommentImageUrl.value && uploadingImage.value) {
+  if (state.newCommentImagePreview && !state.newCommentImageUrl && state.uploadingImage) {
     // Image is still uploading, wait a bit
     await new Promise(resolve => setTimeout(resolve, 500))
-    if (!newCommentImageUrl.value) {
+    if (!state.newCommentImageUrl) {
       alert(t('challenges.uploadInProgress'))
       return
     }
   }
 
-  addingComment.value = true
+  state.addingComment = true
   try {
-    const commentText = newCommentText.value.trim() || (newCommentImageUrl.value ? ' ' : '')
-    const imageUrl = newCommentImageUrl.value ? String(newCommentImageUrl.value).trim() : null
+    const commentText = state.newCommentText.trim() || (state.newCommentImageUrl ? ' ' : '')
+    const imageUrl = state.newCommentImageUrl ? String(state.newCommentImageUrl).trim() : null
     
     if (!commentText && !imageUrl) {
-      addingComment.value = false
+      state.addingComment = false
       return
     }
     
@@ -812,47 +809,32 @@ async function addComment() {
       commentText,
       imageUrl
     )
-    newCommentText.value = ''
-    newCommentImageUrl.value = null
-    newCommentImagePreview.value = null
-    newCommentImageName.value = null
+    state.newCommentText = ''
+    state.newCommentImageUrl = null
+    state.newCommentImagePreview = null
+    state.newCommentImageName = null
     await loadComments()
     emit('comment-added', data.comment)
-  } catch (error) {
-    console.error('Error adding comment:', error)
-    alert(error.response?.data?.message || t('challenges.comments.addError'))
   } finally {
-    addingComment.value = false
+    state.addingComment = false
   }
 }
 
 async function deleteComment(comment) {
   if (!confirm(t('challenges.comments.deleteConfirm'))) return
 
-  deletingCommentId.value = comment._id
+  state.deletingCommentId = comment._id
   try {
     await challengeService.deleteComment(props.challengeId, comment._id, props.currentUserId)
     await loadComments()
     emit('comment-deleted', comment._id)
-  } catch (error) {
-    console.error('Error deleting comment:', error)
-    alert(error.response?.data?.message || t('challenges.comments.deleteError'))
   } finally {
-    deletingCommentId.value = null
+    state.deletingCommentId = null
   }
 }
 
 function getCommentName(comment) {
   return comment.userId?.name || t('common.unknown')
-}
-
-function getCommentAvatar(comment) {
-  return comment.userId?.avatarUrl || null
-}
-
-function getCommentInitial(comment) {
-  const name = getCommentName(comment)
-  return name.charAt(0).toUpperCase()
 }
 
 function formatDate(dateString) {
@@ -971,7 +953,6 @@ function calculateDayNumber(commentDate) {
     // Day 0 is the start date, so add 1 to get day number
     return diffDays + 1
   } catch (error) {
-    console.error('Error calculating day number:', error)
     return null
   }
 }
@@ -996,43 +977,43 @@ function shouldShowDayLabel(comment) {
 }
 
 function startReply(comment) {
-  replyingToCommentId.value = comment._id
+  state.replyingToCommentId = comment._id
   const commentName = getCommentName(comment)
   // Pre-fill with @mention
-  replyTexts.value[comment._id] = `@${commentName} `
-  replyImageUrls.value[comment._id] = null
-  replyImagePreviews.value[comment._id] = null
+  state.replyTexts[comment._id] = `@${commentName} `
+  state.replyImageUrls[comment._id] = null
+  state.replyImagePreviews[comment._id] = null
 }
 
 function cancelReply(commentId) {
-  replyingToCommentId.value = null
-  replyTexts.value[commentId] = ''
-  replyImageUrls.value[commentId] = null
-  replyImagePreviews.value[commentId] = null
+  state.replyingToCommentId = null
+  state.replyTexts[commentId] = ''
+  state.replyImageUrls[commentId] = null
+  state.replyImagePreviews[commentId] = null
 }
 
 async function submitReply(comment) {
-  if ((!replyTexts.value[comment._id]?.trim() && !replyImageUrls.value[comment._id]) || !props.currentUserId || replyingCommentId.value) return
+  if ((!state.replyTexts[comment._id]?.trim() && !state.replyImageUrls[comment._id]) || !props.currentUserId || state.replyingCommentId) return
 
   // Wait for image upload to complete if preview exists but URL doesn't
-  if (replyImagePreviews.value[comment._id] && !replyImageUrls.value[comment._id] && uploadingReplyImages.value[comment._id]) {
+  if (state.replyImagePreviews[comment._id] && !state.replyImageUrls[comment._id] && state.uploadingReplyImages[comment._id]) {
     // Image is still uploading, wait a bit
     await new Promise(resolve => setTimeout(resolve, 500))
-    if (!replyImageUrls.value[comment._id]) {
+    if (!state.replyImageUrls[comment._id]) {
       alert(t('challenges.uploadInProgress'))
       return
     }
   }
 
-  replyingCommentId.value = comment._id
+  state.replyingCommentId = comment._id
   const commentUserId = comment.userId?._id || comment.userId
   
   try {
-    const replyText = replyTexts.value[comment._id]?.trim() || (replyImageUrls.value[comment._id] ? ' ' : '')
-    const imageUrl = replyImageUrls.value[comment._id] ? String(replyImageUrls.value[comment._id]).trim() : null
+    const replyText = state.replyTexts[comment._id]?.trim() || (state.replyImageUrls[comment._id] ? ' ' : '')
+    const imageUrl = state.replyImageUrls[comment._id] ? String(state.replyImageUrls[comment._id]).trim() : null
     
     if (!replyText && !imageUrl) {
-      replyingCommentId.value = null
+      state.replyingCommentId = null
       return
     }
     
@@ -1044,31 +1025,13 @@ async function submitReply(comment) {
       commentUserId.toString() === props.currentUserId.toString() ? null : commentUserId,
       imageUrl
     )
-    replyTexts.value[comment._id] = ''
-    replyImageUrls.value[comment._id] = null
-    replyImagePreviews.value[comment._id] = null
-    replyingToCommentId.value = null
+    state.replyTexts[comment._id] = ''
+    state.replyImageUrls[comment._id] = null
+    state.replyImagePreviews[comment._id] = null
+    state.replyingToCommentId = null
     await loadComments()
-  } catch (error) {
-    console.error('Error adding reply:', error)
-    alert(error.response?.data?.message || t('challenges.comments.replyError'))
   } finally {
-    replyingCommentId.value = null
-  }
-}
-
-async function deleteReply(comment, reply) {
-  if (!confirm(t('challenges.comments.deleteReplyConfirm'))) return
-
-  deletingReplyId.value = reply._id
-  try {
-    await challengeService.deleteReply(props.challengeId, comment._id, reply._id, props.currentUserId)
-    await loadComments()
-  } catch (error) {
-    console.error('Error deleting reply:', error)
-    alert(error.response?.data?.message || t('challenges.comments.deleteReplyError'))
-  } finally {
-    deletingReplyId.value = null
+    state.replyingCommentId = null
   }
 }
 
@@ -1076,165 +1039,8 @@ function getReplyName(reply) {
   return reply.userId?.name || t('common.unknown')
 }
 
-function getReplyAvatar(reply) {
-  return reply.userId?.avatarUrl || null
-}
-
-function getReplyInitial(reply) {
-  const name = getReplyName(reply)
-  return name.charAt(0).toUpperCase()
-}
-
 function getMentionedName(reply) {
   return reply.mentionedUserId?.name || t('common.unknown')
-}
-
-function canDeleteReply(reply, comment) {
-  if (!props.currentUserId) return false
-  const replyUserId = reply.userId?._id || reply.userId
-  const commentUserId = comment.userId?._id || comment.userId
-  
-  return props.isOwner || 
-         (replyUserId && replyUserId.toString() === props.currentUserId.toString()) ||
-         (commentUserId && commentUserId.toString() === props.currentUserId.toString())
-}
-
-function startReplyToReply(comment, reply) {
-  replyingToReplyId.value = reply._id
-  // Don't set replyingToReplyCommentId here - only set it when actually submitting
-  const replyName = getReplyName(reply)
-  // Pre-fill with @mention
-  replyToReplyTexts.value[reply._id] = `@${replyName} `
-  replyToReplyImageUrls.value[reply._id] = null
-  replyToReplyImagePreviews.value[reply._id] = null
-}
-
-function cancelReplyToReply(replyId) {
-  replyingToReplyId.value = null
-  replyingToReplyCommentId.value = null
-  replyToReplyTexts.value[replyId] = ''
-  replyToReplyImageUrls.value[replyId] = null
-  replyToReplyImagePreviews.value[replyId] = null
-}
-
-async function submitReplyToReply(comment, reply) {
-  if (!replyToReplyTexts.value[reply._id]?.trim() || !props.currentUserId) return
-  if (replyingToReplyCommentId.value) return // Already submitting
-
-  replyingToReplyCommentId.value = comment._id
-  const replyUserId = reply.userId?._id || reply.userId
-  
-  try {
-    await challengeService.replyToReply(
-      props.challengeId,
-      comment._id,
-      reply._id,
-      props.currentUserId,
-      replyToReplyTexts.value[reply._id],
-      replyUserId.toString() === props.currentUserId.toString() ? null : replyUserId,
-      replyToReplyImageUrls.value[reply._id] || null
-    )
-    replyToReplyTexts.value[reply._id] = ''
-    replyToReplyImageUrls.value[reply._id] = null
-    replyToReplyImagePreviews.value[reply._id] = null
-    replyingToReplyId.value = null
-    replyingToReplyCommentId.value = null
-    await loadComments()
-  } catch (error) {
-    console.error('Error adding nested reply:', error)
-    alert(error.response?.data?.message || t('challenges.comments.replyError'))
-  } finally {
-    replyingToReplyCommentId.value = null
-  }
-}
-
-async function deleteNestedReply(comment, parentReply, nestedReply) {
-  if (!confirm(t('challenges.comments.deleteReplyConfirm'))) return
-
-  try {
-    await challengeService.deleteNestedReply(
-      props.challengeId,
-      comment._id,
-      parentReply._id,
-      nestedReply._id,
-      props.currentUserId
-    )
-    await loadComments()
-  } catch (error) {
-    console.error('Error deleting nested reply:', error)
-    alert(error.response?.data?.message || t('challenges.comments.deleteReplyError'))
-  }
-}
-
-function getNestedReplyName(nestedReply) {
-  if (!nestedReply) return t('common.unknown')
-  // Handle both populated and unpopulated userId
-  if (nestedReply.userId && typeof nestedReply.userId === 'object' && nestedReply.userId.name) {
-    return nestedReply.userId.name
-  }
-  if (typeof nestedReply.userId === 'string') {
-    // If userId is just an ID string, we need to find the user in the comment's context
-    return t('common.unknown')
-  }
-  return nestedReply.userId?.name || t('common.unknown')
-}
-
-function getNestedReplyAvatar(nestedReply) {
-  if (!nestedReply) return null
-  if (nestedReply.userId && typeof nestedReply.userId === 'object' && nestedReply.userId.avatarUrl) {
-    return nestedReply.userId.avatarUrl
-  }
-  return nestedReply.userId?.avatarUrl || null
-}
-
-function getNestedReplyInitial(nestedReply) {
-  const name = getNestedReplyName(nestedReply)
-  return name.charAt(0).toUpperCase()
-}
-
-function getNestedMentionedName(nestedReply) {
-  if (!nestedReply) return t('common.unknown')
-  // Handle both populated and unpopulated mentionedUserId
-  if (nestedReply.mentionedUserId && typeof nestedReply.mentionedUserId === 'object' && nestedReply.mentionedUserId.name) {
-    return nestedReply.mentionedUserId.name
-  }
-  return nestedReply.mentionedUserId?.name || t('common.unknown')
-}
-
-function canDeleteNestedReply(nestedReply, parentReply, comment) {
-  if (!props.currentUserId) return false
-  const nestedReplyUserId = nestedReply.userId?._id || nestedReply.userId
-  const parentReplyUserId = parentReply.userId?._id || parentReply.userId
-  const commentUserId = comment.userId?._id || comment.userId
-  
-  return props.isOwner || 
-         (nestedReplyUserId && nestedReplyUserId.toString() === props.currentUserId.toString()) ||
-         (parentReplyUserId && parentReplyUserId.toString() === props.currentUserId.toString()) ||
-         (commentUserId && commentUserId.toString() === props.currentUserId.toString())
-}
-
-function navigateToMention(comment, reply, nestedReply = null) {
-  // Navigate to challenge with comment/reply ID in URL hash
-  const targetId = nestedReply ? nestedReply._id : reply._id
-  const commentId = comment._id
-  
-  // Check if we're already on the challenge page
-  const currentPath = router.currentRoute.value.path
-  const challengePath = `/missions/${props.challengeId}`
-  
-  if (currentPath === challengePath || currentPath.startsWith(challengePath + '/')) {
-    // Already on challenge page, scroll to the comment/reply
-    nextTick(() => {
-      scrollToComment(commentId, targetId)
-    })
-  } else {
-    // Navigate to challenge and scroll after navigation
-    router.push(`${challengePath}#comment-${commentId}-${targetId}`).then(() => {
-      nextTick(() => {
-        scrollToComment(commentId, targetId)
-      })
-    })
-  }
 }
 
 function navigateToUser(userId) {
@@ -1257,7 +1063,7 @@ function emitJoin() {
 
 // Reaction handling
 async function toggleReaction(item, emoji, type = 'comment', commentId = null, replyId = null) {
-  if (!props.currentUserId || reactingCommentId.value) return
+  if (!props.currentUserId || state.reactingCommentId) return
 
   const itemId = item._id
   const reactions = item.reactions || new Map()
@@ -1294,13 +1100,13 @@ async function toggleReaction(item, emoji, type = 'comment', commentId = null, r
   // Update local state
   if (type === 'comment') {
     item.reactions = reactionsObj
-    reactingCommentId.value = itemId
+    state.reactingCommentId = itemId
   } else if (type === 'reply') {
     item.reactions = reactionsObj
-    reactingReplyId.value = itemId
+    state.reactingReplyId = itemId
   } else if (type === 'nestedReply') {
     item.reactions = reactionsObj
-    reactingNestedReplyId.value = itemId
+    state.reactingNestedReplyId = itemId
   }
 
   try {
@@ -1313,17 +1119,13 @@ async function toggleReaction(item, emoji, type = 'comment', commentId = null, r
       type === 'nestedReply' ? itemId : null
     )
     await loadComments()
-  } catch (error) {
-    console.error('Error toggling reaction:', error)
-    // Revert optimistic update
-    await loadComments()
   } finally {
     if (type === 'comment') {
-      reactingCommentId.value = null
+      state.reactingCommentId = null
     } else if (type === 'reply') {
-      reactingReplyId.value = null
+      state.reactingReplyId = null
     } else if (type === 'nestedReply') {
-      reactingNestedReplyId.value = null
+      state.reactingNestedReplyId = null
     }
   }
 }
@@ -1373,7 +1175,7 @@ watch(() => props.allowComments, () => {
   if (props.allowComments !== false) {
     loadComments()
   } else {
-    comments.value = []
+    state.comments = []
   }
 })
 
@@ -1391,8 +1193,8 @@ onMounted(() => {
         const commentId = parts[1]
         const replyId = parts.length >= 3 ? parts[2] : null
         // Wait for comments to load, then scroll
-        watch(() => comments.value.length, () => {
-          if (comments.value.length > 0) {
+        watch(() => state.comments.length, () => {
+          if (state.comments.length > 0) {
             nextTick(() => {
               scrollToComment(commentId, replyId)
             })

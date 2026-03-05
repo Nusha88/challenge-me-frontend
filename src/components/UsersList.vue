@@ -11,10 +11,10 @@
       <p class="journal-subtitle-dark mt-2">{{ t('users.description') }}</p>
     </div>
     
-    <div class="hero-counter-block d-none d-sm-flex">
+    <div v-if="totalUsers" class="hero-counter-block d-none d-sm-flex">
       <div class="text-right">
         <div class="text-overline grey-text">{{ t('users.totalStrength') }}</div>
-        <div class="hero-count">{{ users.length }} {{ t('users.active') }}</div>
+        <div class="hero-count">{{ totalUsers }} {{ t('users.active') }}</div>
       </div>
       <v-icon color="teal-accent-4" size="32" class="ml-4 opacity-50">mdi-account-group</v-icon>
     </div>
@@ -588,6 +588,7 @@ import { getLevelFromXp, getXpForLevel, getRank, getXpPerLevel, getLevelInfo } f
 const router = useRouter()
 
 const users = ref([])
+const totalUsers = ref(0)
 const loading = ref(false)
 const loadingMore = ref(false)
 const error = ref('')
@@ -603,23 +604,6 @@ const getUserInitials = (name) => {
     ? parts[0].slice(0, 2)
     : `${parts[0][0] || ''}${parts[1][0] || ''}`
   return initials.toUpperCase()
-}
-
-const getDaysOnSite = (dateString) => {
-  if (!dateString) return '0'
-  try {
-    const registrationDate = new Date(dateString)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    registrationDate.setHours(0, 0, 0, 0)
-    
-    const diffTime = today - registrationDate
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-    
-    return diffDays.toString()
-  } catch (err) {
-    return '0'
-  }
 }
 
 const fetchUsers = async (page = 1, append = false) => {
@@ -661,6 +645,9 @@ const fetchUsers = async (page = 1, append = false) => {
       users.value = usersWithDays
     }
     
+    // Update total user count
+    totalUsers.value = response.data.totalUsers || 0
+    
     // Update pagination state
     hasMore.value = response.data.pagination?.hasMore || false
     currentPage.value = page
@@ -698,13 +685,6 @@ const handleScroll = () => {
 // Handle search button click
 const handleSearch = () => {
   // Reset to first page and fetch with search query
-  fetchUsers(1, false)
-}
-
-// Handle clear search
-const handleClearSearch = () => {
-  searchQuery.value = ''
-  // Reset to first page and fetch all users
   fetchUsers(1, false)
 }
 

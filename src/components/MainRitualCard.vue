@@ -23,7 +23,7 @@
             class="ritual-chip px-4 font-weight-black"
           >
             <v-icon start size="14">mdi-star</v-icon>
-            {{ t('challenges.typeHabitLabel').toUpperCase() }}
+            {{ getChallengeTypeLabel('habit').toUpperCase() }}
           </v-chip>
           <span class="ritual-subtitle">{{ t('challenges.mainRitualOfWeek') }}</span>
         </div>
@@ -218,6 +218,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useChallengeType } from '../composables/useChallengeType'
 
 const props = defineProps({
   challenge: { type: Object, default: null },
@@ -227,6 +228,7 @@ const props = defineProps({
 
 const emit = defineEmits(['join', 'click'])
 const { t } = useI18n()
+const { getChallengeTypeLabel } = useChallengeType()
 
 const participantCount = computed(() => props.challenge?.participants?.length || 0)
 const displayedParticipants = computed(() => props.challenge?.participants?.slice(0, 3) || [])

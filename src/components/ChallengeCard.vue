@@ -5,13 +5,13 @@
       'is-owner': isOwner,
       'is-failed': isFinished && !isSuccessful,
       'is-finished': isFinished,
-      'quest-mode': challenge.challengeType === 'result' && challenge.imageUrl && !isFinished,
+      'quest-mode': isQuestMode,
       'habit-mode': challenge.challengeType === 'habit' && !isFinished
     }"
     @click="$emit('click', challenge)"
   >
     <div 
-      v-if="challenge.challengeType === 'result' && challenge.imageUrl && !isFinished" 
+      v-if="isQuestMode" 
       class="card-background" 
       :style="{ backgroundImage: `url(${challenge.imageUrl})` }"
     >
@@ -30,7 +30,7 @@
     <div class="card-content">
       <div class="header-row">
         <span :class="['type-tag', challenge.challengeType]">
-          {{ challenge.challengeType === 'habit' ? t('missions.dailyRitual') : t('missions.epicQuest') }}
+          {{ getMissionTypeLabel(challenge.challengeType) }}
         </span>
         <v-spacer></v-spacer>
         <v-icon v-if="challenge.privacy === 'private'" size="14" class="privacy-icon">mdi-lock</v-icon>
@@ -39,7 +39,7 @@
       <div class="body-content">
   <h3 class="mission-title">{{ challenge.title }}</h3>
   
-  <div v-if="isParticipant && challenge.challengeType === 'habit' && !isFinished" class="habit-interactive-zone">
+  <div v-if="isHabitParticipantMode" class="habit-interactive-zone">
     <div class="mini-history-grid">
       <div 
         v-for="(day, index) in lastSevenDays" 
@@ -76,7 +76,7 @@
       <span class="ml-1">{{ participantCount }} {{ t('missions.heroesInLine') }}</span>
     </div>
     <div v-if="showJoinButton" class="join-prompt">
-       {{ t('missions.viewDetailsToJoin') }}
+       {{ challenge.challengeType === 'habit' ? t('missions.viewDetailsToJoin') : t('missions.viewDetails') }}
           </div>
         </div>
       </div>
@@ -143,15 +143,6 @@
   background: linear-gradient(180deg, rgba(15, 15, 25, 0.2) 0%, rgba(15, 15, 25, 0.95) 80%);
 }
 
-/* Специфичный фон для Ритуалов */
-.habit-pattern {
-  position: absolute;
-  inset: 0;
-  opacity: 0.1;
-  background-image: radial-gradient(#00CED1 0.5px, transparent 0.5px);
-  background-size: 10px 10px;
-  mask-image: linear-gradient(to bottom, black, transparent);
-}
 
 .card-content {
   position: relative;
@@ -225,7 +216,6 @@
   transition: all 0.3s ease;
 }
 
-.fire-icon { color: rgba(255, 255, 255, 0.2); transition: all 0.3s ease; }
 
 .ignite-text {
   max-width: 0;
@@ -262,11 +252,6 @@
   stroke: #ff9800 !important;
 }
 
-.challenge-card:hover .fire-icon {
-  color: #ff9800;
-  filter: drop-shadow(0 0 5px orange);
-  animation: flicker 0.8s infinite alternate;
-}
 
 /* Стрик */
 .streak-active {
@@ -473,6 +458,7 @@
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import { useChallengeType } from '../composables/useChallengeType'
 import { challengeService } from '../services/api'
 import { Flame } from 'lucide-vue-next'
 import upcomingImage from '../assets/upcoming.png'
@@ -529,6 +515,7 @@ const watchersCount = computed(() => localWatchersCount.value)
 
 const { t, locale } = useI18n()
 const router = useRouter()
+const { getMissionTypeLabel } = useChallengeType()
 
 // --- HELPERS ---
 
@@ -553,6 +540,14 @@ function normalizeDate(date) {
 }
 
 // --- COMPUTED PROPERTIES ---
+
+const isQuestMode = computed(() => {
+  return props.challenge.challengeType === 'result' && props.challenge.imageUrl && !isFinished.value
+})
+
+const isHabitParticipantMode = computed(() => {
+  return isParticipant.value && props.challenge.challengeType === 'habit' && !isFinished.value
+})
 
 const isOwner = computed(() => {
   if (!props.challenge.owner || !props.currentUserId) return false

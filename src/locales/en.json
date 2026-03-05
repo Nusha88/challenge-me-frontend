@@ -411,7 +411,6 @@
     "joinSuccess": "You are participating in this mission.",
     "watch": "Follow",
     "unwatch": "Unfollow",
-    "followed": "Followed:",
     "watchedListTitle": "Following",
     "noWatchedChallenges": "You haven't followed any missions yet.",
     "watchError": "Failed to follow mission",
@@ -545,7 +544,8 @@
     "dayStreak": "DAY STREAK",
     "complete": "Complete",
     "heroesInLine": "members in motion",
-    "viewDetailsToJoin": "View details to join"
+    "viewDetailsToJoin": "View details to join",
+    "viewDetails": "View details"
   },
   "filters": {
     "type": "Type",

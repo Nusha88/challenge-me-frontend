@@ -596,17 +596,15 @@
 }
 </style>
 <script setup>
-import { reactive, ref, watch, computed, nextTick, onMounted } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useDisplay } from 'vuetify'
-import { useRouter, useRoute } from 'vue-router'
-import { useUserStore } from '../stores/user'
+import {computed, nextTick, onMounted, reactive, ref, watch} from 'vue'
+import {useI18n} from 'vue-i18n'
+import {useRoute, useRouter} from 'vue-router'
+import {useUserStore} from '../stores/user'
 import ChallengeImageUpload from './ChallengeImageUpload.vue'
 import ChallengeActions from './ChallengeActions.vue'
 import ChallengeCalendar from './ChallengeCalendar.vue'
 import CommentsComponent from './CommentsComponent.vue'
-import TeamCalendarView from './TeamCalendarView.vue'
-import { challengeService } from '../services/api'
+import {challengeService} from '../services/api'
 
 const router = useRouter()
 const route = useRoute()
@@ -619,13 +617,8 @@ const saveError = ref('')
 const deleteLoading = ref(false)
 const deleteConfirmDialog = ref(false)
 const isInitializing = ref(true)
-let dateRangeObserver = null
-const calendarViewMode = ref('personal')
 const isEditingTitle = ref(false)
 const isEditingDescription = ref(false)
-const isEditingPrivacy = ref(false)
-const isEditingDuration = ref(false)
-const isEditingFrequency = ref(false)
 const descriptionDisplay = ref(null)
 const descriptionTextarea = ref(null)
 const descriptionRows = ref(5)
@@ -673,7 +666,6 @@ const errors = reactive({
 })
 
 const { t, locale } = useI18n()
-const { mobile, mdAndUp } = useDisplay()
 
 const challengeTypeLabel = computed(() => {
   if (!challenge.value?.challengeType) return ''
@@ -685,23 +677,6 @@ const challengeTypeLabel = computed(() => {
 const challengeTypeColor = computed(() => {
   if (!challenge.value?.challengeType) return 'secondary'
   return challenge.value.challengeType === 'habit' ? '#7048E8' : '#4FD1C5'
-})
-
-const titleErrorMessages = computed(() => {
-  return errors.title || ''
-})
-
-const isFormValid = computed(() => {
-  // Check for validation errors
-  return !errors.title && !errors.description && !errors.duration && !errors.frequency &&
-    editForm.title && editForm.description && editForm.duration
-})
-
-// Check if user can view personal progress (must be owner or participant)
-const canViewPersonalProgress = computed(() => {
-  if (!challenge.value || !currentUserId.value) return false
-  const ownerId = challenge.value.owner?._id || challenge.value.owner
-  return ownerId && ownerId.toString() === currentUserId.value.toString()
 })
 
 // Load challenge data
@@ -796,8 +771,7 @@ async function loadChallenge() {
     }
     
     // Calculate duration from start and end dates
-    const calculatedDuration = calculateDuration(editForm.startDate, editForm.endDate)
-    editForm.duration = calculatedDuration
+    editForm.duration = calculateDuration(editForm.startDate, editForm.endDate)
     
     clearErrors()
     isInitializing.value = false
@@ -860,29 +834,6 @@ const privacyOptions = computed(() => [
   { title: t('challenges.privacyOptions.private'), value: 'private' }
 ])
 
-function getPrivacyLabel(value) {
-  const option = privacyOptions.value.find(opt => opt.value === value)
-  return option ? option.title : value || t('challenges.privacy')
-}
-
-function getDurationLabel(value) {
-  if (!value) return t('challenges.duration')
-  const option = durationOptions.value.find(opt => opt.value === value)
-  if (option) return option.title
-  // If not found in standard options, format it
-  const days = parseInt(value)
-  if (!isNaN(days) && days > 0) {
-    return `${days} ${days === 1 ? t('challenges.day') : t('challenges.days')}`
-  }
-  return value
-}
-
-function getFrequencyLabel(value) {
-  if (!value) return t('challenges.frequency')
-  const option = frequencyOptions.value.find(opt => opt.value === value)
-  return option ? option.title : value
-}
-
 const durationOptions = computed(() => {
   const standardOptions = [
     { title: t('challenges.durationOptions.7days'), value: '7' },
@@ -924,23 +875,6 @@ function goBack() {
 
 function handleDelete() {
   deleteConfirmDialog.value = true
-}
-
-async function confirmDelete() {
-  if (!challenge.value?._id) return
-
-  deleteLoading.value = true
-  saveError.value = ''
-
-  try {
-    await challengeService.deleteChallenge(challenge.value._id)
-    router.push('/profile')
-  } catch (error) {
-    saveError.value = error.response?.data?.message || t('notifications.deleteChallengeError')
-  } finally {
-    deleteLoading.value = false
-    deleteConfirmDialog.value = false
-  }
 }
 
 // Normalize completedDays dates to YYYY-MM-DD format
@@ -1148,13 +1082,6 @@ function handleOwnerCompletedDaysUpdate(completedDays) {
   localCurrentUserCompletedDays.value = [...completedDays]
 }
 
-function handleCommentAdded() {
-  // Refresh challenge data if needed
-  if (challenge.value) {
-    loadChallenge()
-  }
-}
-
 // Load watched challenges
 async function loadWatchedChallenges() {
   if (!currentUserId.value) return
@@ -1167,51 +1094,6 @@ async function loadWatchedChallenges() {
   }
 }
 
-// Check if challenge is watched
-const isWatched = computed(() => {
-  if (!challenge.value || !currentUserId.value) return false
-  return watchedChallenges.value.some(id => id.toString() === challenge.value._id.toString())
-})
-
-// Handle watch challenge
-async function handleWatch() {
-  if (!currentUserId.value || !challenge.value) return
-  
-  watchingId.value = challenge.value._id
-  try {
-    await challengeService.watchChallenge(challenge.value._id, currentUserId.value)
-    await loadWatchedChallenges()
-  } catch (error) {
-    console.error('Error watching challenge:', error)
-    alert(error.response?.data?.message || t('challenges.watchError'))
-  } finally {
-    watchingId.value = null
-  }
-}
-
-// Handle unwatch challenge
-async function handleUnwatch() {
-  if (!currentUserId.value || !challenge.value) return
-  
-  watchingId.value = challenge.value._id
-  try {
-    await challengeService.unwatchChallenge(challenge.value._id, currentUserId.value)
-    await loadWatchedChallenges()
-  } catch (error) {
-    console.error('Error unwatching challenge:', error)
-    alert(error.response?.data?.message || t('challenges.unwatchError'))
-  } finally {
-    watchingId.value = null
-  }
-}
-
-function handleCommentDeleted() {
-  // Refresh challenge data if needed
-  if (challenge.value) {
-    loadChallenge()
-  }
-}
-
 function startEditingDescription() {
   // Measure the description height before switching to edit mode
   let targetHeight = 80 // default minimum height
@@ -1221,9 +1103,7 @@ function startEditingDescription() {
     const lineHeight = parseFloat(computedStyle.lineHeight) || 24
     const actualHeight = displayElement.scrollHeight
     targetHeight = actualHeight
-    const calculatedRows = Math.max(3, Math.ceil(actualHeight / lineHeight))
-    
-    descriptionRows.value = calculatedRows
+    descriptionRows.value = Math.max(3, Math.ceil(actualHeight / lineHeight))
   }
   
   isEditingDescription.value = true
@@ -1243,7 +1123,7 @@ function startEditingDescription() {
 
 onMounted(async () => {
   await loadWatchedChallenges()
-  loadChallenge()
+  await loadChallenge()
 })
 </script>
 

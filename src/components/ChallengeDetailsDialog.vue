@@ -8,7 +8,7 @@
   >
     <v-card v-if="challenge" class="challenge-details-card rounded-xl overflow-hidden">
       <v-img
-        :src="challenge.imageUrl || 'https://images.unsplash.com/photo-149485981460c-3834b3a25b5c?auto=format&fit=crop&q=80&w=1200'"
+        :src="challenge.imageUrl"
         height="280"
         cover
         class="align-end text-white header-image"
@@ -58,7 +58,7 @@
                 :class="challenge.challengeType === 'habit' ? 'chip-habit' : 'chip-result'"
                 class="font-weight-black text-uppercase px-3"
               >
-                {{ challenge.challengeType === 'habit' ? t('challenges.typeHabitLabel') : t('challenges.typeResultLabel') }}
+                {{ getChallengeTypeLabel(challenge.challengeType) }}
               </v-chip>
               <v-icon v-if="challenge.privacy === 'private'" color="rgba(255,255,255,0.5)" size="14">mdi-lock</v-icon>
             </div>
@@ -239,14 +239,6 @@
                 </v-tooltip>
               </div>
             </div>
-
-            <!-- Watchers Count -->
-            <div v-if="challenge.watchersCount > 0" class="watchers-count mt-4 d-flex align-center justify-end">
-              <Eye :size="18" class="mr-2 text-cyan" />
-              <span class="watchers-number">
-                {{ challenge.watchersCount }}
-              </span>
-            </div>
           </v-window-item>
 
           <v-window-item value="community">
@@ -284,7 +276,7 @@
 
         <div class="footer-actions-wrapper d-flex gap-3">
           <v-btn
-            v-if="!isOwner && !isFinished && currentUserId && !isCurrentUserParticipant"
+            v-if="showWatchActionButton"
             variant="outlined"
             :color="isWatched ? '#4FD1C5' : 'rgba(255,255,255,0.3)'"
             class="rounded-lg action-outline-btn"
@@ -297,22 +289,12 @@
           </v-btn>
 
           <v-btn
-            v-if="
-              showJoinActionButton ||
-              (isCurrentUserParticipant && challenge.challengeType === 'habit' && !isFinished) ||
-              (isOwner && challenge.challengeType === 'result' && !isFinished)
-            "
+            v-if="showMainActionButton"
             class="main-action-btn ml-2"
             :loading="joinLoading || (isOwner && challenge.challengeType === 'result' && saveLoading)"
             @click="handleMainActionClick"
           >
-            {{
-              showJoinActionButton
-                ? t('challenges.joinMission')
-                : isOwner && challenge.challengeType === 'result'
-                  ? t('challenges.update')
-                  : t('challenges.saveProgress')
-            }}
+            {{ mainActionButtonText }}
           </v-btn>
         </div>
       </v-card-actions>
@@ -352,16 +334,16 @@
 </template>
 
 <style scoped>
-/* --- ПЕРЕМЕННЫЕ И БАЗА --- */
+
 .challenge-details-card {
-  background: #0f172a !important; /* Глубокий темно-синий из твоей темы */
+  background: #0f172a !important; 
   color: #ffffff !important;
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .modal-body-bg { background: #0f172a !important; }
 
-/* --- HEADER --- */
+
 .header-overlay {
   background: linear-gradient(to bottom, rgba(15, 23, 42, 0) 0%, rgba(15, 23, 42, 0.95) 100%);
 }
@@ -383,7 +365,7 @@
 .chip-habit { background-color: #7048E8 !important; box-shadow: 0 0 10px rgba(112, 72, 232, 0.4); }
 .chip-result { background-color: #4FD1C5 !important; box-shadow: 0 0 10px rgba(79, 209, 197, 0.4); }
 
-/* --- TABS --- */
+
 .custom-tabs {
   background: #1e293b !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
@@ -397,7 +379,7 @@
 }
 .custom-tabs :deep(.v-tab--selected) { color: #4FD1C5 !important; }
 
-/* --- CALENDAR --- */
+
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -441,7 +423,7 @@
   color: #F4A782 !important;
 }
 
-/* --- PROGRESS BAR (GLOW) --- */
+
 .mission-progress {
   background: rgba(255, 255, 255, 0.05) !important;
   overflow: visible !important;
@@ -451,7 +433,7 @@
   border-radius: 10px;
 }
 
-/* --- STATS --- */
+
 .stat-card {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.05);
@@ -543,7 +525,7 @@
   filter: drop-shadow(0 0 5px rgba(45, 212, 191, 0.5));
 }
 
-/* --- FOOTER --- */
+
 .modal-footer {
   background: #0f172a !important;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
@@ -574,7 +556,7 @@
   text-transform: uppercase;
   letter-spacing: 1px;
 }
-/* Контейнер легенды */
+
 .calendar-legend {
   display: flex;
   flex-wrap: wrap;
@@ -591,16 +573,16 @@
   gap: 8px;
 }
 
-/* Общий стиль для индикаторов (вместо простых точек) */
+
 .dot {
   width: 14px;
   height: 14px;
-  border-radius: 4px; /* Мягкий квадрат как в сетке */
+  border-radius: 4px; 
   border: 1px solid transparent;
   transition: all 0.3s ease;
 }
 
-/* Конкретные состояния для легенды и сетки */
+
 .dot.completed, .day-cell.is-completed {
   background: rgba(79, 209, 197, 0.1) !important;
   border: 1px solid #4FD1C5 !important;
@@ -640,12 +622,6 @@
   border: 1px solid rgba(255,255,255,0.08) !important;
 }
 
-.watchers-number {
-  color: #ffffff !important;
-  font-size: 1rem;
-  font-weight: 700;
-}
-
 @media (max-width: 600px) {
   .modal-footer {
     flex-direction: column;
@@ -670,17 +646,14 @@
 }
 </style>
 <script setup>
-import { reactive, ref, watch, computed, nextTick, onMounted } from 'vue'
-import { Eye } from 'lucide-vue-next'
-import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
-import { useDisplay } from 'vuetify'
-import { useUserStore } from '../stores/user'
-import ChallengeImageUpload from './ChallengeImageUpload.vue'
+import {computed, nextTick, onMounted, reactive, ref, watch} from 'vue'
+import {useI18n} from 'vue-i18n'
+import {useRouter} from 'vue-router'
+import {useChallengeType} from '../composables/useChallengeType'
+import {useUserStore} from '../stores/user'
 import ChallengeActions from './ChallengeActions.vue'
 import CommentsComponent from './CommentsComponent.vue'
-import TeamCalendarView from './TeamCalendarView.vue'
-import { challengeService } from '../services/api'
+import {challengeService} from '../services/api'
 
 const props = defineProps({
   modelValue: {
@@ -737,16 +710,15 @@ const isInitializing = ref(true)
 const participantSaveLoading = ref(false)
 const snackbar = ref(false)
 const snackbarText = ref('')
-const calendarViewMode = ref('personal')
 const tab = ref('progress')
 
-// Dialog model for v-model binding
+
 const dialogModel = computed({
   get: () => props.modelValue,
   set: (value) => handleVisibility(value)
 })
 
-// Get current user ID from store
+
 const userStore = useUserStore()
 function getCurrentUserId() {
   return userStore.userId
@@ -754,11 +726,11 @@ function getCurrentUserId() {
 
 const currentUserId = ref(getCurrentUserId())
 
-// Watched challenges
+
 const watchedChallenges = ref([])
 const watchingId = ref(null)
 
-// Local reactive copy of current user's completedDays for optimistic updates
+
 const localCurrentUserCompletedDays = ref([])
 
 const editForm = reactive({
@@ -785,19 +757,10 @@ const errors = reactive({
 })
 
 const { t, locale } = useI18n()
+const { getChallengeTypeLabel } = useChallengeType()
 const router = useRouter()
-const { mobile, mdAndUp } = useDisplay()
 
-const titleErrorMessages = computed(() => {
-  return errors.title || ''
-})
 
-const isFormValid = computed(() => {
-  return !errors.title && !errors.description && !errors.duration && !errors.frequency &&
-    editForm.title && editForm.description && editForm.duration
-})
-
-// For quest (result) missions: owner can interactively check off actions in dialog (local only)
 const actionsViewModel = computed({
   get() {
     if (props.challenge?.challengeType !== 'result') {
@@ -806,22 +769,31 @@ const actionsViewModel = computed({
     return props.isOwner ? editForm.actions : (props.challenge.actions || [])
   },
   set(newActions) {
-    // Only mission owner can modify actions from dialog; keep it local to avoid corrupting actions
+    
     if (!props.isOwner) return
-    // Deep copy to avoid reference issues
+    
     editForm.actions = newActions && Array.isArray(newActions) 
       ? JSON.parse(JSON.stringify(newActions))
       : []
   }
 })
 
-// Progress calculations
+
 const progressDone = computed(() => {
   if (!props.challenge) return 0
   
   if (props.challenge.challengeType === 'result') {
     const actions = props.isOwner ? editForm.actions : (props.challenge.actions || [])
-    return actions.filter(a => a.checked).length
+    let doneCount = 0
+    actions.forEach(action => {
+      if (action.checked) doneCount++
+      if (action.children && Array.isArray(action.children)) {
+        action.children.forEach(child => {
+          if (child.checked) doneCount++
+        })
+      }
+    })
+    return doneCount
   } else {
     const startDate = props.isOwner ? editForm.startDate : props.challenge.startDate
     if (!startDate) return 0
@@ -853,7 +825,7 @@ const isFinished = computed(() => {
         return true
       }
     } catch {
-      // Continue to check other conditions
+      
     }
   }
   
@@ -884,7 +856,14 @@ const progressTotal = computed(() => {
   
   if (props.challenge.challengeType === 'result') {
     const actions = props.isOwner ? editForm.actions : (props.challenge.actions || [])
-    return Math.max(1, actions.length)
+    let totalCount = 0
+    actions.forEach(action => {
+      totalCount++
+      if (action.children && Array.isArray(action.children)) {
+        totalCount += action.children.length
+      }
+    })
+    return Math.max(1, totalCount)
   } else {
     const startDate = props.isOwner ? editForm.startDate : props.challenge.startDate
     const endDate = props.isOwner ? editForm.endDate : props.challenge.endDate
@@ -925,7 +904,7 @@ const progressPercentage = computed(() => {
   return Math.min(100, Math.max(0, percentage))
 })
 
-// Format date string in local timezone (YYYY-MM-DD)
+
 function formatDateString(date) {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -933,7 +912,7 @@ function formatDateString(date) {
   return `${year}-${month}-${day}`
 }
 
-// Calendar grid computed properties
+
 const calendarDays = computed(() => {
   if (!props.challenge || props.challenge.challengeType !== 'habit') return []
   if (!props.challenge.startDate || !props.challenge.endDate) return []
@@ -953,7 +932,7 @@ const calendarDays = computed(() => {
   current.setHours(0, 0, 0, 0)
   end.setHours(0, 0, 0, 0)
   
-  // Normalize completedDays to YYYY-MM-DD format for comparison
+  
   const normalizedCompletedDays = completedDays.map(d => {
     if (!d) return null
     let dateStr = String(d)
@@ -970,6 +949,7 @@ const calendarDays = computed(() => {
     const completedParticipantsCount = getCompletedParticipantsCountForDay(dateStr)
     const isToday = dateStr === todayStr
     const isLocked = current > today
+    const isPast = current < today
     
     days.push({
       date: dateStr,
@@ -978,7 +958,8 @@ const calendarDays = computed(() => {
       completedParticipantsCount,
       isToday,
       isLocked,
-      isMissed: !isCompleted && !isLocked && current < today
+      isPast,
+      isMissed: !isCompleted && !isLocked && isPast
     })
     
     current.setDate(current.getDate() + 1)
@@ -986,10 +967,6 @@ const calendarDays = computed(() => {
   }
   
   return days
-})
-
-const completedDaysCount = computed(() => {
-  return calendarDays.value.filter(d => d.isCompleted).length
 })
 
 const totalDays = computed(() => {
@@ -1017,14 +994,14 @@ const totalParticipantsCount = computed(() => {
 
 const showParticipantsProgressInCells = computed(() => totalParticipantsCount.value > 1)
 
-// Mission stats for About tab
+
 const missionStats = computed(() => {
   if (!props.challenge) return []
   
   const stats = []
   
   if (props.challenge.challengeType === 'habit') {
-    // For habit challenges: show duration, frequency, participants
+    
     stats.push({
       label: t('challenges.duration'),
       value: getDurationLabel(props.challenge),
@@ -1046,7 +1023,7 @@ const missionStats = computed(() => {
       color: 'purple'
     })
   } else {
-    // For result challenges: show duration, actions, participants
+    
     stats.push({
       label: t('challenges.duration'),
       value: getDurationLabel(props.challenge),
@@ -1113,7 +1090,7 @@ function getDayClass(day) {
     'is-missed': day.isMissed,
     'is-today': day.isToday,
     'is-locked': day.isLocked,
-    'is-disabled': isFinished.value || day.isLocked || day.isMissed
+    'is-disabled': isFinished.value || !day.isToday || !isCurrentUserParticipant.value
   }
 }
 
@@ -1133,7 +1110,7 @@ function getCompletedParticipantsCountForDay(dateStr) {
     const participantId = participant?.userId?._id || participant?.userId || participant?._id || participant?.id
     const participantCompletedDays = Array.isArray(participant?.completedDays) ? participant.completedDays : []
 
-    // Reflect local unsaved progress immediately for current participant.
+    
     const sourceDays =
       participantId &&
       currentUserId.value &&
@@ -1150,13 +1127,13 @@ function getCompletedParticipantsCountForDay(dateStr) {
 }
 
 async function toggleDay(day) {
-  if (isFinished.value || day.isLocked || day.isMissed || !isCurrentUserParticipant.value) return
+  if (isFinished.value || !day.isToday || !isCurrentUserParticipant.value) return
   
   const completedDays = localCurrentUserCompletedDays.value.length > 0 
     ? [...localCurrentUserCompletedDays.value]
     : [...currentUserCompletedDays.value]
   
-  // Normalize dates to YYYY-MM-DD format for comparison
+  
   const normalizedCompletedDays = completedDays.map(d => {
     if (!d) return null
     let dateStr = String(d)
@@ -1178,7 +1155,7 @@ async function toggleDay(day) {
   localCurrentUserCompletedDays.value = normalizedCompletedDays.sort()
 }
 
-// Get current user's completedDays from their participant entry
+
 const currentUserCompletedDays = computed(() => {
   if (localCurrentUserCompletedDays.value.length > 0) {
     return localCurrentUserCompletedDays.value
@@ -1193,20 +1170,20 @@ const currentUserCompletedDays = computed(() => {
   
   if (!participant || !participant.completedDays || !Array.isArray(participant.completedDays)) return []
   
-  // Normalize dates to YYYY-MM-DD format (handle both ISO strings and date strings)
+  
   const days = participant.completedDays
     .filter(d => {
       if (!d) return false
       try {
         let dateStr = String(d)
-        // Handle ISO strings (remove time part)
+        
         if (dateStr.includes('T')) {
           dateStr = dateStr.split('T')[0]
         }
         dateStr = dateStr.substring(0, 10)
-        // Validate format
+        
         if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false
-        // Validate it's a real date (use local timezone)
+        
         const date = new Date(dateStr + 'T00:00:00')
         return !Number.isNaN(date.getTime())
       } catch {
@@ -1226,7 +1203,7 @@ const currentUserCompletedDays = computed(() => {
   return days
 })
 
-// Check if current user is a participant
+
 const isCurrentUserParticipant = computed(() => {
   if (!props.challenge || !props.challenge.participants || !currentUserId.value) return false
   
@@ -1248,6 +1225,26 @@ const canJoinPublicHabit = computed(() => {
 
 const showJoinActionButton = computed(() => {
   return props.showJoinButton || canJoinPublicHabit.value
+})
+
+const showMainActionButton = computed(() => {
+  return showJoinActionButton.value ||
+    (isCurrentUserParticipant.value && props.challenge.challengeType === 'habit' && !isFinished.value) ||
+    (props.isOwner && props.challenge.challengeType === 'result' && !isFinished.value)
+})
+
+const showWatchActionButton = computed(() => {
+  return !props.isOwner && !isFinished.value && currentUserId.value && !isCurrentUserParticipant.value
+})
+
+const mainActionButtonText = computed(() => {
+  if (showJoinActionButton.value) {
+    return t('challenges.joinMission')
+  }
+  if (props.isOwner && props.challenge.challengeType === 'result') {
+    return t('challenges.update')
+  }
+  return t('challenges.saveProgress')
 })
 
 const MAX_VISIBLE_PARTICIPANTS = 10
@@ -1279,48 +1276,6 @@ const remainingParticipantsCount = computed(() =>
   Math.max(0, participantUsers.value.length - MAX_VISIBLE_PARTICIPANTS)
 )
 
-// Check if user can view personal progress (must be owner or participant)
-const canViewPersonalProgress = computed(() => {
-  return props.isOwner || isCurrentUserParticipant.value
-})
-
-const frequencyOptions = computed(() => [
-  { title: t('challenges.frequencyOptions.daily'), value: 'daily' },
-  { title: t('challenges.frequencyOptions.everyOtherDay'), value: 'everyOtherDay' }
-])
-
-const privacyOptions = computed(() => [
-  { title: t('challenges.privacyOptions.public'), value: 'public' },
-  { title: t('challenges.privacyOptions.private'), value: 'private' }
-])
-
-const durationOptions = computed(() => {
-  const standardOptions = [
-    { title: t('challenges.durationOptions.7days'), value: '7' },
-    { title: t('challenges.durationOptions.14days'), value: '14' },
-    { title: t('challenges.durationOptions.21days'), value: '21' },
-    { title: t('challenges.durationOptions.30days'), value: '30' },
-    { title: t('challenges.durationOptions.60days'), value: '60' },
-    { title: t('challenges.durationOptions.90days'), value: '90' }
-  ]
-  
-  const currentDuration = editForm.duration
-  if (currentDuration && currentDuration !== 'custom') {
-    const standardValues = standardOptions.map(opt => opt.value)
-    if (!standardValues.includes(currentDuration)) {
-      const days = parseInt(currentDuration)
-      if (!isNaN(days) && days > 0) {
-        return [
-          ...standardOptions,
-          { title: `${days} ${days === 1 ? t('challenges.day') : t('challenges.days')}`, value: currentDuration }
-        ]
-      }
-    }
-  }
-  
-  return standardOptions
-})
-
 function calculateDuration(startDate, endDate) {
   if (!startDate || !endDate) return ''
   const start = new Date(startDate)
@@ -1348,119 +1303,106 @@ function calculateEndDateFromDuration(startDate, duration) {
   return `${year}-${month}-${day}`
 }
 
-// Load watched challenges on mount
+
 onMounted(() => {
   loadWatchedChallenges()
 })
 
-watch(
-  () => props.challenge,
-  (value, oldValue) => {
-    const valueId = value?._id || value?.id
-    const oldValueId = oldValue?._id || oldValue?.id
-    
-    if (valueId !== oldValueId) {
+const syncLocalCompletedDays = (value, oldValue) => {
+  const valueId = value?._id || value?.id
+  const oldValueId = oldValue?._id || oldValue?.id
+  
+  if (valueId !== oldValueId) {
     localCurrentUserCompletedDays.value = []
-    }
-    
-    if (value) {
-      loadWatchedChallenges()
-    }
-    
-    if (!value) {
-      resetForm()
-      return
-    }
+  }
+}
 
-    editForm.title = value.title || ''
-    editForm.description = value.description || ''
-    editForm.startDate = value.startDate ? value.startDate.slice(0, 10) : ''
-    editForm.endDate = value.endDate ? value.endDate.slice(0, 10) : ''
-    editForm.imageUrl = value.imageUrl || ''
-    editForm.frequency = value.frequency || ''
-    editForm.privacy = value.privacy || 'public'
-    editForm.allowComments = value.allowComments !== undefined ? value.allowComments : true
+const populateEditForm = (value) => {
+  if (!value) {
+    resetForm()
+    return
+  }
+
+  editForm.title = value.title || ''
+  editForm.description = value.description || ''
+  editForm.startDate = value.startDate ? value.startDate.slice(0, 10) : ''
+  editForm.endDate = value.endDate ? value.endDate.slice(0, 10) : ''
+  editForm.imageUrl = value.imageUrl || ''
+  editForm.frequency = value.frequency || ''
+  editForm.privacy = value.privacy || 'public'
+  editForm.allowComments = value.allowComments !== undefined ? value.allowComments : true
+  
+  if (value.challengeType === 'result') {
     
-    if (value.challengeType === 'result') {
-      // Deep copy actions to avoid reference issues
-      editForm.actions = value.actions && Array.isArray(value.actions) && value.actions.length > 0
-        ? value.actions.map(a => ({ 
-            text: a.text || '', 
-            checked: Boolean(a.checked),
-            children: (a.children && Array.isArray(a.children))
-              ? a.children.map(c => ({ text: c.text || '', checked: Boolean(c.checked) }))
-              : []
-          }))
-        : []
-    } else {
-      editForm.actions = []
-    }
-    
-    if (value.challengeType === 'habit' && props.isOwner) {
-      if (isInitializing.value) {
-        let ownerCompletedDays = []
+    editForm.actions = value.actions && Array.isArray(value.actions) && value.actions.length > 0
+      ? value.actions.map(a => ({ 
+          text: a.text || '', 
+          checked: Boolean(a.checked),
+          children: (a.children && Array.isArray(a.children))
+            ? a.children.map(c => ({ text: c.text || '', checked: Boolean(c.checked) }))
+            : []
+        }))
+      : []
+  } else {
+    editForm.actions = []
+  }
+}
+
+const initializeOwnerHabitDays = (value) => {
+  if (value?.challengeType === 'habit' && props.isOwner) {
+    if (isInitializing.value) {
+      let ownerCompletedDays = []
+      
+      if (value.participants && currentUserId.value) {
+        const ownerParticipant = value.participants.find(p => {
+          const userId = p.userId?._id || p.userId || p._id
+          return userId && userId.toString() === currentUserId.value.toString()
+        })
         
-        if (value.participants && currentUserId.value) {
-          const ownerParticipant = value.participants.find(p => {
-            const userId = p.userId?._id || p.userId || p._id
-            return userId && userId.toString() === currentUserId.value.toString()
-          })
-          
-          if (ownerParticipant && ownerParticipant.completedDays && Array.isArray(ownerParticipant.completedDays)) {
-            ownerCompletedDays = ownerParticipant.completedDays
-          }
+        if (ownerParticipant && ownerParticipant.completedDays && Array.isArray(ownerParticipant.completedDays)) {
+          ownerCompletedDays = ownerParticipant.completedDays
         }
-        
-        if (ownerCompletedDays.length === 0 && value.completedDays && Array.isArray(value.completedDays)) {
-          ownerCompletedDays = value.completedDays
-        }
-        
-        editForm.completedDays = ownerCompletedDays
-          .filter(d => {
-            if (!d) return false
-            try {
-              const dateStr = String(d).slice(0, 10)
-              if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false
-              const date = new Date(dateStr)
-              return !Number.isNaN(date.getTime())
-            } catch {
-              return false
-            }
-          })
-          .map(d => String(d).slice(0, 10))
-          .filter(Boolean)
-          .sort()
-        
-        isInitializing.value = false
       }
-    } else {
-      editForm.completedDays = []
+      
+      if (ownerCompletedDays.length === 0 && value.completedDays && Array.isArray(value.completedDays)) {
+        ownerCompletedDays = value.completedDays
+      }
+      
+      editForm.completedDays = ownerCompletedDays
+        .filter(d => {
+          if (!d) return false
+          try {
+            const dateStr = String(d).slice(0, 10)
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false
+            const date = new Date(dateStr)
+            return !Number.isNaN(date.getTime())
+          } catch {
+            return false
+          }
+        })
+        .map(d => String(d).slice(0, 10))
+        .filter(Boolean)
+        .sort()
+      
       isInitializing.value = false
     }
-    
-    const calculatedDuration = calculateDuration(editForm.startDate, editForm.endDate)
-    editForm.duration = calculatedDuration
-    
-    clearErrors()
-  },
-  { immediate: true }
-)
+  } else {
+    editForm.completedDays = []
+    isInitializing.value = false
+  }
+}
 
-watch(
-  () => props.modelValue,
-  (value, oldValue) => {
-    if (value === oldValue) return
-    
-    if (!value) {
-      resetForm()
-      deleteConfirmDialog.value = false
-      isInitializing.value = true
-      localCurrentUserCompletedDays.value = []
-    } else {
-      isInitializing.value = true
-      if (props.challenge?.challengeType === 'habit' && props.challenge?.completedDays) {
-        nextTick(() => {
-          if (isInitializing.value) {
+const handleModelValueChange = (value) => {
+  if (!value) {
+    resetForm()
+    deleteConfirmDialog.value = false
+    isInitializing.value = true
+    localCurrentUserCompletedDays.value = []
+  } else {
+    isInitializing.value = true
+    if (props.challenge?.challengeType === 'habit' && props.challenge?.completedDays) {
+      nextTick(() => {
+        if (isInitializing.value) {
           editForm.completedDays = Array.isArray(props.challenge.completedDays)
             ? props.challenge.completedDays
                 .filter(d => {
@@ -1479,10 +1421,39 @@ watch(
                 .sort()
             : []
           isInitializing.value = false
-          }
-        })
-      }
+        }
+      })
     }
+  }
+}
+
+watch(
+  () => props.challenge,
+  (value, oldValue) => {
+    syncLocalCompletedDays(value, oldValue)
+    
+    if (value) {
+      loadWatchedChallenges()
+    }
+    
+    populateEditForm(value)
+    
+    if (!value) return
+
+    initializeOwnerHabitDays(value)
+
+    editForm.duration = calculateDuration(editForm.startDate, editForm.endDate)
+    
+    clearErrors()
+  },
+  { immediate: true }
+)
+
+watch(
+  () => props.modelValue,
+  (value, oldValue) => {
+    if (value === oldValue) return
+    handleModelValueChange(value)
   }
 )
 
@@ -1546,18 +1517,6 @@ function handleVisibility(value) {
   emit('update:modelValue', value)
 }
 
-function handleCancel() {
-  emit('update:modelValue', false)
-}
-
-function handleClose() {
-  emit('update:modelValue', false)
-}
-
-function handleParticipantClick() {
-  emit('update:modelValue', false)
-}
-
 function emitJoin() {
   emit('join')
 }
@@ -1593,8 +1552,6 @@ async function handleOwnerActionsSave() {
   if (!props.challenge || !props.isOwner) return
   const c = props.challenge
 
-  // Use editForm.actions if available (owner's local edits), otherwise fall back to challenge actions
-  // Deep copy to ensure we're sending the current state, not a reference
   const actionsToSave = editForm.actions && Array.isArray(editForm.actions) && editForm.actions.length > 0
     ? JSON.parse(JSON.stringify(editForm.actions))
     : (c.actions ? JSON.parse(JSON.stringify(c.actions)) : [])
@@ -1617,97 +1574,9 @@ async function handleOwnerActionsSave() {
   try {
     await challengeService.updateChallenge(c._id, payload)
     emit('update')
-    // Notify home screen / streak widgets that checklist-related data may have changed
-    window.dispatchEvent(new Event('checklist-updated'))
-    handleVisibility(false) // Close modal after successful save
+    handleVisibility(false) 
   } catch (error) {
-    console.error('Error saving owner quest actions from dialog:', error)
   }
-}
-
-function handleDelete() {
-  deleteConfirmDialog.value = true
-}
-
-function confirmDelete() {
-  if (props.challenge?._id) {
-    emit('delete', props.challenge._id)
-  }
-}
-
-function handleSubmit() {
-  if (!validate()) return
-  
-  const { duration, customDuration, ...formData } = editForm
-  
-  if (props.challenge?.challengeType) {
-    formData.challengeType = props.challenge.challengeType
-  }
-  
-  if (formData.challengeType === 'habit' && props.isOwner) {
-    if (!Array.isArray(formData.completedDays)) {
-      formData.completedDays = []
-    }
-    
-    formData.completedDays = formData.completedDays
-      .map(d => {
-        if (!d) return null
-        try {
-          let dateStr = String(d)
-          
-          if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-            return dateStr
-          }
-          
-          const date = new Date(dateStr)
-          if (Number.isNaN(date.getTime())) {
-            return null
-          }
-          
-          const year = date.getFullYear()
-          const month = String(date.getMonth() + 1).padStart(2, '0')
-          const day = String(date.getDate()).padStart(2, '0')
-          return `${year}-${month}-${day}`
-        } catch {
-          return null
-        }
-      })
-      .filter(d => {
-        if (!d) return false
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return false
-        const date = new Date(d)
-        return !Number.isNaN(date.getTime())
-      })
-      .sort()
-  } else if (formData.challengeType === 'habit' && !props.isOwner) {
-    delete formData.completedDays
-  } else if (formData.challengeType === 'result') {
-    formData.completedDays = []
-  }
-  
-  emit('save', formData)
-}
-
-function validate() {
-  clearErrors()
-
-  if (!editForm.title) {
-    errors.title = t('validation.titleRequired')
-  }
-
-  if (!editForm.description) {
-    errors.description = t('validation.descriptionRequired')
-  }
-
-  if (!editForm.duration) {
-    errors.duration = t('validation.startOptionRequired')
-  }
-
-  if (props.challenge?.challengeType === 'habit' && !editForm.frequency) {
-    errors.frequency = t('validation.frequencyRequired')
-  }
-
-  return !errors.title && !errors.description && !errors.duration && !errors.frequency
 }
 
 function formatDisplayDate(value) {
@@ -1724,13 +1593,6 @@ function formatDisplayDate(value) {
   } catch (err) {
     return date.toLocaleDateString()
   }
-}
-
-function getPrivacyLabel(value) {
-  if (!value) return t('challenges.privacyOptions.public')
-  return value === 'private' 
-    ? t('challenges.privacyOptions.private') 
-    : t('challenges.privacyOptions.public')
 }
 
 function getDurationLabel(challenge) {
@@ -1776,56 +1638,7 @@ function navigateToParticipant(participantId) {
   router.push(`/heroes/${participantId}`)
 }
 
-function handleCommentAdded() {
-  emit('update')
-}
 
-function handleCommentDeleted() {
-  emit('update')
-}
-
-function handleUserNavigated() {
-  handleVisibility(false)
-}
-
-// Handle owner completedDays update
-async function handleOwnerCompletedDaysUpdate(completedDays) {
-  if (!props.challenge || !currentUserId.value || !props.isOwner) {
-    return
-  }
-  
-  editForm.completedDays = completedDays
-  
-  localCurrentUserCompletedDays.value = [...completedDays]
-  
-  try {
-    const response = await challengeService.updateParticipantCompletedDays(
-      props.challenge._id,
-      currentUserId.value,
-      completedDays
-    )
-
-    if (response?.data?.user) {
-      // Update store with new user data
-      userStore.updateUser(response.data.user)
-      window.dispatchEvent(new Event('auth-changed'))
-    }
-    emit('update')
-  } catch (error) {
-    console.error('Error updating owner completed days:', error)
-    emit('update')
-  }
-}
-
-// Handle participant calendar changes
-function handleParticipantCalendarChange(completedDays) {
-  if (!props.challenge || !currentUserId.value || !isCurrentUserParticipant.value) {
-    return
-  }
-  localCurrentUserCompletedDays.value = [...completedDays]
-}
-
-// Handle participant save
 async function handleParticipantSave() {
   if (!props.challenge || !currentUserId.value || !isCurrentUserParticipant.value) {
     return
@@ -1845,7 +1658,7 @@ async function handleParticipantSave() {
     )
 
     if (response?.data?.user) {
-      // Update store with new user data
+      
       userStore.updateUser(response.data.user)
       window.dispatchEvent(new Event('auth-changed'))
     }
@@ -1853,13 +1666,12 @@ async function handleParticipantSave() {
     emit('update:modelValue', false)
     router.push('/')
   } catch (error) {
-    console.error('Error saving participant completed days:', error)
   } finally {
     participantSaveLoading.value = false
   }
 }
 
-// Load watched challenges
+
 async function loadWatchedChallenges() {
   if (!currentUserId.value) return
   
@@ -1867,25 +1679,19 @@ async function loadWatchedChallenges() {
     const { data } = await challengeService.getWatchedChallenges(currentUserId.value)
     watchedChallenges.value = (data.challenges || []).map(c => c._id)
   } catch (error) {
-    console.error('Error loading watched challenges:', error)
   }
 }
 
-// Check if challenge is watched
+
 const isWatched = computed(() => {
   if (!props.challenge || !currentUserId.value) return false
   return watchedChallenges.value.some(id => id.toString() === props.challenge._id.toString())
 })
 
-// Share functionality
+
 const getShareUrl = () => {
   if (!props.challenge?._id) return ''
   return `${window.location.origin}/missions/${props.challenge._id}`
-}
-
-const getShareText = () => {
-  if (!props.challenge) return ''
-  return props.challenge.title || ''
 }
 
 const copyLink = async () => {
@@ -1895,7 +1701,6 @@ const copyLink = async () => {
     snackbarText.value = t('challenges.share.linkCopied')
     snackbar.value = true
   } catch (err) {
-    console.error('Failed to copy link:', err)
     const textArea = document.createElement('textarea')
     textArea.value = url
     document.body.appendChild(textArea)
@@ -1905,19 +1710,12 @@ const copyLink = async () => {
       snackbarText.value = t('challenges.share.linkCopied')
       snackbar.value = true
     } catch (e) {
-      console.error('Fallback copy failed:', e)
     }
     document.body.removeChild(textArea)
   }
 }
 
-const shareToTelegram = () => {
-  const url = encodeURIComponent(getShareUrl())
-  const text = encodeURIComponent(getShareText())
-  window.open(`https://t.me/share/url?url=${url}&text=${text}`, '_blank', 'width=600,height=400')
-}
 
-// Handle watch challenge
 async function handleWatch() {
   if (!currentUserId.value || !props.challenge) return
   
@@ -1928,14 +1726,13 @@ async function handleWatch() {
     emit('update:modelValue', false)
     emit('update')
   } catch (error) {
-    console.error('Error watching challenge:', error)
     alert(error.response?.data?.message || t('challenges.watchError'))
   } finally {
     watchingId.value = null
   }
 }
 
-// Handle unwatch challenge
+
 async function handleUnwatch() {
   if (!currentUserId.value || !props.challenge) return
   
@@ -1946,7 +1743,6 @@ async function handleUnwatch() {
     emit('update:modelValue', false)
     emit('update')
   } catch (error) {
-    console.error('Error unwatching challenge:', error)
     alert(error.response?.data?.message || t('challenges.unwatchError'))
   } finally {
     watchingId.value = null
