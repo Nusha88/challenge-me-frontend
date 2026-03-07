@@ -98,7 +98,15 @@
       },
       "completionImage": {
         "title": "🎉 All Done, {name}!",
-        "motivational": "Every small step forward is a victory. Keep going!"
+        "motivational": "Every small step forward is a victory. Keep going!",
+        "activeMissions": "ACTIVE MISSIONS",
+        "operationalLog": "DAILY STEPS",
+        "reportSuccess": "LEGENDARY MOMENT",
+        "excellentWork": "EXCELLENT WORK",
+        "progress": "PROGRESS",
+        "dailyGoalsCompleted": "DAILY GOALS COMPLETED",
+        "systemStatus": "YOUR JORNEY TO MASTERY",
+        "dayStreak": "DAY STREAK"
       },
       "generateCompletionImage": "Generate Completion Image",
       "completionDialog": {
@@ -255,12 +263,12 @@
     "active": "Active",
     "completed": "Completed",
     "ranks": {
-      "explorer": "Explorer",
-      "adept": "Adept",
-      "warrior": "Warrior",
-      "master": "Master",
+      "explorer": "Pathfinder",
+      "adept": "Expert",
+      "warrior": "Titan",
+      "master": "Fate Master",
       "grandmaster": "Grandmaster",
-      "legend": "Legend"
+      "legend": "Ignite Legend"
     }
   },
   "users": {

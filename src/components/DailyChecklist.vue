@@ -7,7 +7,7 @@
       <Footprints :size="24" class="empty-state-icon" />
       {{ t('home.loggedIn.dailyChecklist.empty') }}
     </div>
-    <div v-else-if="!loading" class="checklist-list">
+    <div v-else class="checklist-list">
       <div
         v-for="(step, index) in todaySteps"
         :key="index"
@@ -129,12 +129,6 @@ const saveTodaySteps = async () => {
       done: step.done || false
     }))
     const response = await userService.updateTodayChecklist(tasks)
-
-    // Update store with new user data if backend returned it
-    if (response?.data?.user) {
-      userStore.updateUser(response.data.user)
-      window.dispatchEvent(new Event('auth-changed'))
-    }
     // Dispatch event to update streak in header
     window.dispatchEvent(new Event('checklist-updated'))
   } catch (err) {

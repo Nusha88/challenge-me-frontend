@@ -8,7 +8,7 @@ import { useUserStore } from '../stores/user'
 import NotificationsComponent from './NotificationsComponent.vue'
 import { notificationService, userService, challengeService } from '../services/api'
 import { initializePushNotifications, syncPushSubscriptionToServer } from '../utils/pushNotifications'
-import { getLevelFromXp, getXpForLevel, getXpForNextLevel, getLevelName, getRank, getXpPerLevel, getLevelInfo } from '../utils/levelSystem'
+import { getLevelFromXp, getXpForLevel, getXpForNextLevel, getLevelName, getRank, getXpPerLevel, getLevelInfo, getRankIcon } from '../utils/levelSystem'
 import { useOnboarding } from '../composables/useOnboarding'
 import { Sparkles, Mountain, BookOpen, Compass, Eye, Trophy, Star, Globe2, Coins, LogOut } from 'lucide-vue-next'
 import awaImage from '../assets/awa.png'
@@ -35,11 +35,41 @@ const { startTour } = useOnboarding()
 const availableLocales = SUPPORTED_LOCALES
 const onboardingStarted = ref(false)
 
-// Use store getters for user data
+// Get user data from store
+const user = computed(() => userStore.user)
+
+// Get current user ID from store
+const currentUserId = computed(() => userStore.userId)
+
+// Level and rank calculations
+const userXp = computed(() => Number(user.value?.xp || 0))
+const userLevel = computed(() => getLevelFromXp(userXp.value))
+const userRank = computed(() => getRank(userLevel.value))
+const xpForCurrentLevel = computed(() => getXpForLevel(userLevel.value))
+const xpForNextLevel = computed(() => getXpForNextLevel(userLevel.value))
+const xpProgress = computed(() => Math.max(0, userXp.value - xpForCurrentLevel.value))
+const levelProgressPercentage = computed(() => {
+  const range = xpForNextLevel.value - xpForCurrentLevel.value
+  if (range <= 0) return 100
+  return Math.min(100, Math.max(0, (xpProgress.value / range) * 100))
+})
+
+// XP display values matching MainLayout format
+const xpDisplayCurrent = computed(() => userXp.value)
+const xpDisplayNeeded = computed(() => xpForNextLevel.value)
+
+// Get hero rank information based on level (using helper function)
+const getHeroRank = (level) => {
+  const levelInfo = getLevelInfo(level)
+  return {
+    title: t(`profile.ranks.${levelInfo.rankKey}`),
+    color: levelInfo.color,
+    icon: getRankIcon(level)
+  }
+}
+
+// User display info
 const isLoggedIn = computed(() => userStore.isLoggedIn)
-const userName = computed(() => userStore.userName)
-const userAvatarUrl = computed(() => userStore.userAvatarUrl)
-const userXp = computed(() => userStore.userXp)
 
 function updateAuthState() {
   // Store is reactive, so we just need to check if user logged in
@@ -53,20 +83,11 @@ function updateAuthState() {
     }, 1000)
   }
 }
-const userLevel = computed(() => getLevelFromXp(userXp.value))
-const userRank = computed(() => getRank(userLevel.value))
+
+const userName = computed(() => userStore.userName)
+const userAvatarUrl = computed(() => userStore.userAvatarUrl)
 const userLevelName = computed(() => getLevelName(userLevel.value, locale.value))
-const xpForCurrentLevel = computed(() => getXpForLevel(userLevel.value))
-const xpForNextLevel = computed(() => getXpForNextLevel(userLevel.value))
-const xpProgress = computed(() => Math.max(0, userXp.value - xpForCurrentLevel.value))
 const xpNeeded = computed(() => Math.max(0, xpForNextLevel.value - userXp.value))
-const xpDisplayCurrent = computed(() => userXp.value)
-const xpDisplayNeeded = computed(() => xpForNextLevel.value)
-const levelProgressPercentage = computed(() => {
-  const range = xpForNextLevel.value - xpForCurrentLevel.value
-  if (range <= 0) return 100
-  return Math.min(100, Math.max(0, (xpProgress.value / range) * 100))
-})
 
 // Get current XP (XP progress within current level)
 const getCurrentXp = () => {
@@ -540,7 +561,9 @@ watch(
                   </v-avatar>
                   <div class="flex-grow-1">
                     <div class="text-body-1 font-weight-medium">{{ userName || t('navigation.profile') }}</div>
-                    <div class="text-caption text-medium-emphasis">{{ userLevelName }} ({{ t('navigation.rank') }} {{ userRank }})</div>
+                    <div class="text-caption text-medium-emphasis" :style="{ color: getHeroRank(userLevel).color }">
+                      {{ getHeroRank(userLevel).title }} (Lvl {{ userLevel }})
+                    </div>
                   </div>
                 </div>
 
@@ -548,15 +571,13 @@ watch(
                 <div class="pa-2">
                   <div class="xp-sidebar-card">
                     <div class="d-flex justify-space-between text-caption font-weight-bold mb-1">
-                      <span :style="{ color: getLevelInfo(userLevel).color }">
-                        {{ getLevelInfo(userLevel).rank }} (Lvl {{ userLevel }})
-                      </span>
-                      <span class="text-grey-darken-1">{{ getCurrentXp() }} / {{ getLevelInfo(userLevel).xpPerLvl }} XP</span>
+                      <span class="text-grey-darken-1">{{ xpDisplayCurrent }} / {{ xpDisplayNeeded }} XP</span>
+                      <span class="text-grey-darken-1">{{ Math.round(levelProgressPercentage) }}%</span>
                     </div>
                     
                     <v-progress-linear 
-                      :model-value="(getCurrentXp() / getLevelInfo(userLevel).xpPerLvl) * 100" 
-                      :color="getLevelInfo(userLevel).color" 
+                      :model-value="levelProgressPercentage" 
+                      :color="getHeroRank(userLevel).color" 
                       height="8" 
                       rounded
                       striped
@@ -632,7 +653,7 @@ watch(
 </a>
 
 <div class="sidebar-menu-card logout-card mt-auto mb-4">
-  <v-list-item class="logout-item" @click="logout(); if(drawerOpen) drawerOpen = false">
+  <v-list-item class="logout-item" @click="logout">
     <template v-slot:prepend>
       <LogOut :size="20" class="logout-icon sidebar-lucide-icon mr-2" />
     </template>
@@ -671,7 +692,9 @@ watch(
             </v-avatar>
             <div class="flex-grow-1">
               <div class="text-body-1 font-weight-medium">{{ userName || t('navigation.profile') }}</div>
-              <div class="text-caption text-medium-emphasis">{{ userLevelName }} ({{ t('navigation.rank') }} {{ userRank }})</div>
+              <div class="text-caption text-medium-emphasis" :style="{ color: getHeroRank(userLevel).color }">
+                {{ getHeroRank(userLevel).title }} (Lvl {{ userLevel }})
+              </div>
             </div>
           </div>
 
@@ -679,15 +702,13 @@ watch(
           <div class="pa-2">
             <div class="xp-sidebar-card">
               <div class="d-flex justify-space-between text-caption font-weight-bold mb-1">
-                <span :style="{ color: getLevelInfo(userLevel).color }">
-                  {{ getLevelInfo(userLevel).rank }} (Lvl {{ userLevel }})
-                </span>
-                <span class="text-grey-darken-1">{{ getCurrentXp() }} / {{ getLevelInfo(userLevel).xpPerLvl }} XP</span>
+                <span class="text-grey-darken-1">{{ xpDisplayCurrent }} / {{ xpDisplayNeeded }} XP</span>
+                <span class="text-grey-darken-1">{{ Math.round(levelProgressPercentage) }}%</span>
               </div>
               
               <v-progress-linear 
-                :model-value="(getCurrentXp() / getLevelInfo(userLevel).xpPerLvl) * 100" 
-                :color="getLevelInfo(userLevel).color" 
+                :model-value="levelProgressPercentage" 
+                :color="getHeroRank(userLevel).color" 
                 height="8" 
                 rounded
                 striped
@@ -763,7 +784,7 @@ watch(
 </a>
 
 <div class="sidebar-menu-card logout-card mt-auto mb-4">
-  <v-list-item class="logout-item" @click="logout(); if(drawerOpen) drawerOpen = false">
+  <v-list-item class="logout-item" @click="logout">
     <template v-slot:prepend>
       <LogOut :size="20" class="logout-icon sidebar-lucide-icon mr-2" />
     </template>

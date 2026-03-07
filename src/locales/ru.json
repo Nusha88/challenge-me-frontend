@@ -98,7 +98,15 @@
       },
       "completionImage": {
         "title": "🎉 Всё выполнено, {name}!",
-        "motivational": "Каждый маленький шаг вперёд — это победа. Продолжай!"
+        "motivational": "Каждый маленький шаг вперёд — это победа. Продолжай!",
+        "activeMissions": "АКТИВНЫЕ МИССИИ",
+        "operationalLog": "ДНЕВНЫЕ АКТИВНОСТИ",
+        "reportSuccess": "ЛЕГЕНДАРНЫЙ МОМЕНТ",
+        "excellentWork": "ОТЛИЧНАЯ РАБОТА",
+        "progress": "ПРОГРЕСС",
+        "dailyGoalsCompleted": "ДНЕВНЫЕ ЦЕЛИ ВЫПОЛНЕНЫ",
+        "systemStatus": "ТВОЕ ПУТЕШЕСТВИЕ К МАСТЕРСТВУ",
+        "dayStreak": "ДНЕЙ ПОДРЯД"
       },
       "generateCompletionImage": "Создать изображение",
       "completionDialog": {
@@ -255,12 +263,12 @@
     "active": "Активные",
     "completed": "Завершенные",
     "ranks": {
-      "explorer": "Странник",
-      "adept": "Адепт",
-      "warrior": "Воитель",
-      "master": "Мастер",
-      "grandmaster": "Грандмастер",
-      "legend": "Легенда"
+      "explorer": "Первопроходец",
+      "adept": "Знаток",
+      "warrior": "Титан",
+      "master": "Мастер Судьбы",
+      "grandmaster": "Гроссмейстер",
+      "legend": "Легенда Ignite"
     }
   },
   "users": {

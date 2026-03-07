@@ -42,7 +42,7 @@
     <v-window v-model="state.activeTab">
       <v-window-item value="today">
         <!-- Combined Progress Card -->
-        <div v-if="!state.checklistLoading && totalItems > 0" class="hero-progress-light">
+        <div class="hero-progress-light">
           <div class="progress-header">
             <span class="level-badge">{{ completedItems }} / {{ totalItems }} {{ t('home.loggedIn.dailyChecklist.completed') }}</span>
             <span class="level-badge">{{ combinedProgressPercentage }}%</span>
@@ -356,7 +356,7 @@ import motivationalMessagesRu from '../data/motivationalMessages.ru.json'
 import motivationalMessagesCompletedEn from '../data/motivationalMessagesCompleted.en.json'
 import motivationalMessagesCompletedRu from '../data/motivationalMessagesCompleted.ru.json'
 import tomorrowImage from '../assets/tomorrow.png'
-import { generateCompletionImage as generateImage } from '../utils/imageGenerator'
+import { generateImage } from '../utils/imageGenerator'
 
 const { t, locale } = useI18n()
 const router = useRouter()
@@ -1577,31 +1577,47 @@ watch(() => state.activeTab, (newTab) => {
 })
 
 async function generateCompletionImage() {
-  // Dismiss dialog for today when user generates image
   dismissDialogToday()
   state.showCompletionDialog = false
   state.hasShownCompletionDialog = true
   state.generatingImage = true
+
   try {
     await nextTick()
-    
-    const challenges = todaysChallenges.value.map(c => ({ 
+
+    // Получаем выполненные миссии (challenges)
+    const challenges = todaysChallenges.value.map(c => ({
       title: c.title,
       completedDays: getChallengeCompletedDays(c),
       totalDays: getChallengeTotalDays(c)
     }))
-    const checklistTasks = (checklistRef.value?.todaySteps?.filter(s => s.done) || []).map(s => ({ title: s.title, done: true }))
-    
+
+    // Фильтруем выполненные шаги чеклиста
+    const doneSteps = (checklistRef.value?.todaySteps?.filter(s => s.done) || [])
+
+    // ЛОГИКА ПРИВАТНОСТИ: если задач > 3, передаем только количество, чтобы не светить личное
+    const checklistTasks = doneSteps.length > 3
+        ? [{ title: `${t('completed_tasks')}: ${doneSteps.length}`, isSummary: true }]
+        : doneSteps.map(s => ({ title: s.title, done: true }))
+
     await generateImage({
-      userName: state.userName,
+      userName: state.userName || 'Hero',
       date: new Date(),
       challenges: challenges,
       checklistTasks: checklistTasks,
       streakDays: state.streakDays,
       locale: locale.value,
-      t: t,
-      includeMotivationalMessage: true,
-      filenamePrefix: 'victory'
+      filenamePrefix: 'ignite-victory',
+      translations: {
+        reportSuccess: t('home.loggedIn.completionImage.reportSuccess'),
+        excellentWork: t('home.loggedIn.completionImage.excellentWork'),
+        activeMissions: t('home.loggedIn.completionImage.activeMissions'),
+        progress: t('home.loggedIn.completionImage.progress'),
+        operationalLog: t('home.loggedIn.completionImage.operationalLog'),
+        dailyGoalsCompleted: t('home.loggedIn.completionImage.dailyGoalsCompleted'),
+        systemStatus: t('home.loggedIn.completionImage.systemStatus'),
+        dayStreak: t('home.loggedIn.completionImage.dayStreak')
+      }
     })
   } catch (error) {
     console.error('Generation failed', error)
