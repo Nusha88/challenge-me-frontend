@@ -1336,10 +1336,11 @@ const populateEditForm = (value) => {
     
     editForm.actions = value.actions && Array.isArray(value.actions) && value.actions.length > 0
       ? value.actions.map(a => ({ 
+          _id: a._id,
           text: a.text || '', 
           checked: Boolean(a.checked),
           children: (a.children && Array.isArray(a.children))
-            ? a.children.map(c => ({ text: c.text || '', checked: Boolean(c.checked) }))
+            ? a.children.map(c => ({ _id: c._id, text: c.text || '', checked: Boolean(c.checked) }))
             : []
         }))
       : []
@@ -1572,7 +1573,11 @@ async function handleOwnerActionsSave() {
   }
 
   try {
-    await challengeService.updateChallenge(c._id, payload)
+    const response = await challengeService.updateChallengeActions(c._id, actionsToSave)
+    if (response?.data?.user) {
+      userStore.updateUser(response.data.user)
+      window.dispatchEvent(new Event('auth-changed'))
+    }
     emit('update')
     handleVisibility(false) 
   } catch (error) {

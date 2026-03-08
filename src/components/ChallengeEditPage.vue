@@ -143,7 +143,7 @@
                 </div>
               </div>
 
-            <div v-if="challenge.challengeType === 'result'" class="actions-plan-section mb-8">
+            <div class="actions-plan-section mb-8">
               <div class="section-tag mb-4">{{ t('challenges.actionsPlan') }}</div>
               <div class="actions-glass-wrapper pa-2">
                 <ChallengeActions v-model="editForm.actions" :readonly="isDisabled" />
@@ -717,10 +717,15 @@ async function loadChallenge() {
     if (challenge.value.challengeType === 'result') {
       editForm.actions = challenge.value.actions && challenge.value.actions.length > 0
         ? challenge.value.actions.map(a => ({ 
+            _id: a._id,
             text: a.text || '', 
             checked: Boolean(a.checked),
             children: (a.children && Array.isArray(a.children))
-              ? a.children.map(c => ({ text: c.text || '', checked: Boolean(c.checked) }))
+              ? a.children.map(c => ({ 
+                  _id: c._id,
+                  text: c.text || '', 
+                  checked: Boolean(c.checked) 
+                }))
               : []
           }))
         : [{ text: '', checked: false, children: [] }]
@@ -975,6 +980,7 @@ function prepareFormData() {
     formData.completedDays = normalizeCompletedDays(formData.completedDays)
   } else if (formData.challengeType === 'result') {
     formData.completedDays = []
+    formData.actions = editForm.actions
     // Preserve difficulty for result (quest) challenges
     formData.difficulty = editForm.difficulty || challenge.value?.difficulty || 'normal'
   }
@@ -1014,15 +1020,28 @@ async function updateParticipantCompletedDaysIfChanged(challengeId, challengeTyp
 }
 
 async function handleSubmit() {
-  if (!validate()) return
+  console.log(challenge.value)
+  // if (!validate()) return
   
   const formData = prepareFormData()
   
   saveLoading.value = true
   saveError.value = ''
-
+console.log(challenge.value)
   try {
-    await challengeService.updateChallenge(challenge.value._id, { ...formData })
+    const response = await challengeService.updateChallenge(challenge.value._id, { ...formData })
+    
+    // Update store with new user data if backend returned it (for XP)
+    if (response?.data?.user) {
+      userStore.updateUser(response.data.user)
+      window.dispatchEvent(new Event('auth-changed'))
+    }
+
+    if (response?.data?.xpGained > 0) {
+      // You might want to show an XP notification here
+      console.log(`Gained ${response.data.xpGained} XP!`)
+    }
+
     await updateParticipantCompletedDaysIfChanged(
       challenge.value._id,
       formData.challengeType,

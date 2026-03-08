@@ -305,9 +305,12 @@ const editingChildActions = ref({})
 const localActions = ref(
   props.modelValue?.length > 0 
     ? props.modelValue.map(a => ({ 
+        _id: a._id,
         text: a.text || '', 
         checked: !!a.checked,
-        children: Array.isArray(a.children) ? a.children.map(c => ({ text: c.text || '', checked: !!c.checked })) : []
+        children: Array.isArray(a.children) 
+          ? a.children.map(c => ({ _id: c._id, text: c.text || '', checked: !!c.checked })) 
+          : []
       }))
     : [{ text: '', checked: false, children: [] }]
 )
