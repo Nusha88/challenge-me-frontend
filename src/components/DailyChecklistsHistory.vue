@@ -447,7 +447,7 @@
 import { ref, onMounted, computed, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { userService, challengeService } from '../services/api'
-import { generateCompletionImage as generateImage } from '../utils/imageGenerator'
+import { generateImage } from '../utils/imageGenerator'
 import IgniteLoader from './IgniteLoader.vue'
 
 const { t, locale } = useI18n()
