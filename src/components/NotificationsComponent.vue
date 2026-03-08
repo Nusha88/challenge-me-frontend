@@ -148,26 +148,26 @@ async function deleteNotification(notification) {
 function getNotificationText(notification) {
   if (notification.type === 'mention') {
     return t('notifications.mentionedInComment', {
-      challenge: notification.challengeId?.title || t('notifications.challenge')
+      mission: notification.challengeId?.title || t('notifications.challenge')
     })
   }
   if (notification.type === 'join') {
     return t('notifications.userJoinedChallenge', {
-      challenge: notification.challengeId?.title || t('notifications.challenge')
+      mission: notification.challengeId?.title || t('notifications.challenge')
     })
   }
   if (notification.type === 'watch') {
     return t('notifications.userWatchingChallenge', {
-      challenge: notification.challengeId?.title || t('notifications.challenge')
+      mission: notification.challengeId?.title || t('notifications.challenge')
     })
   }
   if (notification.type === 'comment') {
     return t('notifications.newComment', {
-      challenge: notification.challengeId?.title || t('notifications.challenge')
+      mission: notification.challengeId?.title || t('notifications.challenge')
     })
   }
   return t('notifications.newComment', {
-    challenge: notification.challengeId?.title || t('notifications.challenge')
+    mission: notification.challengeId?.title || t('notifications.challenge')
   })
 }
 const getNotificationIcon = (type) => {

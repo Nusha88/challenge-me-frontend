@@ -198,7 +198,8 @@
     "loginFailed": "Login failed. Please try again.",
     "required": "This field is required",
     "passwordMismatch": "Passwords must match",
-    "passwordLength": "Password must be at least 6 characters"
+    "passwordLength": "Password must be at least 6 characters",
+    "statusRecovery": "RECOVERY MODE"
   },
   "profile": {
     "title": "Profile",

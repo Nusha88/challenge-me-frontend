@@ -20,18 +20,8 @@
       ></v-skeleton-loader>
     </v-card>
   </div>
-
-  <div class="side-widgets-skeleton d-none d-lg-block">
-    <v-card class="skeleton-card-dark rounded-xl mb-6 pa-4">
-      <v-skeleton-loader type="table-heading, list-item-avatar-three-line@3"></v-skeleton-loader>
-    </v-card>
-    
-    <v-card class="skeleton-card-dark rounded-xl pa-4">
-      <v-skeleton-loader type="list-item-avatar-two-line@3"></v-skeleton-loader>
-    </v-card>
-  </div>
 </div>
-    <v-row v-if="challenges.length" class="watched-layout">
+    <v-row v-if="challenges.length && !loading" class="watched-layout">
       <v-col cols="12" md="8">
         <v-card
           v-for="challenge in challenges"
@@ -153,7 +143,7 @@
       </v-col>
     </v-row>
 
-    <div v-else class="empty-radar-container">
+    <div v-if="!challenges.length && !loading" class="empty-radar-container">
       <div class="radar-ping">
         <div class="ring"></div>
         <div class="ring"></div>
@@ -746,7 +736,7 @@ async function loadFeedActivities() {
               userAvatar,
               userInitial,
               userId,
-              text: t('challenges.feed.commented', { challenge: challenge.title }),
+              text: t('challenges.feed.commented', { mission: challenge.title }),
               challengeId: challenge._id,
               challengeTitle: challenge.title
             })
@@ -784,7 +774,7 @@ async function loadFeedActivities() {
                   userAvatar,
                   userInitial,
                   userId,
-                  text: t('challenges.feed.finished', { challenge: challenge.title }),
+                  text: t('challenges.feed.finished', { mission: challenge.title }),
                   challengeId: challenge._id,
                   challengeTitle: challenge.title
                 })
@@ -808,7 +798,7 @@ async function loadFeedActivities() {
                   userAvatar,
                   userInitial,
                   userId,
-                  text: t('challenges.feed.joined', { challenge: challenge.title }),
+                  text: t('challenges.feed.joined', { mission: challenge.title }),
                   challengeId: challenge._id,
                   challengeTitle: challenge.title
                 })
@@ -835,7 +825,7 @@ async function loadFeedActivities() {
                 userAvatar,
                 userInitial,
                 userId,
-                text: t('challenges.feed.progress', { challenge: challenge.title }),
+                text: t('challenges.feed.progress', { mission: challenge.title }),
                 challengeId: challenge._id,
                 challengeTitle: challenge.title
               })

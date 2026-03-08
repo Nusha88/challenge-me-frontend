@@ -198,7 +198,8 @@
     "loginFailed": "Не удалось войти. Попробуйте ещё раз.",
     "required": "Поле обязательно",
     "passwordMismatch": "Пароли должны совпадать",
-    "passwordLength": "Пароль должен содержать не менее 6 символов"
+    "passwordLength": "Пароль должен содержать не менее 6 символов",
+    "statusRecovery": "ВОССТАНОВЛЕНИЕ"
   },
   "profile": {
     "title": "Профиль",
@@ -491,7 +492,7 @@
     "feedEmpty": "Нет недавней активности",
     "feed": {
       "joined": "присоединился(ась) к {mission}",
-      "progress": "сделал(а) прогресс в {mission}",
+      "progress": "продвинулся(ась) в {mission}",
       "finished": "завершил(а) {mission}",
       "commented": "прокомментировал(а) в {mission}"
     },
