@@ -14,7 +14,7 @@
             <GradientButton to="/login" class="main-cta">
               {{ t('home.createFirstChallenge') }}
             </GradientButton>
-            <div class="user-stats-mini">
+            <div v-if="totalUsers > 0" class="user-stats-mini">
               <v-icon color="#4FD1C5" size="20">mdi-flash</v-icon>
               <span>{{ joinHeroesText }}</span>
             </div>
@@ -97,7 +97,7 @@ import demoImage from '../assets/demo.png'
 import GradientButton from './GradientButton.vue'
 
 const { t, locale } = useI18n()
-const totalUsers = ref(100)
+const totalUsers = ref(0)
 
 const formattedUsersCount = computed(() => {
   return new Intl.NumberFormat(locale.value).format(totalUsers.value)
