@@ -654,6 +654,7 @@ import {useUserStore} from '../stores/user'
 import ChallengeActions from './ChallengeActions.vue'
 import CommentsComponent from './CommentsComponent.vue'
 import {challengeService} from '../services/api'
+import confetti from 'canvas-confetti'
 
 const props = defineProps({
   modelValue: {
@@ -759,7 +760,32 @@ const errors = reactive({
 const { t, locale } = useI18n()
 const { getChallengeTypeLabel } = useChallengeType()
 const router = useRouter()
+// Конфетти в тонах твоего интерфейса
+const fireConfetti = () => {
+  const duration = 3 * 1000
+  const end = Date.now() + duration
 
+  ;(function frame() {
+    confetti({
+      particleCount: 3,
+      angle: 60,
+      spread: 55,
+      origin: { x: 0, y: 0.6 },
+      colors: ['#7048E8', '#F4A782', '#FFFFFF']
+    })
+    confetti({
+      particleCount: 3,
+      angle: 120,
+      spread: 55,
+      origin: { x: 1, y: 0.6 },
+      colors: ['#7048E8', '#F4A782', '#FFFFFF']
+    })
+
+    if (Date.now() < end) {
+      requestAnimationFrame(frame)
+    }
+  }())
+}
 
 const actionsViewModel = computed({
   get() {
@@ -1230,7 +1256,7 @@ const showJoinActionButton = computed(() => {
 const showMainActionButton = computed(() => {
   return showJoinActionButton.value ||
     (isCurrentUserParticipant.value && props.challenge.challengeType === 'habit' && !isFinished.value) ||
-    (props.isOwner && props.challenge.challengeType === 'result' && !isFinished.value)
+    (props.isOwner && props.challenge.challengeType === 'result')
 })
 
 const showWatchActionButton = computed(() => {
@@ -1540,8 +1566,7 @@ function handleMainActionClick() {
     emitJoin()
   } else if (
     props.isOwner &&
-    props.challenge?.challengeType === 'result' &&
-    !isFinished.value
+    props.challenge?.challengeType === 'result'
   ) {
     handleOwnerActionsSave()
   } else {
@@ -1557,27 +1582,13 @@ async function handleOwnerActionsSave() {
     ? JSON.parse(JSON.stringify(editForm.actions))
     : (c.actions ? JSON.parse(JSON.stringify(c.actions)) : [])
 
-  const payload = {
-    title: c.title,
-    description: c.description,
-    startDate: c.startDate,
-    endDate: c.endDate,
-    imageUrl: c.imageUrl,
-    frequency: c.frequency,
-    privacy: c.privacy,
-    allowComments: c.allowComments,
-    challengeType: c.challengeType,
-    actions: actionsToSave,
-    difficulty: c.difficulty,
-    completedDays: Array.isArray(c.completedDays) ? c.completedDays : []
-  }
-
   try {
     const response = await challengeService.updateChallengeActions(c._id, actionsToSave)
     if (response?.data?.user) {
       userStore.updateUser(response.data.user)
       window.dispatchEvent(new Event('auth-changed'))
     }
+    setTimeout(fireConfetti, 300)
     emit('update')
     handleVisibility(false) 
   } catch (error) {
@@ -1667,6 +1678,7 @@ async function handleParticipantSave() {
       userStore.updateUser(response.data.user)
       window.dispatchEvent(new Event('auth-changed'))
     }
+    setTimeout(fireConfetti, 300)
     emit('update')
     emit('update:modelValue', false)
     router.push('/')

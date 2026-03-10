@@ -710,7 +710,6 @@ const shareLink = computed(() => {
 function copyLink() {
   navigator.clipboard.writeText(shareLink.value).then(() => {
     // You can add a snackbar notification here if needed
-    console.log('Link copied to clipboard')
   }).catch(err => {
     console.error('Failed to copy link:', err)
   })

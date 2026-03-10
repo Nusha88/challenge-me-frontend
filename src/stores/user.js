@@ -41,7 +41,6 @@ export const useUserStore = defineStore('user', () => {
 
   function updateUser(updates) {
     if (!user.value) return
-    console.warn("updateUser", updates)
     
     // Merge updates with existing user data
     user.value = { ...user.value, ...updates }

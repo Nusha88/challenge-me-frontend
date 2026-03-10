@@ -1020,14 +1020,12 @@ async function updateParticipantCompletedDaysIfChanged(challengeId, challengeTyp
 }
 
 async function handleSubmit() {
-  console.log(challenge.value)
   // if (!validate()) return
   
   const formData = prepareFormData()
   
   saveLoading.value = true
   saveError.value = ''
-console.log(challenge.value)
   try {
     const response = await challengeService.updateChallenge(challenge.value._id, { ...formData })
     
@@ -1039,7 +1037,6 @@ console.log(challenge.value)
 
     if (response?.data?.xpGained > 0) {
       // You might want to show an XP notification here
-      console.log(`Gained ${response.data.xpGained} XP!`)
     }
 
     await updateParticipantCompletedDaysIfChanged(
