@@ -199,7 +199,8 @@
     "required": "Поле обязательно",
     "passwordMismatch": "Пароли должны совпадать",
     "passwordLength": "Пароль должен содержать не менее 6 символов",
-    "statusRecovery": "ВОССТАНОВЛЕНИЕ"
+    "statusRecovery": "ВОССТАНОВЛЕНИЕ",
+    "statusReset": "БЕЗОПАСНОСТЬ"
   },
   "profile": {
     "title": "Профиль",

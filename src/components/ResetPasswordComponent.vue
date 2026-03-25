@@ -1,75 +1,3 @@
-<template>
-  <div class="reset-password-container">
-    <div class="reset-password-header mb-6">
-      <h1 class="reset-password-title">{{ t('auth.resetPasswordTitle') }}</h1>
-      <p class="reset-password-description">{{ t('auth.resetPasswordDescription') }}</p>
-    </div>
-    <v-card class="reset-password-card">
-      <v-card-text>
-        <div v-if="!passwordReset">
-          <v-form @submit.prevent="handleSubmit">
-            <v-text-field
-              v-model="formData.password"
-              :label="t('auth.password')"
-              type="password"
-              required
-              variant="outlined"
-              class="mb-4"
-              :error-messages="errors.password"
-            ></v-text-field>
-
-            <v-text-field
-              v-model="formData.confirmPassword"
-              :label="t('auth.confirmPassword')"
-              type="password"
-              required
-              variant="outlined"
-              class="mb-4"
-              :error-messages="errors.confirmPassword"
-            ></v-text-field>
-
-            <v-alert
-              v-if="error"
-              type="error"
-              class="mb-4"
-            >
-              {{ error }}
-            </v-alert>
-
-            <GradientButton
-              type="submit"
-              block
-              :loading="loading"
-              :disabled="loading"
-              class="mb-4"
-            >
-              {{ t('auth.resetPassword') }}
-            </GradientButton>
-
-            <div class="text-center">
-              <a href="#" class="back-link" @click.prevent="goBack">
-                {{ t('auth.backToLogin') }}
-              </a>
-            </div>
-          </v-form>
-        </div>
-
-        <div v-else class="success-message">
-          <v-icon size="64" color="success" class="mb-4">mdi-check-circle</v-icon>
-          <h2 class="mb-2">{{ t('auth.passwordResetSuccess') }}</h2>
-          <p class="mb-4">{{ t('auth.passwordResetSuccessDescription') }}</p>
-          <GradientButton
-            block
-            @click="goToLogin"
-          >
-            {{ t('auth.backToLogin') }}
-          </GradientButton>
-        </div>
-      </v-card-text>
-    </v-card>
-  </div>
-</template>
-
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
@@ -157,94 +85,227 @@ const goToLogin = () => {
 }
 </script>
 
+<template>
+  <div class="reset-password-container">
+    <div class="bg-glow"></div>
+
+    <div class="reset-password-content">
+      <div class="reset-password-header mb-8">
+        <div class="status-badge mb-4">
+          <span>{{ t('auth.statusReset') || 'СИСТЕМА: ОБНОВЛЕНИЕ ДАННЫХ' }}</span>
+        </div>
+        <h1 class="reset-password-title">{{ t('auth.resetPasswordTitle') }}</h1>
+        <p class="reset-password-description">
+          {{ t('auth.resetPasswordDescription') }}
+        </p>
+      </div>
+
+      <v-card class="reset-password-card">
+        <v-card-text>
+          <div v-if="!passwordReset">
+            <v-form @submit.prevent="handleSubmit">
+              <v-text-field
+                v-model="formData.password"
+                :label="t('auth.password')"
+                type="password"
+                required
+                variant="outlined"
+                class="custom-field mb-4"
+                base-color="rgba(255,255,255,0.1)"
+                color="#4FD1C5"
+                :error-messages="errors.password"
+                hide-details="auto"
+              >
+                <template v-slot:prepend-inner>
+                  <v-icon color="#4FD1C5" size="20">mdi-lock-outline</v-icon>
+                </template>
+              </v-text-field>
+
+              <v-text-field
+                v-model="formData.confirmPassword"
+                :label="t('auth.confirmPassword')"
+                type="password"
+                required
+                variant="outlined"
+                class="custom-field mb-6"
+                base-color="rgba(255,255,255,0.1)"
+                color="#4FD1C5"
+                :error-messages="errors.confirmPassword"
+                hide-details="auto"
+              >
+                <template v-slot:prepend-inner>
+                  <v-icon color="#4FD1C5" size="20">mdi-lock-check-outline</v-icon>
+                </template>
+              </v-text-field>
+
+              <v-alert
+                v-if="error"
+                type="error"
+                variant="tonal"
+                class="mb-4 rounded-xl"
+              >
+                {{ error }}
+              </v-alert>
+
+              <GradientButton
+                type="submit"
+                block
+                :loading="loading"
+                :disabled="loading"
+                class="mb-6 py-6"
+              >
+                {{ t('auth.resetPassword') }}
+              </GradientButton>
+
+              <div class="text-center">
+                <a href="#" class="back-link" @click.prevent="goBack">
+                  <v-icon size="small" class="mr-1">mdi-arrow-left</v-icon>
+                  {{ t('auth.backToLogin') }}
+                </a>
+              </div>
+            </v-form>
+          </div>
+
+          <div v-else class="success-message">
+            <div class="icon-wrapper mb-6">
+              <v-icon size="40" color="#4FD1C5">mdi-check-decagram-outline</v-icon>
+            </div>
+            <h2 class="success-title mb-2">{{ t('auth.passwordResetSuccess') }}</h2>
+            <p class="success-desc mb-6">{{ t('auth.passwordResetSuccessDescription') }}</p>
+            <GradientButton
+              block
+              @click="goToLogin"
+            >
+              {{ t('auth.backToLogin') }}
+            </GradientButton>
+          </div>
+        </v-card-text>
+      </v-card>
+    </div>
+  </div>
+</template>
+
 <style scoped>
 .reset-password-container {
-  min-height: calc(100vh - 24px);
+  min-height: 100vh;
   width: 100%;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
+  background: #0f172a; 
+  position: relative;
+  overflow: hidden;
   padding: 24px;
 }
 
-.reset-password-header {
-  text-align: center;
-  max-width: 500px;
+.bg-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80vw;
+  height: 80vw;
+  background: radial-gradient(circle, rgba(79, 209, 197, 0.08) 0%, transparent 70%);
+  z-index: 0;
+}
+
+.reset-password-content {
+  z-index: 1;
   width: 100%;
+  max-width: 440px;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  background: rgba(79, 209, 197, 0.1);
+  border: 1px solid rgba(79, 209, 197, 0.2);
+  border-radius: 20px;
+  color: #4FD1C5;
+  font-size: 0.7rem;
+  letter-spacing: 1px;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
 .reset-password-title {
-  font-size: 2rem;
-  font-weight: 700;
-  margin: 0 0 12px 0;
-  color: rgba(0, 0, 0, 0.87);
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -1px;
+  line-height: 1.1;
 }
 
 .reset-password-description {
+  color: rgba(255, 255, 255, 0.5);
   font-size: 1rem;
-  line-height: 1.5;
-  color: rgba(0, 0, 0, 0.6);
-  margin: 0;
-}
-
-@media (min-width: 600px) {
-  .reset-password-title {
-    font-size: 2.5rem;
-  }
-  
-  .reset-password-description {
-    font-size: 1.125rem;
-  }
+  margin-top: 12px;
 }
 
 .reset-password-card {
-  width: 100%;
-  max-width: 500px;
-  padding: 24px;
-  background: transparent !important;
-  box-shadow: none !important;
+  background: rgba(30, 41, 59, 0.4) !important;
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 28px !important;
+  padding: 16px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Кастомизация инпутов для темной темы */
+:deep(.v-field) {
+  background: rgba(15, 23, 42, 0.8) !important;
+  border-radius: 16px !important;
+}
+
+:deep(.v-field__outline) {
+  --v-field-border-opacity: 0.1;
+}
+
+:deep(.v-label) {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+
+:deep(.v-field__input) {
+  color: #fff !important;
+}
+
+.back-link {
+  color: #4FD1C5;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  opacity: 0.7;
+  transition: all 0.3s ease;
+}
+
+.back-link:hover {
+  opacity: 1;
+  text-shadow: 0 0 8px rgba(79, 209, 197, 0.4);
 }
 
 .success-message {
   text-align: center;
-  padding: 24px 0;
+  padding: 10px 0;
 }
 
-.back-link {
-  color: #1976d2;
-  text-decoration: none;
-  font-size: 14px;
-  cursor: pointer;
+.icon-wrapper {
+  width: 72px;
+  height: 72px;
+  background: rgba(79, 209, 197, 0.1);
+  border: 1px solid rgba(79, 209, 197, 0.2);
+  border-radius: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
 }
 
-.back-link:hover {
-  text-decoration: underline;
+.success-title {
+  color: #fff;
+  font-weight: 700;
 }
 
-:deep(.v-field) {
-  border-radius: 12px !important;
-}
-
-:deep(.v-field__outline) {
-  border-radius: 12px !important;
-}
-
-:deep(.v-field__input) {
-  border-radius: 12px !important;
-}
-
-:deep(.v-text-field .v-field),
-:deep(.v-autocomplete .v-field),
-:deep(.v-select .v-field),
-:deep(.v-textarea .v-field) {
-  border-radius: 12px !important;
-}
-
-:deep(.v-text-field .v-field__outline),
-:deep(.v-autocomplete .v-field__outline),
-:deep(.v-select .v-field__outline),
-:deep(.v-textarea .v-field__outline) {
-  border-radius: 12px !important;
+.success-desc {
+  color: rgba(255, 255, 255, 0.5);
 }
 </style>

@@ -199,7 +199,8 @@
     "required": "This field is required",
     "passwordMismatch": "Passwords must match",
     "passwordLength": "Password must be at least 6 characters",
-    "statusRecovery": "RECOVERY MODE"
+    "statusRecovery": "RECOVERY MODE",
+    "statusReset": "SECURITY MODE"
   },
   "profile": {
     "title": "Profile",
