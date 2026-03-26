@@ -364,14 +364,14 @@
 
                     <div 
                       class="diff-option normal" 
-                      :class="{ active: form.difficulty === 'normal' }"
-                      @click="form.difficulty = 'normal'"
+                      :class="{ active: form.difficulty === 'medium' }"
+                      @click="form.difficulty = 'medium'"
                     >
                       <div class="diff-icon">
                         <v-icon>mdi-sword</v-icon>
                       </div>
                       <div class="diff-content">
-                        <span class="diff-name">{{ t('challenges.difficultyNormal') }}</span>
+                        <span class="diff-name">{{ t('challenges.difficultyMedium') }}</span>
                         <span class="diff-xp">+150 XP</span>
                       </div>
                       <v-icon class="check-icon" size="20">mdi-check-circle</v-icon>
@@ -512,6 +512,7 @@ import { useI18n } from 'vue-i18n'
 import { useUserStore } from '../stores/user'
 import ChallengeImageUpload from './ChallengeImageUpload.vue'
 import SuccessModal from './SuccessModal.vue'
+import { fireConfetti } from '../utils/confetti'
 
 const router = useRouter()
 const { t, locale } = useI18n()
@@ -532,7 +533,7 @@ const form = ref({
   milestones: [{ title: '' }],
   endDate: '',
   reward: '',
-  difficulty: 'normal',
+  difficulty: 'medium',
   allowComments: true,
   communityQuest: false
 })
@@ -847,7 +848,7 @@ function selectChallengeType(type) {
     form.value.startOption = 'today'
     form.value.frequency = '' // Clear frequency for result challenges
     form.value.privacy = 'private' // Set default privacy for result type
-    form.value.difficulty = 'normal' // Set default difficulty for result type
+    form.value.difficulty = 'medium' // Set default difficulty for result type
     // startDate will be set automatically by the watcher
     // Initialize actions with default item if empty
     if (!form.value.actions || form.value.actions.length === 0) {
@@ -1063,6 +1064,7 @@ async function handleSubmit() {
     
     if (challengeId) {
       createdChallengeId.value = challengeId
+      fireConfetti()
     }
     
     // If this is a restarted challenge, delete the old one
@@ -1115,7 +1117,7 @@ function resetForm() {
     milestones: [{ title: '' }],
     endDate: '',
     reward: '',
-    difficulty: 'normal',
+    difficulty: 'medium',
     allowComments: true,
     communityQuest: false
   }

@@ -201,6 +201,57 @@
           </v-form>
         </v-card-text>
       </v-card>
+      <v-dialog 
+    v-model="deleteConfirmDialog" 
+    max-width="480"
+    content-class="ignite-dialog"
+    transition="dialog-bottom-transition"
+  >
+    <v-card class="delete-card">
+      <div class="danger-line"></div>
+
+      <v-card-title class="d-flex align-center pt-6 px-6">
+        <v-icon color="#FF5252" class="mr-3">mdi-alert-octagon-outline</v-icon>
+        <span class="dialog-title">{{ t('challenges.deleteConfirmTitle') }}</span>
+      </v-card-title>
+
+      <v-card-text class="px-6 py-4">
+        <div class="dialog-message mb-4">
+          {{ t('challenges.deleteConfirmMessage') }}
+        </div>
+
+        <v-alert
+          v-if="deleteError"
+          type="error"
+          variant="tonal"
+          class="mb-2 rounded-xl custom-alert"
+        >
+          {{ deleteError }}
+        </v-alert>
+      </v-card-text>
+
+      <v-card-actions class="px-6 pb-6">
+        <div class="dialog-actions">
+          <v-btn 
+            variant="text" 
+            class="cancel-btn"
+            :disabled="deleteLoading" 
+            @click="deleteConfirmDialog = false"
+          >
+            {{ t('common.cancel') }}
+          </v-btn>
+
+          <v-btn
+            class="delete-btn"
+            :loading="deleteLoading"
+            @click="confirmDelete"
+          >
+            {{ t('challenges.delete') }}
+          </v-btn>
+        </div>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
     </v-container>
   </div>
 </template>
@@ -593,6 +644,97 @@
     width: 36px !important;
     height: 36px !important;
   }
+  :deep(.v-overlay__content.ignite-dialog) {
+  border-radius: 28px !important;
+  overflow: hidden;
+}
+
+.delete-card {
+  background: rgba(30, 41, 59, 0.7) !important;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 28px !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7) !important;
+  color: #fff !important;
+  position: relative;
+}
+
+.danger-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #FF5252, transparent);
+}
+
+.dialog-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: #fff;
+}
+
+.dialog-message {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.6;
+}
+
+.dialog-actions {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cancel-btn {
+  color: rgba(255, 255, 255, 0.5) !important;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  border-radius: 12px;
+}
+
+.cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: #fff !important;
+}
+
+.delete-btn {
+  background: linear-gradient(135deg, #FF5252 0%, #7f1d1d 100%) !important;
+  color: white !important;
+  border-radius: 14px !important;
+  padding: 0 24px !important;
+  height: 44px !important;
+  font-weight: 700 !important;
+  text-transform: none !important;
+  letter-spacing: 0.5px !important;
+  box-shadow: 0 4px 15px rgba(255, 82, 82, 0.2) !important;
+  transition: all 0.3s ease !important;
+}
+
+@media (max-width: 600px) {
+  .dialog-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .dialog-actions :deep(.v-btn) {
+    width: 100%;
+  }
+}
+
+.delete-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 82, 82, 0.4) !important;
+}
+
+.custom-alert {
+  background: rgba(255, 82, 82, 0.1) !important;
+  border: 1px solid rgba(255, 82, 82, 0.2) !important;
+}
 }
 </style>
 <script setup>
@@ -616,6 +758,7 @@ const saveLoading = ref(false)
 const saveError = ref('')
 const deleteLoading = ref(false)
 const deleteConfirmDialog = ref(false)
+const deleteError = ref('')
 const isInitializing = ref(true)
 const isEditingTitle = ref(false)
 const isEditingDescription = ref(false)
@@ -712,7 +855,7 @@ async function loadChallenge() {
     editForm.frequency = challenge.value.frequency || ''
     editForm.privacy = challenge.value.privacy || 'public'
     editForm.allowComments = challenge.value.allowComments !== undefined ? challenge.value.allowComments : true
-    editForm.difficulty = challenge.value.difficulty || (challenge.value.challengeType === 'result' ? 'normal' : '')
+    editForm.difficulty = challenge.value.difficulty || (challenge.value.challengeType === 'result' ? 'medium' : '')
     
     if (challenge.value.challengeType === 'result') {
       editForm.actions = challenge.value.actions && challenge.value.actions.length > 0
@@ -879,7 +1022,25 @@ function goBack() {
 }
 
 function handleDelete() {
+  deleteError.value = ''
   deleteConfirmDialog.value = true
+}
+
+async function confirmDelete() {
+  if (!challenge.value?._id) return
+
+  deleteLoading.value = true
+  deleteError.value = ''
+
+  try {
+    await challengeService.deleteChallenge(challenge.value._id)
+    deleteConfirmDialog.value = false
+    router.push('/missions/my')
+  } catch (err) {
+    deleteError.value = err?.response?.data?.message || t('challenges.deleteChallengeError')
+  } finally {
+    deleteLoading.value = false
+  }
 }
 
 // Normalize completedDays dates to YYYY-MM-DD format
@@ -982,7 +1143,7 @@ function prepareFormData() {
     formData.completedDays = []
     formData.actions = editForm.actions
     // Preserve difficulty for result (quest) challenges
-    formData.difficulty = editForm.difficulty || challenge.value?.difficulty || 'normal'
+    formData.difficulty = editForm.difficulty || challenge.value?.difficulty || 'medium'
   }
   
   return formData

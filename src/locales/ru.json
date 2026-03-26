@@ -300,6 +300,7 @@
       "result": "Определи свою цель... (например, Пробежать марафон)"
     },
     "description": "Описание",
+    "descriptionPlaceholder": "Добавьте краткое описание...",
     "startDate": "Дата начала",
     "pickDate": "Выбрать дату",
     "endDate": "Дата окончания",
@@ -323,7 +324,7 @@
     "rewardHint": "То, чем ты отпразднуешь свой триумф.",
     "difficultyTitle": "Уровень сложности (Difficulty)",
     "difficultyEasy": "Easy",
-    "difficultyNormal": "Normal",
+    "difficultyMedium": "Normal",
     "difficultyHeroic": "Heroic",
     "customDuration": "Количество дней",
     "customDurationHint": "Введите количество дней для вашего вызова",

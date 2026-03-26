@@ -654,7 +654,7 @@ import {useUserStore} from '../stores/user'
 import ChallengeActions from './ChallengeActions.vue'
 import CommentsComponent from './CommentsComponent.vue'
 import {challengeService} from '../services/api'
-import confetti from 'canvas-confetti'
+import { fireConfetti } from '../utils/confetti'
 
 const props = defineProps({
   modelValue: {
@@ -760,32 +760,7 @@ const errors = reactive({
 const { t, locale } = useI18n()
 const { getChallengeTypeLabel } = useChallengeType()
 const router = useRouter()
-// Конфетти в тонах твоего интерфейса
-const fireConfetti = () => {
-  const duration = 3 * 1000
-  const end = Date.now() + duration
-
-  ;(function frame() {
-    confetti({
-      particleCount: 3,
-      angle: 60,
-      spread: 55,
-      origin: { x: 0, y: 0.6 },
-      colors: ['#7048E8', '#F4A782', '#FFFFFF']
-    })
-    confetti({
-      particleCount: 3,
-      angle: 120,
-      spread: 55,
-      origin: { x: 1, y: 0.6 },
-      colors: ['#7048E8', '#F4A782', '#FFFFFF']
-    })
-
-    if (Date.now() < end) {
-      requestAnimationFrame(frame)
-    }
-  }())
-}
+// Confetti is provided by a shared helper (fireConfetti)
 
 const actionsViewModel = computed({
   get() {
@@ -1072,7 +1047,7 @@ const missionStats = computed(() => {
       color: 'purple'
     })
 
-    const difficulty = props.challenge.difficulty || 'normal'
+    const difficulty = props.challenge.difficulty || 'medium'
     stats.push({
       label: t('challenges.difficultyTitle'),
       value: getDifficultyLabel(difficulty),
@@ -1092,9 +1067,9 @@ function getDifficultyLabel(value) {
       return t('challenges.difficultyEasy')
     case 'heroic':
       return t('challenges.difficultyHeroic')
-    case 'normal':
+    case 'medium':
     default:
-      return t('challenges.difficultyNormal')
+      return t('challenges.difficultyMedium')
   }
 }
 
@@ -1104,7 +1079,7 @@ function getDifficultyZapCount(value) {
       return 1
     case 'heroic':
       return 3
-    case 'normal':
+    case 'medium':
     default:
       return 2
   }

@@ -300,6 +300,7 @@
       "result": "Define your conquest... (e.g. Run a Marathon)"
     },
     "description": "Description",
+    "descriptionPlaceholder": "Add a short description...",
     "startDate": "Start Date",
     "pickDate": "Pick Date",
     "endDate": "End Date",
@@ -323,7 +324,7 @@
     "rewardHint": "How you will celebrate your victory.",
     "difficultyTitle": "Difficulty Level",
     "difficultyEasy": "Easy",
-    "difficultyNormal": "Normal",
+    "difficultyMedium": "Medium",
     "difficultyHeroic": "Heroic",
     "customDuration": "Number of days",
     "customDurationHint": "Enter the number of days for your challenge",
