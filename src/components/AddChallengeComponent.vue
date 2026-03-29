@@ -542,6 +542,8 @@ const showSlider = ref(false)
 const customDays = ref(60)
 const showImageUpload = ref(false)
 const showDatePicker = ref(false)
+/** Preserves accessCommunity choice (solo | public) when toggling ritual ↔ quest; quest uses private/public mapping separately */
+const lastHabitPrivacy = ref('solo')
 const deadlineMenu = ref(false)
 const showSuccessModal = ref(false)
 const createdChallengeId = ref('')
@@ -672,6 +674,10 @@ onMounted(() => {
         if (form.value.milestones.length === 0) {
           form.value.milestones = [{ title: '' }]
         }
+      }
+
+      if (form.value.challengeType === 'habit' && (form.value.privacy === 'solo' || form.value.privacy === 'public')) {
+        lastHabitPrivacy.value = form.value.privacy
       }
       
       // Clear sessionStorage after loading
@@ -836,12 +842,20 @@ function getCurrentUserId() {
 }
 
 function selectChallengeType(type) {
+  // Remember ritual accessCommunity (solo | public) before switching to quest — quest uses private/public
+  if (form.value.challengeType === 'habit' && type === 'result') {
+    if (form.value.privacy === 'solo' || form.value.privacy === 'public') {
+      lastHabitPrivacy.value = form.value.privacy
+    }
+  }
+
   form.value.challengeType = type
   // Preselect duration based on type: habit -> 21 days, result -> 30 days
   if (type === 'habit') {
     form.value.duration = '21'
     form.value.startOption = 'today'
     form.value.frequency = 'daily' // Set default frequency for habit
+    form.value.privacy = lastHabitPrivacy.value
     // startDate will be set automatically by the watcher
   } else if (type === 'result') {
     form.value.duration = '30'
@@ -1131,7 +1145,8 @@ function resetForm() {
   createdChallengeId.value = ''
   errorMessage.value = ''
   errors.value = {}
-  
+  lastHabitPrivacy.value = 'solo'
+
   // Scroll to top of form
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
