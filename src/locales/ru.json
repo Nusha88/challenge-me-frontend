@@ -322,6 +322,7 @@
     "rewardTitle": "Награда за победу",
     "rewardPlaceholder": "Например: Полет на параплане или те самые кроссовки...",
     "rewardHint": "То, чем ты отпразднуешь свой триумф.",
+    "rewardStatLabel": "Награда",
     "difficultyTitle": "Уровень сложности (Difficulty)",
     "difficultyEasy": "Easy",
     "difficultyMedium": "Normal",

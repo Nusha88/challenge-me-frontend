@@ -158,26 +158,35 @@
 
           <v-window-item value="details">
             <v-row dense class="mb-8">
-              <v-col cols="6" md="4" v-for="item in missionStats" :key="item.label">
+              <v-col cols="6" md="4" v-for="(item, statIdx) in missionStats" :key="`${statIdx}-${item.type || 'default'}-${item.label}`">
                 <div class="stat-card">
-                  <div v-if="item.type === 'difficulty'" class="difficulty-icon-row">
+                  <template v-if="item.type === 'reward'">
+                    <div class="reward-icon-row">
+                      <Trophy :size="20" color="#FFC107" stroke-width="2.5" />
+                    </div>
+                    <div class="stat-label">{{ item.label }}</div>
+                    <div class="stat-value">{{ item.value }}</div>
+                  </template>
+                  <template v-else>
+                    <div v-if="item.type === 'difficulty'" class="difficulty-icon-row">
+                      <v-icon
+                        v-for="n in item.zaps"
+                        :key="n"
+                        icon="mdi-flash"
+                        size="18"
+                        color="#FBBF24"
+                        class="mr-1"
+                      ></v-icon>
+                    </div>
                     <v-icon
-                      v-for="n in item.zaps"
-                      :key="n"
-                      icon="mdi-flash"
+                      v-else
+                      :icon="item.icon"
                       size="18"
-                      color="#FBBF24"
-                      class="mr-1"
+                      :color="item.color || '#4FD1C5'"
                     ></v-icon>
-                  </div>
-                  <v-icon
-                    v-else
-                    :icon="item.icon"
-                    size="18"
-                    :color="item.color || '#4FD1C5'"
-                  ></v-icon>
-                  <div class="stat-label">{{ item.label }}</div>
-                  <div class="stat-value">{{ item.value }}</div>
+                    <div class="stat-label">{{ item.label }}</div>
+                    <div class="stat-value">{{ item.value }}</div>
+                  </template>
                 </div>
               </v-col>
             </v-row>
@@ -291,7 +300,7 @@
           <v-btn
             v-if="showMainActionButton"
             class="main-action-btn ml-2"
-            :loading="joinLoading || (isOwner && challenge.challengeType === 'result' && saveLoading)"
+            :loading="joinLoading || (isOwner && challenge.challengeType === 'result' && saveLoading && tab === 'progress')"
             @click="handleMainActionClick"
           >
             {{ mainActionButtonText }}
@@ -444,7 +453,8 @@
 .stat-label { font-size: 0.65rem; text-transform: uppercase; opacity: 0.5; margin-top: 4px; }
 .stat-value { font-size: 0.9rem; font-weight: 800; }
 
-.difficulty-icon-row {
+.difficulty-icon-row,
+.reward-icon-row {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -655,6 +665,7 @@ import ChallengeActions from './ChallengeActions.vue'
 import CommentsComponent from './CommentsComponent.vue'
 import {challengeService} from '../services/api'
 import { fireConfetti } from '../utils/confetti'
+import { Trophy } from 'lucide-vue-next'
 
 const props = defineProps({
   modelValue: {
@@ -1056,6 +1067,15 @@ const missionStats = computed(() => {
       type: 'difficulty',
       zaps: getDifficultyZapCount(difficulty)
     })
+
+    const rewardTrimmed = (props.challenge.reward || '').trim()
+    if (props.isOwner && rewardTrimmed) {
+      stats.push({
+        type: 'reward',
+        label: t('challenges.rewardStatLabel'),
+        value: rewardTrimmed
+      })
+    }
   }
   
   return stats
@@ -1231,7 +1251,7 @@ const showJoinActionButton = computed(() => {
 const showMainActionButton = computed(() => {
   return showJoinActionButton.value ||
     (isCurrentUserParticipant.value && props.challenge.challengeType === 'habit' && !isFinished.value) ||
-    (props.isOwner && props.challenge.challengeType === 'result')
+    (props.isOwner && props.challenge.challengeType === 'result' && tab.value === 'progress')
 })
 
 const showWatchActionButton = computed(() => {

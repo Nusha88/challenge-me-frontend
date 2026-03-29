@@ -150,6 +150,20 @@
               </div>
             </div>
 
+            <div v-if="challenge.challengeType === 'result'" class="reward-edit-section mb-8">
+              <div class="section-tag mb-2">{{ t('challenges.rewardTitle') }}</div>
+              <v-text-field
+                v-model="editForm.reward"
+                variant="outlined"
+                density="comfortable"
+                color="#4FD1C5"
+                :placeholder="t('challenges.rewardPlaceholder')"
+                :disabled="isDisabled"
+                hide-details
+                class="description-input-active reward-edit-field"
+              />
+            </div>
+
             <div class="comments-section-wrapper mb-8">
               <div class="d-flex align-center justify-space-between mb-4">
                 <div class="section-tag">{{ t('challenges.diary.title') }}</div>
@@ -366,6 +380,31 @@
   bottom: 12px;
   right: 12px;
   opacity: 0.2;
+}
+
+.description-input-active :deep(.v-field) {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 12px;
+}
+
+.description-input-active :deep(.v-field__input),
+.description-input-active :deep(textarea) {
+  color: #ffffff !important;
+  caret-color: #4fd1c5;
+}
+
+/* Match .description-display-box border when idle (not focused) — avoids default black outline */
+.description-input-active :deep(.v-field--variant-outlined .v-field__outline) {
+  --v-field-border-opacity: 1;
+  color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.description-input-active :deep(.v-field--focused.v-field--variant-outlined .v-field__outline) {
+  color: rgba(79, 209, 197, 0.45) !important;
+}
+
+.reward-edit-field :deep(input::placeholder) {
+  color: rgba(255, 255, 255, 0.35);
 }
 
 /* --- СЕТКА НАСТРОЕК --- */
@@ -795,6 +834,7 @@ const editForm = reactive({
   frequency: '',
   privacy: 'public',
   difficulty: '',
+  reward: '',
   actions: [],
   completedDays: [],
   allowComments: true
@@ -856,6 +896,7 @@ async function loadChallenge() {
     editForm.privacy = challenge.value.privacy || 'public'
     editForm.allowComments = challenge.value.allowComments !== undefined ? challenge.value.allowComments : true
     editForm.difficulty = challenge.value.difficulty || (challenge.value.challengeType === 'result' ? 'medium' : '')
+    editForm.reward = challenge.value.reward != null ? String(challenge.value.reward) : ''
     
     if (challenge.value.challengeType === 'result') {
       editForm.actions = challenge.value.actions && challenge.value.actions.length > 0
@@ -1144,6 +1185,7 @@ function prepareFormData() {
     formData.actions = editForm.actions
     // Preserve difficulty for result (quest) challenges
     formData.difficulty = editForm.difficulty || challenge.value?.difficulty || 'medium'
+    formData.reward = (editForm.reward || '').trim()
   }
   
   return formData

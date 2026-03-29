@@ -322,6 +322,7 @@
     "rewardTitle": "Victory Reward",
     "rewardPlaceholder": "For example: Paragliding flight or those sneakers...",
     "rewardHint": "How you will celebrate your victory.",
+    "rewardStatLabel": "Reward",
     "difficultyTitle": "Difficulty Level",
     "difficultyEasy": "Easy",
     "difficultyMedium": "Medium",
