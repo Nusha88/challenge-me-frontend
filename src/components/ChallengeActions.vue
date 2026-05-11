@@ -215,6 +215,9 @@
   cursor: pointer;
 }
 
+.non-clickable-text {
+  cursor: default;
+}
 .child-item.is-completed .child-text {
   color: rgba(79, 209, 197, 0.5);
 }
@@ -225,6 +228,9 @@
   font-weight: 500;
   color: rgba(255, 255, 255, 0.9);
   cursor: pointer;
+}
+.text-display.non-clickable-text {
+  cursor: default;
 }
 
 .strikethrough {

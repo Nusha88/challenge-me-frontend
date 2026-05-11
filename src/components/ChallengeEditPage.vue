@@ -10,7 +10,7 @@
           @click="goBack"
             class="back-tactical-btn"
         ></v-btn>
-          
+
           <div class="title-container flex-grow-1">
             <h1 v-if="!isEditingTitle" class="page-title-display" @click="!isDisabled && (isEditingTitle = true)">
               {{ editForm.title || t('challenges.editTitle') }}
@@ -48,35 +48,49 @@
       <v-card v-if="challenge && !loading" class="main-tactical-card pa-1">
         <v-card-text class="pa-6">
           <v-form @submit.prevent="handleSubmit">
-            
+
             <div class="mission-dates-grid mb-8">
-              <div class="date-info-box">
-                <span class="label">{{ t('challenges.startDate') }}</span>
-                <span class="value">{{ formatDisplayDate(editForm.startDate) }}</span>
-            </div>
+              <div class="date-info-box date-info-box--editable">
+                <span class="label mb-3">{{ t('challenges.startDate') }}</span>
+                <v-btn
+                  variant="outlined"
+                  class="mission-date-btn"
+                  :disabled="isDisabled"
+                  @click="showStartDatePicker = true"
+                >
+                  <v-icon size="18" class="mr-2">mdi-calendar-month-outline</v-icon>
+                  <span>{{ formatDisplayDate(editForm.startDate) }}</span>
+                </v-btn>
+
+                <v-dialog v-model="showStartDatePicker" max-width="400">
+                  <v-date-picker
+                    v-model="startDatePickerModel"
+                    @update:model-value="handleStartDatePick"
+                  ></v-date-picker>
+                </v-dialog>
+              </div>
               <div class="date-divider">
                 <v-icon color="rgba(255,255,255,0.1)">mdi-arrow-right-thin</v-icon>
               </div>
-              <div class="date-info-box">
-                <span class="label">{{ t('challenges.endDate') }}</span>
-                <span class="value">{{ formatDisplayDate(editForm.endDate) }}</span>
-              </div>
-            </div>
+              <div class="date-info-box date-info-box--editable">
+                <span class="label mb-3">{{ t('challenges.endDate') }}</span>
+                <v-btn
+                  variant="outlined"
+                  class="mission-date-btn"
+                  :disabled="isDisabled"
+                  @click="showEndDatePicker = true"
+                >
+                  <v-icon size="18" class="mr-2">mdi-calendar-month-outline</v-icon>
+                  <span>{{ formatDisplayDate(editForm.endDate) }}</span>
+                </v-btn>
 
-            <div v-if="challenge.challengeType === 'habit'" class="calendar-section-wrapper mb-8">
-              <div class="section-tag mb-4">
-                <v-icon start size="14">mdi-calendar-month</v-icon>
-                  {{ t('challenges.challengeCalendar') }}
-              </div>
-              <div class="glass-container pa-4">
-                    <ChallengeCalendar
-                      :start-date="editForm.startDate"
-                      :end-date="editForm.endDate"
-                      v-model="editForm.completedDays"
-                      :editable="!isDisabled"
-                      :frequency="editForm.frequency"
-                      @update:model-value="handleOwnerCompletedDaysUpdate"
-                    />
+                <v-dialog v-model="showEndDatePicker" max-width="400">
+                  <v-date-picker
+                    v-model="endDatePickerModel"
+                    :min="editForm.startDate || undefined"
+                    @update:model-value="handleEndDatePick"
+                  ></v-date-picker>
+                </v-dialog>
               </div>
             </div>
 
@@ -86,7 +100,7 @@
 
             <div class="mission-description-block mb-8">
               <div class="section-tag mb-2">{{ t('challenges.description') }}</div>
-              <div 
+              <div
                 v-if="!isEditingDescription"
                 class="description-display-box"
                 :class="{ 'is-empty': !editForm.description }"
@@ -117,6 +131,7 @@
                   variant="plain"
                   class="tactical-select"
                   hide-details
+                  :menu-props="tacticalSelectMenuProps"
                   ></v-select>
                 </div>
 
@@ -128,6 +143,7 @@
                   variant="plain"
                   class="tactical-select"
                   hide-details
+                  :menu-props="tacticalSelectMenuProps"
                   ></v-select>
               </div>
 
@@ -139,11 +155,12 @@
                   variant="plain"
                   class="tactical-select"
                   hide-details
+                  :menu-props="tacticalSelectMenuProps"
                   ></v-select>
                 </div>
               </div>
 
-            <div class="actions-plan-section mb-8">
+            <div v-if="challenge.challengeType === 'result'" class="actions-plan-section mb-8">
               <div class="section-tag mb-4">{{ t('challenges.actionsPlan') }}</div>
               <div class="actions-glass-wrapper pa-2">
                 <ChallengeActions v-model="editForm.actions" :readonly="isDisabled" />
@@ -174,49 +191,35 @@
                   density="compact"
               ></v-switch>
             </div>
-              <v-expand-transition>
-                <div v-if="editForm.allowComments" class="comments-container-glass">
-              <CommentsComponent
-                :challenge-id="challenge._id"
-                :allow-comments="editForm.allowComments"
-                :current-user-id="currentUserId"
-                :is-owner="true"
-                :challenge-participants="challenge.participants || []"
-              />
+              <div class="mission-footer-actions">
+                <v-btn
+                    variant="outlined"
+                    color="error"
+                    @click="handleDelete"
+                    class="footer-btn delete-btn"
+                >
+                  {{ t('challenges.delete') }}
+                </v-btn>
+
+                <v-spacer></v-spacer>
+
+                <div class="d-flex gap-3">
+                  <v-btn
+                      type="submit"
+                      color="#4FD1C5"
+                      class="footer-btn save-btn"
+                      :loading="saveLoading"
+                  >
+                    {{ t('challenges.update') }}
+                  </v-btn>
                 </div>
-              </v-expand-transition>
+              </div>
             </div>
-
-            <div class="mission-footer-actions">
-              <v-btn 
-                variant="outlined" 
-                color="error" 
-                @click="handleDelete" 
-                class="footer-btn delete-btn"
-              >
-                {{ t('challenges.delete') }}
-              </v-btn>
-              
-              <v-spacer></v-spacer>
-
-              <div class="d-flex gap-3">
-                <v-btn variant="text" color="white" @click="goBack" class="footer-btn">{{ t('challenges.cancel') }}</v-btn>
-              <v-btn 
-                type="submit" 
-                  color="#4FD1C5" 
-                  class="footer-btn save-btn"
-                    :loading="saveLoading"
-              >
-                {{ t('challenges.update') }}
-                    </v-btn>
-                  </div>
-                </div>
-
           </v-form>
         </v-card-text>
       </v-card>
-      <v-dialog 
-    v-model="deleteConfirmDialog" 
+      <v-dialog
+    v-model="deleteConfirmDialog"
     max-width="480"
     content-class="ignite-dialog"
     transition="dialog-bottom-transition"
@@ -246,10 +249,10 @@
 
       <v-card-actions class="px-6 pb-6">
         <div class="dialog-actions">
-          <v-btn 
-            variant="text" 
+          <v-btn
+            variant="text"
             class="cancel-btn"
-            :disabled="deleteLoading" 
+            :disabled="deleteLoading"
             @click="deleteConfirmDialog = false"
           >
             {{ t('common.cancel') }}
@@ -346,6 +349,59 @@
   color: #FFFFFF;
 }
 
+.date-info-box--editable {
+  flex: 1;
+  min-width: 0;
+}
+
+.mission-date-btn {
+  height: 44px !important;
+  width: 100%;
+  justify-content: flex-start;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 12px !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  text-transform: none !important;
+  font-weight: 600 !important;
+}
+
+.mission-date-btn :deep(.v-icon) {
+  color: #ffffff !important;
+  opacity: 0.95;
+}
+
+.mission-date-btn:hover {
+  border-color: rgba(79, 209, 197, 0.35) !important;
+  background: rgba(79, 209, 197, 0.06) !important;
+}
+
+.mission-date-btn:disabled {
+  opacity: 0.5;
+}
+
+/* Match AddChallengeComponent date picker styling */
+:deep(.v-date-picker) {
+  background: #1A1A2E !important;
+  color: white !important;
+  border-radius: 24px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+
+  .v-date-picker-month__day--selected .v-btn {
+    background: #7048E8 !important;
+    color: white !important;
+    box-shadow: 0 0 10px rgba(112, 72, 232, 0.5);
+  }
+
+  .v-date-picker-controls .v-btn {
+    color: #4FD1C5 !important;
+  }
+
+  .v-date-picker-header__title {
+    color: white !important;
+  }
+}
+
 /* --- СЕКЦИИ И ТЕГИ --- */
 .section-tag {
   color: #4FD1C5;
@@ -434,11 +490,20 @@
   font-weight: 700;
 }
 
+.tactical-select :deep(.v-field__append-inner .v-icon),
+.tactical-select :deep(.v-select__menu-icon) {
+  color: #ffffff !important;
+  opacity: 0.95;
+}
+
 /* --- ФУТЕР И КНОПКИ --- */
 .mission-footer-actions {
   margin-top: 40px;
+  margin-bottom: 40px;
   padding-top: 24px;
+  padding-bottom: 24px;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   display: flex;
   align-items: center;
 }
@@ -684,8 +749,9 @@
     height: 36px !important;
   }
   :deep(.v-overlay__content.ignite-dialog) {
-  border-radius: 28px !important;
-  overflow: hidden;
+    border-radius: 28px !important;
+    overflow: hidden;
+  }
 }
 
 .delete-card {
@@ -742,8 +808,7 @@
 }
 
 .delete-btn {
-  background: linear-gradient(135deg, #FF5252 0%, #7f1d1d 100%) !important;
-  color: white !important;
+  color: red;
   border-radius: 14px !important;
   padding: 0 24px !important;
   height: 44px !important;
@@ -763,6 +828,27 @@
   .dialog-actions :deep(.v-btn) {
     width: 100%;
   }
+  .mission-footer-actions {
+    flex-direction: column; /* Смена порядка: Сохранить в топе */
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .action-buttons-group {
+    flex-direction: column;
+    order: 1; /* Группа сохранения сверху */
+  }
+
+  .save-btn {
+    order: 1;
+    width: 100%;
+  }
+
+  .delete-btn {
+    order: 3; /* Удаление в самом низу */
+    width: 100%;
+    margin-top: 8px;
+  }
 }
 
 .delete-btn:hover {
@@ -774,8 +860,48 @@
   background: rgba(255, 82, 82, 0.1) !important;
   border: 1px solid rgba(255, 82, 82, 0.2) !important;
 }
+</style>
+
+<style>
+/* Teleported v-select menus — unscoped so contentClass applies to overlay */
+.challenge-edit-select-menu.v-overlay__content,
+.challenge-edit-select-menu {
+  background: #131A2D !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55) !important;
+}
+
+.challenge-edit-select-menu .v-list {
+  background: #131A2D !important;
+  padding: 6px 0 !important;
+}
+
+.challenge-edit-select-menu .v-list-item {
+  background: transparent !important;
+}
+
+.challenge-edit-select-menu .v-list-item__overlay {
+  background: transparent !important;
+}
+
+.challenge-edit-select-menu .v-list-item-title {
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+.challenge-edit-select-menu .v-list-item--active .v-list-item-title {
+  color: #4fd1c5 !important;
+}
+
+.challenge-edit-select-menu .v-list-item:hover {
+  background: rgba(79, 209, 197, 0.12) !important;
+}
+
+.challenge-edit-select-menu .v-list-item--active {
+  background: rgba(79, 209, 197, 0.15) !important;
 }
 </style>
+
 <script setup>
 import {computed, nextTick, onMounted, reactive, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
@@ -784,11 +910,19 @@ import {useUserStore} from '../stores/user'
 import ChallengeImageUpload from './ChallengeImageUpload.vue'
 import ChallengeActions from './ChallengeActions.vue'
 import ChallengeCalendar from './ChallengeCalendar.vue'
-import CommentsComponent from './CommentsComponent.vue'
 import {challengeService} from '../services/api'
 
 const router = useRouter()
 const route = useRoute()
+
+const tacticalSelectMenuProps = {
+  contentClass: 'challenge-edit-select-menu'
+}
+
+const showStartDatePicker = ref(false)
+const showEndDatePicker = ref(false)
+const startDatePickerModel = ref('')
+const endDatePickerModel = ref('')
 
 const challenge = ref(null)
 const loading = ref(true)
@@ -891,6 +1025,8 @@ async function loadChallenge() {
     editForm.description = challenge.value.description || ''
     editForm.startDate = challenge.value.startDate ? challenge.value.startDate.slice(0, 10) : ''
     editForm.endDate = challenge.value.endDate ? challenge.value.endDate.slice(0, 10) : ''
+    startDatePickerModel.value = editForm.startDate
+    endDatePickerModel.value = editForm.endDate
     editForm.imageUrl = challenge.value.imageUrl || ''
     editForm.frequency = challenge.value.frequency || ''
     editForm.privacy = challenge.value.privacy || 'public'
@@ -980,12 +1116,20 @@ function calculateDuration(startDate, endDate) {
   return String(diffDays)
 }
 
-function calculateEndDateFromDuration(startDate, duration) {
+function getDurationDayCount(duration, customDuration) {
+  if (!duration) return NaN
+  if (duration === 'custom') {
+    return parseInt(String(customDuration || ''), 10)
+  }
+  return parseInt(String(duration), 10)
+}
+
+function calculateEndDateFromDuration(startDate, duration, customDuration = '') {
   if (!startDate || !duration) return ''
-  
+
   const start = new Date(startDate)
-  const days = parseInt(duration)
-  
+  const days = getDurationDayCount(duration, customDuration)
+
   if (isNaN(days) || days < 1) return ''
   
   const endDate = new Date(start)
@@ -998,13 +1142,68 @@ function calculateEndDateFromDuration(startDate, duration) {
   return `${year}-${month}-${day}`
 }
 
+function syncDurationFromDates() {
+  if (!editForm.startDate || !editForm.endDate) return
+  const start = new Date(editForm.startDate)
+  const end = new Date(editForm.endDate)
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return
+  if (end < start) {
+    editForm.endDate = editForm.startDate
+    return
+  }
+  const daysStr = calculateDuration(editForm.startDate, editForm.endDate)
+  const d = parseInt(daysStr, 10)
+  if (Number.isNaN(d) || d < 1) return
+  editForm.duration = String(d)
+  editForm.customDuration = ''
+}
+
+function onEndDateEdited() {
+  if (isDisabled.value) return
+  syncDurationFromDates()
+}
+
+function toYyyyMmDd(value) {
+  if (!value) return ''
+  const v = String(value)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v
+  try {
+    const d = new Date(v)
+    if (Number.isNaN(d.getTime())) return ''
+    const yyyy = d.getFullYear()
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const dd = String(d.getDate()).padStart(2, '0')
+    return `${yyyy}-${mm}-${dd}`
+  } catch {
+    return ''
+  }
+}
+
+function handleStartDatePick(value) {
+  if (isDisabled.value) return
+  const picked = toYyyyMmDd(value)
+  if (!picked) return
+  editForm.startDate = picked
+  showStartDatePicker.value = false
+}
+
+function handleEndDatePick(value) {
+  if (isDisabled.value) return
+  const picked = toYyyyMmDd(value)
+  if (!picked) return
+  editForm.endDate = picked
+  onEndDateEdited()
+  showEndDatePicker.value = false
+}
+
 watch(
-  () => [editForm.duration, editForm.startDate],
+  () => [editForm.duration, editForm.startDate, editForm.customDuration],
   () => {
     if (editForm.duration && editForm.startDate) {
       const newEndDate = calculateEndDateFromDuration(
         editForm.startDate,
-        editForm.duration
+        editForm.duration,
+        editForm.customDuration
       )
       if (newEndDate) {
         editForm.endDate = newEndDate

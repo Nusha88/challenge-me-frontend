@@ -1496,11 +1496,13 @@ function resetForm() {
 }
 
 .calendar-btn .v-icon {
-  color: rgba(255, 255, 255, 0.3);
+  color: #ffffff !important;
+  opacity: 0.95;
 }
 
 .calendar-btn.is-active .v-icon {
-  color: #7048E8;
+  color: #ffffff !important;
+  opacity: 1;
 }
 
 .date-pickers {

@@ -15,7 +15,7 @@
       >
         <div class="header-actions">
           <v-btn
-            v-if="isOwner"
+            v-if="isOwner && !isFinished"
             icon="mdi-pencil"
             variant="text"
             size="small"
@@ -283,7 +283,7 @@
 
         <v-spacer></v-spacer>
 
-        <div class="footer-actions-wrapper d-flex gap-3">
+        <div v-if="tab === 'progress' && !isFinished" class="footer-actions-wrapper d-flex gap-3">
           <v-btn
             v-if="showWatchActionButton"
             variant="outlined"
@@ -300,7 +300,7 @@
           <v-btn
             v-if="showMainActionButton"
             class="main-action-btn ml-2"
-            :loading="joinLoading || (isOwner && challenge.challengeType === 'result' && saveLoading && tab === 'progress')"
+            :loading="joinLoading || (isOwner && challenge.challengeType === 'result' && saveLoading)"
             @click="handleMainActionClick"
           >
             {{ mainActionButtonText }}
