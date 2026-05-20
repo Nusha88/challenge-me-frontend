@@ -13,7 +13,6 @@
     "myChallenges": "Мои вызовы",
     "allChallenges": "Все вызовы",
     "watchedChallenges": "Мне интересно",
-    "checklistHistory": "Дневник героя",
     "today": "Сегодня",
     "language": "Язык",
     "streakDays": "дней подряд",
@@ -68,7 +67,8 @@
       "todaysChallenges": "Ежедневные миссии",
       "needInspiration": "Нужно вдохновение? Посмотри примеры миссий",
       "emptyMissions": {
-        "text": "Твой путь еще не определен. Начни новую миссию, чтобы открыть сокровища опыта!"
+        "text": "Твой путь еще не определен. Начни новую миссию, чтобы открыть сокровища опыта!",
+        "launchFirstMission": "Запустить первую миссию"
       },
       "dailyChecklist": {
         "title": "Шаги дня",
@@ -84,17 +84,6 @@
         "loadError": "Не удалось загрузить чеклист",
         "saveError": "Не удалось сохранить чеклист",
         "copyToTomorrow": "Скопировать на завтра"
-      },
-      "checklistHistory": {
-        "title": "Дневник героя",
-        "subtitle": "Легенда пишется. Каждый шаг — часть твоей истории.",
-        "empty": "Чеклисты не найдены. Начните создавать свои ежедневные чеклисты!",
-        "launchFirstMission": "Запустить первую миссию",
-        "loadError": "Не удалось загрузить историю чеклистов",
-        "today": "Сегодня",
-        "yesterday": "Вчера",
-        "noTasks": "Нет задач",
-        "mintLegendCard": "Создать карту легенды"
       },
       "completionImage": {
         "title": "🎉 Всё выполнено, {name}!",
@@ -482,6 +471,18 @@
     "teamActivityMap": "Карта активности команды",
     "teamLeaders": "Лидеры команды",
     "progress": "Прогресс",
+    "personalPace": "Личный темп",
+    "completedDaysProgress": "Выполнено {done}/{total} дней ({rate}%)",
+    "pace": {
+      "descriptions": {
+        "firstSteps": "Делает первые шаги",
+        "atPeak": "На пике",
+        "inTheGame": "В деле",
+        "onTheWay": "На пути",
+        "tookPause": "Взял паузу",
+        "needImpulse": "Нужен импульс"
+      }
+    },
     "about": "О вызове",
     "giveUp": "Сдаться",
     "joinMission": "Присоединиться к миссии",
@@ -500,6 +501,7 @@
       "finished": "завершил(а) {mission}",
       "commented": "прокомментировал(а) в {mission}"
     },
+    "calendarDayHeroesActive": "Активно: {active} из {total} героев",
     "calendarLegend": {
       "completed": "Выполнено",
       "missed": "Пропущено",

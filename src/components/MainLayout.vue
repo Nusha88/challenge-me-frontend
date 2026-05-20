@@ -8,9 +8,10 @@ import { useUserStore } from '../stores/user'
 import NotificationsComponent from './NotificationsComponent.vue'
 import { notificationService, userService, challengeService } from '../services/api'
 import { initializePushNotifications, syncPushSubscriptionToServer } from '../utils/pushNotifications'
+import { syncAppBadge, clearAppBadge } from '../utils/appBadge'
 import { getLevelFromXp, getXpForLevel, getXpForNextLevel, getLevelName, getRank, getXpPerLevel, getLevelInfo, getRankIcon } from '../utils/levelSystem'
 import { useOnboarding } from '../composables/useOnboarding'
-import { Sparkles, Mountain, BookOpen, Compass, Eye, Trophy, Star, Globe2, Coins, LogOut } from 'lucide-vue-next'
+import { Sparkles, Mountain, Compass, Eye, Trophy, Star, Globe2, Coins, LogOut } from 'lucide-vue-next'
 import awaImage from '../assets/awa.png'
 
 const router = useRouter()
@@ -142,6 +143,7 @@ onBeforeUnmount(() => {
 
 function logout() {
   userStore.clearUser()
+  clearAppBadge()
   window.dispatchEvent(new Event('auth-changed'))
   router.push('/login')
 }
@@ -161,7 +163,7 @@ async function loadUnreadNotificationCount() {
   try {
     const { data } = await notificationService.getUnreadCount(userId)
     unreadNotificationCount.value = data.count || 0
-    
+
     // If this API call succeeds, token is valid - try to sync push subscription
     // Delay significantly to ensure we're fully logged in and token is stable
     setTimeout(() => {
@@ -383,10 +385,15 @@ watch(() => isLoggedIn.value, (loggedIn) => {
     }, 30000)
   } else {
     unreadNotificationCount.value = 0
+    clearAppBadge()
     streakDays.value = 0
     yesterdayStreakDays.value = 0
     hasTodayCompletedTasks.value = false
   }
+})
+
+watch(unreadNotificationCount, (count) => {
+  syncAppBadge(count)
 })
 
 // Watch route changes to recalculate streak when navigating
@@ -608,13 +615,6 @@ watch(
     </template>
     <v-list-item-title>{{ t('navigation.myChallenges') }}</v-list-item-title>
   </v-list-item>
-
-  <v-list-item to="/checklists/history" :active="currentRoute === 'checklists-history'" color="primary">
-    <template v-slot:prepend>
-      <BookOpen :size="20" class="sidebar-lucide-icon mr-2" />
-    </template>
-    <v-list-item-title>{{ t('navigation.checklistHistory') }}</v-list-item-title>
-  </v-list-item>
 </div>
 
 <div class="sidebar-menu-card mb-4">
@@ -738,13 +738,6 @@ watch(
       <Mountain :size="20" class="sidebar-lucide-icon mr-2" />
     </template>
     <v-list-item-title>{{ t('navigation.myChallenges') }}</v-list-item-title>
-  </v-list-item>
-
-  <v-list-item to="/checklists/history" :active="currentRoute === 'checklists-history'" color="primary">
-    <template v-slot:prepend>
-      <BookOpen :size="20" class="sidebar-lucide-icon mr-2" />
-    </template>
-    <v-list-item-title>{{ t('navigation.checklistHistory') }}</v-list-item-title>
   </v-list-item>
 </div>
 

@@ -55,7 +55,7 @@
             to="/missions/add"
             elevation="4"
           >
-            {{ t('home.loggedIn.checklistHistory.launchFirstMission') }}
+            {{ t('home.loggedIn.emptyMissions.launchFirstMission') }}
           </v-btn>
         </div>
       </v-alert>

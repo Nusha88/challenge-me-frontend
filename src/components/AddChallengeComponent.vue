@@ -22,7 +22,7 @@
                   </div>
                   <div class="text-block">
                     <h3 class="type-title">{{ t('challenges.typeHabit') }}</h3>
-                    <p class="type-description">{{ t('challenges.typeHabitDescription') }}</p>
+                    <div class="type-description">{{ t('challenges.typeHabitDescription') }}</div>
                   </div>
                   <div class="selection-indicator">
                     <v-icon v-if="form.challengeType === 'habit'">mdi-check-circle</v-icon>
@@ -42,7 +42,7 @@
                   </div>
                   <div class="text-block">
                     <h3 class="type-title">{{ t('challenges.typeResult') }}</h3>
-                    <p class="type-description">{{ t('challenges.typeResultDescription') }}</p>
+                    <div class="type-description">{{ t('challenges.typeResultDescription') }}</div>
                   </div>
                   <div class="selection-indicator">
                     <v-icon v-if="form.challengeType === 'result'">mdi-check-circle</v-icon>
@@ -125,15 +125,30 @@
                         </v-btn-toggle>
                       </div>
                       <div v-if="form.duration === 'custom' && showSlider" class="custom-slider-container">
-                        <div class="days-display">{{ customDays }} days</div>
-                        <v-slider
-                          v-model="customDays"
-                          min="1"
-                          max="365"
-                          step="1"
-                          hide-details
-                          class="ignite-slider"
-                        ></v-slider>
+                        <template v-if="lgAndUp">
+                          <div class="days-display">{{ customDays }} days</div>
+                          <v-slider
+                            v-model="customDays"
+                            min="1"
+                            max="365"
+                            step="1"
+                            hide-details
+                            class="ignite-slider"
+                          ></v-slider>
+                        </template>
+                        <template v-else>
+                          <v-text-field
+                            v-model.number="customDays"
+                            type="number"
+                            min="1"
+                            max="365"
+                            hide-details
+                            density="compact"
+                            variant="outlined"
+                            class="custom-days-number-input"
+                            :label="t('challenges.customDuration')"
+                          />
+                        </template>
                       </div>
                     </div>
 
@@ -507,6 +522,7 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useDisplay } from 'vuetify'
 import { challengeService } from '../services/api'
 import { useI18n } from 'vue-i18n'
 import { useUserStore } from '../stores/user'
@@ -517,6 +533,7 @@ import { fireConfetti } from '../utils/confetti'
 const router = useRouter()
 const { t, locale } = useI18n()
 const userStore = useUserStore()
+const { lgAndUp } = useDisplay()
 
 const form = ref({
   title: '',
@@ -589,9 +606,19 @@ watch(() => form.value.customDuration, () => {
   }
 })
 
-// Sync customDays with form.customDuration
+// Sync customDays with form.customDuration (clamp 1–365)
 watch(customDays, (newVal) => {
-  form.value.customDuration = String(newVal)
+  const n = Number(newVal)
+  if (!Number.isFinite(n)) {
+    customDays.value = 1
+    return
+  }
+  const clamped = Math.min(365, Math.max(1, Math.round(n)))
+  if (clamped !== newVal) {
+    customDays.value = clamped
+    return
+  }
+  form.value.customDuration = String(clamped)
 })
 
 // Load restart challenge data on mount
@@ -1399,6 +1426,28 @@ function resetForm() {
   color: #4FD1C5 !important;
   border-right-color: rgba(255, 255, 255, 0.1);
   padding-right: 15px;
+}
+
+.custom-slider-container .days-display--suffix {
+  min-width: auto;
+  border-right: none;
+  padding-right: 0;
+  flex-shrink: 0;
+}
+
+.custom-slider-container .custom-days-number-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.custom-slider-container .custom-days-number-input :deep(.v-field) {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.custom-slider-container .custom-days-number-input :deep(input) {
+  color: #4fd1c5;
+  font-weight: 800;
+  font-size: 1.1rem;
 }
 
 .custom-slider-container .ignite-slider {

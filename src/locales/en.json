@@ -13,7 +13,6 @@
     "myChallenges": "My Missions",
     "allChallenges": "Explore",
     "watchedChallenges": "Following",
-    "checklistHistory": "Hero's Journal",
     "today": "Today",
     "language": "Language",
     "streakDays": "days streak",
@@ -68,7 +67,8 @@
       "todaysChallenges": "Daily Missions",
       "needInspiration": "Need inspiration? Explore example missions",
       "emptyMissions": {
-        "text": "Your path is not yet defined. Click <strong>'Start Mission'</strong> to unlock experience treasures!"
+        "text": "Your path is not yet defined. Click <strong>'Start Mission'</strong> to unlock experience treasures!",
+        "launchFirstMission": "Launch First Mission"
       },
       "dailyChecklist": {
         "title": "Daily Steps",
@@ -84,17 +84,6 @@
         "loadError": "Failed to load checklist",
         "saveError": "Failed to save checklist",
         "copyToTomorrow": "Copy to tomorrow"
-      },
-      "checklistHistory": {
-        "title": "Hero's Journal",
-        "subtitle": "The legend is being written. Every step is a part of your story.",
-        "empty": "No checklists found. Start creating your daily checklists!",
-        "launchFirstMission": "Launch First Mission",
-        "loadError": "Failed to load checklist history",
-        "today": "Today",
-        "yesterday": "Yesterday",
-        "noTasks": "No tasks",
-        "mintLegendCard": "Mint Legend Card"
       },
       "completionImage": {
         "title": "🎉 All Done, {name}!",
@@ -482,6 +471,18 @@
     "teamActivityMap": "Team Activity Map",
     "teamLeaders": "Team Leaders",
     "progress": "Progress",
+    "personalPace": "Personal pace",
+    "completedDaysProgress": "Completed {done}/{total} days ({rate}%)",
+    "pace": {
+      "descriptions": {
+        "firstSteps": "Taking first steps",
+        "atPeak": "At the peak",
+        "inTheGame": "In the game",
+        "onTheWay": "On the way",
+        "tookPause": "Took a pause",
+        "needImpulse": "Needs a spark"
+      }
+    },
     "about": "About",
     "giveUp": "Give up",
     "joinMission": "Join Mission",
@@ -500,6 +501,7 @@
       "finished": "finished {mission}",
       "commented": "commented in {mission}"
     },
+    "calendarDayHeroesActive": "Active: {active} of {total} heroes",
     "calendarLegend": {
       "completed": "Completed",
       "missed": "Missed",

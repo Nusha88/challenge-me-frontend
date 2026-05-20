@@ -204,9 +204,9 @@ function goToUserMissions() {
   if (!targetUserId.value) return
   router.push({
     name: 'challenges',
-    query: { 
+    query: {
       createdBy: targetUserId.value,
-      isCompleted: 'true'
+      isCompleted: 'all'
     }
   })
 }

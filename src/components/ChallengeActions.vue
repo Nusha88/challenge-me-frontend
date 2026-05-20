@@ -45,21 +45,20 @@
                   v-if="readonly || !editingActions[index]"
                   class="text-display"
                   :class="{ 'strikethrough': action.checked, 'non-clickable-text': readonly || simplifiedView }"
-                  @click="!readonly && startEditingAction(index)"
+                  @mousedown.prevent="!readonly && !simplifiedView && startEditingAction(index)"
                 >
                   {{ action.text || t('challenges.actionPlaceholder') }}
                 </div>
                 <v-text-field
                   v-else
+                  :ref="el => setActionInputRef(index, el)"
                   v-model="action.text"
                   variant="plain"
                   density="compact"
                   hide-details
                   class="text-input-tactical"
-                  autofocus
                   @blur="stopEditingAction(index)"
-                  @keydown.enter.prevent
-  @keydown.enter.stop
+                  @keydown.enter.prevent="stopEditingAction(index)"
                 ></v-text-field>
               </div>
 
@@ -91,21 +90,23 @@
               </v-icon>
             </div>
             
-            <div class="child-text flex-grow-1" @click="!readonly && startEditingChildAction(index, childIndex)">
+            <div
+              class="child-text flex-grow-1"
+              @mousedown.prevent="!readonly && startEditingChildAction(index, childIndex)"
+            >
               <span v-if="!editingChildActions[`${index}-${childIndex}`]" :class="{ 'strikethrough': child.checked }">
                 {{ child.text || '...' }}
               </span>
-              <v-text-field 
-                v-else 
-                v-model="child.text" 
-                variant="plain" 
-                density="compact" 
-                hide-details 
-                class="text-input-child" 
-                autofocus
+              <v-text-field
+                v-else
+                :ref="el => setChildActionInputRef(index, childIndex, el)"
+                v-model="child.text"
+                variant="plain"
+                density="compact"
+                hide-details
+                class="text-input-child"
                 @blur="stopEditingChildAction(index, childIndex)"
-                @keydown.enter.prevent
-  @keydown.enter.stop
+                @keydown.enter.prevent="stopEditingChildAction(index, childIndex)"
               ></v-text-field>
             </div>
             
@@ -306,6 +307,9 @@ const { t } = useI18n()
 
 const editingActions = ref({})
 const editingChildActions = ref({})
+const actionInputRefs = {}
+const childActionInputRefs = {}
+let editingBlurGuard = false
 
 // Инициализация локального состояния
 const localActions = ref(
@@ -349,7 +353,8 @@ function removeAction(index) {
 function addChildAction(parentIndex) {
   if (!localActions.value[parentIndex].children) localActions.value[parentIndex].children = []
   localActions.value[parentIndex].children.push({ text: '', checked: false })
-  editingChildActions.value[`${parentIndex}-${localActions.value[parentIndex].children.length - 1}`] = true
+  const childIdx = localActions.value[parentIndex].children.length - 1
+  startEditingChildAction(parentIndex, childIdx)
 }
 
 function removeChildAction(pIdx, cIdx) {
@@ -369,8 +374,51 @@ function updateChildActionChecked(pIdx, cIdx, value) {
   localActions.value[pIdx].checked = allChecked
 }
 
-const startEditingAction = (i) => editingActions.value[i] = true
-const stopEditingAction = (i) => editingActions.value[i] = false
-const startEditingChildAction = (p, c) => editingChildActions.value[`${p}-${c}`] = true
-const stopEditingChildAction = (p, c) => editingChildActions.value[`${p}-${c}`] = false
+function setActionInputRef(index, el) {
+  if (el) actionInputRefs[index] = el
+  else delete actionInputRefs[index]
+}
+
+function setChildActionInputRef(parentIndex, childIndex, el) {
+  const key = `${parentIndex}-${childIndex}`
+  if (el) childActionInputRefs[key] = el
+  else delete childActionInputRefs[key]
+}
+
+function focusTextFieldInput(fieldRef) {
+  const input = fieldRef?.$el?.querySelector('input')
+  input?.focus({ preventScroll: true })
+}
+
+async function startEditingAction(i) {
+  editingActions.value = { ...editingActions.value, [i]: true }
+  editingBlurGuard = true
+  await nextTick()
+  focusTextFieldInput(actionInputRefs[i])
+  requestAnimationFrame(() => {
+    editingBlurGuard = false
+  })
+}
+
+function stopEditingAction(i) {
+  if (editingBlurGuard) return
+  editingActions.value = { ...editingActions.value, [i]: false }
+}
+
+async function startEditingChildAction(p, c) {
+  const key = `${p}-${c}`
+  editingChildActions.value = { ...editingChildActions.value, [key]: true }
+  editingBlurGuard = true
+  await nextTick()
+  focusTextFieldInput(childActionInputRefs[key])
+  requestAnimationFrame(() => {
+    editingBlurGuard = false
+  })
+}
+
+function stopEditingChildAction(p, c) {
+  if (editingBlurGuard) return
+  const key = `${p}-${c}`
+  editingChildActions.value = { ...editingChildActions.value, [key]: false }
+}
 </script>

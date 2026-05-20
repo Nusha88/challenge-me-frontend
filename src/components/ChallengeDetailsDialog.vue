@@ -89,16 +89,34 @@
           <v-window-item value="progress">
             <div class="tab-content-wrapper">
               <template v-if="challenge.challengeType === 'habit'">
-                <div class="d-flex justify-space-between align-center mb-6">
-                  <h3 class="section-title">{{ t('challenges.progress') }}</h3>
-                  <v-chip
-                    v-if="!isFinished"
-                    size="small"
-                    variant="outlined"
-                    color="#4FD1C5"
-                  >
-                    {{ currentDayText }}
-                  </v-chip>
+                <div class="progress-header mb-6">
+                  <div class="progress-header-row d-flex justify-space-between align-center flex-wrap gap-2">
+                    <div v-if="showPersonalPace" class="personal-pace-row">
+                      <span class="personal-pace-label">{{ t('challenges.personalPace') }}:</span>
+                      <div class="personal-pace-main">
+                        <span class="hero-rank-title" :style="{ color: heroRank.color }">{{ heroRank.title }}</span>
+                        <span class="pace-status-group">
+                          <span class="pace-description">{{ paceStatus.description }}</span>
+                          <component
+                            :is="paceStatus.icon"
+                            :size="18"
+                            class="pace-icon"
+                            :style="{ color: heroRank.color }"
+                          />
+                        </span>
+                      </div>
+                    </div>
+                    <h3 v-else class="section-title">{{ t('challenges.progress') }}</h3>
+                    <v-chip
+                      v-if="!isFinished && currentDayText"
+                      size="small"
+                      variant="outlined"
+                      color="#4FD1C5"
+                      class="progress-days-chip flex-shrink-0"
+                    >
+                      {{ currentDayText }}
+                    </v-chip>
+                  </div>
                 </div>
 
                 <div class="calendar-grid">
@@ -107,17 +125,23 @@
                     :key="day.date"
                     class="day-cell"
                     :class="getDayClass(day)"
-                    @click="toggleDay(day)"
+                    :style="getDayCellStyle(day)"
+                    @click="handleDayCellClick(day)"
                   >
-                    <span class="day-number">{{ day.number }}</span>
-                    <span
-                      v-if="showParticipantsProgressInCells && !day.isLocked"
-                      class="day-participants-progress"
+                    <v-tooltip
+                      activator="parent"
+                      location="top"
+                      :disabled="!getDayCellTooltip(day) || (isMobileCalendar && day.isToday)"
+                      :model-value="isMobileCalendar ? openCalendarTooltipDate === day.date : undefined"
+                      :open-on-hover="!isMobileCalendar"
+                      :open-on-click="false"
+                      :close-on-back="isMobileCalendar"
                     >
-                      {{ day.completedParticipantsCount }}/{{ totalParticipantsCount }}
-                    </span>
+                      {{ getDayCellTooltip(day) }}
+                    </v-tooltip>
+                    <span class="day-number">{{ day.number }}</span>
                     <v-icon 
-                      v-if="day.isToday && day.isCompleted" 
+                      v-if="day.isToday && day.isUserCompleted" 
                       size="12" 
                       color="#4CAF50" 
                       class="today-checkmark"
@@ -192,7 +216,7 @@
             </v-row>
 
             <h3 class="section-title mb-3">{{ t('challenges.description') }}</h3>
-            <p class="description-text mb-8">{{ challenge.description }}</p>
+            <div class="description-text mb-8">{{ challenge.description }}</div>
 
             <div
               v-if="!isOwner"
@@ -412,22 +436,25 @@
   cursor: not-allowed;
   opacity: 0.75;
 }
-.day-participants-progress {
-  position: absolute;
-  left: 6px;
-  bottom: 4px;
-  font-size: 9px;
-  line-height: 1;
-  font-weight: 700;
-  opacity: 0.8;
-}
 .day-cell.is-completed {
-  background: rgba(79, 209, 197, 0.1) !important;
-  border-color: #4FD1C5 !important;
-  color: #4FD1C5 !important;
-  box-shadow: inset 0 0 8px rgba(79, 209, 197, 0.2);
+  border: 2px solid #4fffb0 !important;
+  color: #4fffb0 !important;
+  box-shadow:
+    0 0 6px rgba(79, 255, 176, 0.85),
+    0 0 14px rgba(57, 255, 20, 0.45),
+    inset 0 0 8px rgba(79, 255, 176, 0.2);
 }
-.day-cell.is-today {
+
+.day-cell.is-completed.is-today {
+  border-color: #4fffb0 !important;
+  color: #4fffb0 !important;
+  box-shadow:
+    0 0 6px rgba(79, 255, 176, 0.85),
+    0 0 14px rgba(57, 255, 20, 0.45),
+    inset 0 0 8px rgba(79, 255, 176, 0.2);
+}
+
+.day-cell.is-today:not(.is-completed) {
   border-color: #F4A782 !important;
   color: #F4A782 !important;
 }
@@ -567,6 +594,73 @@
   letter-spacing: 1px;
 }
 
+.progress-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding-bottom: 12px;
+}
+
+.progress-header-row {
+  width: 100%;
+}
+
+.personal-pace-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.personal-pace-label {
+  color: rgba(255, 255, 255, 0.55);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.personal-pace-main {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  min-width: 0;
+}
+
+.hero-rank-title {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.pace-status-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pace-description {
+  color: rgba(255, 255, 255, 0.65);
+  font-style: italic;
+  white-space: nowrap;
+}
+
+.pace-icon {
+  flex-shrink: 0;
+  opacity: 0.95;
+}
+
+.progress-days-chip {
+  margin-inline-start: auto;
+}
+
+.description-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.85);
+}
+
 .calendar-legend {
   display: flex;
   flex-wrap: wrap;
@@ -593,22 +687,26 @@
 }
 
 
-.dot.completed, .day-cell.is-completed {
+.dot.completed {
   background: rgba(79, 209, 197, 0.1) !important;
   border: 1px solid #4FD1C5 !important;
   box-shadow: 0 0 8px rgba(79, 209, 197, 0.3);
 }
 
-.dot.missed, .day-cell.is-missed {
+.dot.missed {
   background: rgba(255, 255, 255, 0.02) !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
-.dot.today, .day-cell.is-today {
+.dot.today {
   background: rgba(244, 167, 130, 0.05) !important;
   border: 1px solid #F4A782 !important;
   box-shadow: 0 0 10px rgba(244, 167, 130, 0.4);
-  position: relative;
+}
+
+.day-cell.is-missed:not(.is-completed) {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
 .today-checkmark {
@@ -633,6 +731,47 @@
 }
 
 @media (max-width: 600px) {
+  .challenge-title {
+    font-size: 1.25rem !important;
+    line-height: 1.35;
+  }
+
+  .progress-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .progress-header-row .section-title {
+    width: 100%;
+    margin-bottom: 0;
+  }
+
+  .personal-pace-row {
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .personal-pace-main {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    width: 100%;
+    gap: 6px 8px;
+  }
+
+  .pace-description {
+    white-space: normal;
+  }
+
+  .progress-days-chip {
+    margin-inline-start: 0;
+    align-self: flex-start;
+  }
+
   .modal-footer {
     flex-direction: column;
     align-items: stretch;
@@ -656,15 +795,18 @@
 }
 </style>
 <script setup>
-import {computed, nextTick, onMounted, reactive, ref, watch} from 'vue'
+import {computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
+import { useDisplay } from 'vuetify'
 import {useChallengeType} from '../composables/useChallengeType'
 import {useUserStore} from '../stores/user'
 import ChallengeActions from './ChallengeActions.vue'
 import CommentsComponent from './CommentsComponent.vue'
 import {challengeService} from '../services/api'
 import { fireConfetti } from '../utils/confetti'
+import { getPaceStatus } from '../utils/challengePace'
+import { getLevelFromXp, getLevelInfo } from '../utils/levelSystem'
 import { Trophy } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -769,6 +911,9 @@ const errors = reactive({
 })
 
 const { t, locale } = useI18n()
+const { width: displayWidth } = useDisplay()
+const isMobileCalendar = computed(() => displayWidth.value < 1200)
+const openCalendarTooltipDate = ref(null)
 const { getChallengeTypeLabel } = useChallengeType()
 const router = useRouter()
 // Confetti is provided by a shared helper (fireConfetti)
@@ -960,8 +1105,8 @@ const calendarDays = computed(() => {
   let dayNumber = 1
   while (current <= end) {
     const dateStr = formatDateString(current)
-    const isCompleted = normalizedCompletedDays.includes(dateStr)
     const completedParticipantsCount = getCompletedParticipantsCountForDay(dateStr)
+    const isUserCompleted = normalizedCompletedDays.includes(dateStr)
     const isToday = dateStr === todayStr
     const isLocked = current > today
     const isPast = current < today
@@ -969,17 +1114,24 @@ const calendarDays = computed(() => {
     const diffDaysFromStart = Math.floor((current.getTime() - startForSchedule.getTime()) / (1000 * 60 * 60 * 24))
     const isScheduled =
       props.challenge.frequency !== 'everyOtherDay' ? true : (diffDaysFromStart % 2 === 0)
+
+    const isMissed =
+      !isUserCompleted &&
+      !isLocked &&
+      isPast &&
+      isScheduled &&
+      completedParticipantsCount === 0
     
     days.push({
       date: dateStr,
       number: dayNumber,
-      isCompleted,
+      isUserCompleted,
       completedParticipantsCount,
       isToday,
       isLocked,
       isPast,
       isScheduled,
-      isMissed: !isCompleted && !isLocked && isPast
+      isMissed
     })
     
     current.setDate(current.getDate() + 1)
@@ -989,31 +1141,86 @@ const calendarDays = computed(() => {
   return days
 })
 
-const totalDays = computed(() => {
-  return calendarDays.value.length
+const totalDays = computed(() => calendarDays.value.length)
+
+const daysPassed = computed(() => {
+  return calendarDays.value.filter((day) => day.isScheduled !== false && !day.isLocked).length
 })
+
+const userCompletedCount = computed(() => {
+  return calendarDays.value.filter(
+    (day) => day.isScheduled !== false && !day.isLocked && day.isUserCompleted
+  ).length
+})
+
+const timePassedPercent = computed(() => {
+  if (totalDays.value === 0) return 0
+  return Math.min(100, Math.max(0, Math.round((daysPassed.value / totalDays.value) * 100)))
+})
+
+const completionRatePercent = computed(() => {
+  if (daysPassed.value === 0) return 0
+  return Math.min(100, Math.max(0, Math.round((userCompletedCount.value / daysPassed.value) * 100)))
+})
+
+/** Chip %: completed days out of entire mission length (all calendar days). */
+const overallCompletionPercent = computed(() => {
+  if (totalDays.value === 0) return 0
+  return Math.min(100, Math.max(0, Math.round((userCompletedCount.value / totalDays.value) * 100)))
+})
+
+const userLevel = computed(() => getLevelFromXp(Number(userStore.user?.xp || 0)))
+
+const heroRank = computed(() => {
+  const levelInfo = getLevelInfo(userLevel.value)
+  return {
+    title: t(`profile.ranks.${levelInfo.rankKey}`),
+    color: levelInfo.color
+  }
+})
+
+const paceStatus = computed(() => {
+  if (!props.challenge || props.challenge.challengeType !== 'habit') return null
+  if (!props.challenge.startDate) return null
+
+  const start = new Date(props.challenge.startDate)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  start.setHours(0, 0, 0, 0)
+  if (today < start) return null
+
+  const { key, icon } = getPaceStatus(completionRatePercent.value, timePassedPercent.value)
+  return {
+    key,
+    icon,
+    description: t(`challenges.pace.descriptions.${key}`)
+  }
+})
+
+const showPersonalPace = computed(
+  () => !!paceStatus.value && (props.isOwner || isCurrentUserParticipant.value)
+)
 
 const currentDayText = computed(() => {
   if (!props.challenge || !props.challenge.startDate) return ''
   const start = new Date(props.challenge.startDate)
-    const today = new Date()
+  const today = new Date()
   today.setHours(0, 0, 0, 0)
   start.setHours(0, 0, 0, 0)
-  
-  if (today < start) return t('challenges.notStarted')
-  
-  const diffTime = today - start
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1
-  return `${t('challenges.day')} ${diffDays} ${t('challenges.of')} ${totalDays.value}`
+
+  if (today < start) return ''
+
+  return t('challenges.completedDaysProgress', {
+    done: userCompletedCount.value,
+    total: totalDays.value,
+    rate: overallCompletionPercent.value
+  })
 })
 
 const totalParticipantsCount = computed(() => {
   if (!props.challenge?.participants || !Array.isArray(props.challenge.participants)) return 0
   return props.challenge.participants.length
 })
-
-const showParticipantsProgressInCells = computed(() => totalParticipantsCount.value > 1)
-
 
 const missionStats = computed(() => {
   if (!props.challenge) return []
@@ -1113,9 +1320,33 @@ function getDifficultyZapCount(value) {
   }
 }
 
+function getCellColor(active, total) {
+  if (!total || total <= 0) return null
+  const percent = active / total
+  const opacity = 0.1 + percent * 0.9
+  return `rgba(79, 209, 197, ${opacity})`
+}
+
+function getDayCellStyle(day) {
+  if (day.isLocked || day.isScheduled === false) return undefined
+  const total = totalParticipantsCount.value
+  if (total <= 0) return undefined
+  const bg = getCellColor(day.completedParticipantsCount, total)
+  return bg ? { backgroundColor: bg } : undefined
+}
+
+function getDayCellTooltip(day) {
+  const total = totalParticipantsCount.value
+  if (total <= 0 || day.isScheduled === false) return ''
+  return t('challenges.calendarDayHeroesActive', {
+    active: day.completedParticipantsCount,
+    total
+  })
+}
+
 function getDayClass(day) {
   return {
-    'is-completed': day.isCompleted,
+    'is-completed': day.isUserCompleted,
     'is-missed': day.isMissed,
     'is-today': day.isToday,
     'is-locked': day.isLocked,
@@ -1153,6 +1384,36 @@ function getCompletedParticipantsCountForDay(dateStr) {
 
     return normalizedDays.includes(dateStr) ? count + 1 : count
   }, 0)
+}
+
+function closeCalendarTooltip() {
+  openCalendarTooltipDate.value = null
+}
+
+function handleDayCellClick(day) {
+  if (isMobileCalendar.value) {
+    if (day.isToday) {
+      closeCalendarTooltip()
+      toggleDay(day)
+      return
+    }
+    if (!getDayCellTooltip(day)) {
+      closeCalendarTooltip()
+      return
+    }
+    openCalendarTooltipDate.value =
+      openCalendarTooltipDate.value === day.date ? null : day.date
+    return
+  }
+  toggleDay(day)
+}
+
+function onCalendarOutsideClick(event) {
+  if (!isMobileCalendar.value || !openCalendarTooltipDate.value) return
+  if (event.target instanceof Element && event.target.closest('.calendar-grid .day-cell')) {
+    return
+  }
+  closeCalendarTooltip()
 }
 
 async function toggleDay(day) {
@@ -1335,6 +1596,11 @@ function calculateEndDateFromDuration(startDate, duration) {
 
 onMounted(() => {
   loadWatchedChallenges()
+  document.addEventListener('click', onCalendarOutsideClick, true)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', onCalendarOutsideClick, true)
 })
 
 const syncLocalCompletedDays = (value, oldValue) => {
@@ -1544,6 +1810,7 @@ function clearErrors() {
 }
 
 function handleVisibility(value) {
+  if (!value) closeCalendarTooltip()
   emit('update:modelValue', value)
 }
 

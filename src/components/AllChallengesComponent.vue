@@ -8,40 +8,42 @@
   <div class="text-overline text-teal-accent-4 tracking-widest ml-13">{{ t('allChallenges.subtitle') }}</div>
   <p class="journal-subtitle-dark mt-2">{{ t('allChallenges.description') }}</p>
 </div>
-<v-progress-linear
-      v-if="loadingMainRitual"
-      indeterminate
-      color="teal-accent-4"
-      height="4"
-      class="mb-6 shadow-neon-line"
-    ></v-progress-linear>
-    <!-- Main Ritual Card with Skeleton -->
-    <div v-if="loadingMainRitual" class="main-ritual-loading-wrapper mb-8">
-  <v-card class="skeleton-card-dark rounded-xl overflow-hidden">
-      <v-skeleton-loader
-      type="image, list-item-two-line, actions"
-        class="main-ritual-skeleton-loader"
-      theme="dark"
-      ></v-skeleton-loader>
-  </v-card>
-    </div>
-    <MainRitualCard
-      v-else-if="mainRitual"
-      :challenge="mainRitual"
-      :current-user-id="currentUserId"
-      :joining="joiningId === mainRitual._id"
-      @join="joinChallenge"
-      @click="openDetails"
-    />
+<template v-if="showMainRitual">
+      <v-progress-linear
+        v-if="loadingMainRitual"
+        indeterminate
+        color="teal-accent-4"
+        height="4"
+        class="mb-6 shadow-neon-line"
+      ></v-progress-linear>
+      <!-- Main Ritual Card with Skeleton -->
+      <div v-if="loadingMainRitual" class="main-ritual-loading-wrapper mb-8">
+        <v-card class="skeleton-card-dark rounded-xl overflow-hidden">
+          <v-skeleton-loader
+            type="image, list-item-two-line, actions"
+            class="main-ritual-skeleton-loader"
+            theme="dark"
+          ></v-skeleton-loader>
+        </v-card>
+      </div>
+      <MainRitualCard
+        v-else-if="mainRitual"
+        :challenge="mainRitual"
+        :current-user-id="currentUserId"
+        :joining="joiningId === mainRitual._id"
+        @join="joinChallenge"
+        @click="openDetails"
+      />
+    </template>
 
     <FilterPanel v-model="filters" @search="handleFilterSearch" />
 
     <div class="content-section">
-      <div v-if="loading" class="challenges-grid-skeleton">
+      <div v-if="loading" class="challenges-grid challenges-grid-skeleton">
   <v-card
     v-for="n in 6"
     :key="n"
-    class="skeleton-card-dark rounded-xl overflow-hidden mb-6"
+    class="skeleton-card-dark rounded-xl overflow-hidden"
     variant="flat"
   >
     <v-skeleton-loader
@@ -169,7 +171,7 @@ const filters = ref({
   owner: null,
   popularity: null,
   showUpcoming: true, // Default to showing upcoming challenges
-  isCompleted: false // Default to hiding completed challenges
+  isCompleted: false // false = hide completed, true = only completed, 'all' = both
 })
 
 // Challenges are already filtered by the backend, so use them directly
@@ -177,8 +179,12 @@ const filteredChallenges = computed(() => {
   return challenges.value
 })
 
+// Hide featured ritual when viewing a specific user's missions (e.g. from profile)
+const showMainRitual = computed(() => !filters.value.owner)
+
 // Find the main ritual (most popular habit challenge)
 const mainRitual = computed(() => {
+  if (!showMainRitual.value) return null
   // Use allHabitChallenges which contains all habit challenges, not just paginated ones
   if (allHabitChallenges.value.length === 0) return null
   
@@ -447,8 +453,9 @@ async function joinChallenge(challenge) {
     // Refresh challenges list (keep current page)
     await fetchChallenges(currentPage.value, false)
     
-    // Refresh all habit challenges to update main ritual
-    await fetchAllHabitChallenges()
+    if (showMainRitual.value) {
+      await fetchAllHabitChallenges()
+    }
     
     // Refresh the selected challenge if dialog is open
     if (selectedChallenge.value?._id === challenge._id) {
@@ -521,14 +528,15 @@ async function fetchChallenges(page = 1, append = false) {
       page,
       limit: 20,
       ...(filters.value.title && { title: filters.value.title }),
-      ...(filters.value.type && { type: filters.value.type }),
+      ...(filters.value.type && filters.value.type !== 'all' && { type: filters.value.type }),
       ...(filters.value.owner && { owner: filters.value.owner }),
       ...(filters.value.popularity && { popularity: filters.value.popularity }),
-      // Send isCompleted as string 'true' when filter is enabled, 'false' when disabled
-      // Backend expects: 'true' = show completed, 'false' = hide completed, undefined = default (hide)
-      ...(filters.value.isCompleted !== undefined && { 
-        isCompleted: filters.value.isCompleted ? 'true' : 'false' 
-      })
+      // Backend: 'true' = only completed, 'false' = hide completed, 'all' = active + completed
+      ...(filters.value.isCompleted === 'all'
+        ? { isCompleted: 'all' }
+        : filters.value.isCompleted !== undefined && {
+            isCompleted: filters.value.isCompleted ? 'true' : 'false'
+          })
     }
     
     const { data } = await challengeService.getAllChallenges(filterParams)
@@ -762,7 +770,9 @@ const syncFiltersFromUrl = () => {
   }
   
   // Sync isCompleted filter
-  if (query.isCompleted !== undefined) {
+  if (query.isCompleted === 'all') {
+    filters.value.isCompleted = 'all'
+  } else if (query.isCompleted !== undefined) {
     filters.value.isCompleted = query.isCompleted === 'true'
   } else {
     filters.value.isCompleted = false
@@ -810,7 +820,9 @@ const syncFiltersToUrl = () => {
     delete query.owner
   }
   
-  if (filters.value.isCompleted === true) {
+  if (filters.value.isCompleted === 'all') {
+    query.isCompleted = 'all'
+  } else if (filters.value.isCompleted === true) {
     query.isCompleted = 'true'
   } else {
     delete query.isCompleted
@@ -861,10 +873,16 @@ watch(() => filters.value.type, () => {
   }
 })
 
-watch(() => filters.value.owner, () => {
+watch(() => filters.value.owner, (owner) => {
+  if (!owner && showMainRitual.value) {
+    fetchAllHabitChallenges()
+  } else if (owner) {
+    allHabitChallenges.value = []
+    loadingMainRitual.value = false
+  }
   if (!isSyncingFromUrl.value) {
     syncFiltersToUrl()
-  fetchChallenges(1, false)
+    fetchChallenges(1, false)
   }
 })
 
@@ -933,8 +951,9 @@ onMounted(async () => {
   await nextTick()
   isSyncingFromUrl.value = false
   
-  // Fetch all habit challenges first to determine main ritual
-  await fetchAllHabitChallenges()
+  if (showMainRitual.value) {
+    await fetchAllHabitChallenges()
+  }
   await fetchChallenges(1, false)
   loadWatchedChallenges()
   window.addEventListener('scroll', handleScroll)
@@ -1079,7 +1098,8 @@ function handleOwnerNavigated() {
     padding: 12px;
   }
   
-  .challenges-grid {
+  .challenges-grid,
+  .challenges-grid-skeleton {
     grid-template-columns: 1fr; /* На мобильных строго в одну колонку */
     gap: 16px;
   }
@@ -1088,7 +1108,8 @@ function handleOwnerNavigated() {
 
 /* Планшеты */
 @media (min-width: 601px) and (max-width: 1024px) {
-  .challenges-grid {
+  .challenges-grid,
+  .challenges-grid-skeleton {
     grid-template-columns: repeat(2, 1fr);
   }
 }
@@ -1133,12 +1154,7 @@ function handleOwnerNavigated() {
 .main-ritual-skeleton-loader {
   border-radius: 20px;
   }
-  /* Контейнер сетки (используй те же настройки, что и для реальной сетки) */
-.challenges-grid-skeleton {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 24px;
-}
+/* Skeleton uses .challenges-grid for column count; only card styling below */
 
 /* Темная подложка карточки */
 .skeleton-card-dark {
@@ -1183,13 +1199,6 @@ function handleOwnerNavigated() {
   height: 8px !important; /* Имитация тонкого прогресс-бара */
 }
 
-/* Адаптация под мобилки */
-@media (max-width: 480px) {
-  .challenges-grid-skeleton {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-}
 .shadow-neon-line {
   box-shadow: 0 0 10px rgba(79, 209, 197, 0.5);
   border-radius: 4px;

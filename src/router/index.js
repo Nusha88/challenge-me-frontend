@@ -90,11 +90,6 @@ const router = createRouter({
       component: AllChallengesComponent
     },
     {
-      path: '/checklists/history',
-      name: 'checklists-history',
-      component: () => import('../components/DailyChecklistsHistory.vue')
-    },
-    {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: NotFoundPage
