@@ -80,7 +80,7 @@
       <v-tabs v-model="tab" grow class="custom-tabs">
         <v-tab value="progress">{{ t('challenges.progress') }}</v-tab>
         <v-tab value="details">{{ t('challenges.about') }}</v-tab>
-        <v-tab value="community">{{ t('challenges.diary.title') }}</v-tab>
+        <v-tab v-if="challenge.allowComments" value="community">{{ t('challenges.diary.title') }}</v-tab>
       </v-tabs>
 
       <v-card-text class="pa-0 modal-body-bg">
@@ -148,9 +148,9 @@
                 <ChallengeActions
                   v-model="actionsViewModel"
                   :readonly="!isOwner"
-                  :hide-add-button="true"
+                  :hide-add-button="false"
                   :simplified-view="!isOwner"
-                  :hide-item-controls="true"
+                  :hide-item-controls="false"
                 />
               </template>
             </div>
@@ -954,6 +954,9 @@ const calendarDays = computed(() => {
     return dateStr.substring(0, 10)
   }).filter(Boolean)
   
+  const startForSchedule = new Date(start)
+  startForSchedule.setHours(0, 0, 0, 0)
+
   let dayNumber = 1
   while (current <= end) {
     const dateStr = formatDateString(current)
@@ -962,6 +965,10 @@ const calendarDays = computed(() => {
     const isToday = dateStr === todayStr
     const isLocked = current > today
     const isPast = current < today
+
+    const diffDaysFromStart = Math.floor((current.getTime() - startForSchedule.getTime()) / (1000 * 60 * 60 * 24))
+    const isScheduled =
+      props.challenge.frequency !== 'everyOtherDay' ? true : (diffDaysFromStart % 2 === 0)
     
     days.push({
       date: dateStr,
@@ -971,6 +978,7 @@ const calendarDays = computed(() => {
       isToday,
       isLocked,
       isPast,
+      isScheduled,
       isMissed: !isCompleted && !isLocked && isPast
     })
     
@@ -1111,7 +1119,7 @@ function getDayClass(day) {
     'is-missed': day.isMissed,
     'is-today': day.isToday,
     'is-locked': day.isLocked,
-    'is-disabled': isFinished.value || !day.isToday || !isCurrentUserParticipant.value
+    'is-disabled': isFinished.value || !day.isToday || !isCurrentUserParticipant.value || day.isScheduled === false
   }
 }
 
@@ -1148,7 +1156,7 @@ function getCompletedParticipantsCountForDay(dateStr) {
 }
 
 async function toggleDay(day) {
-  if (isFinished.value || !day.isToday || !isCurrentUserParticipant.value) return
+  if (isFinished.value || !day.isToday || !isCurrentUserParticipant.value || day.isScheduled === false) return
   
   const completedDays = localCurrentUserCompletedDays.value.length > 0 
     ? [...localCurrentUserCompletedDays.value]
@@ -1583,6 +1591,7 @@ async function handleOwnerActionsSave() {
       userStore.updateUser(response.data.user)
       window.dispatchEvent(new Event('auth-changed'))
     }
+    window.dispatchEvent(new Event('checklist-updated'))
     setTimeout(fireConfetti, 300)
     emit('update')
     handleVisibility(false) 

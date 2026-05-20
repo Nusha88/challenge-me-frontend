@@ -174,8 +174,9 @@ export const challengeService = {
     return api.put(`/challenges/${id}`, payload)
   },
   updateChallengeActions: (id, actions) => {
-    console.warn(actions)
-    return api.patch(`/challenges/${id}/actions`, { actions })
+    return api.patch(`/challenges/${id}/actions`, { actions }, {
+      headers: userService._clientDayHeaders()
+    })
   },
   deleteChallenge: (id) => {
     return api.delete(`/challenges/${id}`)

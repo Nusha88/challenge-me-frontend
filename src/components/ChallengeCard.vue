@@ -59,12 +59,25 @@
         <span class="streak-val">{{ streakDays }} {{ t('missions.dayStreak') }}</span>
       </div>
       
-      <div v-else class="ignite-trigger" @click.stop="completeDay">
+      <div
+        v-else-if="isTodayScheduled"
+        class="ignite-trigger"
+        @click.stop="completeDay"
+      >
         <div class="ignite-pill">
           <span class="flame-icon-wrapper">
-          <Flame :size="16" color="#00CED1" />
-        </span>
+            <Flame :size="16" color="#00CED1" />
+          </span>
           <span class="ignite-text">{{ t('challenges.clickToIgnite') }}</span>
+        </div>
+      </div>
+
+      <div v-else class="ignite-trigger is-disabled" @click.stop>
+        <div class="ignite-pill is-disabled">
+          <span class="flame-icon-wrapper">
+            <Flame :size="16" color="rgba(255,255,255,0.35)" />
+          </span>
+          <span class="ignite-text is-visible">{{ t('challenges.calendarLegend.unavailable') }}</span>
         </div>
       </div>
     </div>
@@ -206,6 +219,12 @@
 }
 
 /* Ignite Логика */
+.ignite-trigger {
+  display: inline-flex;
+  width: fit-content;
+  cursor: pointer;
+}
+
 .ignite-pill {
   display: inline-flex;
   align-items: center;
@@ -214,6 +233,23 @@
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.05);
   transition: all 0.3s ease;
+}
+
+.ignite-trigger.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.ignite-pill.is-disabled {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.ignite-text.is-visible {
+  max-width: 140px;
+  opacity: 1;
+  margin-left: 8px;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 
@@ -256,6 +292,7 @@
 /* Стрик */
 .streak-active {
   display: flex;
+  width: fit-content;
   align-items: center;
   color: #00CED1;
   font-size: 11px;
@@ -348,6 +385,7 @@
   background: rgba(255, 255, 255, 0.02);
   border-radius: 10px;
   border: 1px dashed rgba(255, 255, 255, 0.1);
+  display: flex;
 }
 
 .participant-stats {
@@ -356,8 +394,9 @@
   color: rgba(255, 255, 255, 0.6);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  width: fit-content;
 }
 
 .join-prompt {
@@ -653,6 +692,22 @@ const isTodayCompleted = computed(() => {
   return (participant?.completedDays || []).some(d => normalizeDate(d) === todayStr)
 })
 
+const isTodayScheduled = computed(() => {
+  if (props.challenge.challengeType !== 'habit') return false
+  if (props.challenge.frequency !== 'everyOtherDay') return true
+  if (!props.challenge.startDate) return true
+
+  const start = new Date(props.challenge.startDate)
+  const today = new Date()
+  start.setHours(0, 0, 0, 0)
+  today.setHours(0, 0, 0, 0)
+
+  const diffDays = Math.floor((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+  // If challenge hasn't started yet, treat as not scheduled for today
+  if (diffDays < 0) return false
+  return diffDays % 2 === 0
+})
+
 // Определяем, чей прогресс нам нужно отображать
 const targetParticipant = computed(() => {
   if (!props.challenge.participants) return null;
@@ -753,7 +808,7 @@ const efficiencyPercentage = computed(() => {
 // --- ACTIONS ---
 
 async function completeDay() {
-  if (props.challenge.challengeType !== 'habit' || !props.currentUserId || isTodayCompleted.value) return
+  if (props.challenge.challengeType !== 'habit' || !props.currentUserId || isTodayCompleted.value || !isTodayScheduled.value) return
   
   const todayStr = formatDateString(new Date())
   const participant = props.challenge.participants.find(p => {

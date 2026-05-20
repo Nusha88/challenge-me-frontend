@@ -129,6 +129,7 @@
   },
   "common": {
     "unknown": "Unknown",
+    "today": "Today",
     "ok": "OK",
     "close": "Close",
     "cancel": "Cancel",
@@ -659,6 +660,10 @@
     "daysAgo": "{count} day ago | {count} days ago",
     "mentionedInComment": "mentioned you in a comment on {mission}",
     "newComment": "commented on {mission}",
+    "pushCommentTitle": "New Comment",
+    "pushCommentBody": "{fromName} commented on your challenge \"{missionTitle}\"",
+    "pushReplyTitle": "New Reply",
+    "pushReplyBody": "{fromName} replied to your comment on \"{missionTitle}\"",
     "userJoinedChallenge": "joined {mission}",
     "userWatchingChallenge": "started following {mission}",
     "challenge": "a mission",
