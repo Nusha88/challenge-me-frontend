@@ -1,0 +1,22 @@
+/* Shared Vuetify date picker (dark mission theme) */
+
+.v-date-picker {
+  background: #1A1A2E !important;
+  color: white !important;
+  border-radius: 24px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.v-date-picker .v-date-picker-month__day--selected .v-btn {
+  background: #7048E8 !important;
+  color: white !important;
+  box-shadow: 0 0 10px rgba(112, 72, 232, 0.5);
+}
+
+.v-date-picker .v-date-picker-controls .v-btn {
+  color: #4FD1C5 !important;
+}
+
+.v-date-picker .v-date-picker-header__title {
+  color: white !important;
+}

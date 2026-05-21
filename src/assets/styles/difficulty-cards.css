@@ -1,0 +1,115 @@
+/* Shared difficulty selection cards */
+
+.diff-cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.diff-option {
+  display: flex;
+  align-items: center;
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.diff-option .diff-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16px;
+  transition: 0.3s;
+}
+
+.diff-option .diff-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.diff-option .diff-content .diff-name {
+  text-transform: uppercase;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: white;
+}
+
+.diff-option .diff-content .diff-xp {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8rem;
+}
+
+.diff-option .check-icon {
+  margin-left: auto;
+  opacity: 0;
+  transition: 0.3s;
+  color: inherit;
+}
+
+.diff-option.active {
+  transform: translateX(8px);
+  background: white;
+}
+
+.diff-option.active .check-icon {
+  opacity: 1;
+}
+
+.diff-option.active.easy {
+  border-color: #4CAF50;
+  background: rgba(76, 175, 80, 0.1);
+}
+
+.diff-option.active.easy .diff-icon {
+  background: #e8f5e9;
+  color: #4caf50;
+}
+
+.diff-option.active.easy .diff-name,
+.diff-option.active.easy .diff-xp {
+  color: #4caf50;
+}
+
+.diff-option.active.normal {
+  border-color: #2196F3;
+  background: rgba(33, 150, 243, 0.1);
+}
+
+.diff-option.active.normal .diff-icon {
+  background: #f3e5f5;
+  color: #7e46c4;
+}
+
+.diff-option.active.normal .diff-name,
+.diff-option.active.normal .diff-xp {
+  color: #7e46c4;
+}
+
+.diff-option.active.heroic {
+  border-color: #4FD1C5;
+  background: rgba(79, 209, 197, 0.1);
+  animation: diff-shake 0.5s ease-in-out;
+}
+
+.diff-option.active.heroic .diff-icon {
+  background: #ffebee;
+  color: #ff5252;
+}
+
+.diff-option.active.heroic .diff-name,
+.diff-option.active.heroic .diff-xp {
+  color: #ff5252;
+}
+
+@keyframes diff-shake {
+  0%, 100% { transform: translateX(8px); }
+  25% { transform: translateX(12px); }
+  75% { transform: translateX(4px); }
+}

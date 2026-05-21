@@ -363,7 +363,13 @@
     "typeResultLabel": "КВЕСТ",
     "typeResultDescription": "Покори важную веху. Определи четкую цель и достигни финишной черты.",
     "validation": {
-      "titleRequired": "Название обязательно"
+      "titleRequired": "Название обязательно",
+      "startOptionRequired": "Вариант начала обязателен",
+      "durationRequired": "Длительность обязательна",
+      "customDurationRequired": "Пожалуйста, введите количество дней",
+      "frequencyRequired": "Частота обязательна",
+      "endDateRequired": "Финальный дедлайн обязателен",
+      "milestoneRequired": "Добавьте хотя бы один этап"
     },
     "start": "Начало",
     "startOptions": {
