@@ -364,6 +364,7 @@
     "typeResultDescription": "Покори важную веху. Определи четкую цель и достигни финишной черты.",
     "validation": {
       "titleRequired": "Название обязательно",
+      "descriptionRequired": "Описание обязательно",
       "startOptionRequired": "Вариант начала обязателен",
       "durationRequired": "Длительность обязательна",
       "customDurationRequired": "Пожалуйста, введите количество дней",

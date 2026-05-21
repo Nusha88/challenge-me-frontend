@@ -806,6 +806,7 @@ import CommentsComponent from './CommentsComponent.vue'
 import {challengeService} from '../services/api'
 import { fireConfetti } from '../utils/confetti'
 import { getPaceStatus } from '../utils/challengePace'
+import { isChallengeFinished } from '../utils/challengeStatus'
 import { getLevelFromXp, getLevelInfo } from '../utils/levelSystem'
 import { Trophy } from 'lucide-vue-next'
 
@@ -969,43 +970,15 @@ const progressDone = computed(() => {
 })
 
 const isFinished = computed(() => {
-  if (!props.challenge) return false
-  
-  const endDate = props.isOwner ? editForm.endDate : props.challenge.endDate
-  if (endDate) {
-    try {
-      const end = new Date(endDate)
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      end.setHours(0, 0, 0, 0)
-      if (end < today) {
-        return true
-      }
-    } catch {
-      
-    }
+  if (!props.challenge) {
+    return false
   }
-  
-  if (props.challenge.challengeType === 'result') {
-    const actions = props.isOwner ? editForm.actions : (props.challenge.actions || [])
-    if (!actions || !Array.isArray(actions) || actions.length === 0) {
-      return false
-    }
-    
-    const allActionsDone = actions.every(action => {
-      if (!action.checked) return false
-      if (action.children && Array.isArray(action.children) && action.children.length > 0) {
-        return action.children.every(child => child.checked)
-      }
-      return true
-    })
-    
-    if (allActionsDone) {
-      return true
-    }
-  }
-  
-  return false
+
+  return isChallengeFinished({
+    challengeType: props.challenge.challengeType,
+    endDate: props.isOwner ? editForm.endDate : props.challenge.endDate,
+    actions: props.isOwner ? editForm.actions : props.challenge.actions
+  })
 })
 
 const progressTotal = computed(() => {

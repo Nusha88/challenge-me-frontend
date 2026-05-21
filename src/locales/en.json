@@ -364,6 +364,7 @@
     "typeResultDescription": "Conquer a major milestone. Define a clear objective and reach the finish line.",
     "validation": {
       "titleRequired": "Title is required",
+      "descriptionRequired": "Description is required",
       "startOptionRequired": "Start option is required",
       "durationRequired": "Duration is required",
       "customDurationRequired": "Please enter the number of days",

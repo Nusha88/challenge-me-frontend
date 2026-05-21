@@ -150,6 +150,18 @@
   font-weight: 700;
 }
 
+.tactical-counter .count-done {
+  color: #4FD1C5 !important;
+}
+
+.tactical-counter .count-total {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.tactical-counter .count-separator {
+  color: rgba(255, 255, 255, 0.35) !important;
+}
+
 /* Основная карточка */
 .tactical-action-item {
   background: rgba(30, 41, 59, 0.4) !important;

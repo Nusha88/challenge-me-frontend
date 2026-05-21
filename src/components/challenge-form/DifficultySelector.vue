@@ -1,12 +1,12 @@
 <template>
-  <div class="difficulty-section">
+  <div class="difficulty-section" :class="{ 'difficulty-section--disabled': disabled }">
     <p class="field-label mb-4">{{ t('challenges.difficultyTitle') }}</p>
 
     <div class="diff-cards-container">
       <div
         class="diff-option easy"
         :class="{ active: difficulty === 'easy' }"
-        @click="difficulty = 'easy'"
+        @click="!disabled && (difficulty = 'easy')"
       >
         <div class="diff-icon">
           <v-icon>mdi-leaf</v-icon>
@@ -21,7 +21,7 @@
       <div
         class="diff-option normal"
         :class="{ active: difficulty === 'medium' }"
-        @click="difficulty = 'medium'"
+        @click="!disabled && (difficulty = 'medium')"
       >
         <div class="diff-icon">
           <v-icon>mdi-sword</v-icon>
@@ -36,7 +36,7 @@
       <div
         class="diff-option heroic"
         :class="{ active: difficulty === 'heroic' }"
-        @click="difficulty = 'heroic'"
+        @click="!disabled && (difficulty = 'heroic')"
       >
         <div class="diff-icon">
           <v-icon>mdi-fire</v-icon>
@@ -54,7 +54,18 @@
 <script setup>
 import { useI18n } from 'vue-i18n'
 
+defineProps({
+  disabled: { type: Boolean, default: false }
+})
+
 const difficulty = defineModel('difficulty', { type: String, default: 'medium' })
 
 const { t } = useI18n()
 </script>
+
+<style scoped>
+.difficulty-section--disabled {
+  opacity: 0.65;
+  pointer-events: none;
+}
+</style>

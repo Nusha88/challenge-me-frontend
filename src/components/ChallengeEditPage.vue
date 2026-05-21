@@ -1,5 +1,5 @@
 <template>
-  <div class="challenge-edit-page dark-mission-theme">
+  <div class="challenge-edit-page mission-form dark-mission-theme">
     <v-container>
       <div class="mission-header-panel mb-6">
         <div class="d-flex align-center gap-3 w-100">
@@ -45,7 +45,16 @@
 
       <v-progress-linear v-if="loading" indeterminate color="#4FD1C5" class="mb-4 rounded-pill"></v-progress-linear>
 
-      <v-card v-if="challenge && !loading" class="main-tactical-card pa-1">
+      <v-alert
+        v-if="errorMessage"
+        type="error"
+        variant="tonal"
+        class="mb-4 rounded-xl custom-alert"
+      >
+        {{ errorMessage }}
+      </v-alert>
+
+      <v-card v-if="challenge && !loading && !errorMessage" class="main-tactical-card pa-1">
         <v-card-text class="pa-6">
           <v-form @submit.prevent="handleSubmit">
 
@@ -59,7 +68,7 @@
                   @click="showStartDatePicker = true"
                 >
                   <v-icon size="18" class="mr-2">mdi-calendar-month-outline</v-icon>
-                  <span>{{ formatDisplayDate(editForm.startDate) }}</span>
+                  <span>{{ formatDateForLocale(editForm.startDate, locale) }}</span>
                 </v-btn>
 
                 <v-dialog v-model="showStartDatePicker" max-width="400">
@@ -72,7 +81,10 @@
               <div class="date-divider">
                 <v-icon color="rgba(255,255,255,0.1)">mdi-arrow-right-thin</v-icon>
               </div>
-              <div class="date-info-box date-info-box--editable">
+              <div
+                v-if="challenge.challengeType === 'habit'"
+                class="date-info-box date-info-box--editable"
+              >
                 <span class="label mb-3">{{ t('challenges.endDate') }}</span>
                 <v-btn
                   variant="outlined"
@@ -81,7 +93,7 @@
                   @click="showEndDatePicker = true"
                 >
                   <v-icon size="18" class="mr-2">mdi-calendar-month-outline</v-icon>
-                  <span>{{ formatDisplayDate(editForm.endDate) }}</span>
+                  <span>{{ formatDateForLocale(editForm.endDate, locale) }}</span>
                 </v-btn>
 
                 <v-dialog v-model="showEndDatePicker" max-width="400">
@@ -92,73 +104,62 @@
                   ></v-date-picker>
                 </v-dialog>
               </div>
-            </div>
-
-            <div class="image-upload-wrapper mb-8">
-              <ChallengeImageUpload v-model="editForm.imageUrl" :editable="!isDisabled" />
-            </div>
-
-            <div class="mission-description-block mb-8">
-              <div class="section-tag mb-2">{{ t('challenges.description') }}</div>
-              <div
-                v-if="!isEditingDescription"
-                class="description-display-box"
-                :class="{ 'is-empty': !editForm.description }"
-                @click="!isDisabled && startEditingDescription()"
-              >
-                {{ editForm.description || t('challenges.descriptionPlaceholder') }}
-                <v-icon class="edit-corner-icon">mdi-plus-circle-outline</v-icon>
-              </div>
-              <v-textarea
+              <MissionDeadlinePicker
                 v-else
-                ref="descriptionTextarea"
-                v-model="editForm.description"
-                variant="outlined"
-                color="#4FD1C5"
-                class="description-input-active"
-                auto-grow
-                autofocus
-                @blur="isEditingDescription = false"
-              ></v-textarea>
+                v-model:end-date="editForm.endDate"
+                variant="tactical"
+                class="date-info-box date-info-box--editable flex-grow-1"
+                :min="editForm.startDate || undefined"
+                :disabled="isDisabled"
+              />
             </div>
+
+            <ChallengeBaseFields
+              v-model:title="editForm.title"
+              v-model:description="editForm.description"
+              v-model:image-url="editForm.imageUrl"
+              :challenge-type="challenge.challengeType"
+              :title-error="errors.title"
+              :description-error="errors.description"
+              hide-title
+              editable
+              compact
+              :show-image-toggle="false"
+              :disabled="isDisabled"
+            />
 
             <div class="settings-tactical-grid mb-8">
               <div class="setting-item">
-                <span class="setting-label">{{ t('challenges.privacy') }}</span>
-                  <v-select
-                    v-model="editForm.privacy"
-                    :items="privacyOptions"
-                  variant="plain"
-                  class="tactical-select"
-                  hide-details
+                <PrivacySelector
+                  v-model:privacy="editForm.privacy"
+                  variant="compact"
+                  :disabled="isDisabled"
                   :menu-props="tacticalSelectMenuProps"
-                  ></v-select>
-                </div>
+                />
+              </div>
 
               <div v-if="challenge.challengeType === 'habit'" class="setting-item">
                 <span class="setting-label">{{ t('challenges.frequency') }}</span>
-                  <v-select
-                    v-model="editForm.frequency"
-                    :items="frequencyOptions"
+                <v-select
+                  v-model="editForm.frequency"
+                  :items="frequencyOptions"
                   variant="plain"
                   class="tactical-select"
                   hide-details
+                  :disabled="isDisabled"
                   :menu-props="tacticalSelectMenuProps"
-                  ></v-select>
+                ></v-select>
               </div>
+            </div>
 
-              <div class="setting-item">
-                <span class="setting-label">{{ t('challenges.duration') }}</span>
-                  <v-select
-                    v-model="editForm.duration"
-                    :items="durationOptions"
-                  variant="plain"
-                  class="tactical-select"
-                  hide-details
-                  :menu-props="tacticalSelectMenuProps"
-                  ></v-select>
-                </div>
-              </div>
+            <DurationSelector
+              v-if="challenge.challengeType === 'habit'"
+              v-model:duration="editForm.duration"
+              v-model:custom-duration="editForm.customDuration"
+              :duration-error="errors.duration"
+              :disabled="isDisabled"
+              class="mb-8"
+            />
 
             <div v-if="challenge.challengeType === 'result'" class="actions-plan-section mb-8">
               <div class="section-tag mb-4">{{ t('challenges.actionsPlan') }}</div>
@@ -166,6 +167,13 @@
                 <ChallengeActions v-model="editForm.actions" :readonly="isDisabled" />
               </div>
             </div>
+
+            <DifficultySelector
+              v-if="challenge.challengeType === 'result'"
+              v-model:difficulty="editForm.difficulty"
+              :disabled="isDisabled"
+              class="mb-8"
+            />
 
             <div v-if="challenge.challengeType === 'result'" class="reward-edit-section mb-8">
               <div class="section-tag mb-2">{{ t('challenges.rewardTitle') }}</div>
@@ -191,6 +199,16 @@
                   density="compact"
               ></v-switch>
             </div>
+
+              <v-alert
+                v-if="saveError"
+                type="error"
+                variant="tonal"
+                class="mb-4 rounded-xl custom-alert"
+              >
+                {{ saveError }}
+              </v-alert>
+
               <div class="mission-footer-actions">
                 <v-btn
                     variant="outlined"
@@ -218,57 +236,13 @@
           </v-form>
         </v-card-text>
       </v-card>
-      <v-dialog
-    v-model="deleteConfirmDialog"
-    max-width="480"
-    content-class="ignite-dialog"
-    transition="dialog-bottom-transition"
-  >
-    <v-card class="delete-card">
-      <div class="danger-line"></div>
 
-      <v-card-title class="d-flex align-center pt-6 px-6">
-        <v-icon color="#FF5252" class="mr-3">mdi-alert-octagon-outline</v-icon>
-        <span class="dialog-title">{{ t('challenges.deleteConfirmTitle') }}</span>
-      </v-card-title>
-
-      <v-card-text class="px-6 py-4">
-        <div class="dialog-message mb-4">
-          {{ t('challenges.deleteConfirmMessage') }}
-        </div>
-
-        <v-alert
-          v-if="deleteError"
-          type="error"
-          variant="tonal"
-          class="mb-2 rounded-xl custom-alert"
-        >
-          {{ deleteError }}
-        </v-alert>
-      </v-card-text>
-
-      <v-card-actions class="px-6 pb-6">
-        <div class="dialog-actions">
-          <v-btn
-            variant="text"
-            class="cancel-btn"
-            :disabled="deleteLoading"
-            @click="deleteConfirmDialog = false"
-          >
-            {{ t('common.cancel') }}
-          </v-btn>
-
-          <v-btn
-            class="delete-btn"
-            :loading="deleteLoading"
-            @click="confirmDelete"
-          >
-            {{ t('challenges.delete') }}
-          </v-btn>
-        </div>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+      <DeleteChallengeDialog
+        v-model="deleteConfirmDialog"
+        :loading="deleteLoading"
+        :error="deleteError"
+        @confirm="confirmDelete"
+      />
     </v-container>
   </div>
 </template>
@@ -316,101 +290,6 @@
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.05) !important;
   border-radius: 24px !important;
-}
-
-/* --- ТАКТИЧЕСКИЕ ДАТЫ --- */
-.mission-dates-grid {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  background: rgba(15, 23, 42, 0.4);
-  padding: 16px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.03);
-}
-
-.date-info-box {
-  display: flex;
-  flex-direction: column;
-}
-
-.date-info-box .label {
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  color: #4FD1C5;
-  letter-spacing: 1px;
-  font-weight: 800;
-}
-
-.date-info-box .value {
-  font-size: 1.1rem;
-  font-weight: 600;
-  font-family: 'Montserrat', sans-serif;
-  color: #FFFFFF;
-}
-
-.date-info-box--editable {
-  flex: 1;
-  min-width: 0;
-}
-
-.mission-date-btn {
-  height: 44px !important;
-  width: 100%;
-  justify-content: flex-start;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  border-radius: 12px !important;
-  color: rgba(255, 255, 255, 0.9) !important;
-  background: rgba(255, 255, 255, 0.03) !important;
-  text-transform: none !important;
-  font-weight: 600 !important;
-}
-
-.mission-date-btn :deep(.v-icon) {
-  color: #ffffff !important;
-  opacity: 0.95;
-}
-
-.mission-date-btn:hover {
-  border-color: rgba(79, 209, 197, 0.35) !important;
-  background: rgba(79, 209, 197, 0.06) !important;
-}
-
-.mission-date-btn:disabled {
-  opacity: 0.5;
-}
-
-/* Match AddChallengeComponent date picker styling */
-:deep(.v-date-picker) {
-  background: #1A1A2E !important;
-  color: white !important;
-  border-radius: 24px !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-
-  .v-date-picker-month__day--selected .v-btn {
-    background: #7048E8 !important;
-    color: white !important;
-    box-shadow: 0 0 10px rgba(112, 72, 232, 0.5);
-  }
-
-  .v-date-picker-controls .v-btn {
-    color: #4FD1C5 !important;
-  }
-
-  .v-date-picker-header__title {
-    color: white !important;
-  }
-}
-
-/* --- СЕКЦИИ И ТЕГИ --- */
-.section-tag {
-  color: #4FD1C5;
-  font-size: 0.75rem;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  display: flex;
-  align-items: center;
 }
 
 .description-display-box {
@@ -463,40 +342,7 @@
   color: rgba(255, 255, 255, 0.35);
 }
 
-/* --- СЕТКА НАСТРОЕК --- */
-.settings-tactical-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
-}
-
-.setting-item {
-  background: rgba(15, 23, 42, 0.3);
-  padding: 12px 16px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.03);
-}
-
-.setting-label {
-  font-size: 0.65rem;
-  color: rgba(255, 255, 255, 0.4);
-  text-transform: uppercase;
-  font-weight: 700;
-}
-
-.tactical-select :deep(.v-field__input) {
-  padding: 0 !important;
-  color: #4FD1C5 !important;
-  font-weight: 700;
-}
-
-.tactical-select :deep(.v-field__append-inner .v-icon),
-.tactical-select :deep(.v-select__menu-icon) {
-  color: #ffffff !important;
-  opacity: 0.95;
-}
-
-/* --- ФУТЕР И КНОПКИ --- */
+/* --- ФУТЕР --- */
 .mission-footer-actions {
   margin-top: 40px;
   margin-bottom: 40px;
@@ -513,18 +359,6 @@
   text-transform: none;
   font-weight: 700;
   letter-spacing: 0.5px;
-}
-
-.save-btn {
-  background: linear-gradient(135deg, #4FD1C5 0%, #3a9e94 100%) !important;
-  color: #0f172a !important;
-  padding: 0 32px !important;
-  box-shadow: 0 4px 15px rgba(79, 209, 197, 0.3) !important;
-}
-
-.delete-btn {
-  border-color: rgba(255, 82, 82, 0.3) !important;
-  color: #FF5252 !important;
 }
 
 .glass-container {
@@ -558,47 +392,10 @@
     padding: 16px !important;
   }
 
-  .mission-dates-grid {
-    flex-direction: column;
-    gap: 12px;
-    padding: 12px;
-    align-items: flex-start;
-  }
-
-  .date-divider {
-    display: none;
-  }
-
-  .date-info-box .label {
-    font-size: 0.6rem;
-  }
-
-  .date-info-box .value {
-    font-size: 1rem;
-  }
-
-  .section-tag {
-    font-size: 0.7rem;
-    letter-spacing: 1px;
-  }
-
   .description-display-box {
     padding: 12px;
     min-height: 80px;
     font-size: 0.9rem;
-  }
-
-  .settings-tactical-grid {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-
-  .setting-item {
-    padding: 10px 12px;
-  }
-
-  .setting-label {
-    font-size: 0.6rem;
   }
 
   .mission-footer-actions {
@@ -620,18 +417,9 @@
     order: 1;
   }
 
-  .delete-btn {
-    order: 2;
-    width: 100%;
-  }
-
   .footer-btn {
     width: 100%;
     justify-content: center;
-  }
-
-  .save-btn {
-    padding: 0 24px !important;
   }
 
   .glass-container {
@@ -682,36 +470,10 @@
     padding: 12px !important;
   }
 
-  .mission-dates-grid {
-    padding: 10px;
-    gap: 10px;
-  }
-
-  .date-info-box .label {
-    font-size: 0.55rem;
-  }
-
-  .date-info-box .value {
-    font-size: 0.9rem;
-  }
-
-  .section-tag {
-    font-size: 0.65rem;
-    margin-bottom: 8px;
-  }
-
   .description-display-box {
     padding: 10px;
     min-height: 70px;
     font-size: 0.85rem;
-  }
-
-  .settings-tactical-grid {
-    gap: 10px;
-  }
-
-  .setting-item {
-    padding: 8px 10px;
   }
 
   .mission-footer-actions {
@@ -748,86 +510,9 @@
     width: 36px !important;
     height: 36px !important;
   }
-  :deep(.v-overlay__content.ignite-dialog) {
-    border-radius: 28px !important;
-    overflow: hidden;
-  }
-}
-
-.delete-card {
-  background: rgba(30, 41, 59, 0.7) !important;
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 28px !important;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7) !important;
-  color: #fff !important;
-  position: relative;
-}
-
-.danger-line {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, transparent, #FF5252, transparent);
-}
-
-.dialog-title {
-  font-size: 1.25rem;
-  font-weight: 800;
-  letter-spacing: -0.5px;
-  color: #fff;
-}
-
-.dialog-message {
-  font-size: 1rem;
-  color: rgba(255, 255, 255, 0.6);
-  line-height: 1.6;
-}
-
-.dialog-actions {
-  width: 100%;
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.cancel-btn {
-  color: rgba(255, 255, 255, 0.5) !important;
-  font-weight: 600;
-  text-transform: none;
-  letter-spacing: 0;
-  border-radius: 12px;
-}
-
-.cancel-btn:hover {
-  background: rgba(255, 255, 255, 0.05) !important;
-  color: #fff !important;
-}
-
-.delete-btn {
-  color: red;
-  border-radius: 14px !important;
-  padding: 0 24px !important;
-  height: 44px !important;
-  font-weight: 700 !important;
-  text-transform: none !important;
-  letter-spacing: 0.5px !important;
-  box-shadow: 0 4px 15px rgba(255, 82, 82, 0.2) !important;
-  transition: all 0.3s ease !important;
 }
 
 @media (max-width: 600px) {
-  .dialog-actions {
-    flex-direction: column-reverse;
-    align-items: stretch;
-  }
-
-  .dialog-actions :deep(.v-btn) {
-    width: 100%;
-  }
   .mission-footer-actions {
     flex-direction: column; /* Смена порядка: Сохранить в топе */
     align-items: stretch;
@@ -838,22 +523,6 @@
     flex-direction: column;
     order: 1; /* Группа сохранения сверху */
   }
-
-  .save-btn {
-    order: 1;
-    width: 100%;
-  }
-
-  .delete-btn {
-    order: 3; /* Удаление в самом низу */
-    width: 100%;
-    margin-top: 8px;
-  }
-}
-
-.delete-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(255, 82, 82, 0.4) !important;
 }
 
 .custom-alert {
@@ -903,14 +572,29 @@
 </style>
 
 <script setup>
-import {computed, nextTick, onMounted, reactive, ref, watch} from 'vue'
+import {computed, onMounted, reactive, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import {useUserStore} from '../stores/user'
-import ChallengeImageUpload from './ChallengeImageUpload.vue'
 import ChallengeActions from './ChallengeActions.vue'
-import ChallengeCalendar from './ChallengeCalendar.vue'
+import ChallengeBaseFields from './challenge-form/ChallengeBaseFields.vue'
+import DurationSelector from './challenge-form/DurationSelector.vue'
+import MissionDeadlinePicker from './challenge-form/MissionDeadlinePicker.vue'
+import PrivacySelector from './challenge-form/PrivacySelector.vue'
+import DifficultySelector from './challenge-form/DifficultySelector.vue'
+import DeleteChallengeDialog from './challenge-form/DeleteChallengeDialog.vue'
 import {challengeService} from '../services/api'
+import {
+  getInclusiveDaysBetween,
+  getDurationDaysString,
+  calculateEndDateFromDuration,
+  formatDateForLocale,
+  normalizeDateInputValue,
+  normalizeDateList
+} from '../utils/dateUtils'
+import { applyDurationFieldsFromDayCount } from '../utils/durationUtils'
+import { isChallengeFinished } from '../utils/challengeStatus'
+import { APP_EVENTS, dispatchAppEvent } from '../utils/appEvents'
 
 const router = useRouter()
 const route = useRoute()
@@ -934,10 +618,6 @@ const deleteConfirmDialog = ref(false)
 const deleteError = ref('')
 const isInitializing = ref(true)
 const isEditingTitle = ref(false)
-const isEditingDescription = ref(false)
-const descriptionDisplay = ref(null)
-const descriptionTextarea = ref(null)
-const descriptionRows = ref(5)
 
 // Get current user ID from store
 const userStore = useUserStore()
@@ -946,13 +626,6 @@ function getCurrentUserId() {
 }
 
 const currentUserId = ref(getCurrentUserId())
-
-// Watched challenges
-const watchedChallenges = ref([])
-const watchingId = ref(null)
-
-// Local reactive copy of current user's completedDays for optimistic updates
-const localCurrentUserCompletedDays = ref([])
 
 // Store original completedDays to detect changes
 const originalCompletedDays = ref([])
@@ -966,7 +639,7 @@ const editForm = reactive({
   duration: '',
   customDuration: '',
   frequency: '',
-  privacy: 'public',
+  privacy: 'private',
   difficulty: '',
   reward: '',
   actions: [],
@@ -978,8 +651,9 @@ const errors = reactive({
   title: '',
   description: '',
   duration: '',
-  customDuration: '',
-  frequency: ''
+  frequency: '',
+  endDate: '',
+  actions: ''
 })
 
 const { t, locale } = useI18n()
@@ -996,11 +670,103 @@ const challengeTypeColor = computed(() => {
   return challenge.value.challengeType === 'habit' ? '#7048E8' : '#4FD1C5'
 })
 
-// Load challenge data
+function setLoadError(message) {
+  errorMessage.value = message
+}
+
+function handleLoadError(error) {
+  setLoadError(error.response?.data?.message || t('notifications.apiError'))
+}
+
+function isCurrentUserOwner(challengeData) {
+  const ownerId = challengeData?.owner?._id || challengeData?.owner
+  return Boolean(
+    ownerId
+    && currentUserId.value
+    && ownerId.toString() === currentUserId.value.toString()
+  )
+}
+
+function initializeActions(challengeData) {
+  if (challengeData.challengeType === 'result') {
+    editForm.actions = challengeData.actions?.length > 0
+      ? challengeData.actions.map((action) => ({
+          _id: action._id,
+          text: action.text || '',
+          checked: Boolean(action.checked),
+          children: Array.isArray(action.children)
+            ? action.children.map((child) => ({
+                _id: child._id,
+                text: child.text || '',
+                checked: Boolean(child.checked)
+              }))
+            : []
+        }))
+      : [{ text: '', checked: false, children: [] }]
+    return
+  }
+
+  editForm.actions = []
+}
+
+function initializeCompletedDays(challengeData) {
+  if (challengeData.challengeType !== 'habit') {
+    editForm.completedDays = []
+    originalCompletedDays.value = []
+    return
+  }
+
+  let ownerCompletedDays = []
+
+  if (challengeData.participants && currentUserId.value) {
+    const ownerParticipant = challengeData.participants.find((participant) => {
+      const userId = participant.userId?._id || participant.userId || participant._id
+      return userId && userId.toString() === currentUserId.value.toString()
+    })
+
+    if (ownerParticipant?.completedDays && Array.isArray(ownerParticipant.completedDays)) {
+      ownerCompletedDays = ownerParticipant.completedDays
+    }
+  }
+
+  if (ownerCompletedDays.length === 0 && Array.isArray(challengeData.completedDays)) {
+    ownerCompletedDays = challengeData.completedDays
+  }
+
+  editForm.completedDays = normalizeDateList(ownerCompletedDays)
+  originalCompletedDays.value = [...editForm.completedDays]
+}
+
+function initializeEditForm(challengeData) {
+  isInitializing.value = true
+
+  editForm.title = challengeData.title || ''
+  editForm.description = challengeData.description || ''
+  editForm.startDate = normalizeDateInputValue(challengeData.startDate)
+  editForm.endDate = normalizeDateInputValue(challengeData.endDate)
+  startDatePickerModel.value = editForm.startDate
+  endDatePickerModel.value = editForm.endDate
+  editForm.imageUrl = challengeData.imageUrl || ''
+  editForm.frequency = challengeData.frequency || ''
+  editForm.privacy = challengeData.privacy === 'public' ? 'public' : 'private'
+  editForm.allowComments = challengeData.allowComments !== undefined ? challengeData.allowComments : true
+  editForm.difficulty = challengeData.difficulty || (challengeData.challengeType === 'result' ? 'medium' : '')
+  editForm.reward = challengeData.reward != null ? String(challengeData.reward) : ''
+
+  initializeActions(challengeData)
+  initializeCompletedDays(challengeData)
+
+  const dayCount = parseInt(getDurationDaysString(editForm.startDate, editForm.endDate), 10)
+  applyDurationFieldsFromDayCount(dayCount, editForm)
+
+  isInitializing.value = false
+}
+
 async function loadChallenge() {
   const challengeId = route.params.id
+
   if (!challengeId) {
-    errorMessage.value = t('challenges.notFound')
+    setLoadError(t('challenges.notFound'))
     loading.value = false
     return
   }
@@ -1010,204 +776,81 @@ async function loadChallenge() {
 
   try {
     const { data } = await challengeService.getChallenge(challengeId)
-    challenge.value = data
 
-    // Check if user is owner
-    const ownerId = challenge.value.owner?._id || challenge.value.owner
-    if (!ownerId || ownerId.toString() !== currentUserId.value?.toString()) {
-      errorMessage.value = t('challenges.notAuthorized')
-      loading.value = false
+    if (!isCurrentUserOwner(data)) {
+      setLoadError(t('challenges.notAuthorized'))
       return
     }
 
-    // Initialize form
-    editForm.title = challenge.value.title || ''
-    editForm.description = challenge.value.description || ''
-    editForm.startDate = challenge.value.startDate ? challenge.value.startDate.slice(0, 10) : ''
-    editForm.endDate = challenge.value.endDate ? challenge.value.endDate.slice(0, 10) : ''
-    startDatePickerModel.value = editForm.startDate
-    endDatePickerModel.value = editForm.endDate
-    editForm.imageUrl = challenge.value.imageUrl || ''
-    editForm.frequency = challenge.value.frequency || ''
-    editForm.privacy = challenge.value.privacy || 'public'
-    editForm.allowComments = challenge.value.allowComments !== undefined ? challenge.value.allowComments : true
-    editForm.difficulty = challenge.value.difficulty || (challenge.value.challengeType === 'result' ? 'medium' : '')
-    editForm.reward = challenge.value.reward != null ? String(challenge.value.reward) : ''
-    
-    if (challenge.value.challengeType === 'result') {
-      editForm.actions = challenge.value.actions && challenge.value.actions.length > 0
-        ? challenge.value.actions.map(a => ({ 
-            _id: a._id,
-            text: a.text || '', 
-            checked: Boolean(a.checked),
-            children: (a.children && Array.isArray(a.children))
-              ? a.children.map(c => ({ 
-                  _id: c._id,
-                  text: c.text || '', 
-                  checked: Boolean(c.checked) 
-                }))
-              : []
-          }))
-        : [{ text: '', checked: false, children: [] }]
-    } else {
-      editForm.actions = []
-    }
-
-    // Initialize completedDays for habit challenges
-    if (challenge.value.challengeType === 'habit') {
-      let ownerCompletedDays = []
-      
-      if (challenge.value.participants && currentUserId.value) {
-        const ownerParticipant = challenge.value.participants.find(p => {
-          const userId = p.userId?._id || p.userId || p._id
-          return userId && userId.toString() === currentUserId.value.toString()
-        })
-        
-        if (ownerParticipant && ownerParticipant.completedDays && Array.isArray(ownerParticipant.completedDays)) {
-          ownerCompletedDays = ownerParticipant.completedDays
-        }
-      }
-      
-      if (ownerCompletedDays.length === 0 && challenge.value.completedDays && Array.isArray(challenge.value.completedDays)) {
-        ownerCompletedDays = challenge.value.completedDays
-      }
-      
-      editForm.completedDays = ownerCompletedDays
-        .filter(d => {
-          if (!d) return false
-          try {
-            const dateStr = String(d).slice(0, 10)
-            if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false
-            const date = new Date(dateStr)
-            return !Number.isNaN(date.getTime())
-          } catch {
-            return false
-          }
-        })
-        .map(d => String(d).slice(0, 10))
-        .filter(Boolean)
-        .sort()
-      
-      // Store original completedDays for comparison
-      originalCompletedDays.value = [...editForm.completedDays]
-    } else {
-      editForm.completedDays = []
-      originalCompletedDays.value = []
-    }
-    
-    // Calculate duration from start and end dates
-    editForm.duration = calculateDuration(editForm.startDate, editForm.endDate)
-    
+    challenge.value = data
+    initializeEditForm(data)
     clearErrors()
-    isInitializing.value = false
   } catch (error) {
-    errorMessage.value = error.response?.data?.message || t('notifications.apiError')
+    handleLoadError(error)
   } finally {
     loading.value = false
   }
 }
 
-function calculateDuration(startDate, endDate) {
-  if (!startDate || !endDate) return ''
-  const start = new Date(startDate)
-  const end = new Date(endDate)
-  const diffTime = Math.abs(end - start)
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
-  return String(diffDays)
-}
-
-function getDurationDayCount(duration, customDuration) {
-  if (!duration) return NaN
-  if (duration === 'custom') {
-    return parseInt(String(customDuration || ''), 10)
-  }
-  return parseInt(String(duration), 10)
-}
-
-function calculateEndDateFromDuration(startDate, duration, customDuration = '') {
-  if (!startDate || !duration) return ''
-
-  const start = new Date(startDate)
-  const days = getDurationDayCount(duration, customDuration)
-
-  if (isNaN(days) || days < 1) return ''
-  
-  const endDate = new Date(start)
-  endDate.setDate(endDate.getDate() + days - 1)
-  endDate.setHours(0, 0, 0, 0)
-  
-  const year = endDate.getFullYear()
-  const month = String(endDate.getMonth() + 1).padStart(2, '0')
-  const day = String(endDate.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
 function syncDurationFromDates() {
   if (!editForm.startDate || !editForm.endDate) return
-  const start = new Date(editForm.startDate)
-  const end = new Date(editForm.endDate)
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return
-  if (end < start) {
+
+  if (getInclusiveDaysBetween(editForm.startDate, editForm.endDate) < 1) {
     editForm.endDate = editForm.startDate
     return
   }
-  const daysStr = calculateDuration(editForm.startDate, editForm.endDate)
+
+  const daysStr = getDurationDaysString(editForm.startDate, editForm.endDate)
   const d = parseInt(daysStr, 10)
   if (Number.isNaN(d) || d < 1) return
-  editForm.duration = String(d)
-  editForm.customDuration = ''
-}
-
-function onEndDateEdited() {
-  if (isDisabled.value) return
-  syncDurationFromDates()
-}
-
-function toYyyyMmDd(value) {
-  if (!value) return ''
-  const v = String(value)
-  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v
-  try {
-    const d = new Date(v)
-    if (Number.isNaN(d.getTime())) return ''
-    const yyyy = d.getFullYear()
-    const mm = String(d.getMonth() + 1).padStart(2, '0')
-    const dd = String(d.getDate()).padStart(2, '0')
-    return `${yyyy}-${mm}-${dd}`
-  } catch {
-    return ''
-  }
+  applyDurationFieldsFromDayCount(d, editForm)
 }
 
 function handleStartDatePick(value) {
   if (isDisabled.value) return
-  const picked = toYyyyMmDd(value)
+  const picked = normalizeDateInputValue(value)
   if (!picked) return
   editForm.startDate = picked
+
+  if (challenge.value?.challengeType === 'result') {
+    syncDurationFromDates()
+  }
+
   showStartDatePicker.value = false
 }
 
 function handleEndDatePick(value) {
   if (isDisabled.value) return
-  const picked = toYyyyMmDd(value)
+  const picked = normalizeDateInputValue(value)
   if (!picked) return
   editForm.endDate = picked
-  onEndDateEdited()
+  syncDurationFromDates()
   showEndDatePicker.value = false
 }
 
 watch(
   () => [editForm.duration, editForm.startDate, editForm.customDuration],
   () => {
-    if (editForm.duration && editForm.startDate) {
-      const newEndDate = calculateEndDateFromDuration(
-        editForm.startDate,
-        editForm.duration,
-        editForm.customDuration
-      )
-      if (newEndDate) {
-        editForm.endDate = newEndDate
-      }
+    if (isInitializing.value) {
+      return
+    }
+
+    if (challenge.value?.challengeType !== 'habit') {
+      return
+    }
+
+    if (!editForm.duration || !editForm.startDate) {
+      return
+    }
+
+    const newEndDate = calculateEndDateFromDuration(
+      editForm.startDate,
+      editForm.duration,
+      editForm.customDuration
+    )
+
+    if (newEndDate) {
+      editForm.endDate = newEndDate
     }
   }
 )
@@ -1216,38 +859,6 @@ const frequencyOptions = computed(() => [
   { title: t('challenges.frequencyOptions.daily'), value: 'daily' },
   { title: t('challenges.frequencyOptions.everyOtherDay'), value: 'everyOtherDay' }
 ])
-
-const privacyOptions = computed(() => [
-  { title: t('challenges.privacyOptions.public'), value: 'public' },
-  { title: t('challenges.privacyOptions.private'), value: 'private' }
-])
-
-const durationOptions = computed(() => {
-  const standardOptions = [
-    { title: t('challenges.durationOptions.7days'), value: '7' },
-    { title: t('challenges.durationOptions.14days'), value: '14' },
-    { title: t('challenges.durationOptions.21days'), value: '21' },
-    { title: t('challenges.durationOptions.30days'), value: '30' },
-    { title: t('challenges.durationOptions.60days'), value: '60' },
-    { title: t('challenges.durationOptions.90days'), value: '90' }
-  ]
-  
-  const currentDuration = editForm.duration
-  if (currentDuration && currentDuration !== 'custom') {
-    const standardValues = standardOptions.map(opt => opt.value)
-    if (!standardValues.includes(currentDuration)) {
-      const days = parseInt(currentDuration)
-      if (!isNaN(days) && days > 0) {
-        return [
-          ...standardOptions,
-          { title: `${days} ${days === 1 ? t('challenges.day') : t('challenges.days')}`, value: currentDuration }
-        ]
-      }
-    }
-  }
-  
-  return standardOptions
-})
 
 function clearErrors() {
   errors.title = ''
@@ -1283,111 +894,56 @@ async function confirmDelete() {
   }
 }
 
-// Normalize completedDays dates to YYYY-MM-DD format
-function normalizeCompletedDays(completedDays) {
-  if (!Array.isArray(completedDays)) {
-    return []
-    }
-    
-  return completedDays
-      .map(d => {
-        if (!d) return null
-        try {
-          let dateStr = String(d)
-          
-        // Already in correct format
-          if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-            return dateStr
-          }
-          
-        // Parse and format date
-          const date = new Date(dateStr)
-          if (Number.isNaN(date.getTime())) {
-            return null
-          }
-          
-          const year = date.getFullYear()
-          const month = String(date.getMonth() + 1).padStart(2, '0')
-          const day = String(date.getDate()).padStart(2, '0')
-          return `${year}-${month}-${day}`
-        } catch {
-          return null
-        }
-      })
-      .filter(d => {
-        if (!d) return false
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return false
-        const date = new Date(d)
-        return !Number.isNaN(date.getTime())
-      })
-      .sort()
-}
-
-function isChallengeEnded(challenge) {
-  if (!challenge?.endDate) return false
-  try {
-    const endDate = new Date(challenge.endDate)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    endDate.setHours(0, 0, 0, 0)
-    return endDate < today
-  } catch {
-    return false
-  }
-}
-
-function isChallengeFinished(challenge) {
-  // Check if endDate is in the past
-  if (isChallengeEnded(challenge)) {
-    return true
-  }
-  
-  // For result challenges, check if all actions are done
-  if (challenge?.challengeType === 'result') {
-    if (!challenge.actions || !Array.isArray(challenge.actions) || challenge.actions.length === 0) {
-      return false
-    }
-    
-    // Check if all actions and their children are checked
-    return challenge.actions.every(action => {
-      // Parent action must be checked
-      if (!action.checked) return false
-      
-      // All children must be checked (if any exist)
-      if (action.children && Array.isArray(action.children) && action.children.length > 0) {
-        return action.children.every(child => child.checked)
-      }
-      
-      return true
-    })
-  }
-  
-  return false
-}
-
 const isDisabled = computed(() => {
   return challenge.value ? isChallengeFinished(challenge.value) : false
 })
 
-// Prepare form data for submission
-function prepareFormData() {
-  const { duration, customDuration, ...formData } = editForm
-  
-  if (challenge.value?.challengeType) {
-    formData.challengeType = challenge.value.challengeType
+function normalizeActions(actions) {
+  if (!Array.isArray(actions)) {
+    return []
   }
-  
-  if (formData.challengeType === 'habit') {
-    formData.completedDays = normalizeCompletedDays(formData.completedDays)
-  } else if (formData.challengeType === 'result') {
-    formData.completedDays = []
-    formData.actions = editForm.actions
-    // Preserve difficulty for result (quest) challenges
-    formData.difficulty = editForm.difficulty || challenge.value?.difficulty || 'medium'
-    formData.reward = (editForm.reward || '').trim()
+
+  return actions.map((action) => ({
+    ...(action._id ? { _id: action._id } : {}),
+    text: (action.text || '').trim(),
+    checked: Boolean(action.checked),
+    children: Array.isArray(action.children)
+      ? action.children.map((child) => ({
+          ...(child._id ? { _id: child._id } : {}),
+          text: (child.text || '').trim(),
+          checked: Boolean(child.checked)
+        }))
+      : []
+  }))
+}
+
+function buildUpdatePayload() {
+  const challengeType = challenge.value?.challengeType
+
+  const payload = {
+    title: editForm.title.trim(),
+    description: editForm.description.trim(),
+    startDate: editForm.startDate,
+    endDate: editForm.endDate,
+    imageUrl: editForm.imageUrl,
+    privacy: editForm.privacy === 'public' ? 'public' : 'private',
+    allowComments: editForm.allowComments,
+    challengeType
   }
-  
-  return formData
+
+  if (challengeType === 'habit') {
+    payload.frequency = editForm.frequency
+    payload.completedDays = normalizeDateList(editForm.completedDays)
+  }
+
+  if (challengeType === 'result') {
+    payload.completedDays = []
+    payload.actions = normalizeActions(editForm.actions)
+    payload.difficulty = editForm.difficulty || challenge.value?.difficulty || 'medium'
+    payload.reward = editForm.reward?.trim() || ''
+  }
+
+  return payload
 }
 
 // Check if completedDays changed and update participant entry if needed
@@ -1412,7 +968,7 @@ async function updateParticipantCompletedDaysIfChanged(challengeId, challengeTyp
       // Update store with new user data if backend returned it
       if (response?.data?.user) {
         userStore.updateUser(response.data.user)
-        window.dispatchEvent(new Event('auth-changed'))
+        dispatchAppEvent(APP_EVENTS.AUTH_CHANGED)
       }
     } catch (error) {
       console.error('Error updating participant completed days:', error)
@@ -1422,19 +978,19 @@ async function updateParticipantCompletedDaysIfChanged(challengeId, challengeTyp
 }
 
 async function handleSubmit() {
-  // if (!validate()) return
-  
-  const formData = prepareFormData()
-  
+  if (!validate()) return
+
+  const payload = buildUpdatePayload()
+
   saveLoading.value = true
   saveError.value = ''
   try {
-    const response = await challengeService.updateChallenge(challenge.value._id, { ...formData })
+    const response = await challengeService.updateChallenge(challenge.value._id, payload)
     
     // Update store with new user data if backend returned it (for XP)
     if (response?.data?.user) {
       userStore.updateUser(response.data.user)
-      window.dispatchEvent(new Event('auth-changed'))
+      dispatchAppEvent(APP_EVENTS.AUTH_CHANGED)
     }
 
     if (response?.data?.xpGained > 0) {
@@ -1443,8 +999,8 @@ async function handleSubmit() {
 
     await updateParticipantCompletedDaysIfChanged(
       challenge.value._id,
-      formData.challengeType,
-      formData.completedDays
+      payload.challengeType,
+      payload.completedDays
     )
     router.back() // Navigate to previous page after successful save
   } catch (error) {
@@ -1457,90 +1013,59 @@ async function handleSubmit() {
 function validate() {
   clearErrors()
 
-  if (!editForm.title) {
-    errors.title = t('validation.titleRequired')
+  if (!editForm.title?.trim()) {
+    errors.title = t('challenges.validation.titleRequired')
   }
 
-  if (!editForm.description) {
-    errors.description = t('validation.descriptionRequired')
+  if (!editForm.description?.trim()) {
+    errors.description = t('challenges.validation.descriptionRequired')
   }
 
-  if (!editForm.duration) {
-    errors.duration = t('validation.startOptionRequired')
-  }
-
-  if (challenge.value?.challengeType === 'habit' && !editForm.frequency) {
-    errors.frequency = t('validation.frequencyRequired')
-  }
-
-  return !errors.title && !errors.description && !errors.duration && !errors.frequency
-}
-
-function formatDisplayDate(value) {
-  if (!value) return ''
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  try {
-    const formatter = new Intl.DateTimeFormat(locale.value, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
-    return formatter.format(date)
-  } catch (err) {
-    return date.toLocaleDateString()
-  }
-}
-
-function handleOwnerCompletedDaysUpdate(completedDays) {
-  if (!challenge.value || !currentUserId.value) return
-  
-  // Only update local state, don't call API
-  editForm.completedDays = completedDays
-  localCurrentUserCompletedDays.value = [...completedDays]
-}
-
-// Load watched challenges
-async function loadWatchedChallenges() {
-  if (!currentUserId.value) return
-  
-  try {
-    const { data } = await challengeService.getWatchedChallenges(currentUserId.value)
-    watchedChallenges.value = (data.challenges || []).map(c => c._id)
-  } catch (error) {
-    console.error('Error loading watched challenges:', error)
-  }
-}
-
-function startEditingDescription() {
-  // Measure the description height before switching to edit mode
-  let targetHeight = 80 // default minimum height
-  if (descriptionDisplay.value) {
-    const displayElement = descriptionDisplay.value
-    const computedStyle = window.getComputedStyle(displayElement)
-    const lineHeight = parseFloat(computedStyle.lineHeight) || 24
-    const actualHeight = displayElement.scrollHeight
-    targetHeight = actualHeight
-    descriptionRows.value = Math.max(3, Math.ceil(actualHeight / lineHeight))
-  }
-  
-  isEditingDescription.value = true
-  
-  // Adjust textarea height after it's rendered to match the display height
-  nextTick(() => {
-    if (descriptionTextarea.value) {
-      const textarea = descriptionTextarea.value.$el?.querySelector('textarea')
-      if (textarea) {
-        textarea.style.height = 'auto'
-        // Set height to match the display, with a minimum
-        textarea.style.height = `${Math.max(targetHeight, 80)}px`
-      }
+  if (challenge.value?.challengeType === 'habit') {
+    if (!editForm.duration) {
+      errors.duration = t('challenges.validation.durationRequired')
+    } else if (editForm.duration === 'custom' && Number(editForm.customDuration) < 1) {
+      errors.duration = t('challenges.validation.customDurationRequired')
     }
-  })
+
+    if (!editForm.frequency) {
+      errors.frequency = t('challenges.validation.frequencyRequired')
+    }
+  }
+
+  if (challenge.value?.challengeType === 'result') {
+    if (!editForm.endDate) {
+      errors.endDate = t('challenges.validation.endDateRequired')
+    }
+
+    const hasAction = editForm.actions?.some((action) => action.text?.trim())
+    if (!hasAction) {
+      errors.actions = t('challenges.validation.milestoneRequired')
+    }
+  }
+
+  return !errors.title
+    && !errors.description
+    && !errors.duration
+    && !errors.frequency
+    && !errors.endDate
+    && !errors.actions
 }
+
+watch(
+  () => editForm.endDate,
+  (newVal, oldVal) => {
+    if (isInitializing.value || challenge.value?.challengeType !== 'result') {
+      return
+    }
+
+    if (newVal && newVal !== oldVal) {
+      syncDurationFromDates()
+    }
+  }
+)
 
 onMounted(async () => {
-  await loadWatchedChallenges()
   await loadChallenge()
 })
 </script>

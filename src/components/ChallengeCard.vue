@@ -503,6 +503,7 @@ import { Flame } from 'lucide-vue-next'
 import upcomingImage from '../assets/upcoming.png'
 import successImage from '../assets/success.png'
 import failedImage from '../assets/failed.png'
+import { isChallengeFinished } from '../utils/challengeStatus'
 
 const props = defineProps({
   challenge: {
@@ -605,27 +606,7 @@ const isParticipant = computed(() => {
 const participantCount = computed(() => {
   return props.challenge.participants ? props.challenge.participants.length : 0
 })
-const isFinished = computed(() => {
-  if (props.challenge.endDate) {
-  try {
-    const endDate = new Date(props.challenge.endDate)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    endDate.setHours(0, 0, 0, 0)
-      if (endDate < today) return true
-    } catch { /* continue */ }
-  }
-  
-  if (props.challenge.challengeType === 'result') {
-    if (!props.challenge.actions?.length) return false
-    return props.challenge.actions.every(action => {
-      if (!action.checked) return false
-      if (action.children?.length) return action.children.every(child => child.checked)
-      return true
-    })
-    }
-  return false
-})
+const isFinished = computed(() => isChallengeFinished(props.challenge))
 
 const isSuccessful = computed(() => {
   if (!isFinished.value) return false

@@ -18,6 +18,19 @@ export function toDateInputValue(value = new Date()) {
   return `${year}-${month}-${day}`
 }
 
+export function normalizeDateInputValue(value) {
+  if (!value) {
+    return ''
+  }
+
+  const stringValue = String(value)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(stringValue)) {
+    return stringValue
+  }
+
+  return toDateInputValue(value)
+}
+
 export function addDays(value, days) {
   const date = startOfDay(value)
   date.setDate(date.getDate() + days)
@@ -35,6 +48,37 @@ export function getInclusiveDaysBetween(startValue, endValue) {
   return Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1
 }
 
+export function getDurationDaysString(startValue, endValue) {
+  const days = getInclusiveDaysBetween(startValue, endValue)
+  return days > 0 ? String(days) : ''
+}
+
+function parseDurationDayCount(duration, customDuration = '') {
+  if (!duration) {
+    return NaN
+  }
+
+  if (duration === 'custom') {
+    return parseInt(String(customDuration || ''), 10)
+  }
+
+  return parseInt(String(duration), 10)
+}
+
+export function calculateEndDateFromDuration(startDate, duration, customDuration = '') {
+  if (!startDate || !duration) {
+    return ''
+  }
+
+  const days = parseDurationDayCount(duration, customDuration)
+
+  if (!Number.isFinite(days) || days < 1) {
+    return ''
+  }
+
+  return toDateInputValue(addDays(startDate, days - 1))
+}
+
 export function getDaysUntil(endValue, fromValue = new Date()) {
   const from = startOfDay(fromValue)
   const end = startOfDay(endValue)
@@ -45,6 +89,21 @@ export function getDaysUntil(endValue, fromValue = new Date()) {
 
   const diffDays = Math.ceil((end - from) / (1000 * 60 * 60 * 24))
   return diffDays > 0 ? diffDays : 0
+}
+
+export function isPastDate(value, reference = new Date()) {
+  if (!value) {
+    return false
+  }
+
+  const date = startOfDay(value)
+  const ref = startOfDay(reference)
+
+  if (Number.isNaN(date.getTime())) {
+    return false
+  }
+
+  return date < ref
 }
 
 export function formatDateForLocale(value, locale) {
@@ -65,4 +124,15 @@ export function formatDateForLocale(value, locale) {
   } catch {
     return date.toLocaleDateString()
   }
+}
+
+export function normalizeDateList(dates) {
+  if (!Array.isArray(dates)) {
+    return []
+  }
+
+  return dates
+    .map((entry) => normalizeDateInputValue(entry))
+    .filter((entry) => entry && /^\d{4}-\d{2}-\d{2}$/.test(entry))
+    .sort()
 }

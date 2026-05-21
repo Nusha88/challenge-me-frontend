@@ -50,12 +50,10 @@
   margin-left: auto;
   opacity: 0;
   transition: 0.3s;
-  color: inherit;
 }
 
 .diff-option.active {
   transform: translateX(8px);
-  background: white;
 }
 
 .diff-option.active .check-icon {
@@ -73,8 +71,9 @@
 }
 
 .diff-option.active.easy .diff-name,
-.diff-option.active.easy .diff-xp {
-  color: #4caf50;
+.diff-option.active.easy .diff-xp,
+.diff-option.active.easy .check-icon {
+  color: #4caf50 !important;
 }
 
 .diff-option.active.normal {
@@ -88,8 +87,9 @@
 }
 
 .diff-option.active.normal .diff-name,
-.diff-option.active.normal .diff-xp {
-  color: #7e46c4;
+.diff-option.active.normal .diff-xp,
+.diff-option.active.normal .check-icon {
+  color: #7e46c4 !important;
 }
 
 .diff-option.active.heroic {
@@ -104,8 +104,9 @@
 }
 
 .diff-option.active.heroic .diff-name,
-.diff-option.active.heroic .diff-xp {
-  color: #ff5252;
+.diff-option.active.heroic .diff-xp,
+.diff-option.active.heroic .check-icon {
+  color: #ff5252 !important;
 }
 
 @keyframes diff-shake {
