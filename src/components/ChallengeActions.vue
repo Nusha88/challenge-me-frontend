@@ -45,18 +45,18 @@
                   v-if="readonly || !editingActions[index]"
                   class="text-display"
                   :class="{ 'strikethrough': action.checked, 'non-clickable-text': readonly || simplifiedView }"
-                  @mousedown.prevent="!readonly && !simplifiedView && startEditingAction(index)"
+                  @click="!readonly && !simplifiedView && startEditingAction(index)"
                 >
                   {{ action.text || t('challenges.actionPlaceholder') }}
                 </div>
                 <v-text-field
                   v-else
-                  :ref="el => setActionInputRef(index, el)"
                   v-model="action.text"
                   variant="plain"
                   density="compact"
                   hide-details
                   class="text-input-tactical"
+                  autofocus
                   @blur="stopEditingAction(index)"
                   @keydown.enter.prevent="stopEditingAction(index)"
                 ></v-text-field>
@@ -92,19 +92,19 @@
             
             <div
               class="child-text flex-grow-1"
-              @mousedown.prevent="!readonly && startEditingChildAction(index, childIndex)"
+              @click="!readonly && startEditingChildAction(index, childIndex)"
             >
               <span v-if="!editingChildActions[`${index}-${childIndex}`]" :class="{ 'strikethrough': child.checked }">
                 {{ child.text || '...' }}
               </span>
               <v-text-field
                 v-else
-                :ref="el => setChildActionInputRef(index, childIndex, el)"
                 v-model="child.text"
                 variant="plain"
                 density="compact"
                 hide-details
                 class="text-input-child"
+                autofocus
                 @blur="stopEditingChildAction(index, childIndex)"
                 @keydown.enter.prevent="stopEditingChildAction(index, childIndex)"
               ></v-text-field>
@@ -291,7 +291,7 @@
 </style>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 const props = defineProps({
@@ -307,9 +307,6 @@ const { t } = useI18n()
 
 const editingActions = ref({})
 const editingChildActions = ref({})
-const actionInputRefs = {}
-const childActionInputRefs = {}
-let editingBlurGuard = false
 
 // Инициализация локального состояния
 const localActions = ref(
@@ -374,51 +371,19 @@ function updateChildActionChecked(pIdx, cIdx, value) {
   localActions.value[pIdx].checked = allChecked
 }
 
-function setActionInputRef(index, el) {
-  if (el) actionInputRefs[index] = el
-  else delete actionInputRefs[index]
-}
-
-function setChildActionInputRef(parentIndex, childIndex, el) {
-  const key = `${parentIndex}-${childIndex}`
-  if (el) childActionInputRefs[key] = el
-  else delete childActionInputRefs[key]
-}
-
-function focusTextFieldInput(fieldRef) {
-  const input = fieldRef?.$el?.querySelector('input')
-  input?.focus({ preventScroll: true })
-}
-
-async function startEditingAction(i) {
-  editingActions.value = { ...editingActions.value, [i]: true }
-  editingBlurGuard = true
-  await nextTick()
-  focusTextFieldInput(actionInputRefs[i])
-  requestAnimationFrame(() => {
-    editingBlurGuard = false
-  })
+function startEditingAction(i) {
+  editingActions.value[i] = true
 }
 
 function stopEditingAction(i) {
-  if (editingBlurGuard) return
-  editingActions.value = { ...editingActions.value, [i]: false }
+  editingActions.value[i] = false
 }
 
-async function startEditingChildAction(p, c) {
-  const key = `${p}-${c}`
-  editingChildActions.value = { ...editingChildActions.value, [key]: true }
-  editingBlurGuard = true
-  await nextTick()
-  focusTextFieldInput(childActionInputRefs[key])
-  requestAnimationFrame(() => {
-    editingBlurGuard = false
-  })
+function startEditingChildAction(p, c) {
+  editingChildActions.value[`${p}-${c}`] = true
 }
 
 function stopEditingChildAction(p, c) {
-  if (editingBlurGuard) return
-  const key = `${p}-${c}`
-  editingChildActions.value = { ...editingChildActions.value, [key]: false }
+  editingChildActions.value[`${p}-${c}`] = false
 }
 </script>
