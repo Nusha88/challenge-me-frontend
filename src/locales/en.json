@@ -675,6 +675,8 @@
     "pushReplyBody": "{fromName} replied to your comment on \"{missionTitle}\"",
     "userJoinedChallenge": "joined {mission}",
     "userWatchingChallenge": "started following {mission}",
+    "dailyRecapTitle": "Daily Recap",
+    "dailyRecapFallback": "Today's missions are still active. Make a final push!",
     "challenge": "a mission",
     "apiError": "Failed to load data",
     "joinError": "Failed to join mission",

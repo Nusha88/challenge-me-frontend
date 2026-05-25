@@ -82,6 +82,10 @@ async function loadUnreadCount() {
   }
 }
 
+function isDailyRecapNotification(notification) {
+  return notification?.type === 'daily_recap'
+}
+
 async function handleNotificationClick(notification) {
   if (!notification.read) {
     try {
@@ -95,8 +99,18 @@ async function handleNotificationClick(notification) {
     }
   }
 
+  if (isDailyRecapNotification(notification)) {
+    router.push('/today')
+    closeDrawer()
+    return
+  }
+
   // Navigate to challenge with comment/reply ID in hash if available
-  const challengeId = notification.challengeId._id || notification.challengeId
+  const challengeId = notification.challengeId?._id || notification.challengeId
+  if (!challengeId) {
+    closeDrawer()
+    return
+  }
   let hash = ''
   
   if (notification.commentId && notification.replyId) {
@@ -146,6 +160,9 @@ async function deleteNotification(notification) {
 }
 
 function getNotificationText(notification) {
+  if (notification.type === 'daily_recap') {
+    return notification.body || t('notifications.dailyRecapFallback')
+  }
   if (notification.type === 'mention') {
     return t('notifications.mentionedInComment', {
       mission: notification.challengeId?.title || t('notifications.challenge')
@@ -177,10 +194,18 @@ const getNotificationIcon = (type) => {
     'follow': 'mdi-account-plus',
     'join': 'mdi-sword-cross',
     'mention': 'mdi-at',
-    'achievement': 'mdi-trophy-variant-outline'
+    'achievement': 'mdi-trophy-variant-outline',
+    'daily_recap': 'mdi-weather-sunset-up'
   };
   return icons[type] || 'mdi-bell-ring-outline';
 };
+
+function getNotificationSenderName(notification) {
+  if (notification.type === 'daily_recap') {
+    return notification.title || t('notifications.dailyRecapTitle')
+  }
+  return notification.fromUserId?.name || t('common.unknown')
+}
 
 function formatDate(dateString) {
   if (!dateString) return ''
@@ -419,14 +444,22 @@ onBeforeUnmount(() => {
           <div class="card-glow"></div>
           
           <div class="card-avatar">
-            <img
-              v-if="notification.fromUserId?.avatarUrl"
-              :src="notification.fromUserId.avatarUrl"
-              class="avatar-img"
-            />
-            <div v-else class="avatar-placeholder">
-              {{ getInitial(notification.fromUserId?.name) }}
+            <div
+              v-if="notification.type === 'daily_recap'"
+              class="avatar-placeholder recap-avatar"
+            >
+              <v-icon size="22" color="white">mdi-weather-sunset-up</v-icon>
             </div>
+            <template v-else>
+              <img
+                v-if="notification.fromUserId?.avatarUrl"
+                :src="notification.fromUserId.avatarUrl"
+                class="avatar-img"
+              />
+              <div v-else class="avatar-placeholder">
+                {{ getInitial(notification.fromUserId?.name) }}
+              </div>
+            </template>
             <div class="type-icon-small" :class="notification.type">
                <v-icon size="10">{{ getNotificationIcon(notification.type) }}</v-icon>
             </div>
@@ -434,7 +467,7 @@ onBeforeUnmount(() => {
 
           <div class="card-info">
             <div class="info-top">
-              <span class="user-name">{{ notification.fromUserId?.name || t('common.unknown') }}</span>
+              <span class="user-name">{{ getNotificationSenderName(notification) }}</span>
               <span class="time-stamp">{{ formatDate(notification.createdAt) }}</span>
             </div>
             <p class="message-text">{{ getNotificationText(notification) }}</p>
@@ -560,6 +593,10 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   font-weight: 800;
+}
+
+.recap-avatar {
+  background: linear-gradient(135deg, #3C60E8 0%, #7048E8 100%);
 }
 
 .type-icon-small {

@@ -120,6 +120,10 @@ self.addEventListener('notificationclick', (event) => {
 
   const notificationData = event.notification.data || {};
   const challengeId = notificationData.challengeId;
+  const isDailyRecap = notificationData.type === 'daily-recap';
+  const targetUrl = isDailyRecap
+    ? '/today'
+    : (challengeId ? `/missions/${challengeId}` : '/');
 
   if (event.action === 'close') {
     return;
@@ -135,17 +139,15 @@ self.addEventListener('notificationclick', (event) => {
       for (let i = 0; i < clientList.length; i++) {
         const client = clientList[i];
         if (client.url.includes(self.location.origin) && 'focus' in client) {
-          // Navigate to challenge if challengeId is provided
-          if (challengeId) {
-            return client.navigate(`/challenges/${challengeId}`).then(() => client.focus());
+          if (targetUrl !== '/') {
+            return client.navigate(targetUrl).then(() => client.focus());
           }
           return client.focus();
         }
       }
       // If app is not open, open it
       if (clients.openWindow) {
-        const url = challengeId ? `/challenges/${challengeId}` : '/';
-        return clients.openWindow(url);
+        return clients.openWindow(targetUrl);
       }
     })
   );

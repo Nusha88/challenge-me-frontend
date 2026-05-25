@@ -675,6 +675,8 @@
     "pushReplyBody": "{fromName} ответил(а) на ваш комментарий к «{missionTitle}»",
     "userJoinedChallenge": "присоединился(ась) к {mission}",
     "userWatchingChallenge": "начал(а) следить за {mission}",
+    "dailyRecapTitle": "Итоги дня",
+    "dailyRecapFallback": "Миссии дня еще активны. Сделаем финальный рывок?",
     "challenge": "миссия",
     "apiError": "Не удалось загрузить данные",
     "joinError": "Не удалось присоединиться к миссии",
