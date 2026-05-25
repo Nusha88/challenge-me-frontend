@@ -53,7 +53,7 @@
       </div>
     </div>
 
-    <div v-else-if="!isCurrentUserParticipant && props.currentUserId && props.challengeType === 'habit'" class="join-mission-card pa-6 text-center mb-8">
+    <div v-else-if="!isCurrentUserParticipant && props.currentUserId && props.challengeType === CHALLENGE_TYPES.HABIT" class="join-mission-card pa-6 text-center mb-8">
       <v-icon color="rgba(255,255,255,0.2)" size="48" class="mb-3">mdi-shield-lock-outline</v-icon>
       <p class="text-body-2 text-white opacity-70 mb-4">{{ t('challenges.comments.joinPrompt') }}</p>
       <v-btn color="#4FD1C5" variant="outlined" class="rounded-lg" @click="emitJoin">
@@ -549,6 +549,7 @@ import { useRouter } from 'vue-router'
 import { challengeService } from '../services/api'
 import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
 import { useI18n } from 'vue-i18n'
+import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 
 const router = useRouter()
 const { applyXpAwardResponse } = useXpAwardFeedback()
@@ -584,7 +585,7 @@ const props = defineProps({
   },
   challengeType: {
     type: String,
-    default: 'habit'
+    default: CHALLENGE_TYPES.HABIT
   },
   challengeOwner: {
     type: [Object, String],
@@ -789,7 +790,7 @@ function generateSystemEvents() {
   })
 
   // Generate progress milestones for habit challenges
-  if (props.challengeType === 'habit' && endDate) {
+  if (props.challengeType === CHALLENGE_TYPES.HABIT && endDate) {
     const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24))
     const milestones = [25, 50, 75, 100]
 
@@ -823,7 +824,7 @@ function generateSystemEvents() {
 
 // Calculate streak for a participant
 function getParticipantStreak(userId) {
-  if (!userId || !props.challengeParticipants || props.challengeType !== 'habit') return 0
+  if (!userId || !props.challengeParticipants || props.challengeType !== CHALLENGE_TYPES.HABIT) return 0
 
   const participant = props.challengeParticipants.find(p => {
     const pUserId = p.userId?._id || p.userId || p._id
@@ -1060,7 +1061,7 @@ const canComment = computed(() => {
   }
   
   // For quest (result) challenges, any logged-in user can comment
-  if (props.challengeType === 'result') {
+  if (props.challengeType === CHALLENGE_TYPES.RESULT) {
     return true
   }
   

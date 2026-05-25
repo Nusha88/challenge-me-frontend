@@ -82,7 +82,7 @@
                 <v-icon color="rgba(255,255,255,0.1)">mdi-arrow-right-thin</v-icon>
               </div>
               <div
-                v-if="challenge.challengeType === 'habit'"
+                v-if="challenge.challengeType === CHALLENGE_TYPES.HABIT"
                 class="date-info-box date-info-box--editable"
               >
                 <span class="label mb-3">{{ t('challenges.endDate') }}</span>
@@ -138,7 +138,7 @@
                 />
               </div>
 
-              <div v-if="challenge.challengeType === 'habit'" class="setting-item">
+              <div v-if="challenge.challengeType === CHALLENGE_TYPES.HABIT" class="setting-item">
                 <span class="setting-label">{{ t('challenges.frequency') }}</span>
                 <v-select
                   v-model="editForm.frequency"
@@ -153,7 +153,7 @@
             </div>
 
             <DurationSelector
-              v-if="challenge.challengeType === 'habit'"
+              v-if="challenge.challengeType === CHALLENGE_TYPES.HABIT"
               v-model:duration="editForm.duration"
               v-model:custom-duration="editForm.customDuration"
               :duration-error="errors.duration"
@@ -161,7 +161,7 @@
               class="mb-8"
             />
 
-            <div v-if="challenge.challengeType === 'result'" class="actions-plan-section mb-8">
+            <div v-if="challenge.challengeType === CHALLENGE_TYPES.RESULT" class="actions-plan-section mb-8">
               <div class="section-tag mb-4">{{ t('challenges.actionsPlan') }}</div>
               <div class="actions-glass-wrapper pa-2">
                 <ChallengeActions v-model="editForm.actions" :readonly="isDisabled" />
@@ -169,13 +169,13 @@
             </div>
 
             <DifficultySelector
-              v-if="challenge.challengeType === 'result'"
+              v-if="challenge.challengeType === CHALLENGE_TYPES.RESULT"
               v-model:difficulty="editForm.difficulty"
               :disabled="isDisabled"
               class="mb-8"
             />
 
-            <div v-if="challenge.challengeType === 'result'" class="reward-edit-section mb-8">
+            <div v-if="challenge.challengeType === CHALLENGE_TYPES.RESULT" class="reward-edit-section mb-8">
               <div class="section-tag mb-2">{{ t('challenges.rewardTitle') }}</div>
               <v-text-field
                 v-model="editForm.reward"
@@ -594,6 +594,7 @@ import {
 } from '../utils/dateUtils'
 import { applyDurationFieldsFromDayCount } from '../utils/durationUtils'
 import { isChallengeFinished } from '../utils/challengeStatus'
+import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
 
 const router = useRouter()
@@ -661,14 +662,14 @@ const { t, locale } = useI18n()
 
 const challengeTypeLabel = computed(() => {
   if (!challenge.value?.challengeType) return ''
-  return challenge.value.challengeType === 'habit' 
+  return challenge.value.challengeType === CHALLENGE_TYPES.HABIT 
     ? t('challenges.typeHabit') 
     : t('challenges.typeResult')
 })
 
 const challengeTypeColor = computed(() => {
   if (!challenge.value?.challengeType) return 'secondary'
-  return challenge.value.challengeType === 'habit' ? '#7048E8' : '#4FD1C5'
+  return challenge.value.challengeType === CHALLENGE_TYPES.HABIT ? '#7048E8' : '#4FD1C5'
 })
 
 function setLoadError(message) {
@@ -689,7 +690,7 @@ function isCurrentUserOwner(challengeData) {
 }
 
 function initializeActions(challengeData) {
-  if (challengeData.challengeType === 'result') {
+  if (challengeData.challengeType === CHALLENGE_TYPES.RESULT) {
     editForm.actions = challengeData.actions?.length > 0
       ? challengeData.actions.map((action) => ({
           _id: action._id,
@@ -711,7 +712,7 @@ function initializeActions(challengeData) {
 }
 
 function initializeCompletedDays(challengeData) {
-  if (challengeData.challengeType !== 'habit') {
+  if (challengeData.challengeType !== CHALLENGE_TYPES.HABIT) {
     editForm.completedDays = []
     originalCompletedDays.value = []
     return
@@ -751,7 +752,7 @@ function initializeEditForm(challengeData) {
   editForm.frequency = challengeData.frequency || ''
   editForm.privacy = challengeData.privacy === 'public' ? 'public' : 'private'
   editForm.allowComments = challengeData.allowComments !== undefined ? challengeData.allowComments : true
-  editForm.difficulty = challengeData.difficulty || (challengeData.challengeType === 'result' ? 'medium' : '')
+  editForm.difficulty = challengeData.difficulty || (challengeData.challengeType === CHALLENGE_TYPES.RESULT ? 'medium' : '')
   editForm.reward = challengeData.reward != null ? String(challengeData.reward) : ''
 
   initializeActions(challengeData)
@@ -813,7 +814,7 @@ function handleStartDatePick(value) {
   if (!picked) return
   editForm.startDate = picked
 
-  if (challenge.value?.challengeType === 'result') {
+  if (challenge.value?.challengeType === CHALLENGE_TYPES.RESULT) {
     syncDurationFromDates()
   }
 
@@ -836,7 +837,7 @@ watch(
       return
     }
 
-    if (challenge.value?.challengeType !== 'habit') {
+    if (challenge.value?.challengeType !== CHALLENGE_TYPES.HABIT) {
       return
     }
 
@@ -932,12 +933,12 @@ function buildUpdatePayload() {
     challengeType
   }
 
-  if (challengeType === 'habit') {
+  if (challengeType === CHALLENGE_TYPES.HABIT) {
     payload.frequency = editForm.frequency
     payload.completedDays = normalizeDateList(editForm.completedDays)
   }
 
-  if (challengeType === 'result') {
+  if (challengeType === CHALLENGE_TYPES.RESULT) {
     payload.completedDays = []
     payload.actions = normalizeActions(editForm.actions)
     payload.difficulty = editForm.difficulty || challenge.value?.difficulty || 'medium'
@@ -949,7 +950,7 @@ function buildUpdatePayload() {
 
 // Check if completedDays changed and update participant entry if needed
 async function updateParticipantCompletedDaysIfChanged(challengeId, challengeType, currentCompletedDays) {
-  if (challengeType !== 'habit' || !currentUserId.value) {
+  if (challengeType !== CHALLENGE_TYPES.HABIT || !currentUserId.value) {
     return
   }
   
@@ -1009,7 +1010,7 @@ function validate() {
     errors.description = t('challenges.validation.descriptionRequired')
   }
 
-  if (challenge.value?.challengeType === 'habit') {
+  if (challenge.value?.challengeType === CHALLENGE_TYPES.HABIT) {
     if (!editForm.duration) {
       errors.duration = t('challenges.validation.durationRequired')
     } else if (editForm.duration === 'custom' && Number(editForm.customDuration) < 1) {
@@ -1021,7 +1022,7 @@ function validate() {
     }
   }
 
-  if (challenge.value?.challengeType === 'result') {
+  if (challenge.value?.challengeType === CHALLENGE_TYPES.RESULT) {
     if (!editForm.endDate) {
       errors.endDate = t('challenges.validation.endDateRequired')
     }
@@ -1043,7 +1044,7 @@ function validate() {
 watch(
   () => editForm.endDate,
   (newVal, oldVal) => {
-    if (isInitializing.value || challenge.value?.challengeType !== 'result') {
+    if (isInitializing.value || challenge.value?.challengeType !== CHALLENGE_TYPES.RESULT) {
       return
     }
 

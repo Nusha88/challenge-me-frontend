@@ -43,12 +43,12 @@
                 </div>
               </div>
               <v-chip
-                :style="{ backgroundColor: challenge.challengeType === 'habit' ? '#7048E8' : '#4FD1C5', color: '#FFFFFF' }"
+                :style="{ backgroundColor: challenge.challengeType === CHALLENGE_TYPES.HABIT ? '#7048E8' : '#4FD1C5', color: '#FFFFFF' }"
                 size="small"
                 variant="flat"
                 class="font-weight-black"
               >
-                {{ challenge.challengeType === 'habit' ? t('watched.ritual') : t('watched.quest') }}
+                {{ challenge.challengeType === CHALLENGE_TYPES.HABIT ? t('watched.ritual') : t('watched.quest') }}
               </v-chip>
             </div>
 
@@ -563,12 +563,15 @@ import { useRouter } from 'vue-router'
 import { challengeService } from '../services/api'
 import ChallengeDetailsDialog from './ChallengeDetailsDialog.vue'
 import { useI18n } from 'vue-i18n'
+import { useWatchedChallengesStore } from '../stores/watchedChallenges'
+import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 
 const router = useRouter()
 const { t, locale } = useI18n()
+const watchedStore = useWatchedChallengesStore()
 
-const challenges = ref([])
-const loading = ref(false)
+const challenges = computed(() => watchedStore.challenges)
+const loading = computed(() => watchedStore.loading)
 const errorMessage = ref('')
 const isLoggedIn = ref(!!localStorage.getItem('token'))
 const currentUserId = ref(getCurrentUserId())
@@ -606,7 +609,7 @@ const showDialogJoinButton = computed(() => {
     return false
   }
   
-  if (selectedChallenge.value.challengeType !== 'habit') {
+  if (selectedChallenge.value.challengeType !== CHALLENGE_TYPES.HABIT) {
     return false
   }
   
@@ -626,7 +629,7 @@ const showDialogLeaveButton = computed(() => {
   }
   
   // Can only leave habit challenges
-  if (selectedChallenge.value.challengeType !== 'habit') {
+  if (selectedChallenge.value.challengeType !== CHALLENGE_TYPES.HABIT) {
     return false
   }
   
@@ -680,25 +683,20 @@ function isChallengeEnded(challenge) {
   }
 }
 
-async function loadWatchedChallenges() {
+async function loadWatchedChallenges({ force = false } = {}) {
   if (!currentUserId.value) {
     errorMessage.value = t('challenges.loginPrompt')
     return
   }
 
-  loading.value = true
   errorMessage.value = ''
 
   try {
-    const { data } = await challengeService.getWatchedChallenges(currentUserId.value)
-    challenges.value = data.challenges || []
-    // Load feed activities after challenges are loaded
+    await watchedStore.fetchForUser(currentUserId.value, { force })
     await loadFeedActivities()
   } catch (error) {
     console.error('Error loading watched challenges:', error)
     errorMessage.value = error.response?.data?.message || t('challenges.loadError')
-  } finally {
-    loading.value = false
   }
 }
 
@@ -864,7 +862,7 @@ function checkChallengeFinished(challenge) {
   }
   
   // For result challenges, check if all actions are done
-  if (challenge.challengeType === 'result') {
+  if (challenge.challengeType === CHALLENGE_TYPES.RESULT) {
     if (!challenge.actions || !Array.isArray(challenge.actions) || challenge.actions.length === 0) {
       return false
     }
@@ -916,7 +914,7 @@ async function joinChallenge(challenge) {
   joiningId.value = challenge._id
   try {
     await challengeService.joinChallenge(challenge._id, { userId: currentUserId.value })
-    await loadWatchedChallenges()
+    await loadWatchedChallenges({ force: true })
     if (detailsDialogOpen.value && selectedChallenge.value?._id === challenge._id) {
       await handleDialogUpdate()
     }
@@ -934,18 +932,20 @@ async function watchChallenge(challenge) {
   watchingId.value = challenge._id
   
   // Optimistically update watchers count
-  const challengeIndex = challenges.value.findIndex(c => c._id === challenge._id)
-  if (challengeIndex !== -1 && challenges.value[challengeIndex].watchersCount !== undefined) {
-    challenges.value[challengeIndex].watchersCount = (challenges.value[challengeIndex].watchersCount || 0) + 1
+  const challengeIndex = watchedStore.challenges.findIndex((c) => c._id === challenge._id)
+  if (challengeIndex !== -1 && watchedStore.challenges[challengeIndex].watchersCount !== undefined) {
+    watchedStore.challenges[challengeIndex].watchersCount =
+      (watchedStore.challenges[challengeIndex].watchersCount || 0) + 1
   }
-  
+
   try {
-    await challengeService.watchChallenge(challenge._id, currentUserId.value)
-    await loadWatchedChallenges()
+    await watchedStore.watch(challenge._id, currentUserId.value)
   } catch (error) {
-    // Revert optimistic update on error
-    if (challengeIndex !== -1 && challenges.value[challengeIndex].watchersCount !== undefined) {
-      challenges.value[challengeIndex].watchersCount = Math.max(0, (challenges.value[challengeIndex].watchersCount || 0) - 1)
+    if (challengeIndex !== -1 && watchedStore.challenges[challengeIndex].watchersCount !== undefined) {
+      watchedStore.challenges[challengeIndex].watchersCount = Math.max(
+        0,
+        (watchedStore.challenges[challengeIndex].watchersCount || 0) - 1
+      )
     }
     console.error('Error watching challenge:', error)
     alert(error.response?.data?.message || t('challenges.watchError'))
@@ -960,21 +960,24 @@ async function unwatchChallenge(challenge) {
   watchingId.value = challenge._id
   
   // Optimistically update watchers count
-  const challengeIndex = challenges.value.findIndex(c => c._id === challenge._id)
-  if (challengeIndex !== -1 && challenges.value[challengeIndex].watchersCount !== undefined) {
-    challenges.value[challengeIndex].watchersCount = Math.max(0, (challenges.value[challengeIndex].watchersCount || 0) - 1)
+  const challengeIndex = watchedStore.challenges.findIndex((c) => c._id === challenge._id)
+  if (challengeIndex !== -1 && watchedStore.challenges[challengeIndex].watchersCount !== undefined) {
+    watchedStore.challenges[challengeIndex].watchersCount = Math.max(
+      0,
+      (watchedStore.challenges[challengeIndex].watchersCount || 0) - 1
+    )
   }
-  
+
   try {
-    await challengeService.unwatchChallenge(challenge._id, currentUserId.value)
-    await loadWatchedChallenges()
+    await watchedStore.unwatch(challenge._id, currentUserId.value)
+    await loadFeedActivities()
     if (detailsDialogOpen.value && selectedChallenge.value?._id === challenge._id) {
       detailsDialogOpen.value = false
     }
   } catch (error) {
-    // Revert optimistic update on error
-    if (challengeIndex !== -1 && challenges.value[challengeIndex].watchersCount !== undefined) {
-      challenges.value[challengeIndex].watchersCount = (challenges.value[challengeIndex].watchersCount || 0) + 1
+    if (challengeIndex !== -1 && watchedStore.challenges[challengeIndex].watchersCount !== undefined) {
+      watchedStore.challenges[challengeIndex].watchersCount =
+        (watchedStore.challenges[challengeIndex].watchersCount || 0) + 1
     }
     console.error('Error unwatching challenge:', error)
     alert(error.response?.data?.message || t('challenges.unwatchError'))
@@ -1014,18 +1017,15 @@ async function leaveChallenge(challenge) {
   try {
     await challengeService.leaveChallenge(challenge._id, { userId: currentUserId.value })
     
-    // Refresh watched challenges list
-    await loadWatchedChallenges()
-    
-    // Refresh the selected challenge if dialog is open
+    await loadWatchedChallenges({ force: true })
+
     if (selectedChallenge.value?._id === challenge._id) {
-      // Fetch fresh challenge data to get updated participants list
       try {
         const { data } = await challengeService.getChallenge(challenge._id)
         selectedChallenge.value = data
       } catch (error) {
-        // Fallback to finding in list
-        selectedChallenge.value = challenges.value.find(c => c._id === challenge._id) || null
+        selectedChallenge.value =
+          watchedStore.challenges.find((c) => c._id === challenge._id) || null
       }
     }
   } catch (error) {
@@ -1056,9 +1056,9 @@ async function handleDialogUpdate() {
     const { data } = await challengeService.getChallenge(selectedChallenge.value._id)
     selectedChallenge.value = data
     // Update in challenges list
-    const index = challenges.value.findIndex(c => c._id === data._id)
+    const index = watchedStore.challenges.findIndex((c) => c._id === data._id)
     if (index !== -1) {
-      challenges.value[index] = data
+      watchedStore.challenges[index] = data
     }
   } catch (error) {
     console.error('Error updating challenge:', error)
@@ -1095,7 +1095,7 @@ function getOwnerProgress(challenge) {
   if (!challenge.owner) return null
   
   // For result challenges, check actions
-  if (challenge.challengeType === 'result') {
+  if (challenge.challengeType === CHALLENGE_TYPES.RESULT) {
     if (!challenge.actions || !Array.isArray(challenge.actions)) return null
     // Count checked actions (including parent and child actions)
     let checkedCount = 0
@@ -1129,7 +1129,7 @@ function getOwnerProgressDone(challenge) {
 }
 
 function getOwnerProgressTotal(challenge) {
-  if (challenge.challengeType === 'result') {
+  if (challenge.challengeType === CHALLENGE_TYPES.RESULT) {
     if (!challenge.actions || !Array.isArray(challenge.actions)) return 0
     // Count total actions (including parent and child actions)
     let totalCount = 0
@@ -1209,7 +1209,7 @@ const topPerformers = computed(() => {
   
   challenges.value.forEach(challenge => {
     // Only include habit challenges (result challenges don't have participant progress)
-    if (challenge.challengeType !== 'habit') return
+    if (challenge.challengeType !== CHALLENGE_TYPES.HABIT) return
     
     if (challenge.participants && Array.isArray(challenge.participants)) {
       challenge.participants.forEach(participant => {
@@ -1252,7 +1252,7 @@ const topPerformers = computed(() => {
 function getParticipantProgress(participant, challenge) {
   // For result challenges, participants don't have individual progress
   // Only the owner tracks progress through actions
-  if (challenge.challengeType === 'result') {
+  if (challenge.challengeType === CHALLENGE_TYPES.RESULT) {
     return 0
   }
   
@@ -1306,7 +1306,7 @@ function getParticipantInitial(participant) {
 
 function canJoin(challenge) {
   if (isChallengeEnded(challenge)) return false
-  if (challenge.challengeType !== 'habit') return false
+  if (challenge.challengeType !== CHALLENGE_TYPES.HABIT) return false
   if (!currentUserId.value) return false
   if (isChallengeOwner(challenge.owner)) return false
   if (isParticipant(challenge)) return false

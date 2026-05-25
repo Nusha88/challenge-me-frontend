@@ -1,4 +1,5 @@
 import { getInclusiveDaysBetween, toDateInputValue } from '../utils/dateUtils'
+import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 
 const RESTART_DRAFT_KEY = 'restartChallengeData'
 const RESTARTED_CHALLENGE_ID_KEY = 'restartedChallengeId'
@@ -84,15 +85,15 @@ function normalizeRestartDraft(data) {
 
   const challengeType = draft.challengeType || data.challengeType
 
-  if (data.endDate && challengeType === 'result') {
+  if (data.endDate && challengeType === CHALLENGE_TYPES.RESULT) {
     draft.endDate = toDateInputValue(data.endDate)
   }
 
-  if (challengeType === 'result' && Array.isArray(data.actions) && data.actions.length > 0) {
+  if (challengeType === CHALLENGE_TYPES.RESULT && Array.isArray(data.actions) && data.actions.length > 0) {
     draft.milestones = mapActionsToMilestones(data.actions)
   }
 
-  if (challengeType === 'habit' && (draft.privacy === 'private' || draft.privacy === 'public')) {
+  if (challengeType === CHALLENGE_TYPES.HABIT && (draft.privacy === 'private' || draft.privacy === 'public')) {
     draft.lastHabitPrivacy = draft.privacy
   }
 

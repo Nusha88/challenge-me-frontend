@@ -106,6 +106,21 @@ export function isPastDate(value, reference = new Date()) {
   return date < ref
 }
 
+export function isFutureDate(value, reference = new Date()) {
+  if (!value) {
+    return false
+  }
+
+  const date = startOfDay(value)
+  const ref = startOfDay(reference)
+
+  if (Number.isNaN(date.getTime())) {
+    return false
+  }
+
+  return date > ref
+}
+
 export function formatDateForLocale(value, locale) {
   if (!value) return ''
 

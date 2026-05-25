@@ -11,6 +11,7 @@ import {
   isSubscribedToPushNotifications 
 } from '../utils/pushNotifications'
 import { getLevelFromXp, getXpForLevel, getXpForNextLevel, getRank, getLevelInfo, getRankIcon } from '../utils/levelSystem'
+import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 
 const props = defineProps({
   userId: {
@@ -139,7 +140,7 @@ function isChallengeFinished(challenge) {
   }
   
   // For result challenges, check if all actions are done
-  if (challenge.challengeType === 'result') {
+  if (challenge.challengeType === CHALLENGE_TYPES.RESULT) {
     if (!challenge.actions || !Array.isArray(challenge.actions) || challenge.actions.length === 0) {
       return false
     }
@@ -185,7 +186,7 @@ const heatmapDays = computed(() => {
 // User missions (habit challenges) for non-current user profiles
 const userMissions = computed(() => {
   if (isOwnProfile.value) return []
-  return challenges.value.filter(challenge => challenge.challengeType === 'habit')
+  return challenges.value.filter(challenge => challenge.challengeType === CHALLENGE_TYPES.HABIT)
 })
 
 // Active user missions (not finished)
@@ -605,7 +606,7 @@ const fetchHeatmapData = async () => {
       const { data } = await challengeService.getChallengesByUser(userId, { excludePrivate })
       // Filter for habit challenges only (missions) where user is participant
       const habitChallenges = (data?.challenges || []).filter(c => {
-        if (c.challengeType !== 'habit') return false
+        if (c.challengeType !== CHALLENGE_TYPES.HABIT) return false
         if (!c.participants || !Array.isArray(c.participants)) return false
         // Check if the viewed user is a participant
         return c.participants.some(p => {
@@ -654,7 +655,7 @@ const getChallengesForDate = (dateString, userId) => {
   
   return heatmapChallenges.value.filter(challenge => {
     // Must be a habit challenge (already filtered, but double-check)
-    if (challenge.challengeType !== 'habit') return false
+    if (challenge.challengeType !== CHALLENGE_TYPES.HABIT) return false
     
     // Must have started (startDate <= targetDate)
     if (challenge.startDate) {

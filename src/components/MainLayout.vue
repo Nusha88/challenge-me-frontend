@@ -3,6 +3,7 @@ import { ref, onMounted, onBeforeUnmount, computed, watch, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import { useUserStore } from '../stores/user'
+import { useWatchedChallengesStore } from '../stores/watchedChallenges'
 import NotificationsComponent from './NotificationsComponent.vue'
 import XpAwardToast from './XpAwardToast.vue'
 import AppHeader from './layout/AppHeader.vue'
@@ -84,6 +85,7 @@ function toggleDrawer() {
 }
 
 function logout() {
+  useWatchedChallengesStore().clear()
   userStore.clearUser()
   clearAppBadge()
   dispatchAppEvent(APP_EVENTS.AUTH_CHANGED)

@@ -145,10 +145,13 @@ import ChallengeCard from './ChallengeCard.vue'
 import MainRitualCard from './MainRitualCard.vue'
 import { useI18n } from 'vue-i18n'
 import { useUserStore } from '../stores/user'
+import { useWatchedChallengesStore } from '../stores/watchedChallenges'
+import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
+const watchedStore = useWatchedChallengesStore()
 
 const challenges = ref([])
 const allHabitChallenges = ref([]) // Store all habit challenges for main ritual selection
@@ -160,7 +163,6 @@ const currentUserId = computed(() => userStore.userId)
 const joiningId = ref(null)
 const leavingId = ref(null)
 const watchingId = ref(null)
-const watchedChallenges = ref([])
 const currentPage = ref(1)
 const hasMore = ref(true)
 
@@ -234,7 +236,7 @@ const showDialogJoinButton = computed(() => {
   }
   
   // Can only join habit challenges
-  if (selectedChallenge.value.challengeType !== 'habit') {
+  if (selectedChallenge.value.challengeType !== CHALLENGE_TYPES.HABIT) {
     return false
   }
   
@@ -254,7 +256,7 @@ const showDialogLeaveButton = computed(() => {
   }
   
   // Can only leave habit challenges
-  if (selectedChallenge.value.challengeType !== 'habit') {
+  if (selectedChallenge.value.challengeType !== CHALLENGE_TYPES.HABIT) {
     return false
   }
   
@@ -355,7 +357,7 @@ function canJoin(challenge) {
     return false
   }
   // Can only join habit challenges
-  if (challenge.challengeType !== 'habit') {
+  if (challenge.challengeType !== CHALLENGE_TYPES.HABIT) {
     return false
   }
   return currentUserId.value && !isChallengeOwner(challenge.owner) && !isParticipant(challenge)
@@ -364,7 +366,14 @@ function canJoin(challenge) {
 
 function isWatched(challenge) {
   if (!challenge || !currentUserId.value) return false
-  return watchedChallenges.value.some(id => id.toString() === challenge._id.toString())
+  return !!challenge.isWatched
+}
+
+function setChallengeWatched(challengeId, watched) {
+  challenges.value = challenges.value.map((item) => {
+    if (item._id !== challengeId) return item
+    return { ...item, isWatched: watched }
+  })
 }
 
 async function watchChallenge(challenge) {
@@ -382,10 +391,14 @@ async function watchChallenge(challenge) {
     challenges.value[challengeIndex].watchersCount = (challenges.value[challengeIndex].watchersCount || 0) + 1
   }
 
+  setChallengeWatched(challenge._id, true)
+  watchedStore.addId(challenge._id)
+
   try {
-    await challengeService.watchChallenge(challenge._id, currentUserId.value)
-    await loadWatchedChallenges()
+    await watchedStore.watch(challenge._id, currentUserId.value)
   } catch (error) {
+    setChallengeWatched(challenge._id, false)
+    watchedStore.removeId(challenge._id)
     // Revert optimistic update on error
     if (challengeIndex !== -1 && challenges.value[challengeIndex].watchersCount !== undefined) {
       challenges.value[challengeIndex].watchersCount = Math.max(0, (challenges.value[challengeIndex].watchersCount || 0) - 1)
@@ -408,10 +421,14 @@ async function unwatchChallenge(challenge) {
     challenges.value[challengeIndex].watchersCount = Math.max(0, (challenges.value[challengeIndex].watchersCount || 0) - 1)
   }
 
+  setChallengeWatched(challenge._id, false)
+  watchedStore.removeId(challenge._id)
+
   try {
-    await challengeService.unwatchChallenge(challenge._id, currentUserId.value)
-    await loadWatchedChallenges()
+    await watchedStore.unwatch(challenge._id, currentUserId.value)
   } catch (error) {
+    setChallengeWatched(challenge._id, true)
+    watchedStore.addId(challenge._id)
     // Revert optimistic update on error
     if (challengeIndex !== -1 && challenges.value[challengeIndex].watchersCount !== undefined) {
       challenges.value[challengeIndex].watchersCount = (challenges.value[challengeIndex].watchersCount || 0) + 1
@@ -419,17 +436,6 @@ async function unwatchChallenge(challenge) {
     errorMessage.value = error.response?.data?.message || t('challenges.unwatchError')
   } finally {
     watchingId.value = null
-  }
-}
-
-async function loadWatchedChallenges() {
-  if (!currentUserId.value) return
-  
-  try {
-    const { data } = await challengeService.getWatchedChallenges(currentUserId.value)
-    watchedChallenges.value = (data.challenges || []).map(c => c._id)
-  } catch (error) {
-    console.error('Error loading watched challenges:', error)
   }
 }
 
@@ -552,6 +558,10 @@ async function fetchChallenges(page = 1, append = false) {
     // Update pagination state
     hasMore.value = data?.pagination?.hasMore || false
     currentPage.value = page
+
+    if (currentUserId.value) {
+      watchedStore.syncIdsFromChallengeList(challenges.value, currentUserId.value)
+    }
   } catch (error) {
     errorMessage.value = error.response?.data?.message || t('notifications.apiError')
   } finally {
@@ -646,7 +656,6 @@ async function handleDialogSave(formData) {
 async function handleDialogUpdate() {
   // Refresh challenges when participant updates their completedDays or watch/unwatch
   await fetchChallenges(currentPage.value, false)
-  await loadWatchedChallenges()
   // Also refresh the selected challenge if dialog is open
   if (selectedChallenge.value) {
     const updatedChallenge = challenges.value.find(c => c._id === selectedChallenge.value._id)
@@ -930,7 +939,7 @@ async function fetchAllHabitChallenges() {
   try {
     // Fetch all habit challenges with a high limit to get the most popular ones
     const { data } = await challengeService.getAllChallenges({
-      type: 'habit',
+      type: CHALLENGE_TYPES.HABIT,
       excludeFinished: true,
       limit: 100, // Fetch more to find the most popular
       page: 1
@@ -955,7 +964,6 @@ onMounted(async () => {
     await fetchAllHabitChallenges()
   }
   await fetchChallenges(1, false)
-  loadWatchedChallenges()
   window.addEventListener('scroll', handleScroll)
   
   // Check if route has challenge ID parameter

@@ -108,6 +108,7 @@ import ResultSettingsSection from './challenge-form/ResultSettingsSection.vue'
 import { fireConfetti } from '../utils/confetti'
 import { toDateInputValue, addDays } from '../utils/dateUtils'
 import { useRestartChallengeDraft } from '../composables/useRestartChallengeDraft'
+import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 
 const router = useRouter()
 const { t } = useI18n()
@@ -126,7 +127,7 @@ const form = ref({
   duration: '21',
   customDuration: '',
   privacy: 'private',
-  challengeType: 'habit',
+  challengeType: CHALLENGE_TYPES.HABIT,
   frequency: 'daily',
   startOption: 'today',
   milestones: [{ title: '' }],
@@ -143,7 +144,7 @@ const lastHabitPrivacy = ref('private')
 const showSuccessModal = ref(false)
 const createdChallengeId = ref('')
 
-const isHabit = computed(() => form.value.challengeType === 'habit')
+const isHabit = computed(() => form.value.challengeType === CHALLENGE_TYPES.HABIT)
 
 watch(() => form.value.title, () => {
   if (errors.value.title) {
@@ -203,7 +204,7 @@ onMounted(() => {
 })
 
 const createButtonText = computed(() => {
-  return form.value.challengeType === 'result'
+  return form.value.challengeType === CHALLENGE_TYPES.RESULT
     ? t('challenges.createResult')
     : t('challenges.createHabit')
 })
@@ -222,7 +223,7 @@ const isFormValid = computed(() => {
     ? Boolean(form.value.duration)
     : Number(form.value.customDuration) >= 1
 
-  if (form.value.challengeType === 'habit') {
+  if (form.value.challengeType === CHALLENGE_TYPES.HABIT) {
     return hasTitle && hasValidDuration && Boolean(form.value.frequency)
   }
 
@@ -249,7 +250,7 @@ function getCurrentUserId() {
 }
 
 function saveCurrentTypeState() {
-  if (form.value.challengeType !== 'habit') {
+  if (form.value.challengeType !== CHALLENGE_TYPES.HABIT) {
     return
   }
 
@@ -291,7 +292,7 @@ function selectChallengeType(type) {
   saveCurrentTypeState()
   form.value.challengeType = type
 
-  if (type === 'habit') {
+  if (type === CHALLENGE_TYPES.HABIT) {
     applyHabitDefaults()
   } else {
     applyResultDefaults()
@@ -307,7 +308,7 @@ function validate() {
     validationErrors.title = t('challenges.validation.titleRequired')
   }
 
-  if (form.value.challengeType === 'habit') {
+  if (form.value.challengeType === CHALLENGE_TYPES.HABIT) {
     if (!form.value.startOption) {
       validationErrors.startOption = t('challenges.validation.startOptionRequired')
     }
@@ -368,7 +369,7 @@ const normalizedPrivacy = computed(() => {
 })
 
 function getSubmissionEndDate() {
-  if (form.value.challengeType === 'result' && form.value.endDate) {
+  if (form.value.challengeType === CHALLENGE_TYPES.RESULT && form.value.endDate) {
     return form.value.endDate
   }
 
@@ -405,11 +406,11 @@ function buildChallengePayload(userId) {
     payload.imageUrl = form.value.imageUrl
   }
 
-  if (form.value.challengeType === 'habit') {
+  if (form.value.challengeType === CHALLENGE_TYPES.HABIT) {
     payload.frequency = form.value.frequency
   }
 
-  if (form.value.challengeType === 'result') {
+  if (form.value.challengeType === CHALLENGE_TYPES.RESULT) {
     payload.actions = buildActionsFromMilestones()
     payload.difficulty = form.value.difficulty
 
@@ -502,7 +503,7 @@ function resetForm() {
     duration: '21',
     customDuration: '',
     privacy: 'private',
-    challengeType: 'habit',
+    challengeType: CHALLENGE_TYPES.HABIT,
     frequency: 'daily',
     startOption: 'today',
     milestones: [{ title: '' }],

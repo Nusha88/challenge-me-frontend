@@ -3,8 +3,8 @@
     <div class="challenge-type-grid">
       <div
         class="type-card habit-style"
-        :class="{ 'is-active': modelValue === 'habit' }"
-        @click="select('habit')"
+        :class="{ 'is-active': modelValue === CHALLENGE_TYPES.HABIT }"
+        @click="select(CHALLENGE_TYPES.HABIT)"
       >
         <div class="type-card-content">
           <div class="icon-box">
@@ -15,7 +15,7 @@
             <div class="type-description">{{ t('challenges.typeHabitDescription') }}</div>
           </div>
           <div class="selection-indicator">
-            <v-icon v-if="modelValue === 'habit'">mdi-check-circle</v-icon>
+            <v-icon v-if="modelValue === CHALLENGE_TYPES.HABIT">mdi-check-circle</v-icon>
             <div v-else class="empty-circle"></div>
           </div>
         </div>
@@ -23,8 +23,8 @@
 
       <div
         class="type-card result-style"
-        :class="{ 'is-active': modelValue === 'result' }"
-        @click="select('result')"
+        :class="{ 'is-active': modelValue === CHALLENGE_TYPES.RESULT }"
+        @click="select(CHALLENGE_TYPES.RESULT)"
       >
         <div class="type-card-content">
           <div class="icon-box">
@@ -35,7 +35,7 @@
             <div class="type-description">{{ t('challenges.typeResultDescription') }}</div>
           </div>
           <div class="selection-indicator">
-            <v-icon v-if="modelValue === 'result'">mdi-check-circle</v-icon>
+            <v-icon v-if="modelValue === CHALLENGE_TYPES.RESULT">mdi-check-circle</v-icon>
             <div v-else class="empty-circle"></div>
           </div>
         </div>
@@ -46,6 +46,7 @@
 
 <script setup>
 import { useI18n } from 'vue-i18n'
+import { CHALLENGE_TYPES } from '../../constants/challengeTypes'
 
 const props = defineProps({
   modelValue: {

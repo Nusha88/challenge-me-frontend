@@ -38,14 +38,14 @@
           <span class="btn-text">{{t('challenges.allTypes')}}</span>
         </v-btn>
         
-        <v-btn value="result" class="filter-nav-btn quest-tab">
+        <v-btn :value="CHALLENGE_TYPES.RESULT" class="filter-nav-btn quest-tab">
           <v-icon start size="18">mdi-sword</v-icon>
-          <span class="btn-text">{{ getChallengeTypeLabel('result') }}</span>
+          <span class="btn-text">{{ getChallengeTypeLabel(CHALLENGE_TYPES.RESULT) }}</span>
         </v-btn>
 
-        <v-btn value="habit" class="filter-nav-btn ritual-tab">
+        <v-btn :value="CHALLENGE_TYPES.HABIT" class="filter-nav-btn ritual-tab">
           <v-icon start size="18">mdi-fire</v-icon>
-          <span class="btn-text">{{ getChallengeTypeLabel('habit') }}</span>
+          <span class="btn-text">{{ getChallengeTypeLabel(CHALLENGE_TYPES.HABIT) }}</span>
         </v-btn>
       </v-btn-toggle>
 
@@ -103,7 +103,7 @@
 import { computed, ref, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { userService } from '../services/api'
-import { useChallengeType } from '../composables/useChallengeType'
+import { useChallengeType, CHALLENGE_TYPES } from '../composables/useChallengeType'
 
 const props = defineProps({
   modelValue: {

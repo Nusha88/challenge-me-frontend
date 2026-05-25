@@ -55,7 +55,7 @@
             <div class="d-flex align-center gap-2 mb-3">
               <v-chip
                 size="x-small"
-                :class="challenge.challengeType === 'habit' ? 'chip-habit' : 'chip-result'"
+                :class="challenge.challengeType === CHALLENGE_TYPES.HABIT ? 'chip-habit' : 'chip-result'"
                 class="font-weight-black text-uppercase px-3"
               >
                 {{ getChallengeTypeLabel(challenge.challengeType) }}
@@ -88,7 +88,7 @@
           
           <v-window-item value="progress">
             <div class="tab-content-wrapper">
-              <template v-if="challenge.challengeType === 'habit'">
+              <template v-if="challenge.challengeType === CHALLENGE_TYPES.HABIT">
                 <div class="progress-header mb-6">
                   <div class="progress-header-row d-flex justify-space-between align-center flex-wrap gap-2">
                     <div v-if="showPersonalPace" class="personal-pace-row">
@@ -325,7 +325,7 @@
             v-if="showMainActionButton"
             ref="mainActionBtnRef"
             class="main-action-btn ml-2"
-            :loading="joinLoading || (isOwner && challenge.challengeType === 'result' && saveLoading) || participantSaveLoading"
+            :loading="joinLoading || (isOwner && challenge.challengeType === CHALLENGE_TYPES.RESULT && saveLoading) || participantSaveLoading"
             @click="handleMainActionClick"
           >
             {{ mainActionButtonText }}
@@ -802,6 +802,7 @@ import {useRouter} from 'vue-router'
 import { useDisplay } from 'vuetify'
 import {useChallengeType} from '../composables/useChallengeType'
 import {useUserStore} from '../stores/user'
+import { useWatchedChallengesStore } from '../stores/watchedChallenges'
 import ChallengeActions from './ChallengeActions.vue'
 import CommentsComponent from './CommentsComponent.vue'
 import {challengeService} from '../services/api'
@@ -809,6 +810,7 @@ import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
 import { fireConfetti } from '../utils/confetti'
 import { getPaceStatus } from '../utils/challengePace'
 import { isChallengeEnded, isChallengeFinished } from '../utils/challengeStatus'
+import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 import { getLevelFromXp, getLevelInfo } from '../utils/levelSystem'
 import { Trophy } from 'lucide-vue-next'
 
@@ -878,6 +880,7 @@ const dialogModel = computed({
 
 
 const userStore = useUserStore()
+const watchedStore = useWatchedChallengesStore()
 const { applyXpAwardResponse } = useXpAwardFeedback()
 
 function getCurrentUserId() {
@@ -887,7 +890,6 @@ function getCurrentUserId() {
 const currentUserId = ref(getCurrentUserId())
 
 
-const watchedChallenges = ref([])
 const watchingId = ref(null)
 
 
@@ -926,7 +928,7 @@ const router = useRouter()
 
 const actionsViewModel = computed({
   get() {
-    if (props.challenge?.challengeType !== 'result') {
+    if (props.challenge?.challengeType !== CHALLENGE_TYPES.RESULT) {
       return []
     }
     return props.isOwner ? editForm.actions : (props.challenge.actions || [])
@@ -945,7 +947,7 @@ const actionsViewModel = computed({
 const progressDone = computed(() => {
   if (!props.challenge) return 0
   
-  if (props.challenge.challengeType === 'result') {
+  if (props.challenge.challengeType === CHALLENGE_TYPES.RESULT) {
     const actions = props.isOwner ? editForm.actions : (props.challenge.actions || [])
     let doneCount = 0
     actions.forEach(action => {
@@ -998,7 +1000,7 @@ const isFinished = computed(() => {
 const showProgressFooterActions = computed(() => {
   if (tab.value !== 'progress') return false
 
-  if (props.isOwner && props.challenge?.challengeType === 'result') {
+  if (props.isOwner && props.challenge?.challengeType === CHALLENGE_TYPES.RESULT) {
     return !isMissionEnded.value
   }
 
@@ -1008,7 +1010,7 @@ const showProgressFooterActions = computed(() => {
 const progressTotal = computed(() => {
   if (!props.challenge) return 0
   
-  if (props.challenge.challengeType === 'result') {
+  if (props.challenge.challengeType === CHALLENGE_TYPES.RESULT) {
     const actions = props.isOwner ? editForm.actions : (props.challenge.actions || [])
     let totalCount = 0
     actions.forEach(action => {
@@ -1068,7 +1070,7 @@ function formatDateString(date) {
 
 
 const calendarDays = computed(() => {
-  if (!props.challenge || props.challenge.challengeType !== 'habit') return []
+  if (!props.challenge || props.challenge.challengeType !== CHALLENGE_TYPES.HABIT) return []
   if (!props.challenge.startDate || !props.challenge.endDate) return []
   
   const start = new Date(props.challenge.startDate)
@@ -1177,7 +1179,7 @@ const heroRank = computed(() => {
 })
 
 const paceStatus = computed(() => {
-  if (!props.challenge || props.challenge.challengeType !== 'habit') return null
+  if (!props.challenge || props.challenge.challengeType !== CHALLENGE_TYPES.HABIT) return null
   if (!props.challenge.startDate) return null
 
   const start = new Date(props.challenge.startDate)
@@ -1224,7 +1226,7 @@ const missionStats = computed(() => {
   
   const stats = []
   
-  if (props.challenge.challengeType === 'habit') {
+  if (props.challenge.challengeType === CHALLENGE_TYPES.HABIT) {
     
     stats.push({
       label: t('challenges.duration'),
@@ -1503,7 +1505,7 @@ const isCurrentUserParticipant = computed(() => {
 const canJoinPublicHabit = computed(() => {
   if (!props.challenge || !currentUserId.value) return false
   if (isFinished.value) return false
-  if (props.challenge.challengeType !== 'habit') return false
+  if (props.challenge.challengeType !== CHALLENGE_TYPES.HABIT) return false
   if (props.challenge.privacy === 'private') return false
   if (props.isOwner) return false
   if (isCurrentUserParticipant.value) return false
@@ -1516,8 +1518,8 @@ const showJoinActionButton = computed(() => {
 
 const showMainActionButton = computed(() => {
   return showJoinActionButton.value ||
-    (isCurrentUserParticipant.value && props.challenge.challengeType === 'habit' && !isFinished.value) ||
-    (props.isOwner && props.challenge.challengeType === 'result' && tab.value === 'progress')
+    (isCurrentUserParticipant.value && props.challenge.challengeType === CHALLENGE_TYPES.HABIT && !isFinished.value) ||
+    (props.isOwner && props.challenge.challengeType === CHALLENGE_TYPES.RESULT && tab.value === 'progress')
 })
 
 const showWatchActionButton = computed(() => {
@@ -1528,7 +1530,7 @@ const mainActionButtonText = computed(() => {
   if (showJoinActionButton.value) {
     return t('challenges.joinMission')
   }
-  if (props.isOwner && props.challenge.challengeType === 'result') {
+  if (props.isOwner && props.challenge.challengeType === CHALLENGE_TYPES.RESULT) {
     return t('challenges.update')
   }
   return t('challenges.saveProgress')
@@ -1592,7 +1594,9 @@ function calculateEndDateFromDuration(startDate, duration) {
 
 
 onMounted(() => {
-  loadWatchedChallenges()
+  if (currentUserId.value) {
+    watchedStore.fetchForUser(currentUserId.value)
+  }
   document.addEventListener('click', onCalendarOutsideClick, true)
 })
 
@@ -1624,7 +1628,7 @@ const populateEditForm = (value) => {
   editForm.privacy = value.privacy || 'public'
   editForm.allowComments = value.allowComments !== undefined ? value.allowComments : true
   
-  if (value.challengeType === 'result') {
+  if (value.challengeType === CHALLENGE_TYPES.RESULT) {
     
     editForm.actions = value.actions && Array.isArray(value.actions) && value.actions.length > 0
       ? value.actions.map(a => ({ 
@@ -1642,7 +1646,7 @@ const populateEditForm = (value) => {
 }
 
 const initializeOwnerHabitDays = (value) => {
-  if (value?.challengeType === 'habit' && props.isOwner) {
+  if (value?.challengeType === CHALLENGE_TYPES.HABIT && props.isOwner) {
     if (isInitializing.value) {
       let ownerCompletedDays = []
       
@@ -1693,7 +1697,7 @@ const handleModelValueChange = (value) => {
     localCurrentUserCompletedDays.value = []
   } else {
     isInitializing.value = true
-    if (props.challenge?.challengeType === 'habit' && props.challenge?.completedDays) {
+    if (props.challenge?.challengeType === CHALLENGE_TYPES.HABIT && props.challenge?.completedDays) {
       nextTick(() => {
         if (isInitializing.value) {
           editForm.completedDays = Array.isArray(props.challenge.completedDays)
@@ -1724,10 +1728,6 @@ watch(
   () => props.challenge,
   (value, oldValue) => {
     syncLocalCompletedDays(value, oldValue)
-    
-    if (value) {
-      loadWatchedChallenges()
-    }
     
     populateEditForm(value)
     
@@ -1833,7 +1833,7 @@ function handleMainActionClick() {
     emitJoin()
   } else if (
     props.isOwner &&
-    props.challenge?.challengeType === 'result'
+    props.challenge?.challengeType === CHALLENGE_TYPES.RESULT
   ) {
     handleOwnerActionsSave()
   } else {
@@ -1962,20 +1962,9 @@ async function handleParticipantSave() {
 }
 
 
-async function loadWatchedChallenges() {
-  if (!currentUserId.value) return
-  
-  try {
-    const { data } = await challengeService.getWatchedChallenges(currentUserId.value)
-    watchedChallenges.value = (data.challenges || []).map(c => c._id)
-  } catch (error) {
-  }
-}
-
-
 const isWatched = computed(() => {
   if (!props.challenge || !currentUserId.value) return false
-  return watchedChallenges.value.some(id => id.toString() === props.challenge._id.toString())
+  return watchedStore.isWatched(props.challenge)
 })
 
 
@@ -2008,14 +1997,17 @@ const copyLink = async () => {
 
 async function handleWatch() {
   if (!currentUserId.value || !props.challenge) return
-  
-  watchingId.value = props.challenge._id
+
+  const challengeId = props.challenge._id
+  watchingId.value = challengeId
+  watchedStore.addId(challengeId)
+
   try {
-    await challengeService.watchChallenge(props.challenge._id, currentUserId.value)
-    await loadWatchedChallenges()
+    await watchedStore.watch(challengeId, currentUserId.value)
     emit('update:modelValue', false)
     emit('update')
   } catch (error) {
+    watchedStore.removeId(challengeId)
     alert(error.response?.data?.message || t('challenges.watchError'))
   } finally {
     watchingId.value = null
@@ -2025,14 +2017,17 @@ async function handleWatch() {
 
 async function handleUnwatch() {
   if (!currentUserId.value || !props.challenge) return
-  
-  watchingId.value = props.challenge._id
+
+  const challengeId = props.challenge._id
+  watchingId.value = challengeId
+  watchedStore.removeId(challengeId)
+
   try {
-    await challengeService.unwatchChallenge(props.challenge._id, currentUserId.value)
-    await loadWatchedChallenges()
+    await watchedStore.unwatch(challengeId, currentUserId.value)
     emit('update:modelValue', false)
     emit('update')
   } catch (error) {
+    watchedStore.addId(challengeId)
     alert(error.response?.data?.message || t('challenges.unwatchError'))
   } finally {
     watchingId.value = null

@@ -5,6 +5,7 @@ import { useUserStore } from '../stores/user'
 import { userService, challengeService } from '../services/api'
 import { useAppEventListeners } from './useAppEvents'
 import { APP_EVENTS } from '../utils/appEvents'
+import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 
 function formatDateString(date) {
   const year = date.getFullYear()
@@ -96,7 +97,7 @@ export function useUserStreak() {
 
       const checklists = checklistResponse.data?.checklists || []
       const habitChallenges = (challengesResponse.data?.challenges || [])
-        .filter((challenge) => challenge.challengeType === 'habit')
+        .filter((challenge) => challenge.challengeType === CHALLENGE_TYPES.HABIT)
 
       const completedDates = buildCompletedDateSet(checklists, habitChallenges, userId)
 

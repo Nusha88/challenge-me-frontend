@@ -35,7 +35,7 @@
         </v-alert>
 
       <v-alert
-        v-else-if="challenges.length === 0 || filteredChallenges.length === 0"
+        v-else-if="challenges.length === 0"
         type="info"
         variant="tonal"
         class="info-message"
@@ -63,99 +63,76 @@
       <div v-else>
           <!-- Active Challenges -->
           <div v-if="activeChallenges.length > 0">
-            <!-- Quests (2 per row) -->
-            <div v-if="activeQuests.length > 0" class="quests-grid mb-6">
-              <ChallengeCard
-                v-for="challenge in activeQuests"
-                :key="challenge._id"
-                :challenge="challenge"
-                :current-user-id="currentUserId"
-                :show-join-button="false"
-                :joining-id="joiningId"
-                :leaving-id="leavingId"
-                :watching-id="watchingId"
-                :is-watched="isWatched(challenge)"
-                @click="handleChallengeClick"
-                @join="joinChallenge"
-                @leave="leaveChallenge"
-                @watch="watchChallenge"
-                @unwatch="unwatchChallenge"
-                @owner-navigated="handleOwnerNavigated"
-              />
-            </div>
-            
-            <!-- Rituals (3 per row) -->
-            <div v-if="activeRituals.length > 0" class="rituals-grid">
-              <ChallengeCard
-                v-for="challenge in activeRituals"
-                :key="challenge._id"
-                :challenge="challenge"
-                :current-user-id="currentUserId"
-                :show-join-button="false"
-                :joining-id="joiningId"
-                :leaving-id="leavingId"
-                :watching-id="watchingId"
-                :is-watched="isWatched(challenge)"
-                @click="handleChallengeClick"
-                @join="joinChallenge"
-                @leave="leaveChallenge"
-                @watch="watchChallenge"
-                @unwatch="unwatchChallenge"
-                @owner-navigated="handleOwnerNavigated"
-              />
-            </div>
+            <MyChallengeSection
+              v-if="activeQuests.length"
+              :challenges="activeQuests"
+              grid-class="quests-grid mb-6"
+              :current-user-id="currentUserId"
+              :joining-id="joiningId"
+              :leaving-id="leavingId"
+              :watching-id="watchingId"
+              @challenge-click="handleChallengeClick"
+              @join="joinChallenge"
+              @leave="leaveChallenge"
+              @watch="watchChallenge"
+              @unwatch="unwatchChallenge"
+              @owner-navigated="handleOwnerNavigated"
+            />
+
+            <MyChallengeSection
+              v-if="activeRituals.length"
+              :challenges="activeRituals"
+              grid-class="rituals-grid"
+              :current-user-id="currentUserId"
+              :joining-id="joiningId"
+              :leaving-id="leavingId"
+              :watching-id="watchingId"
+              @challenge-click="handleChallengeClick"
+              @join="joinChallenge"
+              @leave="leaveChallenge"
+              @watch="watchChallenge"
+              @unwatch="unwatchChallenge"
+              @owner-navigated="handleOwnerNavigated"
+            />
           </div>
 
           <!-- Upcoming Challenges -->
           <div v-if="upcomingChallenges.length > 0" :class="{ 'upcoming-section': activeChallenges.length > 0 }">
             <h2 class="section-title mb-4" :class="{ 'mt-8': activeChallenges.length > 0 }">{{ t('challenges.upcoming') }}</h2>
-            <div class="challenges-grid">
-              <div
-                v-for="challenge in upcomingChallenges"
-                :key="challenge._id"
-                class="upcoming-card-disabled"
-              >
-                <ChallengeCard
-                  :challenge="challenge"
-                  :current-user-id="currentUserId"
-                  :show-join-button="false"
-                  :joining-id="joiningId"
-                  :leaving-id="leavingId"
-                  :watching-id="watchingId"
-                  :is-watched="isWatched(challenge)"
-                  @click="handleChallengeClick"
-                  @join="joinChallenge"
-                  @leave="leaveChallenge"
-                  @watch="watchChallenge"
-                  @unwatch="unwatchChallenge"
-                  @owner-navigated="handleOwnerNavigated"
-                />
-                <div class="upcoming-blur-overlay"></div>
-              </div>
-            </div>
+            <MyChallengeSection
+              :challenges="upcomingChallenges"
+              grid-class="challenges-grid"
+              :current-user-id="currentUserId"
+              :joining-id="joiningId"
+              :leaving-id="leavingId"
+              :watching-id="watchingId"
+              disabled
+              @challenge-click="handleChallengeClick"
+              @join="joinChallenge"
+              @leave="leaveChallenge"
+              @watch="watchChallenge"
+              @unwatch="unwatchChallenge"
+              @owner-navigated="handleOwnerNavigated"
+            />
           </div>
 
           <!-- Finished Challenges -->
           <div v-if="finishedChallenges.length > 0" :class="{ 'finished-section': activeChallenges.length > 0 }">
-            <div class="challenges-grid" :class="{ 'mt-8': activeChallenges.length > 0 }">
-          <ChallengeCard
-                v-for="challenge in finishedChallenges"
-            :key="challenge._id"
-            :challenge="challenge"
-            :current-user-id="currentUserId"
-            :show-join-button="false"
-            :joining-id="joiningId"
-            :leaving-id="leavingId"
-            :watching-id="watchingId"
-            :is-watched="isWatched(challenge)"
-                @click="handleChallengeClick"
-                @join="joinChallenge"
-                @leave="leaveChallenge"
-                @watch="watchChallenge"
-                @unwatch="unwatchChallenge"
-                @owner-navigated="handleOwnerNavigated"
-          />
-            </div>
+            <MyChallengeSection
+              :challenges="finishedChallenges"
+              grid-class="challenges-grid"
+              :class="activeChallenges.length > 0 ? 'mt-8' : undefined"
+              :current-user-id="currentUserId"
+              :joining-id="joiningId"
+              :leaving-id="leavingId"
+              :watching-id="watchingId"
+              @challenge-click="handleChallengeClick"
+              @join="joinChallenge"
+              @leave="leaveChallenge"
+              @watch="watchChallenge"
+              @unwatch="unwatchChallenge"
+              @owner-navigated="handleOwnerNavigated"
+            />
           </div>
         </div>
     </div>
@@ -180,449 +157,73 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch, nextTick } from 'vue'
+import { onMounted, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user'
-import { challengeService } from '../services/api'
 import { useI18n } from 'vue-i18n'
-import ChallengeCard from './ChallengeCard.vue'
+import MyChallengeSection from './MyChallengeSection.vue'
 import ChallengeDetailsDialog from './ChallengeDetailsDialog.vue'
+import { useMyChallenges } from '../composables/useMyChallenges'
+import { useChallengeDialog } from '../composables/useChallengeDialog'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 const { t } = useI18n()
 
-const challenges = ref([])
-const loading = ref(false)
-const error = ref('')
-
-const detailsDialogOpen = ref(false)
-const selectedChallenge = ref(null)
-
-// Get current user ID from store
 const currentUserId = computed(() => userStore.userId)
 
-// Helper functions to determine if challenge is finished
-function isChallengeEnded(challenge) {
-  if (!challenge.endDate) return false
-  try {
-    const endDate = new Date(challenge.endDate)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    endDate.setHours(0, 0, 0, 0)
-    return endDate < today
-  } catch {
-    return false
-  }
-}
+const {
+  challenges,
+  loading,
+  error,
+  joiningId,
+  leavingId,
+  watchingId,
+  activeQuests,
+  activeRituals,
+  upcomingChallenges,
+  finishedChallenges,
+  activeChallenges,
+  fetchChallenges,
+  joinChallenge,
+  leaveChallenge,
+  watchChallenge,
+  unwatchChallenge,
+  configureDialogSync
+} = useMyChallenges(currentUserId)
 
-function isChallengeFinished(challenge) {
-  // Check if endDate is in the past
-  if (isChallengeEnded(challenge)) {
-    return true
-  }
-  
-  // For result challenges, check if all actions are done
-  if (challenge.challengeType === 'result') {
-    if (!challenge.actions || !Array.isArray(challenge.actions) || challenge.actions.length === 0) {
-      return false
-    }
-    
-    // Check if all actions and their children are checked
-    return challenge.actions.every(action => {
-      // Parent action must be checked
-      if (!action.checked) return false
-      
-      // All children must be checked (if any exist)
-      if (action.children && Array.isArray(action.children) && action.children.length > 0) {
-        return action.children.every(child => child.checked)
-      }
-      
-      return true
-    })
-  }
-  
-  return false
-}
-
-// Challenges are already filtered by the backend, so use them directly
-const filteredChallenges = computed(() => {
-  return challenges.value
+const {
+  detailsDialogOpen,
+  selectedChallenge,
+  selectedIsOwner,
+  selectedIsParticipant,
+  showDialogLeaveButton,
+  selectedLeaveLoading,
+  handleChallengeClick,
+  handleDialogUpdate,
+  handleDialogLeave,
+  handleOwnerNavigated,
+  refreshSelectedChallenge,
+  consumeChallengeIdFromRoute
+} = useChallengeDialog({
+  challenges,
+  currentUserId,
+  error,
+  fetchChallenges,
+  leaveChallenge,
+  leavingId
 })
 
-// Helper function to check if challenge is upcoming
-function isChallengeUpcoming(challenge) {
-  if (!challenge.startDate) return false
-  try {
-    const startDate = new Date(challenge.startDate)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    startDate.setHours(0, 0, 0, 0)
-    return startDate > today
-  } catch {
-    return false
-  }
-}
-
-// Separate active and finished challenges
-const activeChallenges = computed(() => {
-  return filteredChallenges.value.filter(challenge => {
-    if (isChallengeFinished(challenge)) return false
-    if (isChallengeUpcoming(challenge)) return false
-    return true
-  })
-})
-
-const activeQuests = computed(() => {
-  return activeChallenges.value.filter(challenge => challenge.challengeType === 'result')
-})
-
-const activeRituals = computed(() => {
-  return activeChallenges.value.filter(challenge => challenge.challengeType === 'habit')
-})
-
-const upcomingChallenges = computed(() => {
-  return filteredChallenges.value.filter(challenge => {
-    if (isChallengeFinished(challenge)) return false
-    if (!challenge.startDate) return false
-    const startDate = new Date(challenge.startDate)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    startDate.setHours(0, 0, 0, 0)
-    return startDate > today
-  })
-})
-
-const finishedChallenges = computed(() => {
-  return filteredChallenges.value.filter(challenge => isChallengeFinished(challenge))
-})
-
-const totalChallenges = computed(() => {
-  return challenges.value.length
-})
-
-const selectedIsOwner = computed(() => {
-  if (!selectedChallenge.value || !currentUserId.value) return false
-  const ownerId = selectedChallenge.value.owner?._id || selectedChallenge.value.owner
-  return ownerId && ownerId.toString() === currentUserId.value.toString()
-})
-
-const selectedIsParticipant = computed(() => {
-  if (!selectedChallenge.value || !currentUserId.value) return false
-  return (selectedChallenge.value.participants || []).some(participant => {
-    const userId = participant.userId?._id || participant.userId || participant._id || participant
-    return userId && userId.toString() === currentUserId.value.toString()
-  })
-})
-
-const leavingId = ref(null)
-const joiningId = ref(null)
-const watchingId = ref(null)
-const watchedChallenges = ref([])
-
-const showDialogLeaveButton = computed(() => {
-  if (!selectedChallenge.value) return false
-  
-  // Cannot leave if challenge has ended
-  if (isChallengeEnded(selectedChallenge.value)) {
-    return false
-  }
-  
-  // Can only leave habit challenges
-  if (selectedChallenge.value.challengeType !== 'habit') {
-    return false
-  }
-  
-  return (
-    !!currentUserId.value &&
-    !selectedIsOwner.value &&
-    selectedIsParticipant.value
-  )
-})
-
-const selectedLeaveLoading = computed(() => {
-  if (!selectedChallenge.value) return false
-  return leavingId.value === selectedChallenge.value._id
-})
-
-function isChallengeOwner(owner) {
-  if (!currentUserId.value || !owner) return false
-  const ownerId = owner._id || owner
-  return ownerId && ownerId.toString() === currentUserId.value.toString()
-}
-
-const fetchChallenges = async () => {
-  if (!currentUserId.value) {
-    error.value = t('users.userNotFound')
-    return
-  }
-
-  loading.value = true
-  error.value = ''
-
-  try {
-    // Get current user's challenges
-    const { data } = await challengeService.getChallengesByUser(currentUserId.value, {
-      excludePrivate: false // Include private challenges for own profile
-    })
-    challenges.value = data?.challenges || []
-  } catch (err) {
-    error.value = err.response?.data?.message || t('notifications.apiError')
-  } finally {
-    loading.value = false
-  }
-}
-
-const handleChallengeClick = async (challenge) => {
-  // Always open details dialog for all users (owners can navigate to edit from dialog)
-  error.value = ''
-  
-  // Fetch full challenge data to ensure we have populated owner and participants
-  try {
-    const { data } = await challengeService.getChallenge(challenge._id)
-    selectedChallenge.value = data
-  } catch (err) {
-    // Fallback to using the challenge from the list
-    selectedChallenge.value = challenge
-  }
-  
-  detailsDialogOpen.value = true
-}
-
-async function joinChallenge(challenge) {
-  if (!currentUserId.value) {
-    error.value = t('notifications.mustLogin')
-    return
-  }
-
-  if (!challenge || !challenge._id) {
-    error.value = t('notifications.joinError')
-    return
-  }
-
-  joiningId.value = challenge._id
-  error.value = ''
-
-  try {
-    await challengeService.joinChallenge(challenge._id, { userId: currentUserId.value })
-    
-    // Refresh challenges list
-    await fetchChallenges()
-    
-    // Refresh the selected challenge if dialog is open
-    if (selectedChallenge.value?._id === challenge._id) {
-      // Fetch fresh challenge data to get updated participants list
-      try {
-        const { data } = await challengeService.getChallenge(challenge._id)
-        selectedChallenge.value = data
-      } catch (err) {
-        // Fallback to finding in list
-        selectedChallenge.value = challenges.value.find(c => c._id === challenge._id) || null
-      }
-    }
-  } catch (err) {
-    error.value = err.response?.data?.message || t('notifications.joinError')
-  } finally {
-    joiningId.value = null
-  }
-}
-
-async function leaveChallenge(challenge) {
-  if (!currentUserId.value) {
-    error.value = t('notifications.mustLogin')
-    return
-  }
-
-  if (!challenge || !challenge._id) {
-    error.value = t('notifications.joinError')
-    return
-  }
-
-  leavingId.value = challenge._id
-  error.value = ''
-
-  try {
-    await challengeService.leaveChallenge(challenge._id, { userId: currentUserId.value })
-    
-    // Refresh challenges list
-    await fetchChallenges()
-    
-    // Refresh the selected challenge if dialog is open
-    if (selectedChallenge.value?._id === challenge._id) {
-      // Fetch fresh challenge data to get updated participants list
-      try {
-        const { data } = await challengeService.getChallenge(challenge._id)
-        selectedChallenge.value = data
-      } catch (err) {
-        // Fallback to finding in list
-        selectedChallenge.value = challenges.value.find(c => c._id === challenge._id) || null
-      }
-    }
-  } catch (err) {
-    error.value = err.response?.data?.message || t('notifications.joinError')
-  } finally {
-    leavingId.value = null
-  }
-}
-
-function isWatched(challenge) {
-  if (!challenge || !currentUserId.value) return false
-  const challengeId = challenge._id?.toString()
-  if (!challengeId) return false
-  return watchedChallenges.value.some(id => id.toString() === challengeId)
-}
-
-async function loadWatchedChallenges() {
-  if (!currentUserId.value) return
-  
-  try {
-    const { data } = await challengeService.getWatchedChallenges(currentUserId.value)
-    watchedChallenges.value = (data?.challenges || []).map(c => (c._id?.toString() || c._id))
-  } catch (err) {
-    console.error('Error loading watched challenges:', err)
-  }
-}
-
-async function watchChallenge(challenge) {
-  if (!currentUserId.value) {
-    error.value = t('notifications.mustLogin')
-    return
-  }
-
-  watchingId.value = challenge._id
-  error.value = ''
-
-  // Optimistic update for watched challenges list
-  const challengeId = challenge._id.toString()
-  if (!watchedChallenges.value.includes(challengeId)) {
-    watchedChallenges.value.push(challengeId)
-  }
-
-  // Optimistically update watchers count
-  const challengeIndex = challenges.value.findIndex(c => c._id === challenge._id)
-  if (challengeIndex !== -1 && challenges.value[challengeIndex].watchersCount !== undefined) {
-    challenges.value[challengeIndex].watchersCount = (challenges.value[challengeIndex].watchersCount || 0) + 1
-  }
-
-  try {
-    await challengeService.watchChallenge(challenge._id, currentUserId.value)
-    await loadWatchedChallenges()
-  } catch (err) {
-    // Revert optimistic updates on error
-    const index = watchedChallenges.value.indexOf(challengeId)
-    if (index > -1) {
-      watchedChallenges.value.splice(index, 1)
-    }
-    if (challengeIndex !== -1 && challenges.value[challengeIndex].watchersCount !== undefined) {
-      challenges.value[challengeIndex].watchersCount = Math.max(0, (challenges.value[challengeIndex].watchersCount || 0) - 1)
-    }
-    error.value = err.response?.data?.message || t('challenges.watchError')
-  } finally {
-    watchingId.value = null
-  }
-}
-
-async function unwatchChallenge(challenge) {
-  if (!currentUserId.value) return
-
-  watchingId.value = challenge._id
-  error.value = ''
-
-  // Optimistic update for watched challenges list
-  const challengeId = challenge._id.toString()
-  const index = watchedChallenges.value.indexOf(challengeId)
-  if (index > -1) {
-    watchedChallenges.value.splice(index, 1)
-  }
-
-  // Optimistically update watchers count
-  const challengeIndex = challenges.value.findIndex(c => c._id === challenge._id)
-  if (challengeIndex !== -1 && challenges.value[challengeIndex].watchersCount !== undefined) {
-    challenges.value[challengeIndex].watchersCount = Math.max(0, (challenges.value[challengeIndex].watchersCount || 0) - 1)
-  }
-
-  try {
-    await challengeService.unwatchChallenge(challenge._id, currentUserId.value)
-    await loadWatchedChallenges()
-  } catch (err) {
-    // Revert optimistic updates on error
-    if (!watchedChallenges.value.includes(challengeId)) {
-      watchedChallenges.value.push(challengeId)
-    }
-    if (challengeIndex !== -1 && challenges.value[challengeIndex].watchersCount !== undefined) {
-      challenges.value[challengeIndex].watchersCount = (challenges.value[challengeIndex].watchersCount || 0) + 1
-    }
-    error.value = err.response?.data?.message || t('challenges.watchError')
-  } finally {
-    watchingId.value = null
-  }
-}
-
-async function handleDialogLeave() {
-  if (!selectedChallenge.value) return
-  await leaveChallenge(selectedChallenge.value)
-}
-
-const handleDialogUpdate = async () => {
-  // Refresh challenges when participant updates their completedDays
-  await fetchChallenges()
-  await loadWatchedChallenges()
-  // Also refresh the selected challenge if dialog is open
-  if (selectedChallenge.value) {
-    const updatedChallenge = challenges.value.find(c => c._id === selectedChallenge.value._id)
-    if (updatedChallenge) {
-      selectedChallenge.value = updatedChallenge
-    }
-  }
-}
-
-function handleOwnerNavigated() {
-  // Close dialog when owner is navigated
-  detailsDialogOpen.value = false
-}
-
-async function openChallengeById(challengeId) {
-  if (!challengeId) return
-  
-  // Find challenge in the list
-  const challenge = challenges.value.find(c => c._id === challengeId || c._id?.toString() === challengeId)
-  if (challenge) {
-    selectedChallenge.value = challenge
-    detailsDialogOpen.value = true
-  } else {
-    // If challenge not in list, fetch it
-    try {
-      const { data } = await challengeService.getChallenge(challengeId)
-      selectedChallenge.value = data
-      detailsDialogOpen.value = true
-    } catch (err) {
-      console.error('Error loading challenge:', err)
-    }
-  }
-}
+configureDialogSync({ selectedChallenge, refreshSelectedChallenge })
 
 onMounted(async () => {
   await fetchChallenges()
-  loadWatchedChallenges()
-  
-  // Check if there's a challengeId in query params
-  if (route.query.challengeId) {
-    await nextTick()
-    await openChallengeById(route.query.challengeId)
-    // Remove query param from URL
-    router.replace({ path: route.path, query: {} })
-  }
+  await consumeChallengeIdFromRoute(router, route, route.query.challengeId)
 })
 
-// Watch for route query changes
-watch(() => route.query.challengeId, async (newChallengeId) => {
-  if (newChallengeId) {
-    await nextTick()
-    await openChallengeById(newChallengeId)
-    // Remove query param from URL
-    router.replace({ path: route.path, query: {} })
-  }
+watch(() => route.query.challengeId, (newChallengeId) => {
+  consumeChallengeIdFromRoute(router, route, newChallengeId)
 })
 </script>
 
@@ -720,23 +321,6 @@ watch(() => route.query.challengeId, async (newChallengeId) => {
   margin-top: 24px;
 }
 
-.upcoming-card-disabled {
-  position: relative;
-}
-
-.upcoming-card-disabled :deep(.challenge-card) {
-  pointer-events: none;
-}
-
-.upcoming-blur-overlay {
-  position: absolute;
-  inset: 0;
-  border-radius: 18px;
-  background: rgba(13, 17, 28, 0.38);
-  backdrop-filter: blur(3px);
-  z-index: 5;
-  pointer-events: all;
-}
 /* Контейнер сетки (используй те же настройки, что и для реальной сетки) */
 .challenges-grid-skeleton {
   display: grid;

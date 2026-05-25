@@ -1,7 +1,12 @@
-import { isPastDate } from './dateUtils'
+import { isFutureDate, isPastDate } from './dateUtils'
+import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 
 export function isChallengeEnded(challenge) {
   return isPastDate(challenge?.endDate)
+}
+
+export function isChallengeUpcoming(challenge) {
+  return isFutureDate(challenge?.startDate)
 }
 
 export function areActionsCompleted(actions) {
@@ -31,7 +36,7 @@ export function isChallengeFinished(challenge) {
     return true
   }
 
-  if (challenge.challengeType === 'result') {
+  if (challenge.challengeType === CHALLENGE_TYPES.RESULT) {
     return areActionsCompleted(challenge.actions)
   }
 

@@ -5,10 +5,11 @@
       'is-owner': isOwner,
       'is-failed': isFinished && !isSuccessful,
       'is-finished': isFinished,
+      'is-disabled': disabled,
       'quest-mode': isQuestMode,
-      'habit-mode': challenge.challengeType === 'habit' && !isFinished
+      'habit-mode': challenge.challengeType === CHALLENGE_TYPES.HABIT && !isFinished
     }"
-    @click="$emit('click', challenge)"
+    @click="handleCardClick"
   >
     <div 
       v-if="isQuestMode" 
@@ -18,7 +19,7 @@
       <div class="overlay-mask"></div>
     </div>
 
-    <div v-if="challenge.challengeType === 'habit' && !isFinished" class="habit-visual-wrapper">
+    <div v-if="challenge.challengeType === CHALLENGE_TYPES.HABIT && !isFinished" class="habit-visual-wrapper">
       <div class="habit-gradient-glow"></div>
       <div class="habit-grid-pattern"></div>
     </div>
@@ -89,7 +90,7 @@
       <span class="ml-1">{{ participantCount }} {{ t('missions.heroesInLine') }}</span>
     </div>
     <div v-if="showJoinButton" class="join-prompt">
-       {{ challenge.challengeType === 'habit' ? t('missions.viewDetailsToJoin') : t('missions.viewDetails') }}
+       {{ challenge.challengeType === CHALLENGE_TYPES.HABIT ? t('missions.viewDetailsToJoin') : t('missions.viewDetails') }}
           </div>
         </div>
       </div>
@@ -103,7 +104,7 @@
           </div>
         <v-progress-linear
           :model-value="progressPercentage"
-          :color="challenge.challengeType === 'habit' ? '#7048E8' : '#4FD1C5'"
+          :color="challenge.challengeType === CHALLENGE_TYPES.HABIT ? '#7048E8' : '#4FD1C5'"
           height="6"
           rounded
           class="mission-progress"
@@ -137,6 +138,27 @@
   transform: translateY(-8px);
   border-color: rgba(112, 72, 232, 0.4) !important;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4) !important;
+}
+
+.challenge-card.is-disabled {
+  cursor: default;
+}
+
+.challenge-card.is-disabled:hover {
+  transform: none;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: none !important;
+}
+
+.challenge-card.is-disabled::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  background: rgba(13, 17, 28, 0.38);
+  backdrop-filter: blur(3px);
+  z-index: 5;
+  pointer-events: none;
 }
 
 /* Фоны */
@@ -505,6 +527,7 @@ import upcomingImage from '../assets/upcoming.png'
 import successImage from '../assets/success.png'
 import failedImage from '../assets/failed.png'
 import { isChallengeFinished } from '../utils/challengeStatus'
+import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 
 const { applyXpAwardResponse } = useXpAwardFeedback()
 
@@ -534,6 +557,10 @@ const props = defineProps({
     default: null
   },
   isWatched: {
+    type: Boolean,
+    default: false
+  },
+  disabled: {
     type: Boolean,
     default: false
   },
@@ -585,11 +612,11 @@ function normalizeDate(date) {
 // --- COMPUTED PROPERTIES ---
 
 const isQuestMode = computed(() => {
-  return props.challenge.challengeType === 'result' && props.challenge.imageUrl && !isFinished.value
+  return props.challenge.challengeType === CHALLENGE_TYPES.RESULT && props.challenge.imageUrl && !isFinished.value
 })
 
 const isHabitParticipantMode = computed(() => {
-  return isParticipant.value && props.challenge.challengeType === 'habit' && !isFinished.value
+  return isParticipant.value && props.challenge.challengeType === CHALLENGE_TYPES.HABIT && !isFinished.value
 })
 
 const isOwner = computed(() => {
@@ -613,10 +640,10 @@ const isFinished = computed(() => isChallengeFinished(props.challenge))
 
 const isSuccessful = computed(() => {
   if (!isFinished.value) return false
-  if (props.challenge.challengeType === 'result') {
+  if (props.challenge.challengeType === CHALLENGE_TYPES.RESULT) {
     return efficiencyPercentage.value === 100
   }
-  if (props.challenge.challengeType === 'habit') {
+  if (props.challenge.challengeType === CHALLENGE_TYPES.HABIT) {
     return progressPercentage.value === 100
   }
   return false
@@ -634,7 +661,7 @@ const isUpcoming = computed(() => {
 })
 
 const streakDays = computed(() => {
-  if (props.challenge.challengeType !== 'habit' || !props.currentUserId || !props.challenge.participants) return 0
+  if (props.challenge.challengeType !== CHALLENGE_TYPES.HABIT || !props.currentUserId || !props.challenge.participants) return 0
     
     const participant = props.challenge.participants.find(p => {
         const userId = p.userId?._id || p.userId || p._id
@@ -667,7 +694,7 @@ const streakDays = computed(() => {
 })
 
 const isTodayCompleted = computed(() => {
-  if (props.challenge.challengeType !== 'habit' || !props.currentUserId || !props.challenge.participants) return false
+  if (props.challenge.challengeType !== CHALLENGE_TYPES.HABIT || !props.currentUserId || !props.challenge.participants) return false
     const participant = props.challenge.participants.find(p => {
         const userId = p.userId?._id || p.userId || p._id
         return userId && userId.toString() === props.currentUserId.toString()
@@ -677,7 +704,7 @@ const isTodayCompleted = computed(() => {
 })
 
 const isTodayScheduled = computed(() => {
-  if (props.challenge.challengeType !== 'habit') return false
+  if (props.challenge.challengeType !== CHALLENGE_TYPES.HABIT) return false
   if (props.challenge.frequency !== 'everyOtherDay') return true
   if (!props.challenge.startDate) return true
 
@@ -713,7 +740,7 @@ const targetParticipant = computed(() => {
 
 // Исправленный прогресс
 const progressDone = computed(() => {
-  if (props.challenge.challengeType === 'result') {
+  if (props.challenge.challengeType === CHALLENGE_TYPES.RESULT) {
     let count = 0;
     props.challenge.actions?.forEach(action => {
       if (action.checked) count++;
@@ -746,7 +773,7 @@ const lastSevenDays = computed(() => {
 });
 
 const progressTotal = computed(() => {
-  if (props.challenge.challengeType === 'result') {
+  if (props.challenge.challengeType === CHALLENGE_TYPES.RESULT) {
     let count = 0
     props.challenge.actions?.forEach(action => {
       count++
@@ -780,7 +807,7 @@ const progressPercentage = computed(() => {
 })
 
 const efficiencyPercentage = computed(() => {
-  if (props.challenge.challengeType !== 'result' || !props.challenge.actions) return 0
+  if (props.challenge.challengeType !== CHALLENGE_TYPES.RESULT || !props.challenge.actions) return 0
   let total = 0, completed = 0
   props.challenge.actions.forEach(a => {
     total++; if (a.checked) completed++
@@ -791,8 +818,14 @@ const efficiencyPercentage = computed(() => {
 
 // --- ACTIONS ---
 
+function handleCardClick() {
+  if (props.disabled) return
+  emit('click', props.challenge)
+}
+
 async function completeDay() {
-  if (props.challenge.challengeType !== 'habit' || !props.currentUserId || isTodayCompleted.value || !isTodayScheduled.value) return
+  if (props.disabled) return
+  if (props.challenge.challengeType !== CHALLENGE_TYPES.HABIT || !props.currentUserId || isTodayCompleted.value || !isTodayScheduled.value) return
   
   const todayStr = formatDateString(new Date())
   const participant = props.challenge.participants.find(p => {

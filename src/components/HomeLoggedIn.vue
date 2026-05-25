@@ -351,6 +351,7 @@ import DailyChecklist from './DailyChecklist.vue'
 import IgniteLoader from './IgniteLoader.vue'
 import ChallengeDetailsDialog from './ChallengeDetailsDialog.vue'
 import { userService, challengeService } from '../services/api'
+import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
 import motivationalMessagesEn from '../data/motivationalMessages.en.json'
 import motivationalMessagesRu from '../data/motivationalMessages.ru.json'
@@ -484,7 +485,7 @@ async function calculateStreak() {
     const allChallenges = challengesResponse.data?.challenges || []
     
     // Filter for habit challenges only
-    const habitChallenges = allChallenges.filter(c => c.challengeType === 'habit')
+    const habitChallenges = allChallenges.filter(c => c.challengeType === CHALLENGE_TYPES.HABIT)
 
     // Sort checklists by date descending
     const sortedChecklists = [...checklists].sort((a, b) => {
@@ -558,7 +559,7 @@ function isChallengeFinished(challenge) {
   }
   
   // For result challenges, check if all actions are done
-  if (challenge.challengeType === 'result') {
+  if (challenge.challengeType === CHALLENGE_TYPES.RESULT) {
     if (!challenge.actions || !Array.isArray(challenge.actions) || challenge.actions.length === 0) {
       return false
     }
@@ -755,7 +756,7 @@ async function loadTodaysChallenges() {
       if (isChallengeFinished(challenge)) return false
       
       // Must be a habit challenge (only habit challenges have daily completion)
-      if (challenge.challengeType !== 'habit') return false
+      if (challenge.challengeType !== CHALLENGE_TYPES.HABIT) return false
       
       // Must have started (startDate <= today)
       if (challenge.startDate) {
@@ -1084,7 +1085,7 @@ const tomorrowsChallenges = computed(() => {
     if (isChallengeFinished(challenge)) return false
     
     // Must be a habit challenge (only habit challenges have daily completion)
-    if (challenge.challengeType !== 'habit') return false
+    if (challenge.challengeType !== CHALLENGE_TYPES.HABIT) return false
     
     // Must have started or start tomorrow (startDate <= tomorrow)
     if (challenge.startDate) {

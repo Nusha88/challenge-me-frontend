@@ -123,6 +123,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { CHALLENGE_TYPES } from '../../constants/challengeTypes'
 import ChallengeImageUpload from '../ChallengeImageUpload.vue'
 
 const props = defineProps({
@@ -130,7 +131,7 @@ const props = defineProps({
   description: { type: String, default: '' },
   imageUrl: { type: String, default: '' },
   showImageUpload: { type: Boolean, default: false },
-  challengeType: { type: String, default: 'habit' },
+  challengeType: { type: String, default: CHALLENGE_TYPES.HABIT },
   titleError: { type: String, default: '' },
   descriptionError: { type: String, default: '' },
   editable: { type: Boolean, default: false },
@@ -153,13 +154,13 @@ const isEditingTitle = ref(false)
 const isEditingDescription = ref(false)
 
 const titlePlaceholder = computed(() => {
-  return props.challengeType === 'habit'
+  return props.challengeType === CHALLENGE_TYPES.HABIT
     ? t('challenges.titlePlaceholder.habit')
     : t('challenges.titlePlaceholder.result')
 })
 
 const coverMediaTitle = computed(() => {
-  return props.challengeType === 'result'
+  return props.challengeType === CHALLENGE_TYPES.RESULT
     ? t('challenges.epicBannerTitle')
     : t('challenges.coverPhotoTitle')
 })
