@@ -307,7 +307,7 @@
 
         <v-spacer></v-spacer>
 
-        <div v-if="tab === 'progress' && !isFinished" class="footer-actions-wrapper d-flex gap-3">
+        <div v-if="showProgressFooterActions" class="footer-actions-wrapper d-flex gap-3">
           <v-btn
             v-if="showWatchActionButton"
             variant="outlined"
@@ -323,8 +323,9 @@
 
           <v-btn
             v-if="showMainActionButton"
+            ref="mainActionBtnRef"
             class="main-action-btn ml-2"
-            :loading="joinLoading || (isOwner && challenge.challengeType === 'result' && saveLoading)"
+            :loading="joinLoading || (isOwner && challenge.challengeType === 'result' && saveLoading) || participantSaveLoading"
             @click="handleMainActionClick"
           >
             {{ mainActionButtonText }}
@@ -804,9 +805,10 @@ import {useUserStore} from '../stores/user'
 import ChallengeActions from './ChallengeActions.vue'
 import CommentsComponent from './CommentsComponent.vue'
 import {challengeService} from '../services/api'
+import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
 import { fireConfetti } from '../utils/confetti'
 import { getPaceStatus } from '../utils/challengePace'
-import { isChallengeFinished } from '../utils/challengeStatus'
+import { isChallengeEnded, isChallengeFinished } from '../utils/challengeStatus'
 import { getLevelFromXp, getLevelInfo } from '../utils/levelSystem'
 import { Trophy } from 'lucide-vue-next'
 
@@ -863,6 +865,7 @@ const deleteConfirmDialog = ref(false)
 const leaveConfirmDialog = ref(false)
 const isInitializing = ref(true)
 const participantSaveLoading = ref(false)
+const mainActionBtnRef = ref(null)
 const snackbar = ref(false)
 const snackbarText = ref('')
 const tab = ref('progress')
@@ -875,6 +878,8 @@ const dialogModel = computed({
 
 
 const userStore = useUserStore()
+const { applyXpAwardResponse } = useXpAwardFeedback()
+
 function getCurrentUserId() {
   return userStore.userId
 }
@@ -969,6 +974,14 @@ const progressDone = computed(() => {
   }
 })
 
+const isMissionEnded = computed(() => {
+  if (!props.challenge) return false
+
+  return isChallengeEnded({
+    endDate: props.isOwner ? editForm.endDate : props.challenge.endDate
+  })
+})
+
 const isFinished = computed(() => {
   if (!props.challenge) {
     return false
@@ -979,6 +992,17 @@ const isFinished = computed(() => {
     endDate: props.isOwner ? editForm.endDate : props.challenge.endDate,
     actions: props.isOwner ? editForm.actions : props.challenge.actions
   })
+})
+
+/** Keep save visible for result owners until mission end date — all actions checked is not "closed" yet. */
+const showProgressFooterActions = computed(() => {
+  if (tab.value !== 'progress') return false
+
+  if (props.isOwner && props.challenge?.challengeType === 'result') {
+    return !isMissionEnded.value
+  }
+
+  return !isFinished.value
 })
 
 const progressTotal = computed(() => {
@@ -1827,14 +1851,17 @@ async function handleOwnerActionsSave() {
 
   try {
     const response = await challengeService.updateChallengeActions(c._id, actionsToSave)
-    if (response?.data?.user) {
-      userStore.updateUser(response.data.user)
-      window.dispatchEvent(new Event('auth-changed'))
-    }
+    const xpGained = applyXpAwardResponse(response, {
+      toastAnchor: mainActionBtnRef.value
+    })
     window.dispatchEvent(new Event('checklist-updated'))
-    setTimeout(fireConfetti, 300)
+
+    if (xpGained > 0) {
+      setTimeout(fireConfetti, 300)
+    }
+
     emit('update')
-    handleVisibility(false) 
+    handleVisibility(false)
   } catch (error) {
   }
 }
@@ -1917,12 +1944,14 @@ async function handleParticipantSave() {
       completedDays
     )
 
-    if (response?.data?.user) {
-      
-      userStore.updateUser(response.data.user)
-      window.dispatchEvent(new Event('auth-changed'))
+    const xpGained = applyXpAwardResponse(response, {
+      toastAnchor: mainActionBtnRef.value
+    })
+
+    if (xpGained > 0) {
+      setTimeout(fireConfetti, 300)
     }
-    setTimeout(fireConfetti, 300)
+
     emit('update')
     emit('update:modelValue', false)
     router.push('/')

@@ -28,7 +28,7 @@
         </div>
         <div class="diff-content">
           <span class="diff-name">{{ t('challenges.difficultyMedium') }}</span>
-          <span class="diff-xp">+150 XP</span>
+          <span class="diff-xp">+100 XP</span>
         </div>
         <v-icon class="check-icon" size="20">mdi-check-circle</v-icon>
       </div>
@@ -43,7 +43,7 @@
         </div>
         <div class="diff-content">
           <span class="diff-name">{{ t('challenges.difficultyHeroic') }}</span>
-          <span class="diff-xp">+500 XP</span>
+          <span class="diff-xp">+200 XP</span>
         </div>
         <v-icon class="check-icon" size="20">mdi-check-circle</v-icon>
       </div>

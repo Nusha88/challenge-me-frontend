@@ -594,10 +594,11 @@ import {
 } from '../utils/dateUtils'
 import { applyDurationFieldsFromDayCount } from '../utils/durationUtils'
 import { isChallengeFinished } from '../utils/challengeStatus'
-import { APP_EVENTS, dispatchAppEvent } from '../utils/appEvents'
+import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
 
 const router = useRouter()
 const route = useRoute()
+const { applyXpAwardResponse } = useXpAwardFeedback()
 
 const tacticalSelectMenuProps = {
   contentClass: 'challenge-edit-select-menu'
@@ -964,12 +965,8 @@ async function updateParticipantCompletedDaysIfChanged(challengeId, challengeTyp
         currentUserId.value,
         currentCompletedDaysSorted
       )
-      
-      // Update store with new user data if backend returned it
-      if (response?.data?.user) {
-        userStore.updateUser(response.data.user)
-        dispatchAppEvent(APP_EVENTS.AUTH_CHANGED)
-      }
+
+      applyXpAwardResponse(response)
     } catch (error) {
       console.error('Error updating participant completed days:', error)
       // Don't fail the whole save if this fails
@@ -986,16 +983,7 @@ async function handleSubmit() {
   saveError.value = ''
   try {
     const response = await challengeService.updateChallenge(challenge.value._id, payload)
-    
-    // Update store with new user data if backend returned it (for XP)
-    if (response?.data?.user) {
-      userStore.updateUser(response.data.user)
-      dispatchAppEvent(APP_EVENTS.AUTH_CHANGED)
-    }
-
-    if (response?.data?.xpGained > 0) {
-      // You might want to show an XP notification here
-    }
+    applyXpAwardResponse(response)
 
     await updateParticipantCompletedDaysIfChanged(
       challenge.value._id,

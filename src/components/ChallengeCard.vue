@@ -499,11 +499,14 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useChallengeType } from '../composables/useChallengeType'
 import { challengeService } from '../services/api'
+import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
 import { Flame } from 'lucide-vue-next'
 import upcomingImage from '../assets/upcoming.png'
 import successImage from '../assets/success.png'
 import failedImage from '../assets/failed.png'
 import { isChallengeFinished } from '../utils/challengeStatus'
+
+const { applyXpAwardResponse } = useXpAwardFeedback()
 
 const props = defineProps({
   challenge: {
@@ -800,7 +803,12 @@ async function completeDay() {
   const newCompletedDays = [...(participant?.completedDays || []), todayStr]
 
   try {
-    await challengeService.updateParticipantCompletedDays(props.challenge._id, props.currentUserId, newCompletedDays)
+    const response = await challengeService.updateParticipantCompletedDays(
+      props.challenge._id,
+      props.currentUserId,
+      newCompletedDays
+    )
+    applyXpAwardResponse(response)
     if (participant) participant.completedDays = newCompletedDays
     
     window.dispatchEvent(new Event('participant-completed-days-updated'))

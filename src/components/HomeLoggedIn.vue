@@ -351,6 +351,7 @@ import DailyChecklist from './DailyChecklist.vue'
 import IgniteLoader from './IgniteLoader.vue'
 import ChallengeDetailsDialog from './ChallengeDetailsDialog.vue'
 import { userService, challengeService } from '../services/api'
+import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
 import motivationalMessagesEn from '../data/motivationalMessages.en.json'
 import motivationalMessagesRu from '../data/motivationalMessages.ru.json'
 import motivationalMessagesCompletedEn from '../data/motivationalMessagesCompleted.en.json'
@@ -362,6 +363,7 @@ const { t, locale } = useI18n()
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
+const { applyXpAwardResponse } = useXpAwardFeedback()
 
 const state = reactive({
   userName: '',
@@ -915,8 +917,13 @@ async function toggleTodayCompletion(challenge, checked) {
   
   try {
     // Update via API
-    await challengeService.updateParticipantCompletedDays(challenge._id, userId, newCompletedDays)
-    
+    const response = await challengeService.updateParticipantCompletedDays(
+      challenge._id,
+      userId,
+      newCompletedDays
+    )
+    applyXpAwardResponse(response)
+
     // Update local challenge data
     if (participant) {
       participant.completedDays = newCompletedDays
@@ -1187,15 +1194,9 @@ async function tryAwardDailyBonusXp() {
     const response = await userService.awardDailyBonusXp()
     if (response?.data?.awarded) {
       localStorage.setItem(key, '1')
+      applyXpAwardResponse(response)
     } else {
-      // still set to avoid spamming the server
       localStorage.setItem(key, '0')
-    }
-
-    if (response?.data?.user) {
-      // Update store with new user data
-      userStore.updateUser(response.data.user)
-      window.dispatchEvent(new Event('auth-changed'))
     }
   } catch (err) {
     // Don't block UI; just avoid infinite retries this session

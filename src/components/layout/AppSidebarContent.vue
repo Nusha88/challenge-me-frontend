@@ -19,7 +19,7 @@
         </div>
 
         <div class="pa-2">
-          <div class="xp-sidebar-card">
+          <div class="xp-sidebar-card" data-xp-sidebar-target>
             <div class="d-flex justify-space-between text-caption font-weight-bold mb-1">
               <span class="text-grey-darken-1">{{ xpDisplayCurrent }} / {{ xpDisplayNeeded }} XP</span>
               <span class="text-grey-darken-1">{{ Math.round(levelProgressPercentage) }}%</span>

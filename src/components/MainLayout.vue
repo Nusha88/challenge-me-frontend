@@ -4,6 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import { useUserStore } from '../stores/user'
 import NotificationsComponent from './NotificationsComponent.vue'
+import XpAwardToast from './XpAwardToast.vue'
 import AppHeader from './layout/AppHeader.vue'
 import AppSidebar from './layout/AppSidebar.vue'
 import MobileFab from './layout/MobileFab.vue'
@@ -207,6 +208,8 @@ watch(
       @unread-count-changed="handleUnreadCountChanged"
       @close="closeNotifications"
     />
+
+    <XpAwardToast />
   </v-app>
 </template>
 

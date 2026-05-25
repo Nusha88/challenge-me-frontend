@@ -547,9 +547,11 @@
 import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { challengeService } from '../services/api'
+import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
 import { useI18n } from 'vue-i18n'
 
 const router = useRouter()
+const { applyXpAwardResponse } = useXpAwardFeedback()
 
 const props = defineProps({
   challengeId: {
@@ -963,12 +965,14 @@ async function addComment() {
       return
     }
     
-    const { data } = await challengeService.addComment(
+    const response = await challengeService.addComment(
       props.challengeId,
       props.currentUserId,
       commentText,
       imageUrl
     )
+    applyXpAwardResponse(response)
+    const { data } = response
     state.newCommentText = ''
     state.newCommentImageUrl = null
     state.newCommentImagePreview = null

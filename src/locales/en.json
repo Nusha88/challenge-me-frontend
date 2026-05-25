@@ -677,6 +677,7 @@
     "userWatchingChallenge": "started following {mission}",
     "dailyRecapTitle": "Daily Recap",
     "dailyRecapFallback": "Today's missions are still active. Make a final push!",
+    "xpGainedToast": "+{count} XP",
     "challenge": "a mission",
     "apiError": "Failed to load data",
     "joinError": "Failed to join mission",
