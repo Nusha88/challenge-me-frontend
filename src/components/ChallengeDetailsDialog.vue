@@ -325,7 +325,8 @@
             v-if="showMainActionButton"
             ref="mainActionBtnRef"
             class="main-action-btn ml-2"
-            :loading="joinLoading || (isOwner && challenge.challengeType === CHALLENGE_TYPES.RESULT && saveLoading) || participantSaveLoading"
+            :loading="isMainActionLoading"
+            :disabled="isMainActionLoading"
             @click="handleMainActionClick"
           >
             {{ mainActionButtonText }}
@@ -798,7 +799,7 @@
 <script setup>
 import {computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {useRouter} from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import {useChallengeType} from '../composables/useChallengeType'
 import {useUserStore} from '../stores/user'
@@ -867,7 +868,16 @@ const deleteConfirmDialog = ref(false)
 const leaveConfirmDialog = ref(false)
 const isInitializing = ref(true)
 const participantSaveLoading = ref(false)
+const ownerActionsSaveLoading = ref(false)
 const mainActionBtnRef = ref(null)
+
+const isMainActionLoading = computed(
+  () =>
+    props.joinLoading ||
+    participantSaveLoading.value ||
+    ownerActionsSaveLoading.value ||
+    props.saveLoading
+)
 const snackbar = ref(false)
 const snackbarText = ref('')
 const tab = ref('progress')
@@ -924,6 +934,20 @@ const isMobileCalendar = computed(() => displayWidth.value < 1200)
 const openCalendarTooltipDate = ref(null)
 const { getChallengeTypeLabel } = useChallengeType()
 const router = useRouter()
+const route = useRoute()
+
+function navigateAfterDialogClose() {
+  if (route.path.startsWith('/missions/my')) {
+    router.replace({ path: '/missions/my', query: route.query })
+    return
+  }
+  if (route.path.startsWith('/missions')) {
+    router.replace({ path: '/missions', query: route.query })
+    return
+  }
+  router.replace('/')
+}
+
 // Confetti is provided by a shared helper (fireConfetti)
 
 const actionsViewModel = computed({
@@ -1849,6 +1873,8 @@ async function handleOwnerActionsSave() {
     ? JSON.parse(JSON.stringify(editForm.actions))
     : (c.actions ? JSON.parse(JSON.stringify(c.actions)) : [])
 
+  ownerActionsSaveLoading.value = true
+
   try {
     const response = await challengeService.updateChallengeActions(c._id, actionsToSave)
     const xpGained = applyXpAwardResponse(response, {
@@ -1863,6 +1889,8 @@ async function handleOwnerActionsSave() {
     emit('update')
     handleVisibility(false)
   } catch (error) {
+  } finally {
+    ownerActionsSaveLoading.value = false
   }
 }
 
@@ -1954,7 +1982,7 @@ async function handleParticipantSave() {
 
     emit('update')
     emit('update:modelValue', false)
-    router.push('/')
+    navigateAfterDialogClose()
   } catch (error) {
   } finally {
     participantSaveLoading.value = false

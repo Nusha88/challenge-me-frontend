@@ -1,0 +1,72 @@
+.challenge-skeleton-card {
+  background: rgba(15, 23, 42, 0.6) !important;
+  border: 1px solid rgba(79, 209, 197, 0.1) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.challenge-skeleton-loader.v-skeleton-loader {
+  background: transparent !important;
+}
+
+.challenge-skeleton-loader.v-skeleton-loader .v-skeleton-loader__bone {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.challenge-skeleton-loader.v-skeleton-loader .v-skeleton-loader__bone::after {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(79, 209, 197, 0.08),
+    transparent
+  ) !important;
+}
+
+.challenge-skeleton-loader--card.v-skeleton-loader .v-skeleton-loader__image {
+  height: 180px !important;
+}
+
+.challenge-skeleton-loader--card.v-skeleton-loader .v-skeleton-loader__list-item-two-line {
+  padding: 16px !important;
+  background: transparent !important;
+}
+
+.challenge-skeleton-loader--card.v-skeleton-loader .v-skeleton-loader__text {
+  margin: 0 16px 16px !important;
+  max-width: 80%;
+  height: 8px !important;
+}
+
+.challenge-skeleton-loader--main-ritual.v-skeleton-loader .v-skeleton-loader__bone::after {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(79, 209, 197, 0.1),
+    transparent
+  ) !important;
+}
+
+.challenge-skeleton-loader--main-ritual.v-skeleton-loader .v-skeleton-loader__image {
+  height: 240px !important;
+  margin-bottom: 16px;
+}
+
+.challenge-skeleton-loader--main-ritual.v-skeleton-loader .v-skeleton-loader__text,
+.challenge-skeleton-loader--main-ritual.v-skeleton-loader .v-skeleton-loader__heading {
+  background: rgba(255, 255, 255, 0.08) !important;
+  margin: 12px 24px;
+}
+
+.challenge-skeleton-loader--main-ritual.v-skeleton-loader .v-skeleton-loader__actions {
+  padding: 16px 24px;
+  justify-content: flex-start !important;
+}
+
+.challenge-skeleton-loader--bare.v-skeleton-loader {
+  background-color: rgba(15, 23, 42, 0.6) !important;
+  border-radius: 12px;
+}
+
+.shadow-neon-line {
+  box-shadow: 0 0 10px rgba(79, 209, 197, 0.5);
+  border-radius: 4px;
+}

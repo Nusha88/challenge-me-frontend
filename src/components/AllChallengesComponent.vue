@@ -1,118 +1,70 @@
 <template>
   <div class="all-challenges">
-    <div class="header-section text-left mb-10 reveal-animation">
-  <div class="d-flex align-center mb-1">
-    <v-icon color="teal-accent-4" size="40" class="mr-3">mdi-compass-rose</v-icon>
-    <h1 class="page-title-dark">{{ t('allChallenges.title') }}</h1>
-    </div>
-  <div class="text-overline text-teal-accent-4 tracking-widest ml-13">{{ t('allChallenges.subtitle') }}</div>
-  <p class="journal-subtitle-dark mt-2">{{ t('allChallenges.description') }}</p>
-</div>
-<template v-if="showMainRitual">
-      <v-progress-linear
-        v-if="loadingMainRitual"
-        indeterminate
-        color="teal-accent-4"
-        height="4"
-        class="mb-6 shadow-neon-line"
-      ></v-progress-linear>
-      <!-- Main Ritual Card with Skeleton -->
-      <div v-if="loadingMainRitual" class="main-ritual-loading-wrapper mb-8">
-        <v-card class="skeleton-card-dark rounded-xl overflow-hidden">
-          <v-skeleton-loader
-            type="image, list-item-two-line, actions"
-            class="main-ritual-skeleton-loader"
-            theme="dark"
-          ></v-skeleton-loader>
-        </v-card>
-      </div>
-      <MainRitualCard
-        v-else-if="mainRitual"
-        :challenge="mainRitual"
-        :current-user-id="currentUserId"
-        :joining="joiningId === mainRitual._id"
-        @join="joinChallenge"
-        @click="openDetails"
-      />
-    </template>
+    <AllChallengesHeader />
+
+    <MainRitualSection
+      v-if="showMainRitual"
+      :loading="loadingMainRitual"
+      :main-ritual="mainRitual"
+      :current-user-id="currentUserId"
+      :joining-id="joiningId"
+      @join="joinChallenge"
+      @open="openDetails"
+    />
 
     <FilterPanel v-model="filters" @search="handleFilterSearch" />
 
     <div class="content-section">
-      <div v-if="loading" class="challenges-grid challenges-grid-skeleton">
-  <v-card
-    v-for="n in 6"
-    :key="n"
-    class="skeleton-card-dark rounded-xl overflow-hidden"
-    variant="flat"
-  >
-    <v-skeleton-loader
-      type="image, list-item-two-line, text"
-      class="custom-skeleton"
-  ></v-skeleton-loader>
-  </v-card>
-</div>
+      <ChallengesSkeletonGrid v-if="loading" />
 
-      <transition-group v-else name="staggered-fade" tag="div" class="challenges-grid">
-        <ChallengeCard
-          v-for="challenge in gridChallenges"
-          :key="challenge._id"
-          :challenge="challenge"
+      <template v-else>
+        <ChallengeGrid
+          :challenges="gridChallenges"
           :current-user-id="currentUserId"
-          :show-join-button="true"
           :joining-id="joiningId"
           :leaving-id="leavingId"
           :watching-id="watchingId"
-          :all-challenges="true"
-          :is-watched="isWatched(challenge)"
-          @click="openDetails"
+          :is-watched="isWatched"
+          @open="openDetails"
           @join="joinChallenge"
           @leave="leaveChallenge"
           @watch="watchChallenge"
           @unwatch="unwatchChallenge"
           @owner-navigated="handleOwnerNavigated"
         />
-      </transition-group>
-      
-      <div v-if="loadingMore" class="challenges-grid mt-6">
-  <v-skeleton-loader
-    v-for="n in 3"
-    :key="'more-' + n"
-    type="card"
-    class="skeleton-card"
-  ></v-skeleton-loader>
-</div>
+
+        <ChallengeSkeletonGrid
+          v-if="loadingMore"
+          :count="3"
+          grid-class="challenges-grid challenges-grid--load-more"
+          type="card"
+          variant="bare"
+        />
+
+        <div
+          v-if="hasMore"
+          ref="loadMoreTrigger"
+          class="load-more-trigger"
+          aria-hidden="true"
+        />
+      </template>
     </div>
 
-    <!-- Upcoming Challenges Section -->
-    <div v-if="upcomingChallenges.length > 0 && filters.showUpcoming !== false" class="upcoming-section mt-8">
-      <h2 class="section-title mb-4">{{ t('challenges.upcoming') }}</h2>
-      <div class="challenges-grid">
-          <div
-          v-for="challenge in upcomingChallenges"
-            :key="challenge._id"
-            class="upcoming-card-disabled"
-          >
-            <ChallengeCard
-            :challenge="challenge"
-            :current-user-id="currentUserId"
-            :show-join-button="true"
-            :joining-id="joiningId"
-          :leaving-id="leavingId"
-          :watching-id="watchingId"
-              :all-challenges="true"
-          :is-watched="isWatched(challenge)"
-            @click="openDetails"
-            @join="joinChallenge"
-          @leave="leaveChallenge"
-          @watch="watchChallenge"
-          @unwatch="unwatchChallenge"
-          @owner-navigated="handleOwnerNavigated"
-          />
-            <div class="upcoming-blur-overlay"></div>
-          </div>
-        </div>
-    </div>
+    <UpcomingChallengesSection
+      v-if="showUpcomingSection"
+      :challenges="upcomingChallenges"
+      :current-user-id="currentUserId"
+      :joining-id="joiningId"
+      :leaving-id="leavingId"
+      :watching-id="watchingId"
+      :is-watched="isWatched"
+      @open="openDetails"
+      @join="joinChallenge"
+      @leave="leaveChallenge"
+      @watch="watchChallenge"
+      @unwatch="unwatchChallenge"
+      @owner-navigated="handleOwnerNavigated"
+    />
 
     <ChallengeDetailsDialog
       v-model="detailsDialogOpen"
@@ -136,1088 +88,195 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch, nextTick, onUnmounted } from 'vue'
+import { onMounted, computed, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { challengeService } from '../services/api'
 import ChallengeDetailsDialog from './ChallengeDetailsDialog.vue'
 import FilterPanel from './FilterPanel.vue'
-import ChallengeCard from './ChallengeCard.vue'
-import MainRitualCard from './MainRitualCard.vue'
-import { useI18n } from 'vue-i18n'
+import ChallengeSkeletonGrid from './ChallengeSkeletonGrid.vue'
+import AllChallengesHeader from './all-challenges/AllChallengesHeader.vue'
+import MainRitualSection from './all-challenges/MainRitualSection.vue'
+import ChallengesSkeletonGrid from './all-challenges/ChallengesSkeletonGrid.vue'
+import ChallengeGrid from './all-challenges/ChallengeGrid.vue'
+import UpcomingChallengesSection from './all-challenges/UpcomingChallengesSection.vue'
 import { useUserStore } from '../stores/user'
-import { useWatchedChallengesStore } from '../stores/watchedChallenges'
-import { CHALLENGE_TYPES } from '../constants/challengeTypes'
+import { useAllChallenges } from '../composables/useAllChallenges'
+import { useChallengeFilters } from '../composables/useChallengeFilters'
+import { useMainRitual } from '../composables/useMainRitual'
+import { useChallengeActions } from '../composables/useChallengeActions'
+import { useAllChallengesDialog } from '../composables/useAllChallengesDialog'
+import { useInfiniteScroll } from '../composables/useInfiniteScroll'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
-const watchedStore = useWatchedChallengesStore()
 
-const challenges = ref([])
-const allHabitChallenges = ref([]) // Store all habit challenges for main ritual selection
-const loading = ref(false)
-const loadingMainRitual = ref(false)
-const loadingMore = ref(false)
-const errorMessage = ref('')
 const currentUserId = computed(() => userStore.userId)
-const joiningId = ref(null)
-const leavingId = ref(null)
-const watchingId = ref(null)
-const currentPage = ref(1)
-const hasMore = ref(true)
 
-// Filter state
-const filters = ref({
-  title: null,
-  type: 'all',
-  owner: null,
-  popularity: null,
-  showUpcoming: true, // Default to showing upcoming challenges
-  isCompleted: false // false = hide completed, true = only completed, 'all' = both
+const {
+  filters,
+  isSyncingFromUrl,
+  syncFiltersFromUrl,
+  setupFilterWatchers,
+  handleFilterSearch: onFilterSearch
+} = useChallengeFilters(route, router)
+
+const allChallengesState = useAllChallenges(filters, currentUserId)
+const {
+  challenges,
+  loading,
+  loadingMore,
+  currentPage,
+  hasMore,
+  fetchChallenges
+} = allChallengesState
+
+const {
+  loadingMainRitual,
+  showMainRitual,
+  mainRitual,
+  gridChallenges,
+  upcomingChallenges,
+  fetchMainRitual,
+  clearMainRitual
+} = useMainRitual(filters, challenges)
+
+const showUpcomingSection = computed(
+  () => upcomingChallenges.value.length > 0 && filters.value.showUpcoming !== false
+)
+
+const challengeActions = useChallengeActions({
+  challenges,
+  currentUserId,
+  errorMessage: allChallengesState.errorMessage,
+  currentPage,
+  fetchChallenges,
+  onAfterJoin: () => (showMainRitual.value ? fetchMainRitual() : undefined)
 })
 
-// Challenges are already filtered by the backend, so use them directly
-const filteredChallenges = computed(() => {
-  return challenges.value
+const {
+  joiningId,
+  leavingId,
+  watchingId,
+  isWatched,
+  joinChallenge,
+  leaveChallenge,
+  watchChallenge,
+  unwatchChallenge,
+  configureDialogSync
+} = challengeActions
+
+const allChallengesDialog = useAllChallengesDialog({
+  challenges,
+  loading,
+  currentUserId,
+  errorMessage: allChallengesState.errorMessage,
+  fetchChallenges,
+  currentPage,
+  joinChallenge,
+  leaveChallenge,
+  joiningId,
+  leavingId,
+  router,
+  route
 })
 
-// Hide featured ritual when viewing a specific user's missions (e.g. from profile)
-const showMainRitual = computed(() => !filters.value.owner)
+const {
+  detailsDialogOpen,
+  selectedChallenge,
+  selectedIsOwner,
+  selectedIsParticipant,
+  selectedJoinLoading,
+  selectedLeaveLoading,
+  showDialogJoinButton,
+  showDialogLeaveButton,
+  saveLoading,
+  saveError,
+  deleteLoading,
+  openDetails,
+  openChallengeById,
+  refreshSelectedChallenge,
+  handleDialogSave,
+  handleDialogUpdate,
+  handleDialogJoin,
+  handleDialogLeave,
+  handleDialogDelete,
+  handleOwnerNavigated,
+  setupRouteWatchers
+} = allChallengesDialog
 
-// Find the main ritual (most popular habit challenge)
-const mainRitual = computed(() => {
-  if (!showMainRitual.value) return null
-  // Use allHabitChallenges which contains all habit challenges, not just paginated ones
-  if (allHabitChallenges.value.length === 0) return null
-  
-  // Find the challenge with the most participants
-  return allHabitChallenges.value.reduce((prev, current) => {
-    const prevCount = prev?.participants?.length || 0
-    const currentCount = current?.participants?.length || 0
-    return currentCount > prevCount ? current : prev
-  }, allHabitChallenges.value[0])
-})
+configureDialogSync({ selectedChallenge, refreshSelectedChallenge })
+setupRouteWatchers()
 
-const totalChallenges = computed(() => {
-  // Return the total from pagination if available, otherwise use current count
-  // This will be updated when we get pagination info from backend
-  return challenges.value.length
-})
-
-const detailsDialogOpen = ref(false)
-const selectedChallenge = ref(null)
-const isOpeningChallenge = ref(false) // Flag to prevent recursive updates
-const saveLoading = ref(false)
-const saveError = ref('')
-const deleteLoading = ref(false)
-const { t, locale } = useI18n()
-
-const selectedIsOwner = computed(() => {
-  if (!selectedChallenge.value) return false
-  return isChallengeOwner(selectedChallenge.value.owner)
-})
-
-const selectedIsParticipant = computed(() => {
-  if (!selectedChallenge.value) return false
-  return isParticipant(selectedChallenge.value)
-})
-
-const selectedJoinLoading = computed(() => {
-  if (!selectedChallenge.value) return false
-  return joiningId.value === selectedChallenge.value._id
-})
-
-const showDialogJoinButton = computed(() => {
-  if (!selectedChallenge.value) return false
-  
-  // Cannot join if challenge has ended
-  if (isChallengeEnded(selectedChallenge.value)) {
-    return false
-  }
-  
-  // Can only join habit challenges
-  if (selectedChallenge.value.challengeType !== CHALLENGE_TYPES.HABIT) {
-    return false
-  }
-  
-  return (
-    !!currentUserId.value &&
-    !selectedIsOwner.value &&
-    !selectedIsParticipant.value
-  )
-})
-
-const showDialogLeaveButton = computed(() => {
-  if (!selectedChallenge.value) return false
-  
-  // Cannot leave if challenge has ended
-  if (isChallengeEnded(selectedChallenge.value)) {
-    return false
-  }
-  
-  // Can only leave habit challenges
-  if (selectedChallenge.value.challengeType !== CHALLENGE_TYPES.HABIT) {
-    return false
-  }
-  
-  return (
-    !!currentUserId.value &&
-    !selectedIsOwner.value &&
-    selectedIsParticipant.value
-  )
-})
-
-const selectedLeaveLoading = computed(() => {
-  if (!selectedChallenge.value) return false
-  return leavingId.value === selectedChallenge.value._id
-})
-
-watch(detailsDialogOpen, value => {
-  if (!value && !isOpeningChallenge.value) {
-    selectedChallenge.value = null
-    saveError.value = ''
-    // Update route when dialog closes if we're on a challenge view route
-    // Use nextTick to avoid recursive updates
-    if (route.params.id) {
-      nextTick(() => {
-        router.push('/missions')
-      })
+setupFilterWatchers({
+  fetchChallenges: (page, append) => fetchChallenges(page, append),
+  onOwnerFilterChange: (owner) => {
+    if (!owner && showMainRitual.value) {
+      fetchMainRitual()
+    } else if (owner) {
+      clearMainRitual()
     }
   }
 })
 
-function formatDate(dateString) {
-  if (!dateString) return ''
-  const date = new Date(dateString)
-  if (Number.isNaN(date.getTime())) return dateString
-  try {
-    const formatter = new Intl.DateTimeFormat(locale.value, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
-    return formatter.format(date)
-  } catch (err) {
-    return date.toLocaleDateString()
-  }
-}
-
-function formatDateRange(start, end) {
-  const startFormatted = formatDate(start)
-  const endFormatted = formatDate(end)
-  return startFormatted && endFormatted
-    ? `${startFormatted} - ${endFormatted}`
-    : startFormatted || endFormatted || ''
-}
-
-function isChallengeOwner(owner) {
-  if (!owner) return false
-  if (!currentUserId.value) return false
-  const ownerId = owner._id || owner
-  return ownerId === currentUserId.value
-}
-
-function isParticipant(challenge) {
-  if (!currentUserId.value) return false
-  return (challenge.participants || []).some(participant => {
-    const userId = participant.userId?._id || participant.userId || participant._id || participant
-    return userId && userId.toString() === currentUserId.value.toString()
-  })
-}
-
-function isChallengeEnded(challenge) {
-  if (!challenge.endDate) return false
-  try {
-    const endDate = new Date(challenge.endDate)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    endDate.setHours(0, 0, 0, 0)
-    return endDate < today
-  } catch {
-    return false
-  }
-}
-
-function isChallengeUpcoming(challenge) {
-  if (!challenge.startDate) return false
-  try {
-    const startDate = new Date(challenge.startDate)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    startDate.setHours(0, 0, 0, 0)
-    return startDate > today
-  } catch {
-    return false
-  }
-}
-
-function canJoin(challenge) {
-  // Cannot join if challenge has ended
-  if (isChallengeEnded(challenge)) {
-    return false
-  }
-  // Can only join habit challenges
-  if (challenge.challengeType !== CHALLENGE_TYPES.HABIT) {
-    return false
-  }
-  return currentUserId.value && !isChallengeOwner(challenge.owner) && !isParticipant(challenge)
-}
-
-
-function isWatched(challenge) {
-  if (!challenge || !currentUserId.value) return false
-  return !!challenge.isWatched
-}
-
-function setChallengeWatched(challengeId, watched) {
-  challenges.value = challenges.value.map((item) => {
-    if (item._id !== challengeId) return item
-    return { ...item, isWatched: watched }
-  })
-}
-
-async function watchChallenge(challenge) {
-  if (!currentUserId.value) {
-    errorMessage.value = t('notifications.mustLogin')
-    return
-  }
-
-  watchingId.value = challenge._id
-  errorMessage.value = ''
-
-  // Optimistically update watchers count
-  const challengeIndex = challenges.value.findIndex(c => c._id === challenge._id)
-  if (challengeIndex !== -1 && challenges.value[challengeIndex].watchersCount !== undefined) {
-    challenges.value[challengeIndex].watchersCount = (challenges.value[challengeIndex].watchersCount || 0) + 1
-  }
-
-  setChallengeWatched(challenge._id, true)
-  watchedStore.addId(challenge._id)
-
-  try {
-    await watchedStore.watch(challenge._id, currentUserId.value)
-  } catch (error) {
-    setChallengeWatched(challenge._id, false)
-    watchedStore.removeId(challenge._id)
-    // Revert optimistic update on error
-    if (challengeIndex !== -1 && challenges.value[challengeIndex].watchersCount !== undefined) {
-      challenges.value[challengeIndex].watchersCount = Math.max(0, (challenges.value[challengeIndex].watchersCount || 0) - 1)
-    }
-    errorMessage.value = error.response?.data?.message || t('challenges.watchError')
-  } finally {
-    watchingId.value = null
-  }
-}
-
-async function unwatchChallenge(challenge) {
-  if (!currentUserId.value) return
-
-  watchingId.value = challenge._id
-  errorMessage.value = ''
-
-  // Optimistically update watchers count
-  const challengeIndex = challenges.value.findIndex(c => c._id === challenge._id)
-  if (challengeIndex !== -1 && challenges.value[challengeIndex].watchersCount !== undefined) {
-    challenges.value[challengeIndex].watchersCount = Math.max(0, (challenges.value[challengeIndex].watchersCount || 0) - 1)
-  }
-
-  setChallengeWatched(challenge._id, false)
-  watchedStore.removeId(challenge._id)
-
-  try {
-    await watchedStore.unwatch(challenge._id, currentUserId.value)
-  } catch (error) {
-    setChallengeWatched(challenge._id, true)
-    watchedStore.addId(challenge._id)
-    // Revert optimistic update on error
-    if (challengeIndex !== -1 && challenges.value[challengeIndex].watchersCount !== undefined) {
-      challenges.value[challengeIndex].watchersCount = (challenges.value[challengeIndex].watchersCount || 0) + 1
-    }
-    errorMessage.value = error.response?.data?.message || t('challenges.unwatchError')
-  } finally {
-    watchingId.value = null
-  }
-}
-
-async function joinChallenge(challenge) {
-  if (!currentUserId.value) {
-    errorMessage.value = t('notifications.mustLogin')
-    return
-  }
-
-  if (!challenge || !challenge._id) {
-    errorMessage.value = t('notifications.joinError')
-    return
-  }
-
-  joiningId.value = challenge._id
-  errorMessage.value = ''
-
-  try {
-    await challengeService.joinChallenge(challenge._id, { userId: currentUserId.value })
-    
-    // Refresh challenges list (keep current page)
-    await fetchChallenges(currentPage.value, false)
-    
-    if (showMainRitual.value) {
-      await fetchAllHabitChallenges()
-    }
-    
-    // Refresh the selected challenge if dialog is open
-    if (selectedChallenge.value?._id === challenge._id) {
-      // Fetch fresh challenge data to get updated participants list
-      try {
-        const { data } = await challengeService.getChallenge(challenge._id)
-        selectedChallenge.value = data
-      } catch (error) {
-        // Fallback to finding in list
-      selectedChallenge.value = challenges.value.find(c => c._id === challenge._id) || null
-      }
-    }
-  } catch (error) {
-    errorMessage.value = error.response?.data?.message || t('notifications.joinError')
-  } finally {
-    joiningId.value = null
-  }
-}
-
-async function leaveChallenge(challenge) {
-  if (!currentUserId.value) {
-    errorMessage.value = t('notifications.mustLogin')
-    return
-  }
-
-  if (!challenge || !challenge._id) {
-    errorMessage.value = t('notifications.joinError')
-    return
-  }
-
-  leavingId.value = challenge._id
-  errorMessage.value = ''
-
-  try {
-    await challengeService.leaveChallenge(challenge._id, { userId: currentUserId.value })
-    
-    // Refresh challenges list (keep current page)
-    await fetchChallenges(currentPage.value, false)
-    
-    // Refresh the selected challenge if dialog is open
-    if (selectedChallenge.value?._id === challenge._id) {
-      // Fetch fresh challenge data to get updated participants list
-      try {
-        const { data } = await challengeService.getChallenge(challenge._id)
-        selectedChallenge.value = data
-      } catch (error) {
-        // Fallback to finding in list
-        selectedChallenge.value = challenges.value.find(c => c._id === challenge._id) || null
-      }
-    }
-  } catch (error) {
-    errorMessage.value = error.response?.data?.message || t('notifications.joinError')
-  } finally {
-    leavingId.value = null
-  }
-}
-
-async function fetchChallenges(page = 1, append = false) {
-  if (append) {
-    loadingMore.value = true
-  } else {
-  loading.value = true
-    currentPage.value = 1
-  }
-  errorMessage.value = ''
-
-  try {
-    // Build filter object for API call
-    const filterParams = {
-      page,
-      limit: 20,
-      ...(filters.value.title && { title: filters.value.title }),
-      ...(filters.value.type && filters.value.type !== 'all' && { type: filters.value.type }),
-      ...(filters.value.owner && { owner: filters.value.owner }),
-      ...(filters.value.popularity && { popularity: filters.value.popularity }),
-      // Backend: 'true' = only completed, 'false' = hide completed, 'all' = active + completed
-      ...(filters.value.isCompleted === 'all'
-        ? { isCompleted: 'all' }
-        : filters.value.isCompleted !== undefined && {
-            isCompleted: filters.value.isCompleted ? 'true' : 'false'
-          })
-    }
-    
-    const { data } = await challengeService.getAllChallenges(filterParams)
-    
-    if (append) {
-      // Append new challenges to existing list
-      challenges.value = [...challenges.value, ...(data?.challenges || [])]
-    } else {
-      // Replace challenges list (first page or filter change)
-    challenges.value = data?.challenges || []
-    }
-    
-    // Update pagination state
-    hasMore.value = data?.pagination?.hasMore || false
-    currentPage.value = page
-
-    if (currentUserId.value) {
-      watchedStore.syncIdsFromChallengeList(challenges.value, currentUserId.value)
-    }
-  } catch (error) {
-    errorMessage.value = error.response?.data?.message || t('notifications.apiError')
-  } finally {
-    loading.value = false
-    loadingMore.value = false
-  }
-}
-
-const loadMoreChallenges = async () => {
-  if (loadingMore.value || !hasMore.value) {
-    return // Don't load more if already loading or no more pages
-  }
-  
-  await fetchChallenges(currentPage.value + 1, true)
-}
-
-const handleScroll = () => {
-  // Если уже грузим или страниц больше нет — выходим
-  if (loading.value || loadingMore.value || !hasMore.value) {
-    return
-  }
-  
-  const scrollTop = window.pageYOffset || document.documentElement.scrollTop
-  const windowHeight = window.innerHeight
-  const documentHeight = document.documentElement.scrollHeight
-  
-  // Порог срабатывания: за 400px до конца страницы
-  // Это позволит пользователю не видеть лоадер, если интернет быстрый
-  if (scrollTop + windowHeight >= documentHeight - 400) {
-    loadMoreChallenges()
-  }
-}
-
-async function openDetails(challenge) {
-  // Prevent recursive calls
-  if (isOpeningChallenge.value) return
-  
-  // Always open details dialog for all users (owners can navigate to edit from dialog)
-  isOpeningChallenge.value = true
-  saveError.value = ''
-  
-  // Fetch full challenge data to ensure we have populated owner and participants
-  try {
-    const { data } = await challengeService.getChallenge(challenge._id)
-    selectedChallenge.value = data
-  } catch (error) {
-    // Fallback to using the challenge from the list
-    selectedChallenge.value = challenge
-  }
-  
-  // Update route if not already set to this challenge
-  if (route.params.id !== challenge._id) {
-    router.push(`/missions/${challenge._id}`).finally(() => {
-      nextTick(() => {
-        detailsDialogOpen.value = true
-        isOpeningChallenge.value = false
-      })
-    })
-  } else {
-    nextTick(() => {
-  detailsDialogOpen.value = true
-      isOpeningChallenge.value = false
-    })
-  }
-}
-
-async function handleDialogSave(formData) {
-  if (!selectedChallenge.value) return
-
-  saveLoading.value = true
-  saveError.value = ''
-
-  try {
-    await challengeService.updateChallenge(selectedChallenge.value._id, { ...formData })
-    await fetchChallenges(currentPage.value, false)
-    // Update selected challenge if dialog is still open
-    if (selectedChallenge.value) {
-      const updatedChallenge = challenges.value.find(c => c._id === selectedChallenge.value._id)
-      if (updatedChallenge) {
-        selectedChallenge.value = updatedChallenge
-      }
-    }
-    detailsDialogOpen.value = false
-    router.push('/')
-  } catch (error) {
-    saveError.value = error.response?.data?.message || t('notifications.updateError')
-  } finally {
-    saveLoading.value = false
-  }
-}
-
-async function handleDialogUpdate() {
-  // Refresh challenges when participant updates their completedDays or watch/unwatch
-  await fetchChallenges(currentPage.value, false)
-  // Also refresh the selected challenge if dialog is open
-  if (selectedChallenge.value) {
-    const updatedChallenge = challenges.value.find(c => c._id === selectedChallenge.value._id)
-    if (updatedChallenge) {
-      selectedChallenge.value = updatedChallenge
-    }
-  }
-}
-
-async function handleDialogJoin() {
-  if (!selectedChallenge.value) return
-  await joinChallenge(selectedChallenge.value)
-}
-
-async function handleDialogLeave() {
-  if (!selectedChallenge.value) return
-  await leaveChallenge(selectedChallenge.value)
-}
-
-async function handleDialogDelete(challengeId) {
-  if (!challengeId) return
-
-  deleteLoading.value = true
-  saveError.value = ''
-
-  try {
-    await challengeService.deleteChallenge(challengeId)
-    await fetchChallenges(currentPage.value, false)
-    detailsDialogOpen.value = false
-  } catch (error) {
-    saveError.value = error.response?.data?.message || t('notifications.deleteChallengeError')
-  } finally {
-    deleteLoading.value = false
-  }
-}
-// Замени существующий gridChallenges на этот computed
-const gridChallenges = computed(() => {
-  if (!challenges.value) return []
-  
-  let filtered = [...challenges.value]
-  
-  // Если есть mainRitual, исключаем его из общей сетки, чтобы не дублировать
-  if (mainRitual.value) {
-    filtered = filtered.filter(c => c._id !== mainRitual.value._id)
-  }
-  
-  // Always filter out upcoming challenges from main grid (they'll be shown separately at the bottom)
-  filtered = filtered.filter(c => !isChallengeUpcoming(c))
-  
-  return filtered
+const { loadMoreTrigger } = useInfiniteScroll({
+  enabled: hasMore,
+  loading,
+  loadingMore,
+  onLoadMore: () => fetchChallenges(currentPage.value + 1, true)
 })
 
-// Separate upcoming challenges computed property
-const upcomingChallenges = computed(() => {
-  if (!challenges.value) return []
-  
-  // Get all upcoming challenges
-  let upcoming = challenges.value.filter(c => isChallengeUpcoming(c))
-  
-  // Exclude mainRitual if it's upcoming (it's already shown in MainRitualCard)
-  if (mainRitual.value && isChallengeUpcoming(mainRitual.value)) {
-    upcoming = upcoming.filter(c => c._id !== mainRitual.value._id)
-  }
-  
-  return upcoming
-})
-
-async function openChallengeById(challengeId) {
-  if (!challengeId) return
-  
-  // Prevent multiple simultaneous calls
-  if (loading.value) return
-  
-  // Check if challenge is already in the list
-  let challenge = challenges.value.find(c => c._id === challengeId)
-  
-  if (!challenge) {
-    // Fetch the challenge if not in list
-    try {
-      loading.value = true
-      const { data } = await challengeService.getChallenge(challengeId)
-      challenge = data
-      // Add to challenges list if it's public or user has access
-      // Use nextTick to avoid reactive updates during render
-      if (challenge && challenge.privacy !== 'private') {
-        await nextTick()
-        // Check again if challenge was added by another process
-        const existingChallenge = challenges.value.find(c => c._id === challengeId)
-        if (!existingChallenge) {
-          challenges.value.push(challenge)
-        } else {
-          challenge = existingChallenge
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching challenge:', error)
-      errorMessage.value = error.response?.data?.message || t('challenges.notFound')
-      return
-    } finally {
-      loading.value = false
-    }
-  }
-  
-  if (challenge) {
-    await nextTick()
-    openDetails(challenge)
-  }
-}
-
-// Sync filters from URL query parameters
-const syncFiltersFromUrl = () => {
-  const query = route.query
-  
-  // Sync owner/createdBy filter
-  if (query.owner) {
-    filters.value.owner = query.owner
-  } else if (query.createdBy) {
-    filters.value.owner = query.createdBy
-  } else {
-    filters.value.owner = null
-  }
-  
-  // Sync isCompleted filter
-  if (query.isCompleted === 'all') {
-    filters.value.isCompleted = 'all'
-  } else if (query.isCompleted !== undefined) {
-    filters.value.isCompleted = query.isCompleted === 'true'
-  } else {
-    filters.value.isCompleted = false
-  }
-  
-  // Sync type filter
-  if (query.type) {
-    filters.value.type = query.type
-  } else {
-    filters.value.type = 'all'
-  }
-  
-  // Sync popularity filter
-  if (query.popularity) {
-    filters.value.popularity = query.popularity
-  } else {
-    filters.value.popularity = null
-  }
-  
-  // Sync title filter
-  if (query.title) {
-    filters.value.title = query.title
-  } else {
-    filters.value.title = null
-  }
-  
-  // Sync showUpcoming filter
-  if (query.showUpcoming !== undefined) {
-    filters.value.showUpcoming = query.showUpcoming === 'true'
-  } else {
-    filters.value.showUpcoming = true
-  }
-}
-
-// Sync filters to URL query parameters
-const syncFiltersToUrl = () => {
-  const query = { ...route.query }
-  
-  // Update or remove filter parameters
-  if (filters.value.owner) {
-    query.createdBy = filters.value.owner
-    delete query.owner // Remove old 'owner' param if exists
-  } else {
-    delete query.createdBy
-    delete query.owner
-  }
-  
-  if (filters.value.isCompleted === 'all') {
-    query.isCompleted = 'all'
-  } else if (filters.value.isCompleted === true) {
-    query.isCompleted = 'true'
-  } else {
-    delete query.isCompleted
-  }
-  
-  if (filters.value.type && filters.value.type !== 'all') {
-    query.type = filters.value.type
-  } else {
-    delete query.type
-  }
-  
-  if (filters.value.popularity) {
-    query.popularity = filters.value.popularity
-  } else {
-    delete query.popularity
-  }
-  
-  if (filters.value.title) {
-    query.title = filters.value.title
-  } else {
-    delete query.title
-  }
-  
-  if (filters.value.showUpcoming === false) {
-    query.showUpcoming = 'false'
-  } else {
-    delete query.showUpcoming
-  }
-  
-  // Update URL without triggering navigation
-  router.replace({ query })
-}
-
-// Handle filter search button click
-const handleFilterSearch = () => {
-  fetchChallenges(1, false) // Reset to page 1 when search is triggered
-}
-
-// Flag to prevent infinite loops when syncing URL and filters
-const isSyncingFromUrl = ref(false)
-
-// Watch for filter changes (except title which uses search button)
-// Watch each filter property individually to avoid triggering on title changes
-watch(() => filters.value.type, () => {
-  if (!isSyncingFromUrl.value) {
-    syncFiltersToUrl()
-  fetchChallenges(1, false)
-  }
-})
-
-watch(() => filters.value.owner, (owner) => {
-  if (!owner && showMainRitual.value) {
-    fetchAllHabitChallenges()
-  } else if (owner) {
-    allHabitChallenges.value = []
-    loadingMainRitual.value = false
-  }
-  if (!isSyncingFromUrl.value) {
-    syncFiltersToUrl()
-    fetchChallenges(1, false)
-  }
-})
-
-watch(() => filters.value.popularity, () => {
-  if (!isSyncingFromUrl.value) {
-    syncFiltersToUrl()
-  fetchChallenges(1, false)
-  }
-})
-
-watch(() => filters.value.showUpcoming, () => {
-  if (!isSyncingFromUrl.value) {
-    syncFiltersToUrl()
-  }
-  // No need to refetch, just filter client-side
-})
-
-watch(() => filters.value.isCompleted, () => {
-  if (!isSyncingFromUrl.value) {
-    syncFiltersToUrl()
-    fetchChallenges(1, false)
-  }
-})
-
-watch(() => filters.value.title, () => {
-  if (!isSyncingFromUrl.value) {
-    syncFiltersToUrl()
-  }
-  // Title uses search button, so don't auto-fetch
-})
-
-// Watch for route query changes and sync filters
-watch(() => route.query, () => {
-  isSyncingFromUrl.value = true
-  syncFiltersFromUrl()
-  fetchChallenges(1, false)
-  nextTick(() => {
-    isSyncingFromUrl.value = false
-  })
-}, { deep: true })
-
-// Fetch all habit challenges to find the main ritual
-async function fetchAllHabitChallenges() {
-  loadingMainRitual.value = true
-  try {
-    // Fetch all habit challenges with a high limit to get the most popular ones
-    const { data } = await challengeService.getAllChallenges({
-      type: CHALLENGE_TYPES.HABIT,
-      excludeFinished: true,
-      limit: 100, // Fetch more to find the most popular
-      page: 1
-    })
-    allHabitChallenges.value = data?.challenges || []
-  } catch (error) {
-    console.error('Error fetching habit challenges for main ritual:', error)
-    allHabitChallenges.value = []
-  } finally {
-    loadingMainRitual.value = false
-  }
+function handleFilterSearch() {
+  onFilterSearch(fetchChallenges)
 }
 
 onMounted(async () => {
-  // Sync filters from URL query parameters (prevent watchers from updating URL)
   isSyncingFromUrl.value = true
   syncFiltersFromUrl()
   await nextTick()
   isSyncingFromUrl.value = false
-  
+
   if (showMainRitual.value) {
-    await fetchAllHabitChallenges()
+    await fetchMainRitual()
   }
   await fetchChallenges(1, false)
-  window.addEventListener('scroll', handleScroll)
-  
-  // Check if route has challenge ID parameter
+
   if (route.params.id) {
-    // Small delay to ensure challenges are loaded
     setTimeout(() => {
       openChallengeById(route.params.id)
     }, 100)
   }
 })
-
-onUnmounted(() => {
-  window.removeEventListener('scroll', handleScroll)
-})
-
-// Watch for route changes
-watch(() => route.params.id, (newId, oldId) => {
-  // Prevent recursive updates
-  if (isOpeningChallenge.value) return
-  
-  // Only act if the ID actually changed
-  if (newId && newId !== oldId) {
-    // Check if dialog is already open for this challenge
-    if (detailsDialogOpen.value && selectedChallenge.value?._id === newId) {
-      return // Already showing this challenge
-    }
-    
-    nextTick(() => {
-      openChallengeById(newId)
-    })
-  } else if (!newId && oldId && !isOpeningChallenge.value) {
-    // Close dialog if navigating away from challenge view
-    // Use nextTick to avoid recursive updates
-    nextTick(() => {
-      detailsDialogOpen.value = false
-    })
-  }
-})
-
-function handleOwnerNavigated() {
-  // Close dialog when owner is navigated
-  detailsDialogOpen.value = false
-}
 </script>
 
 <style scoped>
 .all-challenges {
   width: 100%;
-  max-width: 1400px; /* Ограничиваем ширину для больших мониторов */
+  max-width: 1400px;
   margin: 0 auto;
   padding: 16px;
-  }
+}
 
-/* Секция контента без рамок */
 .content-section {
   position: relative;
   min-height: 400px;
 }
 
-.challenges-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 20px; /* Увеличили зазор для "маневра" карточек */
-  padding: 20px 4px; /* Чтобы поднятая карточка не обрезалась сверху */
-}
-/* Обертка с мягким неоновым свечением по краям */
-.main-ritual-loading-wrapper {
-  position: relative;
-  background: rgba(15, 23, 42, 0.5); /* Цвет твоего фона из скринов */
-  border-radius: 24px;
-  border: 1px solid rgba(79, 209, 197, 0.1);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+.load-more-trigger {
+  width: 100%;
+  height: 1px;
+  pointer-events: none;
+  visibility: hidden;
 }
 
-.skeleton-card-dark {
-  background: #0B0E14 !important; /* Глубокий черный как на карточках */
+:deep(.challenges-grid--load-more) {
+  margin-top: 24px;
 }
 
-/* Кастомизация самого лоадера под Cyberpunk стиль */
-:deep(.main-ritual-skeleton-loader) {
-  background: transparent !important;
-}
-
-/* Цвет костей скелетона */
-:deep(.v-skeleton-loader__bone) {
-  background: rgba(255, 255, 255, 0.05) !important;
-}
-
-/* Анимация перелива (блика) */
-:deep(.v-skeleton-loader__bone::after) {
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(79, 209, 197, 0.1), /* Твой фирменный бирюзовый в блике */
-    transparent
-  ) !important;
-}
-
-/* Специфичные правки для блоков */
-:deep(.v-skeleton-loader__image) {
-  height: 240px !important;
-  margin-bottom: 16px;
-}
-
-:deep(.v-skeleton-loader__text),
-:deep(.v-skeleton-loader__heading) {
-  background: rgba(255, 255, 255, 0.08) !important;
-  margin: 12px 24px;
-}
-
-:deep(.v-skeleton-loader__actions) {
-  padding: 16px 24px;
-  justify-content: flex-start !important;
-}
-
-/* Анимация появления карточек */
-.staggered-fade-enter-active,
-.staggered-fade-leave-active {
-  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-}
-
-.staggered-fade-enter-from {
-  opacity: 0;
-  transform: translateY(20px);
-}
-
-.staggered-fade-leave-to {
-  opacity: 0;
-  transform: scale(0.9);
-}
-
-
-.challenges-grid > * {
-  transition: all 0.3s ease-in-out !important;
-}
-
-/* Мобильные фиксы */
 @media (max-width: 600px) {
   .all-challenges {
     padding: 12px;
   }
-  
-  .challenges-grid,
-  .challenges-grid-skeleton {
-    grid-template-columns: 1fr; /* На мобильных строго в одну колонку */
-    gap: 16px;
-  }
-  
 }
-
-/* Планшеты */
-@media (min-width: 601px) and (max-width: 1024px) {
-  .challenges-grid,
-  .challenges-grid-skeleton {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-.section-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: rgba(0, 0, 0, 0.87);
-  margin-bottom: 16px;
-}
-
-@media (min-width: 600px) {
-  .section-title {
-    font-size: 1.5rem;
-  }
-}
-
-.upcoming-section {
-  border-top: 2px solid rgba(0, 0, 0, 0.12);
-  padding-top: 24px;
-  margin-top: 24px;
-}
-
-.upcoming-card-disabled {
-  position: relative;
-}
-
-.upcoming-card-disabled :deep(.challenge-card) {
-  pointer-events: none;
-}
-
-.upcoming-blur-overlay {
-  position: absolute;
-  inset: 0;
-  border-radius: 18px;
-  background: rgba(13, 17, 28, 0.38);
-  backdrop-filter: blur(3px);
-  z-index: 5;
-  pointer-events: all;
-}
-
-.main-ritual-skeleton-loader {
-  border-radius: 20px;
-  }
-/* Skeleton uses .challenges-grid for column count; only card styling below */
-
-/* Темная подложка карточки */
-.skeleton-card-dark {
-  background: rgba(15, 23, 42, 0.6) !important; /* Цвет фона карточки */
-  border: 1px solid rgba(79, 209, 197, 0.1) !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-}
-
-/* Глубокая кастомизация костей скелетона */
-:deep(.custom-skeleton) {
-  background: transparent !important;
-}
-
-/* Цвет самих "костей" */
-:deep(.v-skeleton-loader__bone) {
-  background: rgba(255, 255, 255, 0.05) !important;
-}
-
-/* Эффект блика (анимация перелива) */
-:deep(.v-skeleton-loader__bone::after) {
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(79, 209, 197, 0.08), /* Бирюзовое свечение вместо белого */
-    transparent
-  ) !important;
-}
-
-/* Настройка высоты элементов */
-:deep(.v-skeleton-loader__image) {
-  height: 180px !important;
-}
-
-:deep(.v-skeleton-loader__list-item-two-line) {
-  padding: 16px !important;
-  background: transparent !important;
-}
-
-:deep(.v-skeleton-loader__text) {
-  margin: 0 16px 16px 16px !important;
-  max-width: 80%;
-  height: 8px !important; /* Имитация тонкого прогресс-бара */
-}
-
-.shadow-neon-line {
-  box-shadow: 0 0 10px rgba(79, 209, 197, 0.5);
-  border-radius: 4px;
-}
-
-/* Фикс белого цвета для скелетонов, если тема не подхватилась */
-:deep(.v-skeleton-loader) {
-  background-color: rgba(15, 23, 42, 0.6) !important;
-}
-
-:deep(.v-skeleton-loader__bone) {
-  background: rgba(255, 255, 255, 0.05) !important;
-  }
 </style>
+
+<style src="../assets/styles/challenge-skeleton.css"></style>

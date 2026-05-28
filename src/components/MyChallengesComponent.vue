@@ -16,19 +16,12 @@
       class="mb-6 shadow-neon-line"
     ></v-progress-linear>
     <div class="content-section">
-      <div v-if="loading" class="challenges-grid-skeleton">
-  <v-card
-    v-for="n in 6"
-    :key="n"
-    class="skeleton-card-dark rounded-xl overflow-hidden mb-6"
-    variant="flat"
-  >
-    <v-skeleton-loader
-      type="image, list-item-two-line, text"
-      class="custom-skeleton"
-    ></v-skeleton-loader>
-  </v-card>
-</div>
+      <ChallengeSkeletonGrid
+        v-if="loading"
+        :count="6"
+        grid-class="challenges-grid-skeleton"
+        card-class="mb-6"
+      />
 
       <v-alert v-else-if="error" type="error" class="mb-4">
         {{ error }}
@@ -162,6 +155,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { useI18n } from 'vue-i18n'
 import MyChallengeSection from './MyChallengeSection.vue'
+import ChallengeSkeletonGrid from './ChallengeSkeletonGrid.vue'
 import ChallengeDetailsDialog from './ChallengeDetailsDialog.vue'
 import { useMyChallenges } from '../composables/useMyChallenges'
 import { useChallengeDialog } from '../composables/useChallengeDialog'
@@ -321,66 +315,17 @@ watch(() => route.query.challengeId, (newChallengeId) => {
   margin-top: 24px;
 }
 
-/* Контейнер сетки (используй те же настройки, что и для реальной сетки) */
 .challenges-grid-skeleton {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 24px;
 }
 
-/* Темная подложка карточки */
-.skeleton-card-dark {
-  background: rgba(15, 23, 42, 0.6) !important; /* Цвет фона карточки */
-  border: 1px solid rgba(79, 209, 197, 0.1) !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-}
-
-/* Глубокая кастомизация костей скелетона */
-:deep(.custom-skeleton) {
-  background: transparent !important;
-}
-
-/* Цвет самих "костей" */
-:deep(.v-skeleton-loader__bone) {
-  background: rgba(255, 255, 255, 0.05) !important;
-}
-
-/* Эффект блика (анимация перелива) */
-:deep(.v-skeleton-loader__bone::after) {
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(79, 209, 197, 0.08), /* Бирюзовое свечение вместо белого */
-    transparent
-  ) !important;
-}
-
-/* Настройка высоты элементов */
-:deep(.v-skeleton-loader__image) {
-  height: 180px !important;
-}
-
-:deep(.v-skeleton-loader__list-item-two-line) {
-  padding: 16px !important;
-  background: transparent !important;
-}
-
-:deep(.v-skeleton-loader__text) {
-  margin: 0 16px 16px 16px !important;
-  max-width: 80%;
-  height: 8px !important; /* Имитация тонкого прогресс-бара */
-}
-
-/* Адаптация под мобилки */
 @media (max-width: 480px) {
   .challenges-grid-skeleton {
     grid-template-columns: 1fr;
     gap: 16px;
   }
-}
-.shadow-neon-line {
-  box-shadow: 0 0 10px rgba(79, 209, 197, 0.5);
-  border-radius: 4px;
 }
 
 .info-message {
@@ -397,12 +342,6 @@ watch(() => route.query.challengeId, (newChallengeId) => {
   filter: drop-shadow(0 0 5px rgba(45, 212, 191, 0.5));
 }
 
-/* Фикс белого цвета для скелетонов, если тема не подхватилась */
-:deep(.v-skeleton-loader) {
-  background-color: rgba(15, 23, 42, 0.6) !important;
-}
-
-:deep(.v-skeleton-loader__bone) {
-  background: rgba(255, 255, 255, 0.05) !important;
-}
 </style>
+
+<style src="../assets/styles/challenge-skeleton.css"></style>

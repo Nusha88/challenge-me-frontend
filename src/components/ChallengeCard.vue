@@ -818,6 +818,12 @@ const efficiencyPercentage = computed(() => {
 
 // --- ACTIONS ---
 
+function triggerHapticFeedback(pattern = 50) {
+  if ('vibrate' in navigator) {
+    navigator.vibrate(pattern)
+  }
+}
+
 function handleCardClick() {
   if (props.disabled) return
   emit('click', props.challenge)
@@ -841,6 +847,7 @@ async function completeDay() {
       props.currentUserId,
       newCompletedDays
     )
+    triggerHapticFeedback(50)
     applyXpAwardResponse(response)
     if (participant) participant.completedDays = newCompletedDays
     

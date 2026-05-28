@@ -218,6 +218,9 @@ export const challengeService = {
     
     return api.get('/challenges', { params })
   },
+  getMainRitual: () => {
+    return api.get('/challenges/main-ritual')
+  },
   getChallenge: (id) => {
     return api.get(`/challenges/${id}`)
   },

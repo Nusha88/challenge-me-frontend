@@ -42,14 +42,15 @@
     <v-window v-model="state.activeTab">
       <v-window-item value="today">
         <!-- Combined Progress Card -->
-        <div class="hero-progress-light">
+        <TodayProgressSkeleton v-if="isTodayProgressLoading" />
+        <div v-else class="hero-progress-light">
           <div class="progress-header">
             <span class="level-badge">{{ completedItems }} / {{ totalItems }} {{ t('home.loggedIn.dailyChecklist.completed') }}</span>
             <span class="level-badge">{{ combinedProgressPercentage }}%</span>
           </div>
           <div class="progress-track-soft">
-            <div 
-              class="progress-fill-vibrant" 
+            <div
+              class="progress-fill-vibrant"
               :class="{ 'has-progress': combinedProgressPercentage > 0 }"
               :style="{ width: combinedProgressPercentage + '%' }"
             ></div>
@@ -348,6 +349,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { Sparkles, Plus, Trash2 } from 'lucide-vue-next'
 import DailyChecklist from './DailyChecklist.vue'
+import TodayProgressSkeleton from './home/TodayProgressSkeleton.vue'
 import IgniteLoader from './IgniteLoader.vue'
 import ChallengeDetailsDialog from './ChallengeDetailsDialog.vue'
 import { userService, challengeService } from '../services/api'
@@ -372,8 +374,8 @@ const state = reactive({
   yesterdayStreakDays: 0,
   hasTodayCompletedTasks: false,
   challenges: [],
-  loadingChallenges: false,
-  checklistLoading: false,
+  loadingChallenges: true,
+  checklistLoading: true,
   generatingImage: false,
   initialDataLoading: true,
   showCompletionDialog: false,
@@ -393,6 +395,12 @@ const state = reactive({
 })
 
 const checklistRef = ref(null)
+const hasLoadedTodayMissionsOnce = ref(false)
+const hasLoadedTodayStepsOnce = ref(false)
+
+const isTodayProgressLoading = computed(
+  () => !hasLoadedTodayMissionsOnce.value || !hasLoadedTodayStepsOnce.value
+)
 
 function getCurrentUserId() {
   return userStore.userId
@@ -742,6 +750,8 @@ async function loadTodaysChallenges() {
   
   if (!userId || !isLoggedIn) {
     state.challenges = []
+    state.loadingChallenges = false
+    hasLoadedTodayMissionsOnce.value = true
     return
   }
 
@@ -795,6 +805,7 @@ async function loadTodaysChallenges() {
     state.challenges = []
   } finally {
     state.loadingChallenges = false
+    hasLoadedTodayMissionsOnce.value = true
   }
 }
 
@@ -1420,6 +1431,9 @@ const streakDaysText = computed(() => {
 const updateChecklistLoading = () => {
   if (checklistRef.value) {
     state.checklistLoading = checklistRef.value.loading || false
+    if (!state.checklistLoading) {
+      hasLoadedTodayStepsOnce.value = true
+    }
   }
 }
 
@@ -1444,6 +1458,9 @@ watch(() => checklistRef.value?.completedSteps, () => {
 watch(() => checklistRef.value?.loading, (newVal) => {
   if (newVal !== undefined) {
     state.checklistLoading = newVal
+    if (newVal === false) {
+      hasLoadedTodayStepsOnce.value = true
+    }
   }
 })
 
@@ -1497,10 +1514,15 @@ onMounted(async () => {
   const maxAttempts = 10
   while ((state.checklistLoading || state.initialDataLoading) && attempts < maxAttempts) {
     await new Promise(resolve => setTimeout(resolve, 100))
+    updateChecklistLoading()
     attempts++
   }
+  if (!hasLoadedTodayStepsOnce.value) {
+    hasLoadedTodayStepsOnce.value = true
+    state.checklistLoading = false
+  }
   await nextTick()
-  
+
   // Check if all tasks are completed after initial load
   setTimeout(() => {
     if (isAllCompleted.value && !state.hasShownCompletionDialog && !hasDismissedToday()) {

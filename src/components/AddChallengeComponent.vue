@@ -443,11 +443,18 @@ function getCreatedChallengeId(response) {
   return response.data?.challenge?._id || response.data?._id || response.data?.id || ''
 }
 
+function triggerHapticFeedback(pattern = 50) {
+  if ('vibrate' in navigator) {
+    navigator.vibrate(pattern)
+  }
+}
+
 async function handleCreateSuccess(response) {
   const challengeId = getCreatedChallengeId(response)
 
   if (challengeId) {
     createdChallengeId.value = challengeId
+    triggerHapticFeedback([100, 50, 100])
     fireConfetti()
   }
 

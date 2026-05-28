@@ -18,10 +18,16 @@ export function useMyChallenges(currentUserId) {
 
   let getSelectedChallengeId = () => null
   let refreshSelectedChallenge = async () => {}
+  let selectedChallengeRef = null
 
   function configureDialogSync({ selectedChallenge, refreshSelectedChallenge: refreshSelected }) {
+    selectedChallengeRef = selectedChallenge
     getSelectedChallengeId = () => unref(selectedChallenge)?._id
     refreshSelectedChallenge = refreshSelected
+  }
+
+  function challengeIdsMatch(a, b) {
+    return a != null && b != null && String(a) === String(b)
   }
 
   const challengeGroups = computed(() => {
@@ -68,9 +74,14 @@ export function useMyChallenges(currentUserId) {
 
   function setChallengeWatched(challengeId, watched) {
     challenges.value = challenges.value.map((item) => {
-      if (item._id !== challengeId) return item
+      if (!challengeIdsMatch(item._id, challengeId)) return item
       return { ...item, isWatched: watched }
     })
+
+    const selected = unref(selectedChallengeRef)
+    if (selected && challengeIdsMatch(selected._id, challengeId)) {
+      selectedChallengeRef.value = { ...selected, isWatched: watched }
+    }
   }
 
   async function fetchChallenges() {
@@ -156,7 +167,7 @@ export function useMyChallenges(currentUserId) {
 
   function updateChallengeWatchersCount(challengeId, delta) {
     challenges.value = challenges.value.map((item) => {
-      if (item._id !== challengeId) return item
+      if (!challengeIdsMatch(item._id, challengeId)) return item
       if (item.watchersCount === undefined) return item
 
       return {
@@ -164,6 +175,18 @@ export function useMyChallenges(currentUserId) {
         watchersCount: Math.max(0, (item.watchersCount || 0) + delta)
       }
     })
+
+    const selected = unref(selectedChallengeRef)
+    if (
+      selected &&
+      challengeIdsMatch(selected._id, challengeId) &&
+      selected.watchersCount !== undefined
+    ) {
+      selectedChallengeRef.value = {
+        ...selected,
+        watchersCount: Math.max(0, (selected.watchersCount || 0) + delta)
+      }
+    }
   }
 
   async function watchChallenge(challenge) {
