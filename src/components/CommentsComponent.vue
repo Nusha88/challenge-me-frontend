@@ -550,6 +550,7 @@ import { challengeService } from '../services/api'
 import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
 import { useI18n } from 'vue-i18n'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
+import { normalizeDateKey, toDateInputValue } from '../utils/dateUtils'
 
 const router = useRouter()
 const { applyXpAwardResponse } = useXpAwardFeedback()
@@ -762,14 +763,9 @@ function generateSystemEvents() {
   participants.forEach(participant => {
     if (participant.completedDays && participant.completedDays.length > 0) {
       const firstCompletedDay = participant.completedDays
-        .map(d => {
-          try {
-            let dateStr = String(d)
-            if (dateStr.includes('T')) dateStr = dateStr.split('T')[0]
-            return new Date(dateStr.substring(0, 10))
-          } catch {
-            return null
-          }
+        .map((day) => {
+          const dateKey = normalizeDateKey(day)
+          return dateKey ? new Date(`${dateKey}T00:00:00`) : null
         })
         .filter(Boolean)
         .sort((a, b) => a - b)[0]
@@ -833,24 +829,8 @@ function getParticipantStreak(userId) {
 
   if (!participant || !participant.completedDays || !Array.isArray(participant.completedDays)) return 0
 
-  function formatDateString(date) {
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
-  }
-
   const completedDateStrings = participant.completedDays
-    .map(date => {
-      try {
-        if (!date) return null
-        let dateStr = String(date)
-        if (dateStr.includes('T')) dateStr = dateStr.split('T')[0]
-        return dateStr.substring(0, 10)
-      } catch {
-        return null
-      }
-    })
+    .map((date) => normalizeDateKey(date))
     .filter(Boolean)
     .sort((a, b) => b.localeCompare(a))
 
@@ -858,7 +838,7 @@ function getParticipantStreak(userId) {
 
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  const todayStr = formatDateString(today)
+  const todayStr = toDateInputValue(today)
 
   let startDate = new Date(today)
   if (!completedDateStrings.includes(todayStr)) {
@@ -869,7 +849,7 @@ function getParticipantStreak(userId) {
   let currentDate = new Date(startDate)
 
   for (let i = 0; i < 365; i++) {
-    const dateStr = formatDateString(currentDate)
+    const dateStr = toDateInputValue(currentDate)
     if (completedDateStrings.includes(dateStr)) {
       streak++
     } else {

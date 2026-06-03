@@ -95,7 +95,8 @@
         "progress": "PROGRESS",
         "dailyGoalsCompleted": "DAILY GOALS COMPLETED",
         "systemStatus": "YOUR JORNEY TO MASTERY",
-        "dayStreak": "DAY STREAK"
+        "dayStreak": "DAY STREAK",
+        "completedTasksSummary": "Completed tasks: {count}"
       },
       "generateCompletionImage": "Generate Completion Image",
       "completionDialog": {

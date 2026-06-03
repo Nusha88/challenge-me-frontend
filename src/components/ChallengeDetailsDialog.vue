@@ -811,6 +811,7 @@ import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
 import { fireConfetti } from '../utils/confetti'
 import { getPaceStatus } from '../utils/challengePace'
 import { isChallengeEnded, isChallengeFinished } from '../utils/challengeStatus'
+import { getScheduledDaysCount, normalizeDateKey, toDateInputValue } from '../utils/dateUtils'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 import { getLevelFromXp, getLevelInfo } from '../utils/levelSystem'
 import { Trophy } from 'lucide-vue-next'
@@ -1048,33 +1049,9 @@ const progressTotal = computed(() => {
     const startDate = props.isOwner ? editForm.startDate : props.challenge.startDate
     const endDate = props.isOwner ? editForm.endDate : props.challenge.endDate
     const frequency = props.isOwner ? editForm.frequency : props.challenge.frequency
-    
-    if (!startDate || !endDate) return 0
-    
-    const start = new Date(startDate)
-    const end = new Date(endDate)
-    start.setHours(0, 0, 0, 0)
-    end.setHours(0, 0, 0, 0)
-    
-    if (frequency === 'everyOtherDay') {
-      let count = 0
-      const current = new Date(start)
-      let dayIndex = 0
-      
-      while (current <= end) {
-        if (dayIndex % 2 === 0) {
-          count++
-        }
-        current.setDate(current.getDate() + 1)
-        dayIndex++
-      }
-      
-      return Math.max(1, count)
-    }
-    
-    const diffTime = end - start
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1
-    return Math.max(1, diffDays)
+
+    const total = getScheduledDaysCount(startDate, endDate, frequency)
+    return total > 0 ? total : 0
   }
 })
 
@@ -1085,14 +1062,6 @@ const progressPercentage = computed(() => {
 })
 
 
-function formatDateString(date) {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
-
 const calendarDays = computed(() => {
   if (!props.challenge || props.challenge.challengeType !== CHALLENGE_TYPES.HABIT) return []
   if (!props.challenge.startDate || !props.challenge.endDate) return []
@@ -1101,7 +1070,7 @@ const calendarDays = computed(() => {
   const end = new Date(props.challenge.endDate)
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  const todayStr = formatDateString(today)
+  const todayStr = toDateInputValue(today)
   
   const completedDays = localCurrentUserCompletedDays.value.length > 0 
     ? localCurrentUserCompletedDays.value 
@@ -1112,22 +1081,16 @@ const calendarDays = computed(() => {
   current.setHours(0, 0, 0, 0)
   end.setHours(0, 0, 0, 0)
   
-  
-  const normalizedCompletedDays = completedDays.map(d => {
-    if (!d) return null
-    let dateStr = String(d)
-    if (dateStr.includes('T')) {
-      dateStr = dateStr.split('T')[0]
-    }
-    return dateStr.substring(0, 10)
-  }).filter(Boolean)
+  const normalizedCompletedDays = completedDays
+    .map((day) => normalizeDateKey(day))
+    .filter(Boolean)
   
   const startForSchedule = new Date(start)
   startForSchedule.setHours(0, 0, 0, 0)
 
   let dayNumber = 1
   while (current <= end) {
-    const dateStr = formatDateString(current)
+    const dateStr = toDateInputValue(current)
     const completedParticipantsCount = getCompletedParticipantsCountForDay(dateStr)
     const isUserCompleted = normalizedCompletedDays.includes(dateStr)
     const isToday = dateStr === todayStr
@@ -1164,7 +1127,15 @@ const calendarDays = computed(() => {
   return days
 })
 
-const totalDays = computed(() => calendarDays.value.length)
+const totalDays = computed(() => {
+  if (!props.challenge || props.challenge.challengeType !== CHALLENGE_TYPES.HABIT) return 0
+
+  return getScheduledDaysCount(
+    props.challenge.startDate,
+    props.challenge.endDate,
+    props.challenge.frequency
+  )
+})
 
 const daysPassed = computed(() => {
   return calendarDays.value.filter((day) => day.isScheduled !== false && !day.isLocked).length
@@ -1186,7 +1157,7 @@ const completionRatePercent = computed(() => {
   return Math.min(100, Math.max(0, Math.round((userCompletedCount.value / daysPassed.value) * 100)))
 })
 
-/** Chip %: completed days out of entire mission length (all calendar days). */
+/** Chip %: completed scheduled days out of total scheduled mission days. */
 const overallCompletionPercent = computed(() => {
   if (totalDays.value === 0) return 0
   return Math.min(100, Math.max(0, Math.round((userCompletedCount.value / totalDays.value) * 100)))
@@ -1377,15 +1348,6 @@ function getDayClass(day) {
   }
 }
 
-function normalizeDayValue(value) {
-  if (!value) return null
-  const dateStr = String(value)
-  if (dateStr.includes('T')) {
-    return dateStr.split('T')[0].substring(0, 10)
-  }
-  return dateStr.substring(0, 10)
-}
-
 function getCompletedParticipantsCountForDay(dateStr) {
   if (!props.challenge?.participants || !Array.isArray(props.challenge.participants)) return 0
 
@@ -1402,7 +1364,7 @@ function getCompletedParticipantsCountForDay(dateStr) {
         : participantCompletedDays
 
     const normalizedDays = sourceDays
-      .map(normalizeDayValue)
+      .map(normalizeDateKey)
       .filter(Boolean)
 
     return normalizedDays.includes(dateStr) ? count + 1 : count
@@ -1447,17 +1409,12 @@ async function toggleDay(day) {
     : [...currentUserCompletedDays.value]
   
   
-  const normalizedCompletedDays = completedDays.map(d => {
-    if (!d) return null
-    let dateStr = String(d)
-    if (dateStr.includes('T')) {
-      dateStr = dateStr.split('T')[0]
-    }
-    return dateStr.substring(0, 10)
-  }).filter(Boolean)
+  const normalizedCompletedDays = completedDays
+    .map((day) => normalizeDateKey(day))
+    .filter(Boolean)
   
-  const dayDateStr = day.date.substring(0, 10)
-  const index = normalizedCompletedDays.findIndex(d => d === dayDateStr)
+  const dayDateStr = normalizeDateKey(day.date)
+  const index = normalizedCompletedDays.findIndex((d) => d === dayDateStr)
   
   if (index > -1) {
     normalizedCompletedDays.splice(index, 1)
@@ -1485,32 +1442,12 @@ const currentUserCompletedDays = computed(() => {
   
   
   const days = participant.completedDays
-    .filter(d => {
-      if (!d) return false
-      try {
-        let dateStr = String(d)
-        
-        if (dateStr.includes('T')) {
-          dateStr = dateStr.split('T')[0]
-        }
-        dateStr = dateStr.substring(0, 10)
-        
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false
-        
-        const date = new Date(dateStr + 'T00:00:00')
-        return !Number.isNaN(date.getTime())
-      } catch {
-        return false
-      }
-    })
-    .map(d => {
-      let dateStr = String(d)
-      if (dateStr.includes('T')) {
-        dateStr = dateStr.split('T')[0]
-      }
-      return dateStr.substring(0, 10)
-    })
+    .map(normalizeDateKey)
     .filter(Boolean)
+    .filter((dateStr) => {
+      const date = new Date(`${dateStr}T00:00:00`)
+      return !Number.isNaN(date.getTime())
+    })
     .sort()
   
   return days

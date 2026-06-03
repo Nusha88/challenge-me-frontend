@@ -565,6 +565,7 @@ import ChallengeDetailsDialog from './ChallengeDetailsDialog.vue'
 import { useI18n } from 'vue-i18n'
 import { useWatchedChallengesStore } from '../stores/watchedChallenges'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
+import { getScheduledDaysCount } from '../utils/dateUtils'
 
 const router = useRouter()
 const { t, locale } = useI18n()
@@ -1174,32 +1175,12 @@ function getProgressBarColorClass(challenge) {
 }
 
 function getChallengeTotalDays(challenge) {
-  if (!challenge.startDate || !challenge.endDate) return 0
-  
-  try {
-    const start = new Date(challenge.startDate)
-    const end = new Date(challenge.endDate)
-    start.setHours(0, 0, 0, 0)
-    end.setHours(0, 0, 0, 0)
-    
-    if (challenge.frequency === 'everyOtherDay') {
-      let count = 0
-      const current = new Date(start)
-      let dayIndex = 0
-      while (current <= end) {
-        if (dayIndex % 2 === 0) count++
-        current.setDate(current.getDate() + 1)
-        dayIndex++
-      }
-      return Math.max(1, count)
-    }
-    
-    const diffTime = end - start
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1
-    return Math.max(1, diffDays)
-  } catch {
-    return 0
-  }
+  const total = getScheduledDaysCount(
+    challenge.startDate,
+    challenge.endDate,
+    challenge.frequency
+  )
+  return total > 0 ? total : 0
 }
 
 // Top Performers - aggregate from all watched challenges

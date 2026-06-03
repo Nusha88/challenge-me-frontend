@@ -61,15 +61,8 @@
               :challenges="activeQuests"
               grid-class="quests-grid mb-6"
               :current-user-id="currentUserId"
-              :joining-id="joiningId"
-              :leaving-id="leavingId"
-              :watching-id="watchingId"
               @challenge-click="handleChallengeClick"
-              @join="joinChallenge"
-              @leave="leaveChallenge"
-              @watch="watchChallenge"
-              @unwatch="unwatchChallenge"
-              @owner-navigated="handleOwnerNavigated"
+              @update="handleDialogUpdate"
             />
 
             <MyChallengeSection
@@ -77,15 +70,8 @@
               :challenges="activeRituals"
               grid-class="rituals-grid"
               :current-user-id="currentUserId"
-              :joining-id="joiningId"
-              :leaving-id="leavingId"
-              :watching-id="watchingId"
               @challenge-click="handleChallengeClick"
-              @join="joinChallenge"
-              @leave="leaveChallenge"
-              @watch="watchChallenge"
-              @unwatch="unwatchChallenge"
-              @owner-navigated="handleOwnerNavigated"
+              @update="handleDialogUpdate"
             />
           </div>
 
@@ -96,16 +82,8 @@
               :challenges="upcomingChallenges"
               grid-class="challenges-grid"
               :current-user-id="currentUserId"
-              :joining-id="joiningId"
-              :leaving-id="leavingId"
-              :watching-id="watchingId"
               disabled
               @challenge-click="handleChallengeClick"
-              @join="joinChallenge"
-              @leave="leaveChallenge"
-              @watch="watchChallenge"
-              @unwatch="unwatchChallenge"
-              @owner-navigated="handleOwnerNavigated"
             />
           </div>
 
@@ -116,15 +94,7 @@
               grid-class="challenges-grid"
               :class="activeChallenges.length > 0 ? 'mt-8' : undefined"
               :current-user-id="currentUserId"
-              :joining-id="joiningId"
-              :leaving-id="leavingId"
-              :watching-id="watchingId"
               @challenge-click="handleChallengeClick"
-              @join="joinChallenge"
-              @leave="leaveChallenge"
-              @watch="watchChallenge"
-              @unwatch="unwatchChallenge"
-              @owner-navigated="handleOwnerNavigated"
             />
           </div>
         </div>

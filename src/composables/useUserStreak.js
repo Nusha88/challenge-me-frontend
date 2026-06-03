@@ -6,71 +6,8 @@ import { userService, challengeService } from '../services/api'
 import { useAppEventListeners } from './useAppEvents'
 import { APP_EVENTS } from '../utils/appEvents'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
-
-function formatDateString(date) {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
-function normalizeDateToString(value) {
-  if (!value) return ''
-
-  const dateStr = String(value)
-  if (dateStr.includes('T')) {
-    return dateStr.split('T')[0]
-  }
-
-  return dateStr.substring(0, 10)
-}
-
-function buildCompletedDateSet(checklists, habitChallenges, userId) {
-  const completedDates = new Set()
-
-  checklists.forEach((checklist) => {
-    const hasCompletedTask = checklist.tasks?.some((task) => task.done === true)
-
-    if (hasCompletedTask) {
-      completedDates.add(formatDateString(new Date(checklist.date)))
-    }
-  })
-
-  habitChallenges.forEach((challenge) => {
-    const participant = challenge.participants?.find((p) => {
-      const participantUserId = p.userId?._id || p.userId || p._id
-      return participantUserId && participantUserId.toString() === userId.toString()
-    })
-
-    participant?.completedDays?.forEach((completedDate) => {
-      const dateStr = normalizeDateToString(completedDate)
-      if (dateStr) {
-        completedDates.add(dateStr)
-      }
-    })
-  })
-
-  return completedDates
-}
-
-function calculateStreakFromDate(startDate, completedDates) {
-  let streak = 0
-  const currentDate = new Date(startDate)
-
-  for (let i = 0; i < 365; i++) {
-    const dateStr = formatDateString(currentDate)
-
-    if (!completedDates.has(dateStr)) {
-      break
-    }
-
-    streak++
-    currentDate.setDate(currentDate.getDate() - 1)
-    currentDate.setHours(0, 0, 0, 0)
-  }
-
-  return streak
-}
+import { toDateInputValue } from '../utils/dateUtils'
+import { buildCompletedDateSet, calculateStreakFromDate } from '../utils/streakUtils'
 
 export function useUserStreak() {
   const route = useRoute()
@@ -108,7 +45,7 @@ export function useUserStreak() {
       yesterday.setDate(yesterday.getDate() - 1)
       yesterday.setHours(0, 0, 0, 0)
 
-      const todayStr = formatDateString(today)
+      const todayStr = toDateInputValue(today)
 
       hasTodayCompletedTasks.value = completedDates.has(todayStr)
       streakDays.value = calculateStreakFromDate(today, completedDates)

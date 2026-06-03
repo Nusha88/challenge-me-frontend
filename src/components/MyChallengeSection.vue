@@ -6,17 +6,9 @@
       :challenge="challenge"
       :current-user-id="currentUserId"
       :show-join-button="showJoinButton"
-      :joining-id="joiningId"
-      :leaving-id="leavingId"
-      :watching-id="watchingId"
-      :is-watched="!!challenge.isWatched"
       :disabled="disabled"
       @click="forwardChallengeClick"
-      @join="forwardJoin"
-      @leave="forwardLeave"
-      @watch="forwardWatch"
-      @unwatch="forwardUnwatch"
-      @owner-navigated="forwardOwnerNavigated"
+      @update="$emit('update')"
     />
   </div>
 </template>
@@ -37,18 +29,6 @@ const props = defineProps({
     type: String,
     default: null
   },
-  joiningId: {
-    type: [String, Number],
-    default: null
-  },
-  leavingId: {
-    type: [String, Number],
-    default: null
-  },
-  watchingId: {
-    type: [String, Number],
-    default: null
-  },
   showJoinButton: {
     type: Boolean,
     default: false
@@ -59,42 +39,10 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits([
-  'challenge-click',
-  'join',
-  'leave',
-  'watch',
-  'unwatch',
-  'owner-navigated'
-])
+const emit = defineEmits(['challenge-click', 'update'])
 
 function forwardChallengeClick(event) {
   if (props.disabled) return
   emit('challenge-click', event)
-}
-
-function forwardJoin(event) {
-  if (props.disabled) return
-  emit('join', event)
-}
-
-function forwardLeave(event) {
-  if (props.disabled) return
-  emit('leave', event)
-}
-
-function forwardWatch(event) {
-  if (props.disabled) return
-  emit('watch', event)
-}
-
-function forwardUnwatch(event) {
-  if (props.disabled) return
-  emit('unwatch', event)
-}
-
-function forwardOwnerNavigated() {
-  if (props.disabled) return
-  emit('owner-navigated')
 }
 </script>

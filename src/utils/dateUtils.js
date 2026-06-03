@@ -18,6 +18,20 @@ export function toDateInputValue(value = new Date()) {
   return `${year}-${month}-${day}`
 }
 
+export function normalizeDateKey(value) {
+  if (value == null || value === '') {
+    return null
+  }
+
+  let dateStr = String(value)
+  if (dateStr.includes('T')) {
+    dateStr = dateStr.split('T')[0]
+  }
+  dateStr = dateStr.substring(0, 10)
+
+  return /^\d{4}-\d{2}-\d{2}$/.test(dateStr) ? dateStr : null
+}
+
 export function normalizeDateInputValue(value) {
   if (!value) {
     return ''
@@ -46,6 +60,37 @@ export function getInclusiveDaysBetween(startValue, endValue) {
   }
 
   return Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1
+}
+
+export function getScheduledDaysCount(startValue, endValue, frequency = 'daily') {
+  if (!startValue || !endValue) {
+    return 0
+  }
+
+  const start = startOfDay(startValue)
+  const end = startOfDay(endValue)
+
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return 0
+  }
+
+  if (frequency === 'everyOtherDay') {
+    let count = 0
+    const current = new Date(start)
+    let dayIndex = 0
+
+    while (current <= end) {
+      if (dayIndex % 2 === 0) {
+        count++
+      }
+      current.setDate(current.getDate() + 1)
+      dayIndex++
+    }
+
+    return count
+  }
+
+  return getInclusiveDaysBetween(start, end)
 }
 
 export function getDurationDaysString(startValue, endValue) {

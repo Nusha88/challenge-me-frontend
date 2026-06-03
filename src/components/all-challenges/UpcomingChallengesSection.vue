@@ -11,17 +11,7 @@
           :challenge="challenge"
           :current-user-id="currentUserId"
           :show-join-button="true"
-          :joining-id="joiningId"
-          :leaving-id="leavingId"
-          :watching-id="watchingId"
-          :all-challenges="true"
-          :is-watched="isWatched(challenge)"
           @click="$emit('open', $event)"
-          @join="$emit('join', $event)"
-          @leave="$emit('leave', $event)"
-          @watch="$emit('watch', $event)"
-          @unwatch="$emit('unwatch', $event)"
-          @owner-navigated="$emit('owner-navigated')"
         />
         <div class="upcoming-blur-overlay" />
       </div>
@@ -41,26 +31,10 @@ defineProps({
   currentUserId: {
     type: [String, Number],
     default: null
-  },
-  joiningId: {
-    type: [String, Number],
-    default: null
-  },
-  leavingId: {
-    type: [String, Number],
-    default: null
-  },
-  watchingId: {
-    type: [String, Number],
-    default: null
-  },
-  isWatched: {
-    type: Function,
-    required: true
   }
 })
 
-defineEmits(['open', 'join', 'leave', 'watch', 'unwatch', 'owner-navigated'])
+defineEmits(['open'])
 
 const { t } = useI18n()
 </script>

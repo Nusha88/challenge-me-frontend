@@ -12,6 +12,7 @@ import {
 } from '../utils/pushNotifications'
 import { getLevelFromXp, getXpForLevel, getXpForNextLevel, getRank, getLevelInfo, getRankIcon } from '../utils/levelSystem'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
+import { normalizeDateKey, toDateInputValue } from '../utils/dateUtils'
 
 const props = defineProps({
   userId: {
@@ -623,12 +624,14 @@ const fetchHeatmapData = async () => {
   }
 }
 
-// Helper function to format date string
-const formatDateString = (date) => {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
+function getChecklistDateKey(entry) {
+  if (entry.clientDay) {
+    return normalizeDateKey(entry.clientDay) || entry.clientDay
+  }
+  if (entry.date) {
+    return toDateInputValue(new Date(entry.date))
+  }
+  return null
 }
 
 // Get date for a specific day number (day 1 = registration date)
@@ -699,15 +702,9 @@ const isChallengeCompletedOnDate = (challenge, dateString, userId) => {
     return false
   }
   
-  return participant.completedDays.some(date => {
-    if (!date) return false
-    let dateStr = String(date)
-    if (dateStr.includes('T')) {
-      dateStr = dateStr.split('T')[0]
-    }
-    dateStr = dateStr.substring(0, 10)
-    return dateStr === dateString
-  })
+  return participant.completedDays.some(
+    (date) => normalizeDateKey(date) === dateString
+  )
 }
 
 const getHeatmapLevel = (day) => {
@@ -716,23 +713,14 @@ const getHeatmapLevel = (day) => {
   const targetDate = getDateForDay(day)
   if (!targetDate) return 'level-0'
   
-  const dateStr = formatDateString(targetDate)
+  const dateStr = toDateInputValue(targetDate)
   const userId = targetUserId.value
   
   if (!userId) return 'level-0'
   
-  // Find checklist entry for this date
-  const checklistForDate = checklistHistory.value.find(c => {
+  const checklistForDate = checklistHistory.value.find((c) => {
     try {
-      // clientDay is already YYYY-MM-DD string, date is a Date object
-      let checklistDateStr = null
-      if (c.clientDay) {
-        // clientDay is already in YYYY-MM-DD format
-        checklistDateStr = c.clientDay
-      } else if (c.date) {
-        // date is a Date object, convert to YYYY-MM-DD
-        checklistDateStr = formatDateString(new Date(c.date))
-      }
+      const checklistDateStr = getChecklistDateKey(c)
       if (!checklistDateStr) return false
       return checklistDateStr === dateStr
     } catch {
@@ -785,23 +773,14 @@ const getTooltipText = (day) => {
   const targetDate = getDateForDay(day)
   if (!targetDate) return `Day ${day}`
   
-  const dateStr = formatDateString(targetDate)
+  const dateStr = toDateInputValue(targetDate)
   const userId = targetUserId.value
   
   if (!userId) return `Day ${day}`
   
-  // Find checklist entry for this date
-  const checklistForDate = checklistHistory.value.find(c => {
+  const checklistForDate = checklistHistory.value.find((c) => {
     try {
-      // clientDay is already YYYY-MM-DD string, date is a Date object
-      let checklistDateStr = null
-      if (c.clientDay) {
-        // clientDay is already in YYYY-MM-DD format
-        checklistDateStr = c.clientDay
-      } else if (c.date) {
-        // date is a Date object, convert to YYYY-MM-DD
-        checklistDateStr = formatDateString(new Date(c.date))
-      }
+      const checklistDateStr = getChecklistDateKey(c)
       if (!checklistDateStr) return false
       return checklistDateStr === dateStr
     } catch {

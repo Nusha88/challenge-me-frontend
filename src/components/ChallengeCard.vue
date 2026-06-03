@@ -7,7 +7,7 @@
       'is-finished': isFinished,
       'is-disabled': disabled,
       'quest-mode': isQuestMode,
-      'habit-mode': challenge.challengeType === CHALLENGE_TYPES.HABIT && !isFinished
+      'habit-mode': isActiveHabit
     }"
     @click="handleCardClick"
   >
@@ -19,7 +19,7 @@
       <div class="overlay-mask"></div>
     </div>
 
-    <div v-if="challenge.challengeType === CHALLENGE_TYPES.HABIT && !isFinished" class="habit-visual-wrapper">
+    <div v-if="isActiveHabit" class="habit-visual-wrapper">
       <div class="habit-gradient-glow"></div>
       <div class="habit-grid-pattern"></div>
     </div>
@@ -42,15 +42,15 @@
   
   <div v-if="isHabitParticipantMode" class="habit-interactive-zone">
     <div class="mini-history-grid">
-      <div 
-        v-for="(day, index) in lastSevenDays" 
-        :key="index" 
+      <div
+        v-for="day in lastSevenDays"
+        :key="day.date"
         class="history-dot"
-        :class="{ 'filled': day.completed, 'today': index === 6 }"
+        :class="{ filled: day.completed, today: day.date === todayString }"
+        :title="day.label"
       >
-        <v-tooltip activator="parent" location="top">{{ day.label }}</v-tooltip>
       </div>
-          </div>
+    </div>
           
     <div class="action-row">
       <div v-if="isTodayCompleted" class="streak-active">
@@ -63,7 +63,7 @@
       <div
         v-else-if="isTodayScheduled"
         class="ignite-trigger"
-        @click.stop="completeDay"
+        @click.stop="completeToday"
       >
         <div class="ignite-pill">
           <span class="flame-icon-wrapper">
@@ -90,7 +90,7 @@
       <span class="ml-1">{{ participantCount }} {{ t('missions.heroesInLine') }}</span>
     </div>
     <div v-if="showJoinButton" class="join-prompt">
-       {{ challenge.challengeType === CHALLENGE_TYPES.HABIT ? t('missions.viewDetailsToJoin') : t('missions.viewDetails') }}
+       {{ isHabitType ? t('missions.viewDetailsToJoin') : t('missions.viewDetails') }}
           </div>
         </div>
       </div>
@@ -104,7 +104,7 @@
           </div>
         <v-progress-linear
           :model-value="progressPercentage"
-          :color="challenge.challengeType === CHALLENGE_TYPES.HABIT ? '#7048E8' : '#4FD1C5'"
+          :color="progressBarColor"
           height="6"
           rounded
           class="mission-progress"
@@ -493,14 +493,17 @@
   }
 }
 
-/* Дополнительный штрих: эффект «битых пикселей» или помех для проваленных миссий */
-.is-failed::after {
+/* Лёгкий оверлей для проваленных миссий (без SVG noise — дешевле при множестве карточек) */
+.challenge-card.is-failed::after {
   content: "";
   position: absolute;
   inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-  opacity: 0.04; /* Едва заметный шум */
-  mix-blend-mode: overlay;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 82, 82, 0.08) 0%,
+    transparent 45%,
+    rgba(20, 20, 30, 0.12) 100%
+  );
   pointer-events: none;
   z-index: 3;
 }
@@ -514,22 +517,66 @@
   text-decoration: line-through rgba(255, 82, 82, 0.3);
 }
 .is-finished { filter: grayscale(0.8); opacity: 0.7; }
+
+@media (max-width: 600px) {
+  .challenge-card {
+    backdrop-filter: blur(6px);
+  }
+
+  .challenge-card:hover {
+    transform: none;
+    box-shadow: none !important;
+  }
+
+  .challenge-card:hover .card-background {
+    transform: none;
+  }
+
+  .smoke-effect {
+    animation: none;
+    filter: blur(20px);
+  }
+
+  .habit-gradient-glow {
+    filter: blur(24px);
+  }
+
+  .challenge-card:hover .ignite-pill .flame-icon-wrapper svg {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .challenge-card,
+  .card-background,
+  .ignite-pill,
+  .ignite-text,
+  .smoke-effect,
+  .mission-progress :deep(.v-progress-linear__determinate) {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  .challenge-card:hover {
+    transform: none;
+  }
+
+  .challenge-card:hover .card-background {
+    transform: none;
+  }
+
+  .challenge-card:hover .ignite-pill .flame-icon-wrapper svg {
+    animation: none !important;
+  }
+}
 </style>
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
 import { useChallengeType } from '../composables/useChallengeType'
-import { challengeService } from '../services/api'
-import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
+import { useChallengeCardProgress } from '../composables/useChallengeCardProgress'
 import { Flame } from 'lucide-vue-next'
-import upcomingImage from '../assets/upcoming.png'
-import successImage from '../assets/success.png'
-import failedImage from '../assets/failed.png'
 import { isChallengeFinished } from '../utils/challengeStatus'
-import { CHALLENGE_TYPES } from '../constants/challengeTypes'
-
-const { applyXpAwardResponse } = useXpAwardFeedback()
 
 const props = defineProps({
   challenge: {
@@ -544,344 +591,71 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  joiningId: {
-    type: String,
-    default: null
-  },
-  leavingId: {
-    type: String,
-    default: null
-  },
-  watchingId: {
-    type: String,
-    default: null
-  },
-  isWatched: {
-    type: Boolean,
-    default: false
-  },
   disabled: {
     type: Boolean,
     default: false
-  },
-  allChallenges: {
-    type: Boolean,
-    default: false
   }
 })
 
-const emit = defineEmits(['click', 'join', 'leave', 'watch', 'unwatch', 'owner-navigated', 'update'])
+const emit = defineEmits(['click', 'update'])
 
-// Local watchers count
-const localWatchersCount = ref(props.challenge.watchersCount ?? 0)
-
-watch(() => props.challenge.watchersCount, (newCount) => {
-  if (newCount !== undefined) {
-    localWatchersCount.value = newCount
-  }
-}, { immediate: true })
-
-const watchersCount = computed(() => localWatchersCount.value)
-
-const { t, locale } = useI18n()
-const router = useRouter()
+const { t } = useI18n()
 const { getMissionTypeLabel } = useChallengeType()
 
-// --- HELPERS ---
+const currentUserIdString = computed(() => props.currentUserId?.toString() || '')
 
-function formatDateString(date) {
-  try {
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
-  } catch (e) {
-    return null
-  }
-}
-
-function normalizeDate(date) {
-  if (!date) return null
-  let dateStr = String(date)
-  if (dateStr.includes('T')) {
-    dateStr = dateStr.split('T')[0]
-  }
-  return dateStr.substring(0, 10)
-}
-
-// --- COMPUTED PROPERTIES ---
-
-const isQuestMode = computed(() => {
-  return props.challenge.challengeType === CHALLENGE_TYPES.RESULT && props.challenge.imageUrl && !isFinished.value
-})
-
-const isHabitParticipantMode = computed(() => {
-  return isParticipant.value && props.challenge.challengeType === CHALLENGE_TYPES.HABIT && !isFinished.value
-})
+const {
+  isHabitType,
+  isResultType,
+  isParticipant,
+  progressPercentage,
+  efficiencyPercentage,
+  streakDays,
+  isTodayCompleted,
+  isTodayScheduled,
+  lastSevenDays,
+  todayString,
+  completeToday
+} = useChallengeCardProgress(props, emit)
 
 const isOwner = computed(() => {
-  if (!props.challenge.owner || !props.currentUserId) return false
+  if (!props.challenge.owner || !currentUserIdString.value) return false
   const ownerId = props.challenge.owner._id || props.challenge.owner
-  return ownerId === props.currentUserId
-})
-const isParticipant = computed(() => {
-  if (!props.currentUserId || !props.challenge.participants) return false
-  
-  return props.challenge.participants.some(participant => {
-    const userId = participant.userId?._id || participant.userId || participant._id || participant
-    return userId && userId.toString() === props.currentUserId.toString()
-  })
+  return ownerId?.toString() === currentUserIdString.value
 })
 
 const participantCount = computed(() => {
   return props.challenge.participants ? props.challenge.participants.length : 0
 })
+
 const isFinished = computed(() => isChallengeFinished(props.challenge))
+
+const isActiveHabit = computed(() => isHabitType.value && !isFinished.value)
+
+const progressBarColor = computed(() => (isHabitType.value ? '#7048E8' : '#4FD1C5'))
+
+const isQuestMode = computed(() => {
+  return isResultType.value && props.challenge.imageUrl && !isFinished.value
+})
+
+const isHabitParticipantMode = computed(() => {
+  return isParticipant.value && isActiveHabit.value
+})
 
 const isSuccessful = computed(() => {
   if (!isFinished.value) return false
-  if (props.challenge.challengeType === CHALLENGE_TYPES.RESULT) {
+  if (isResultType.value) {
     return efficiencyPercentage.value === 100
   }
-  if (props.challenge.challengeType === CHALLENGE_TYPES.HABIT) {
+  if (isHabitType.value) {
     return progressPercentage.value === 100
   }
   return false
 })
 
-const isUpcoming = computed(() => {
-  if (!props.challenge.startDate) return false
-  try {
-    const startDate = new Date(props.challenge.startDate)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    startDate.setHours(0, 0, 0, 0)
-    return startDate > today
-  } catch { return false }
-})
-
-const streakDays = computed(() => {
-  if (props.challenge.challengeType !== CHALLENGE_TYPES.HABIT || !props.currentUserId || !props.challenge.participants) return 0
-    
-    const participant = props.challenge.participants.find(p => {
-        const userId = p.userId?._id || p.userId || p._id
-        return userId && userId.toString() === props.currentUserId.toString()
-  })
-  
-  if (!participant?.completedDays?.length) return 0
-  
-  const completedDateStrings = participant.completedDays.map(d => normalizeDate(d)).filter(Boolean)
-  const todayStr = formatDateString(new Date())
-  
-  let startDate = new Date()
-  startDate.setHours(0,0,0,0)
-    if (!completedDateStrings.includes(todayStr)) {
-      startDate.setDate(startDate.getDate() - 1)
-    }
-    
-    let streak = 0
-    let currentDate = new Date(startDate)
-    for (let i = 0; i < 365; i++) {
-        const dateStr = formatDateString(currentDate)
-        if (completedDateStrings.includes(dateStr)) {
-          streak++
-      currentDate.setDate(currentDate.getDate() - 1)
-        } else {
-          break
-        }
-      }
-    return streak
-})
-
-const isTodayCompleted = computed(() => {
-  if (props.challenge.challengeType !== CHALLENGE_TYPES.HABIT || !props.currentUserId || !props.challenge.participants) return false
-    const participant = props.challenge.participants.find(p => {
-        const userId = p.userId?._id || p.userId || p._id
-        return userId && userId.toString() === props.currentUserId.toString()
-  })
-  const todayStr = formatDateString(new Date())
-  return (participant?.completedDays || []).some(d => normalizeDate(d) === todayStr)
-})
-
-const isTodayScheduled = computed(() => {
-  if (props.challenge.challengeType !== CHALLENGE_TYPES.HABIT) return false
-  if (props.challenge.frequency !== 'everyOtherDay') return true
-  if (!props.challenge.startDate) return true
-
-  const start = new Date(props.challenge.startDate)
-  const today = new Date()
-  start.setHours(0, 0, 0, 0)
-  today.setHours(0, 0, 0, 0)
-
-  const diffDays = Math.floor((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
-  // If challenge hasn't started yet, treat as not scheduled for today
-  if (diffDays < 0) return false
-  return diffDays % 2 === 0
-})
-
-// Определяем, чей прогресс нам нужно отображать
-const targetParticipant = computed(() => {
-  if (!props.challenge.participants) return null;
-
-  // 1. Пытаемся найти текущего авторизованного пользователя
-  const currentUser = props.challenge.participants.find(p => {
-    const userId = p.userId?._id || p.userId || p._id;
-    return userId && userId.toString() === props.currentUserId?.toString();
-  });
-  if (currentUser) return currentUser;
-
-  // 2. Если мы гость, находим владельца (Owner) среди участников
-  const ownerId = props.challenge.owner?._id || props.challenge.owner;
-  return props.challenge.participants.find(p => {
-    const pId = p.userId?._id || p.userId || p._id;
-    return pId && pId.toString() === ownerId?.toString();
-  });
-});
-
-// Исправленный прогресс
-const progressDone = computed(() => {
-  if (props.challenge.challengeType === CHALLENGE_TYPES.RESULT) {
-    let count = 0;
-    props.challenge.actions?.forEach(action => {
-      if (action.checked) count++;
-      action.children?.forEach(child => { if (child.checked) count++; });
-    });
-    return count;
-  } else {
-    // Используем данные целевого участника вместо жесткой привязки к currentUserId
-    return targetParticipant.value?.completedDays?.length || 0;
-  }
-});
-
-// Исправленная сетка последних 7 дней
-const lastSevenDays = computed(() => {
-  const days = [];
-  const completedDates = (targetParticipant.value?.completedDays || [])
-    .map(d => normalizeDate(d));
-
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    const dateStr = formatDateString(d);
-    days.push({
-      date: dateStr,
-      completed: completedDates.includes(dateStr),
-      label: i === 0 ? t('common.today') : dateStr
-    });
-  }
-  return days;
-});
-
-const progressTotal = computed(() => {
-  if (props.challenge.challengeType === CHALLENGE_TYPES.RESULT) {
-    let count = 0
-    props.challenge.actions?.forEach(action => {
-      count++
-      if (action.children) count += action.children.length
-    })
-    return count
-  } else {
-    try {
-      const start = new Date(props.challenge.startDate)
-      const end = new Date(props.challenge.endDate)
-      if (isNaN(start) || isNaN(end)) return 0
-      start.setHours(0,0,0,0); end.setHours(0,0,0,0)
-      
-      if (props.challenge.frequency === 'everyOtherDay') {
-        let count = 0; let curr = new Date(start); let idx = 0
-        while (curr <= end) {
-          if (idx % 2 === 0) count++
-          curr.setDate(curr.getDate() + 1); idx++
-        }
-        return count
-      }
-      return Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1
-    } catch { return 0 }
-  }
-})
-
-const progressPercentage = computed(() => {
-  const total = progressTotal.value
-  if (total === 0) return 0
-  return Math.min(100, Math.max(0, Math.round((progressDone.value / total) * 100)))
-})
-
-const efficiencyPercentage = computed(() => {
-  if (props.challenge.challengeType !== CHALLENGE_TYPES.RESULT || !props.challenge.actions) return 0
-  let total = 0, completed = 0
-  props.challenge.actions.forEach(a => {
-    total++; if (a.checked) completed++
-    a.children?.forEach(c => { total++; if (c.checked) completed++ })
-  })
-  return total === 0 ? 0 : Math.round((completed / total) * 100)
-})
-
-// --- ACTIONS ---
-
-function triggerHapticFeedback(pattern = 50) {
-  if ('vibrate' in navigator) {
-    navigator.vibrate(pattern)
-  }
-}
-
 function handleCardClick() {
   if (props.disabled) return
   emit('click', props.challenge)
-}
-
-async function completeDay() {
-  if (props.disabled) return
-  if (props.challenge.challengeType !== CHALLENGE_TYPES.HABIT || !props.currentUserId || isTodayCompleted.value || !isTodayScheduled.value) return
-  
-  const todayStr = formatDateString(new Date())
-  const participant = props.challenge.participants.find(p => {
-    const userId = p.userId?._id || p.userId || p._id
-    return userId && userId.toString() === props.currentUserId.toString()
-  })
-  
-  const newCompletedDays = [...(participant?.completedDays || []), todayStr]
-
-  try {
-    const response = await challengeService.updateParticipantCompletedDays(
-      props.challenge._id,
-      props.currentUserId,
-      newCompletedDays
-    )
-    triggerHapticFeedback(50)
-    applyXpAwardResponse(response)
-    if (participant) participant.completedDays = newCompletedDays
-    
-    window.dispatchEvent(new Event('participant-completed-days-updated'))
-    window.dispatchEvent(new Event('challenge-updated'))
-    emit('update')
-  } catch (error) {
-    console.error('Error completing challenge:', error)
-  }
-}
-
-function handleWatchClick() {
-  if (props.isWatched) {
-    if (localWatchersCount.value > 0) localWatchersCount.value--
-    emit('unwatch', props.challenge)
-  } else {
-    localWatchersCount.value++
-    emit('watch', props.challenge)
-  }
-}
-
-function navigateToOwner() {
-  const ownerId = props.challenge.owner?._id || props.challenge.owner
-  if (ownerId) {
-  emit('owner-navigated')
-  router.push(`/heroes/${ownerId}`)
-}
-}
-
-function restartChallenge() {
-  const challengeData = { ...props.challenge, startDate: '', endDate: '' }
-  sessionStorage.setItem('restartChallengeData', JSON.stringify(challengeData))
-  if (props.challenge._id) sessionStorage.setItem('restartedChallengeId', props.challenge._id)
-  router.push('/missions/add')
 }
 </script>
 

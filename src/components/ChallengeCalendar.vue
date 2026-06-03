@@ -288,6 +288,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { toDateInputValue } from '../utils/dateUtils'
 
 const { t } = useI18n()
 
@@ -353,7 +354,7 @@ const days = computed(() => {
     let dayIndex = 0
     
     while (current <= end) {
-      const dateStr = formatDateString(current)
+      const dateStr = toDateInputValue(current)
       const isToday = current.getTime() === today.getTime()
       const isPast = current < today
       const isFuture = current > today
@@ -410,13 +411,6 @@ const calendarRows = computed(() => {
 const needsScroll = computed(() => {
   return calendarRows.value >= 5
 })
-
-function formatDateString(date) {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
 
 function formatDay(date) {
   return date.getDate()

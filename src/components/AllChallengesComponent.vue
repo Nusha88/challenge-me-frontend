@@ -21,16 +21,8 @@
         <ChallengeGrid
           :challenges="gridChallenges"
           :current-user-id="currentUserId"
-          :joining-id="joiningId"
-          :leaving-id="leavingId"
-          :watching-id="watchingId"
-          :is-watched="isWatched"
           @open="openDetails"
-          @join="joinChallenge"
-          @leave="leaveChallenge"
-          @watch="watchChallenge"
-          @unwatch="unwatchChallenge"
-          @owner-navigated="handleOwnerNavigated"
+          @update="handleDialogUpdate"
         />
 
         <ChallengeSkeletonGrid
@@ -54,16 +46,7 @@
       v-if="showUpcomingSection"
       :challenges="upcomingChallenges"
       :current-user-id="currentUserId"
-      :joining-id="joiningId"
-      :leaving-id="leavingId"
-      :watching-id="watchingId"
-      :is-watched="isWatched"
       @open="openDetails"
-      @join="joinChallenge"
-      @leave="leaveChallenge"
-      @watch="watchChallenge"
-      @unwatch="unwatchChallenge"
-      @owner-navigated="handleOwnerNavigated"
     />
 
     <ChallengeDetailsDialog

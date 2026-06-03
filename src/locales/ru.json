@@ -95,7 +95,8 @@
         "progress": "ПРОГРЕСС",
         "dailyGoalsCompleted": "ДНЕВНЫЕ ЦЕЛИ ВЫПОЛНЕНЫ",
         "systemStatus": "ТВОЕ ПУТЕШЕСТВИЕ К МАСТЕРСТВУ",
-        "dayStreak": "ДНЕЙ ПОДРЯД"
+        "dayStreak": "ДНЕЙ ПОДРЯД",
+        "completedTasksSummary": "Выполнено задач: {count}"
       },
       "generateCompletionImage": "Создать изображение",
       "completionDialog": {
