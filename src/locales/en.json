@@ -99,10 +99,15 @@
         "completedTasksSummary": "Completed tasks: {count}"
       },
       "generateCompletionImage": "Generate Completion Image",
+      "shareTriumph": "Share triumph",
       "completionDialog": {
         "title": "Congratulations!",
         "message": "You've completed all your daily missions! Generate a victory card to celebrate.",
-        "close": "Maybe later"
+        "close": "Maybe later",
+        "conqueredTitle": "DAY CONQUERED!",
+        "congrats": "Congratulations, {name}!",
+        "chooseShare": "Choose what to share",
+        "captureTriumph": "Capture Triumph"
       },
       "tabs": {
         "today": "Today",
@@ -450,6 +455,7 @@
     "share": {
       "share": "Share",
       "copyLink": "Copy Link",
+      "inviteFriends": "Invite friends",
       "facebook": "Share on Facebook",
       "vk": "Share on VK",
       "telegram": "Share on Telegram",
@@ -458,6 +464,28 @@
       "linkCopied": "Link copied to clipboard!",
       "instagramCopied": "Link copied! Opening Instagram...",
       "instagramStoryCopied": "Link copied! Opening Instagram Story..."
+    },
+    "inviteCard": {
+      "kicker": "Social invitation",
+      "title": "Invite Card",
+      "whatToShow": "What to show?",
+      "showParticipants": "Show participants count",
+      "showDifficulty": "Show difficulty",
+      "showProgress": "Add my progress",
+      "showAuthor": "Show author",
+      "showDescription": "Show description",
+      "challengeMyself": "I challenge myself:",
+      "durationLine": "Walking this path for {days} days.",
+      "pathWithoutDuration": "Walking the path of discipline and growth.",
+      "participantsLine": "{count} pioneers are already in this discipline.",
+      "firstPioneers": "Become one of the first pioneers in this discipline.",
+      "cta": "Join the path in Ignite",
+      "generate": "Create invitation",
+      "progress": "My progress: {percent}%",
+      "difficulty": "Difficulty: {level}",
+      "author": "Author: {name}",
+      "badgeRitual": "DAILY RITUAL",
+      "badgeQuest": "SOCIAL QUEST"
     },
     "loginPrompt": "Please log in to view your missions.",
     "mustBeLoggedIn": "You must be logged in to create a mission.",

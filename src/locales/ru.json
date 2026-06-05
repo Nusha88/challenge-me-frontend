@@ -99,10 +99,15 @@
         "completedTasksSummary": "Выполнено задач: {count}"
       },
       "generateCompletionImage": "Создать изображение",
+      "shareTriumph": "Поделиться триумфом",
       "completionDialog": {
         "title": "Поздравляем!",
         "message": "Вы выполнили все ежедневные миссии! Создайте карточку победы, чтобы отпраздновать.",
-        "close": "Может быть позже"
+        "close": "Может быть позже",
+        "conqueredTitle": "ДЕНЬ ПОКОРЕН!",
+        "congrats": "Поздравляем, {name}!",
+        "chooseShare": "Выбери, чем поделиться",
+        "captureTriumph": "Запечатлеть триумф"
       },
       "tabs": {
         "today": "Сегодня",
@@ -450,6 +455,7 @@
     "share": {
       "share": "Поделиться",
       "copyLink": "Копировать ссылку",
+      "inviteFriends": "Пригласить друзей",
       "facebook": "Поделиться в Facebook",
       "vk": "Поделиться в VK",
       "telegram": "Поделиться в Telegram",
@@ -458,6 +464,28 @@
       "linkCopied": "Ссылка скопирована в буфер обмена!",
       "instagramCopied": "Ссылка скопирована! Открываю Instagram...",
       "instagramStoryCopied": "Ссылка скопирована! Открываю Instagram Story..."
+    },
+    "inviteCard": {
+      "kicker": "Социальное приглашение",
+      "title": "Invite Card",
+      "whatToShow": "Что добавить на картинку?",
+      "showParticipants": "Показать количество участников",
+      "showDifficulty": "Показать сложность",
+      "showProgress": "Добавить мой прогресс",
+      "showAuthor": "Показать автора",
+      "showDescription": "Показать описание",
+      "challengeMyself": "Бросаю себе вызов:",
+      "durationLine": "Иду по пути {days} дней.",
+      "pathWithoutDuration": "Иду по пути дисциплины и роста.",
+      "participantsLine": "Нас уже {count} первопроходцев в этой дисциплине.",
+      "firstPioneers": "Стань одним из первых первопроходцев в этой дисциплине.",
+      "cta": "Присоединяйся к пути в Ignite",
+      "generate": "Создать приглашение",
+      "progress": "Мой прогресс: {percent}%",
+      "difficulty": "Сложность: {level}",
+      "author": "Автор: {name}",
+      "badgeRitual": "DAILY RITUAL",
+      "badgeQuest": "SOCIAL QUEST"
     },
     "loginPrompt": "Авторизуйтесь, чтобы увидеть свои миссии.",
     "mustBeLoggedIn": "Необходимо войти в систему, чтобы создать миссию.",

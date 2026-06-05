@@ -38,6 +38,10 @@
                 <template #prepend><v-icon size="18">mdi-link</v-icon></template>
                 <v-list-item-title>{{ t('challenges.share.copyLink') }}</v-list-item-title>
               </v-list-item>
+              <v-list-item @click="openInviteCardDialog">
+                <template #prepend><v-icon size="18">mdi-account-multiple-plus</v-icon></template>
+                <v-list-item-title>{{ t('challenges.share.inviteFriends') }}</v-list-item-title>
+              </v-list-item>
             </v-list>
           </v-menu>
 
@@ -364,6 +368,12 @@
           </v-card-actions>
         </v-card>
       </v-dialog>
+
+      <ChallengeInviteCardDialog
+        v-model="inviteCardDialog"
+        :invite-url="getShareUrl()"
+        :card-data="inviteCardData"
+      />
     </v-card>
   </v-dialog>
 </template>
@@ -805,9 +815,11 @@ import {useChallengeType} from '../composables/useChallengeType'
 import {useUserStore} from '../stores/user'
 import { useWatchedChallengesStore } from '../stores/watchedChallenges'
 import ChallengeActions from './ChallengeActions.vue'
+import ChallengeInviteCardDialog from './ChallengeInviteCardDialog.vue'
 import CommentsComponent from './CommentsComponent.vue'
 import {challengeService} from '../services/api'
 import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
+import { getMissionShareUrl } from '../utils/appUrl'
 import { fireConfetti } from '../utils/confetti'
 import { getPaceStatus } from '../utils/challengePace'
 import { isChallengeEnded, isChallengeFinished } from '../utils/challengeStatus'
@@ -867,6 +879,7 @@ const emit = defineEmits(['update:modelValue', 'save', 'join', 'leave', 'delete'
 
 const deleteConfirmDialog = ref(false)
 const leaveConfirmDialog = ref(false)
+const inviteCardDialog = ref(false)
 const isInitializing = ref(true)
 const participantSaveLoading = ref(false)
 const ownerActionsSaveLoading = ref(false)
@@ -1214,6 +1227,64 @@ const currentDayText = computed(() => {
 const totalParticipantsCount = computed(() => {
   if (!props.challenge?.participants || !Array.isArray(props.challenge.participants)) return 0
   return props.challenge.participants.length
+})
+
+const inviteCardData = computed(() => {
+  const challenge = props.challenge
+  if (!challenge) return null
+
+  const progressPercent = challenge.challengeType === CHALLENGE_TYPES.HABIT
+    ? overallCompletionPercent.value
+    : progressPercentage.value
+
+  let durationDays = 0
+  if (challenge.challengeType === CHALLENGE_TYPES.HABIT) {
+    durationDays = totalDays.value
+  } else if (challenge.startDate && challenge.endDate) {
+    try {
+      const start = new Date(challenge.startDate)
+      const end = new Date(challenge.endDate)
+      durationDays = Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24)) + 1
+    } catch {
+      durationDays = 0
+    }
+  }
+
+  const durationLine = durationDays > 0
+    ? t('challenges.inviteCard.durationLine', { days: durationDays })
+    : t('challenges.inviteCard.pathWithoutDuration')
+
+  const participantsCount = totalParticipantsCount.value
+  const participantsLine = participantsCount <= 1
+    ? t('challenges.inviteCard.firstPioneers')
+    : t('challenges.inviteCard.participantsLine', { count: participantsCount })
+
+  const description = challenge.description || ''
+  const shortDescription = description.length <= 140
+    ? description
+    : `${description.slice(0, 137)}...`
+
+  const authorName = challenge.owner?.name || userStore.user?.name || ''
+
+  return {
+    challengeId: challenge._id,
+    badgeLabel: challenge.challengeType === CHALLENGE_TYPES.HABIT
+      ? t('challenges.inviteCard.badgeRitual')
+      : t('challenges.inviteCard.badgeQuest'),
+    title: challenge.title || '',
+    description: shortDescription,
+    hasDescription: Boolean(description),
+    durationLine,
+    participantsLine,
+    difficultyLabel: t('challenges.inviteCard.difficulty', {
+      level: getDifficultyLabel(challenge.difficulty || 'medium')
+    }),
+    hasDifficulty: Boolean(challenge.difficulty),
+    authorLabel: t('challenges.inviteCard.author', { name: authorName }),
+    hasAuthor: Boolean(authorName),
+    progressLabel: t('challenges.inviteCard.progress', { percent: progressPercent }),
+    imageUrl: challenge.imageUrl || ''
+  }
 })
 
 const missionStats = computed(() => {
@@ -1933,9 +2004,10 @@ const isWatched = computed(() => {
 })
 
 
-const getShareUrl = () => {
-  if (!props.challenge?._id) return ''
-  return `${window.location.origin}/missions/${props.challenge._id}`
+const getShareUrl = () => getMissionShareUrl(props.challenge?._id)
+
+function openInviteCardDialog() {
+  inviteCardDialog.value = true
 }
 
 const copyLink = async () => {

@@ -46,6 +46,9 @@ export function useCompletionCelebration({
   isInitialDataLoading,
   isChecklistLoading,
   getCompletionImageData,
+  getChallengeCompletedDays,
+  getChallengeTotalDays,
+  getDefaultShareTasks,
   watchChecklistCompletedSteps
 }) {
   const { t, locale } = useI18n()
@@ -130,7 +133,7 @@ export function useCompletionCelebration({
     }, delayMs)
   }
 
-  async function generateCompletionImage() {
+  async function generateCompletionImage(selectedTasks = null) {
     dismissDialogToday()
     showCompletionDialog.value = false
     hasShownCompletionDialog.value = true
@@ -139,8 +142,29 @@ export function useCompletionCelebration({
     try {
       await nextTick()
 
-      const { userName, streakDays, challenges, doneSteps } = getCompletionImageData()
+      const { userName, streakDays } = getCompletionImageData()
 
+      const tasksToUse = Array.isArray(selectedTasks)
+        ? selectedTasks
+        : (getDefaultShareTasks?.() || [])
+
+      if (tasksToUse.length === 0) {
+        return
+      }
+
+      const selectedChallenges = tasksToUse.filter((task) => task.type === 'challenge')
+      const selectedChecklistTasks = tasksToUse.filter((task) => task.type === 'checklist')
+
+      const challenges = selectedChallenges.map((task) => {
+        const challenge = task.payload
+        return {
+          title: challenge.title,
+          completedDays: getChallengeCompletedDays(challenge),
+          totalDays: getChallengeTotalDays(challenge)
+        }
+      })
+
+      const doneSteps = selectedChecklistTasks.map((task) => task.payload)
       const checklistTasks = doneSteps.length > 3
         ? [{ title: t('home.loggedIn.completionImage.completedTasksSummary', { count: doneSteps.length }), isSummary: true }]
         : doneSteps.map((step) => ({ title: step.title, done: true }))

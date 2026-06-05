@@ -12,6 +12,19 @@
         :style="{ width: percentage + '%' }"
       ></div>
     </div>
+
+    <v-fade-transition>
+      <v-btn
+        v-if="percentage === 100"
+        variant="outlined"
+        color="white"
+        class="share-triumph-btn mt-2"
+        prepend-icon="mdi-share-variant"
+        @click="$emit('share')"
+      >
+        {{ t('home.loggedIn.shareTriumph') }}
+      </v-btn>
+    </v-fade-transition>
   </div>
 </template>
 
@@ -27,6 +40,8 @@ defineProps({
   percentage: { type: Number, default: 0 },
   showProgressGlow: { type: Boolean, default: true }
 })
+
+defineEmits(['share'])
 
 const { t } = useI18n()
 </script>
@@ -107,5 +122,41 @@ const { t } = useI18n()
     opacity: 1;
     box-shadow: 0 0 15px #4FD1C5, 0 0 25px #4FD1C5;
   }
+}
+
+.share-triumph-btn {
+  /* Базовый вид */
+  border: 1px solid rgba(79, 209, 197, 0.3) !important; /* Легкая бирюзовая рамка */
+  background: rgba(26, 26, 46, 0.4) !important; /* Полупрозрачный фон подложки */
+  color: rgba(255, 255, 255, 0.8) !important;
+  border-radius: 12px !important;
+  text-transform: none !important;
+  font-size: 0.9rem !important;
+  font-weight: 500 !important;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+  width: fit-content;
+
+  /* Добавим легкий внутренний свет */
+  backdrop-filter: blur(4px);
+}
+
+.share-triumph-btn:hover {
+  /* Эффект свечения при наведении */
+  background: rgba(79, 209, 197, 0.15) !important;
+  border-color: #4FD1C5 !important;
+  color: #FFFFFF !important;
+
+  /* Главная фишка: свечение */
+  box-shadow: 0 0 15px rgba(79, 209, 197, 0.4),
+  0 0 30px rgba(79, 209, 197, 0.2) !important;
+
+  /* Небольшой подъем */
+  transform: translateY(-2px);
+}
+
+/* Активное состояние (при клике) */
+.share-triumph-btn:active {
+  transform: translateY(0);
+  box-shadow: none !important;
 }
 </style>

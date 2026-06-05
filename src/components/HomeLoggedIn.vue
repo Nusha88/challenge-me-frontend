@@ -27,6 +27,7 @@
           :completed-items="completedItems"
           :total-items="totalItems"
           :percentage="combinedProgressPercentage"
+          @share="openCompletionShare"
         />
 
         <div class="todays-cards-wrapper">
@@ -100,6 +101,11 @@
     <CompletionCelebrationDialog
       v-model="showCompletionDialog"
       :generating-image="generatingImage"
+      :user-name="state.userName"
+      :tasks="completionShareTasks"
+      :completed="completedItems"
+      :total="totalItems"
+      :percentage="combinedProgressPercentage"
       @close="closeCompletionDialog"
       @generate-image="generateCompletionImage"
     />
@@ -353,6 +359,30 @@ const isAllCompleted = computed(() => {
   return completedItems.value === totalItems.value
 })
 
+const completionShareTasks = computed(() => {
+  const challengeTasks = todaysChallenges.value
+    .filter((challenge) => isTodayCompleted(challenge))
+    .map((challenge) => ({
+      id: `challenge-${challenge._id}`,
+      type: 'challenge',
+      title: challenge.title,
+      selected: true,
+      payload: challenge
+    }))
+
+  const checklistTasks = (checklistRef.value?.todaySteps || [])
+    .filter((step) => step.done)
+    .map((step, index) => ({
+      id: `checklist-${step._id || index}`,
+      type: 'checklist',
+      title: step.title,
+      selected: true,
+      payload: step
+    }))
+
+  return [...challengeTasks, ...checklistTasks]
+})
+
 const {
   showCompletionDialog,
   generatingImage,
@@ -365,18 +395,19 @@ const {
   totalItems,
   isInitialDataLoading: () => state.initialDataLoading,
   isChecklistLoading: () => state.checklistLoading,
+  getChallengeCompletedDays,
+  getChallengeTotalDays,
+  getDefaultShareTasks: () => completionShareTasks.value,
   getCompletionImageData: () => ({
     userName: state.userName,
-    streakDays: state.streakDays,
-    challenges: todaysChallenges.value.map((challenge) => ({
-      title: challenge.title,
-      completedDays: getChallengeCompletedDays(challenge),
-      totalDays: getChallengeTotalDays(challenge)
-    })),
-    doneSteps: checklistRef.value?.todaySteps?.filter((step) => step.done) || []
+    streakDays: state.streakDays
   }),
   watchChecklistCompletedSteps: () => checklistRef.value?.completedSteps
 })
+
+function openCompletionShare() {
+  showCompletionDialog.value = true
+}
 
 // Count unfinished steps (not missions)
 const unfinishedStepsCount = computed(() => {
