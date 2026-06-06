@@ -53,7 +53,7 @@ export function useCompletionCelebration({
 }) {
   const { t, locale } = useI18n()
   const userStore = useUserStore()
-  const { applyXpAwardResponse } = useXpAwardFeedback()
+  const { applyXpAwardResponse, applyRewardResponse } = useXpAwardFeedback()
 
   const showCompletionDialog = ref(false)
   const hasShownCompletionDialog = ref(false)
@@ -134,13 +134,11 @@ export function useCompletionCelebration({
   }
 
   async function generateCompletionImage(selectedTasks = null) {
-    dismissDialogToday()
-    showCompletionDialog.value = false
-    hasShownCompletionDialog.value = true
     generatingImage.value = true
 
     try {
       await nextTick()
+      await new Promise((resolve) => requestAnimationFrame(resolve))
 
       const { userName, streakDays } = getCompletionImageData()
 
@@ -188,6 +186,17 @@ export function useCompletionCelebration({
           dayStreak: t('home.loggedIn.completionImage.dayStreak')
         }
       })
+
+      try {
+        const response = await userService.awardManifestSparks({ type: 'victory' })
+        applyRewardResponse(response)
+      } catch (manifestError) {
+        console.warn('Victory manifest sparks award failed', manifestError)
+      }
+
+      dismissDialogToday()
+      showCompletionDialog.value = false
+      hasShownCompletionDialog.value = true
     } catch (error) {
       console.error('Generation failed', error)
     } finally {

@@ -7,11 +7,8 @@
     <v-card class="invite-dialog-card">
       <v-card-title class="invite-dialog-title">
         <div>
-          <div class="invite-kicker">
-            {{ t('challenges.inviteCard.kicker') }}
-          </div>
           <div class="text-h6 font-weight-bold">
-            {{ t('challenges.inviteCard.title') }}
+            {{ cardData?.dialogTitle }}
           </div>
         </div>
 
@@ -31,6 +28,7 @@
               </h3>
 
               <v-checkbox
+                v-if="!cardData?.isQuest"
                 v-model="options.showParticipants"
                 color="#4FD1C5"
                 hide-details
@@ -45,6 +43,7 @@
               />
 
               <v-checkbox
+                v-if="cardData?.showProgressOption"
                 v-model="options.showProgress"
                 color="#4FD1C5"
                 hide-details
@@ -106,10 +105,10 @@
 
                   <div class="invite-card-status">
                     <div class="status-line">
-                      {{ cardData?.durationLine }}
+                      {{ cardData?.statusLine }}
                     </div>
                     <div
-                      v-if="options.showParticipants"
+                      v-if="!cardData?.isQuest && options.showParticipants"
                       class="status-line accent"
                     >
                       {{ cardData?.participantsLine }}
@@ -134,7 +133,7 @@
                     </div>
 
                     <div
-                      v-if="options.showProgress"
+                      v-if="cardData?.showProgressOption && options.showProgress"
                       class="meta-pill"
                     >
                       <v-icon size="16">mdi-chart-line</v-icon>
@@ -145,7 +144,7 @@
                   <div class="invite-card-footer">
                     <div>
                       <div class="cta-label">
-                        {{ t('challenges.inviteCard.cta') }}
+                        {{ cardData?.ctaLabel }}
                       </div>
                       <div class="ignite-brand">
                         Ignite
@@ -191,6 +190,8 @@ import { computed, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import QRCode from 'qrcode'
 import { toPng } from 'html-to-image'
+import { userService } from '../services/api'
+import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
 
 const props = defineProps({
   modelValue: {
@@ -210,6 +211,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 
 const { t } = useI18n()
+const { applyRewardResponse } = useXpAwardFeedback()
 
 const options = reactive({
   showParticipants: true,
@@ -268,6 +270,16 @@ async function generateInviteCard() {
     link.download = `ignite-invite-${props.cardData?.challengeId || 'mission'}.png`
     link.href = dataUrl
     link.click()
+
+    try {
+      const response = await userService.awardManifestSparks({
+        type: 'invite',
+        challengeId: props.cardData?.challengeId || undefined
+      })
+      applyRewardResponse(response)
+    } catch (manifestError) {
+      console.warn('Manifest sparks award failed', manifestError)
+    }
   } finally {
     generating.value = false
   }

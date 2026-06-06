@@ -64,11 +64,13 @@ import { useI18n } from 'vue-i18n'
 import { useDisplay } from 'vuetify'
 import { useUserStore } from '../stores/user'
 import { userService } from '../services/api'
+import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
 import { Plus, Trash2, Footprints } from 'lucide-vue-next'
 
 const { t } = useI18n()
 const { mobile } = useDisplay()
 const userStore = useUserStore()
+const { applyRewardResponse } = useXpAwardFeedback()
 
 const todaySteps = ref([])
 const newStepText = ref('')
@@ -129,6 +131,7 @@ const saveTodaySteps = async () => {
       done: step.done || false
     }))
     const response = await userService.updateTodayChecklist(tasks)
+    applyRewardResponse(response)
     // Dispatch event to update streak in header
     window.dispatchEvent(new Event('checklist-updated'))
   } catch (err) {

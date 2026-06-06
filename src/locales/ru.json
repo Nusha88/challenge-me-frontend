@@ -22,7 +22,8 @@
     "yourJourney": "ВАШ ПУТЬ",
     "world": "МИР",
     "interested": "Интересно",
-    "reportBug": "Сообщить об ошибке"
+    "reportBug": "Сообщить об ошибке",
+    "sparksAriaLabel": "Баланс искр: {count}"
   },
   "home": {
     "welcome": "Добро пожаловать в Ignite",
@@ -466,8 +467,8 @@
       "instagramStoryCopied": "Ссылка скопирована! Открываю Instagram Story..."
     },
     "inviteCard": {
-      "kicker": "Социальное приглашение",
-      "title": "Invite Card",
+      "ritualDialogTitle": "Разделить успех",
+      "questDialogTitle": "Манифест пути",
       "whatToShow": "Что добавить на картинку?",
       "showParticipants": "Показать количество участников",
       "showDifficulty": "Показать сложность",
@@ -476,16 +477,19 @@
       "showDescription": "Показать описание",
       "challengeMyself": "Бросаю себе вызов:",
       "durationLine": "Иду по пути {days} дней.",
+      "ritualDurationLine": "Длительность ритуала: {days} дн.",
       "pathWithoutDuration": "Иду по пути дисциплины и роста.",
       "participantsLine": "Нас уже {count} первопроходцев в этой дисциплине.",
       "firstPioneers": "Стань одним из первых первопроходцев в этой дисциплине.",
+      "questProgressLine": "На пути к мастерству: закрыто {done} из {total} задач.",
       "cta": "Присоединяйся к пути в Ignite",
+      "questCta": "Следи за моим квестом",
       "generate": "Создать приглашение",
       "progress": "Мой прогресс: {percent}%",
       "difficulty": "Сложность: {level}",
       "author": "Автор: {name}",
       "badgeRitual": "DAILY RITUAL",
-      "badgeQuest": "SOCIAL QUEST"
+      "badgeQuest": "EPIC QUEST"
     },
     "loginPrompt": "Авторизуйтесь, чтобы увидеть свои миссии.",
     "mustBeLoggedIn": "Необходимо войти в систему, чтобы создать миссию.",

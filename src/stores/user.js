@@ -20,6 +20,8 @@ export const useUserStore = defineStore('user', () => {
   
   const userXp = computed(() => Number(user.value?.xp || 0))
   
+  const userSparks = computed(() => Number(user.value?.sparks || 0))
+  
   const userEmail = computed(() => user.value?.email || null)
   
   const userCreatedAt = computed(() => user.value?.createdAt || null)
@@ -104,6 +106,7 @@ export const useUserStore = defineStore('user', () => {
     userName,
     userAvatarUrl,
     userXp,
+    userSparks,
     userEmail,
     userCreatedAt,
     // Actions

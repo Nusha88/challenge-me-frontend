@@ -1,44 +1,78 @@
 import { useUserStore } from '../stores/user'
 import { APP_EVENTS, dispatchAppEvent } from '../utils/appEvents'
-import { getXpGainedFromResponse, getUserFromResponse } from '../utils/xpResponse'
+import {
+  getXpGainedFromResponse,
+  getSparksGainedFromResponse,
+  getUserFromResponse
+} from '../utils/rewardResponse'
 import { normalizeToastAnchor } from '../utils/xpToastTheme'
 
+function normalizeRewardUser(data, existingUser) {
+  const user = getUserFromResponse(data)
+  const xp = Number(user?.xp ?? data?.xp ?? existingUser?.xp ?? 0)
+  const sparks = Number(user?.sparks ?? data?.sparks ?? existingUser?.sparks ?? 0)
+  const id = user?.id || user?._id || existingUser?.id || existingUser?._id || null
+
+  if (!user && !Number.isFinite(xp) && !Number.isFinite(sparks)) {
+    return null
+  }
+
+  return {
+    ...(existingUser || {}),
+    ...(user || {}),
+    ...(id ? { id } : {}),
+    xp,
+    sparks
+  }
+}
+
 /**
- * Apply backend XP award response: sync user XP and optionally show a toast.
+ * Apply backend reward response: sync user XP/Sparks and optionally show toasts.
  * @param {import('axios').AxiosResponse|{ data?: object }} response
  * @param {{ showToast?: boolean, toastAnchor?: Element|{ x: number, y: number }|null }} options
- * @returns {number} XP gained according to the server
+ * @returns {{ xpGained: number, sparksGained: number }}
  */
 export function useXpAwardFeedback() {
   const userStore = useUserStore()
 
-  function applyXpAwardResponse(response, { showToast = true, toastAnchor = null } = {}) {
+  function applyRewardResponse(response, { showToast = true, toastAnchor = null } = {}) {
     const data = response?.data
-    if (!data) return 0
+    if (!data) return { xpGained: 0, sparksGained: 0 }
 
-    const user = getUserFromResponse(data)
-    if (user) {
-      userStore.updateUser(user)
-      dispatchAppEvent(APP_EVENTS.AUTH_CHANGED)
-    } else if (Number.isFinite(Number(data.xp))) {
-      userStore.updateUser({ ...userStore.user, xp: Number(data.xp) })
+    const normalizedUser = normalizeRewardUser(data, userStore.user)
+    if (normalizedUser) {
+      userStore.updateUser(normalizedUser)
       dispatchAppEvent(APP_EVENTS.AUTH_CHANGED)
     }
 
-    const gained = getXpGainedFromResponse(data)
-    if (showToast && gained > 0) {
+    const anchor = normalizeToastAnchor(toastAnchor)
+    const xpGained = getXpGainedFromResponse(data)
+    const sparksGained = getSparksGainedFromResponse(data)
+
+    if (showToast && xpGained > 0) {
       window.dispatchEvent(
         new CustomEvent(APP_EVENTS.XP_AWARDED, {
-          detail: {
-            gained,
-            anchor: normalizeToastAnchor(toastAnchor)
-          }
+          detail: { gained: xpGained, anchor }
         })
       )
     }
 
-    return gained
+    if (showToast && sparksGained > 0) {
+      window.dispatchEvent(
+        new CustomEvent(APP_EVENTS.SPARKS_AWARDED, {
+          detail: { gained: sparksGained, anchor }
+        })
+      )
+    }
+
+    return { xpGained, sparksGained }
   }
 
-  return { applyXpAwardResponse }
+  /** @deprecated Use applyRewardResponse — kept for existing call sites */
+  function applyXpAwardResponse(response, options) {
+    const { xpGained } = applyRewardResponse(response, options)
+    return xpGained
+  }
+
+  return { applyRewardResponse, applyXpAwardResponse }
 }

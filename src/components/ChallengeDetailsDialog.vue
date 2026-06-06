@@ -1237,27 +1237,33 @@ const inviteCardData = computed(() => {
     ? overallCompletionPercent.value
     : progressPercentage.value
 
-  let durationDays = 0
-  if (challenge.challengeType === CHALLENGE_TYPES.HABIT) {
-    durationDays = totalDays.value
-  } else if (challenge.startDate && challenge.endDate) {
-    try {
-      const start = new Date(challenge.startDate)
-      const end = new Date(challenge.endDate)
-      durationDays = Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24)) + 1
-    } catch {
-      durationDays = 0
-    }
-  }
+  const isQuest = challenge.challengeType === CHALLENGE_TYPES.RESULT
+  const durationDays = isQuest ? 0 : totalDays.value
+  const isRitualMember = props.isOwner || props.isParticipant
 
-  const durationLine = durationDays > 0
-    ? t('challenges.inviteCard.durationLine', { days: durationDays })
-    : t('challenges.inviteCard.pathWithoutDuration')
+  const statusLine = isQuest
+    ? t('challenges.inviteCard.questProgressLine', {
+      done: progressDone.value,
+      total: progressTotal.value
+    })
+    : durationDays > 0
+      ? (isRitualMember
+        ? t('challenges.inviteCard.durationLine', { days: durationDays })
+        : t('challenges.inviteCard.ritualDurationLine', { days: durationDays }))
+      : t('challenges.inviteCard.pathWithoutDuration')
 
   const participantsCount = totalParticipantsCount.value
   const participantsLine = participantsCount <= 1
     ? t('challenges.inviteCard.firstPioneers')
     : t('challenges.inviteCard.participantsLine', { count: participantsCount })
+
+  const ctaLabel = isQuest
+    ? t('challenges.inviteCard.questCta')
+    : t('challenges.inviteCard.cta')
+
+  const dialogTitle = isQuest
+    ? t('challenges.inviteCard.questDialogTitle')
+    : t('challenges.inviteCard.ritualDialogTitle')
 
   const description = challenge.description || ''
   const shortDescription = description.length <= 140
@@ -1268,14 +1274,17 @@ const inviteCardData = computed(() => {
 
   return {
     challengeId: challenge._id,
-    badgeLabel: challenge.challengeType === CHALLENGE_TYPES.HABIT
-      ? t('challenges.inviteCard.badgeRitual')
-      : t('challenges.inviteCard.badgeQuest'),
+    isQuest,
+    badgeLabel: isQuest
+      ? t('challenges.inviteCard.badgeQuest')
+      : t('challenges.inviteCard.badgeRitual'),
     title: challenge.title || '',
     description: shortDescription,
     hasDescription: Boolean(description),
-    durationLine,
+    statusLine,
     participantsLine,
+    ctaLabel,
+    dialogTitle,
     difficultyLabel: t('challenges.inviteCard.difficulty', {
       level: getDifficultyLabel(challenge.difficulty || 'medium')
     }),
@@ -1283,6 +1292,7 @@ const inviteCardData = computed(() => {
     authorLabel: t('challenges.inviteCard.author', { name: authorName }),
     hasAuthor: Boolean(authorName),
     progressLabel: t('challenges.inviteCard.progress', { percent: progressPercent }),
+    showProgressOption: !isQuest && isRitualMember,
     imageUrl: challenge.imageUrl || ''
   }
 })

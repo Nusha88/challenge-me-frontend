@@ -162,6 +162,11 @@ export const userService = {
   },
   awardDailyBonusXp: () => {
     return api.post('/auth/xp/daily-bonus')
+  },
+  awardManifestSparks: ({ type, challengeId } = {}) => {
+    return api.post('/auth/sparks/manifest', { type, challengeId }, {
+      headers: userService._clientDayHeaders()
+    })
   }
 }
 

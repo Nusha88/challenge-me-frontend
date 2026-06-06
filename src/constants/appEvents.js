@@ -3,5 +3,6 @@ export const APP_EVENTS = Object.freeze({
   CHECKLIST_UPDATED: 'checklist-updated',
   CHALLENGE_COMPLETED: 'challenge-completed',
   PARTICIPANT_COMPLETED_DAYS_UPDATED: 'participant-completed-days-updated',
-  XP_AWARDED: 'xp-awarded'
+  XP_AWARDED: 'xp-awarded',
+  SPARKS_AWARDED: 'sparks-awarded'
 })

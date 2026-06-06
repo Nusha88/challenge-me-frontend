@@ -17,13 +17,26 @@
       </div>
 
       <div class="header-section header-center">
-        <router-link
+        <div
           v-if="isLoggedIn || route.path !== '/'"
-          to="/"
-          class="brand-link"
+          class="brand-group"
         >
-          <img :src="awaImage" alt="Awa" class="brand-logo" />
-        </router-link>
+          <router-link
+            to="/"
+            class="brand-link"
+          >
+            <img :src="awaImage" alt="Awa" class="brand-logo" />
+          </router-link>
+          <div
+            v-if="isLoggedIn"
+            class="sparks-container"
+            :aria-label="t('navigation.sparksAriaLabel', { count: userSparks })"
+          >
+            <span class="sparks-icon">✦</span>
+            <span class="sparks-count">{{ userSparks }}</span>
+            <span class="sparks-label">Sparks</span>
+          </div>
+        </div>
         <div v-if="!isLoggedIn && route.path === '/' && mobile" class="d-flex align-center gap-2">
           <v-btn
             v-if="route.path !== '/register'"
@@ -98,9 +111,11 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useDisplay } from 'vuetify'
+import { useUserStore } from '../../stores/user'
 import awaImage from '../../assets/awa.png'
 import StreakBadge from './StreakBadge.vue'
 
@@ -119,6 +134,8 @@ defineEmits(['toggle-drawer', 'open-notifications'])
 const route = useRoute()
 const { t } = useI18n()
 const { mobile } = useDisplay()
+const userStore = useUserStore()
+const userSparks = computed(() => userStore.userSparks)
 </script>
 
 <style scoped>
@@ -162,18 +179,27 @@ const { mobile } = useDisplay()
   gap: 8px;
 }
 
+.brand-group {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 0 8px;
+  min-width: 0;
+  height: 100%;
+}
+
 .brand-link {
   color: white;
   font-weight: 600;
   font-size: 1rem;
   text-decoration: none;
   letter-spacing: 0.04em;
-  padding-left: 8px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   background-color: transparent;
-  height: 100%;
+  flex-shrink: 0;
 }
 
 .brand-link:hover,
@@ -193,6 +219,46 @@ const { mobile } = useDisplay()
 
 .brand-logo:hover {
   transform: scale(1.05);
+}
+
+.sparks-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: rgba(255, 193, 7, 0.08);
+  border: 1px solid rgba(255, 193, 7, 0.22);
+  flex-shrink: 0;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.sparks-container:hover {
+  background: rgba(255, 193, 7, 0.14);
+  border-color: rgba(255, 193, 7, 0.38);
+}
+
+.sparks-icon {
+  color: #FFC107;
+  font-size: 0.85rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 6px rgba(255, 193, 7, 0.45));
+}
+
+.sparks-count {
+  font-weight: 800;
+  font-size: 0.875rem;
+  color: #ffffff;
+  line-height: 1;
+}
+
+.sparks-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.65);
+  text-transform: uppercase;
+  line-height: 1;
 }
 
 .notification-badge {
@@ -273,9 +339,12 @@ const { mobile } = useDisplay()
 }
 
 @media (min-width: 600px) {
+  .brand-group {
+    padding: 0 12px;
+  }
+
   .brand-link {
     font-size: 1.25rem;
-    padding-left: 16px;
   }
 }
 
@@ -325,10 +394,18 @@ const { mobile } = useDisplay()
     gap: 6px;
   }
 
+  .brand-group {
+    gap: 8px;
+    padding: 0 4px;
+  }
+
   .brand-link {
     font-size: 0.875rem !important;
-    padding-left: 4px;
-    white-space: nowrap;
+  }
+
+  .sparks-container {
+    gap: 4px;
+    padding: 3px 8px;
   }
 
   .brand-logo {
@@ -366,11 +443,21 @@ const { mobile } = useDisplay()
     gap: 4px;
   }
 
+  .brand-group {
+    gap: 6px;
+  }
+
   .brand-link {
     font-size: 0.75rem !important;
-    max-width: 100px;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  }
+
+  .sparks-container {
+    gap: 4px;
+    padding: 2px 6px;
+  }
+
+  .sparks-label {
+    display: none;
   }
 
   .brand-logo {

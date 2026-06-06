@@ -22,7 +22,8 @@
     "yourJourney": "YOUR JOURNEY",
     "world": "WORLD",
     "interested": "Interested",
-    "reportBug": "Report a bug"
+    "reportBug": "Report a bug",
+    "sparksAriaLabel": "Sparks balance: {count}"
   },
   "home": {
     "welcome": "Welcome to Ignite",
@@ -466,8 +467,8 @@
       "instagramStoryCopied": "Link copied! Opening Instagram Story..."
     },
     "inviteCard": {
-      "kicker": "Social invitation",
-      "title": "Invite Card",
+      "ritualDialogTitle": "Share the Triumph",
+      "questDialogTitle": "Path Manifest",
       "whatToShow": "What to show?",
       "showParticipants": "Show participants count",
       "showDifficulty": "Show difficulty",
@@ -476,10 +477,13 @@
       "showDescription": "Show description",
       "challengeMyself": "I challenge myself:",
       "durationLine": "Walking this path for {days} days.",
+      "ritualDurationLine": "Ritual duration is {days} days.",
       "pathWithoutDuration": "Walking the path of discipline and growth.",
       "participantsLine": "{count} pioneers are already in this discipline.",
       "firstPioneers": "Become one of the first pioneers in this discipline.",
+      "questProgressLine": "On the path to mastery: {done} of {total} tasks completed.",
       "cta": "Join the path in Ignite",
+      "questCta": "Follow my quest",
       "generate": "Create invitation",
       "progress": "My progress: {percent}%",
       "difficulty": "Difficulty: {level}",
