@@ -1,6 +1,10 @@
 import { ref, computed, watch, nextTick, unref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { challengeService } from '../services/api'
+import {
+  openChallengeDetails,
+  refreshChallengeInBackground
+} from '../utils/openChallengeDetails'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 import { isChallengeEnded } from '../utils/challengeStatus'
 
@@ -132,16 +136,12 @@ export function useAllChallengesDialog({
   })
 
   async function refreshSelectedChallenge(challengeId) {
-    try {
-      const { data } = await challengeService.getChallenge(challengeId)
-      selectedChallenge.value = data
-    } catch {
-      selectedChallenge.value =
-        unref(challenges).find((c) => c._id === challengeId) || selectedChallenge.value
-    }
+    const fallback =
+      unref(challenges).find((c) => c._id === challengeId) || selectedChallenge.value
+    await refreshChallengeInBackground(selectedChallenge, challengeId, fallback)
   }
 
-  async function openDetails(challenge, { skipFetch = false, preserveScrollTarget = false } = {}) {
+  function openDetails(challenge, { skipFetch = false, preserveScrollTarget = false } = {}) {
     if (isOpeningChallenge.value) return
 
     if (!preserveScrollTarget) {
@@ -151,28 +151,12 @@ export function useAllChallengesDialog({
     isOpeningChallenge.value = true
     saveError.value = ''
 
-    if (!skipFetch) {
-      try {
-        const { data } = await challengeService.getChallenge(challenge._id)
-        selectedChallenge.value = data
-      } catch {
-        selectedChallenge.value = challenge
-      }
-    } else {
-      selectedChallenge.value = challenge
-    }
+    openChallengeDetails(selectedChallenge, detailsDialogOpen, challenge, { skipFetch })
 
-    const openDialog = () => {
-      nextTick(() => {
-        detailsDialogOpen.value = true
-        isOpeningChallenge.value = false
-      })
-    }
+    isOpeningChallenge.value = false
 
     if (String(route.params.id) !== String(challenge._id)) {
-      router.replace({ path: `/missions/${challenge._id}`, hash: route.hash }).finally(openDialog)
-    } else {
-      openDialog()
+      router.replace({ path: `/missions/${challenge._id}`, hash: route.hash })
     }
   }
 

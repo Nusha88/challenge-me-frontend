@@ -1,5 +1,6 @@
 import { ref, computed, unref } from 'vue'
 import { challengeService } from '../services/api'
+import { openChallengeDetails } from '../utils/openChallengeDetails'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 import { isChallengeEnded } from '../utils/challengeStatus'
 import { isChallengeOwner, isChallengeParticipant } from '../utils/challengeMembership'
@@ -59,14 +60,8 @@ export function useWatchedChallengeDialog({
     )
   })
 
-  async function openDetails(challenge) {
-    try {
-      const { data } = await challengeService.getChallenge(challenge._id)
-      selectedChallenge.value = data
-    } catch {
-      selectedChallenge.value = challenge
-    }
-    detailsDialogOpen.value = true
+  function openDetails(challenge) {
+    openChallengeDetails(selectedChallenge, detailsDialogOpen, challenge)
   }
 
   async function handleDialogUpdate() {

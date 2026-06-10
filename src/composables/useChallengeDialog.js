@@ -1,7 +1,10 @@
 import { ref, computed, unref, nextTick } from 'vue'
-import { challengeService } from '../services/api'
 import { isChallengeEnded } from '../utils/challengeStatus'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
+import {
+  openChallengeDetails,
+  refreshChallengeInBackground
+} from '../utils/openChallengeDetails'
 
 export function useChallengeDialog({
   challenges,
@@ -46,28 +49,17 @@ export function useChallengeDialog({
   })
 
   async function refreshSelectedChallenge(challengeId) {
-    try {
-      const { data } = await challengeService.getChallenge(challengeId)
-      selectedChallenge.value = data
-    } catch {
-      selectedChallenge.value =
-        unref(challenges).find((c) => c._id === challengeId) || selectedChallenge.value
-    }
+    const fallback =
+      unref(challenges).find((c) => c._id === challengeId) || selectedChallenge.value
+    await refreshChallengeInBackground(selectedChallenge, challengeId, fallback)
   }
 
-  async function handleChallengeClick(challenge) {
+  function handleChallengeClick(challenge) {
     if (error) {
       error.value = ''
     }
 
-    try {
-      const { data } = await challengeService.getChallenge(challenge._id)
-      selectedChallenge.value = data
-    } catch {
-      selectedChallenge.value = challenge
-    }
-
-    detailsDialogOpen.value = true
+    openChallengeDetails(selectedChallenge, detailsDialogOpen, challenge)
   }
 
   async function handleDialogUpdate() {
@@ -99,17 +91,17 @@ export function useChallengeDialog({
     )
 
     if (challenge) {
-      await refreshSelectedChallenge(normalizedId)
-      detailsDialogOpen.value = true
+      openChallengeDetails(selectedChallenge, detailsDialogOpen, challenge)
       return
     }
 
-    try {
-      const { data } = await challengeService.getChallenge(normalizedId)
-      selectedChallenge.value = data
-      detailsDialogOpen.value = true
-    } catch (err) {
-      console.error('Error loading challenge:', err)
+    detailsDialogOpen.value = true
+    selectedChallenge.value = null
+
+    const data = await refreshChallengeInBackground(selectedChallenge, normalizedId)
+    if (!data) {
+      detailsDialogOpen.value = false
+      console.error('Error loading challenge:', normalizedId)
     }
   }
 

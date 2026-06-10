@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { challengeService } from '../services/api'
+import { openChallengeDetails } from '../utils/openChallengeDetails'
 
 function getParticipantUserId(participant) {
   return participant?.userId?._id || participant?.userId || participant?._id
@@ -27,16 +28,11 @@ export function useHomeChallengeDialog({ getUserId, updateChallengeInList, onRef
     }) || false
   }
 
-  async function navigateToChallenge(challenge) {
-    try {
-      const { data } = await challengeService.getChallenge(challenge._id)
-      selectedChallenge.value = data
-    } catch {
-      selectedChallenge.value = challenge
-    }
-
+  function navigateToChallenge(challenge) {
+    openChallengeDetails(selectedChallenge, detailsDialogOpen, challenge, {
+      onRefreshed: syncParticipantFlags
+    })
     syncParticipantFlags()
-    detailsDialogOpen.value = true
   }
 
   async function handleDialogUpdate() {

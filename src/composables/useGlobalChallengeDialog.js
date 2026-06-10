@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue'
-import { challengeService } from '../services/api'
+import { refreshChallengeInBackground } from '../utils/openChallengeDetails'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 import {
   isChallengeOwner,
@@ -59,14 +59,20 @@ export function useGlobalChallengeDialog(currentUserId) {
       : null
     initialTab.value = hasCommentTarget ? 'community' : 'progress'
 
+    detailsDialogOpen.value = true
+    selectedChallenge.value = null
     loading.value = true
+
     try {
-      const { data } = await challengeService.getChallenge(challengeId)
-      selectedChallenge.value = data
-      detailsDialogOpen.value = true
+      const data = await refreshChallengeInBackground(selectedChallenge, challengeId)
+      if (!data) {
+        resetDialogState()
+        detailsDialogOpen.value = false
+      }
     } catch (error) {
       console.error('Error opening challenge from notification:', error)
       resetDialogState()
+      detailsDialogOpen.value = false
     } finally {
       loading.value = false
     }

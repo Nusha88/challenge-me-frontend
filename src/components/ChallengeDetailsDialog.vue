@@ -6,7 +6,13 @@
     transition="dialog-bottom-transition"
     @update:model-value="handleVisibility"
   >
-    <v-card v-if="challenge" class="challenge-details-card rounded-xl overflow-hidden">
+    <v-card v-if="!challenge" class="challenge-details-card rounded-xl overflow-hidden">
+      <v-card-text class="d-flex justify-center align-center py-16">
+        <v-progress-circular indeterminate color="#4FD1C5" size="48" />
+      </v-card-text>
+    </v-card>
+
+    <v-card v-else class="challenge-details-card rounded-xl overflow-hidden">
       <v-img
         :src="challenge.imageUrl"
         height="280"
@@ -123,7 +129,7 @@
                   </div>
                 </div>
 
-                <div class="calendar-grid">
+                <div v-if="heavyContentReady" class="calendar-grid">
                   <div 
                     v-for="day in calendarDays" 
                     :key="day.date"
@@ -174,6 +180,7 @@
                   class="mission-progress mb-6"
                 ></v-progress-linear>
                 <ChallengeActions
+                  v-if="heavyContentReady"
                   v-model="actionsViewModel"
                   :readonly="!isOwner || isFinished"
                   :hide-add-button="false"
@@ -904,26 +911,7 @@ const isMainActionLoading = computed(
 const snackbar = ref(false)
 const snackbarText = ref('')
 const tab = ref('progress')
-
-watch(
-  () => props.modelValue,
-  (open) => {
-    if (open && props.initialTab) {
-      tab.value = props.initialTab
-    } else if (!open) {
-      tab.value = 'progress'
-    }
-  }
-)
-
-watch(
-  () => props.initialTab,
-  (nextTab) => {
-    if (props.modelValue && nextTab) {
-      tab.value = nextTab
-    }
-  }
-)
+const heavyContentReady = ref(false)
 
 const dialogModel = computed({
   get: () => props.modelValue,
@@ -941,6 +929,39 @@ function getCurrentUserId() {
 
 const currentUserId = ref(getCurrentUserId())
 
+function ensureWatchedStoreLoaded() {
+  const userId = currentUserId.value
+  if (userId) {
+    watchedStore.fetchForUser(userId)
+  }
+}
+
+watch(
+  () => props.modelValue,
+  (open) => {
+    if (open) {
+      ensureWatchedStoreLoaded()
+      nextTick(() => {
+        heavyContentReady.value = true
+      })
+      if (props.initialTab) {
+        tab.value = props.initialTab
+      }
+    } else {
+      heavyContentReady.value = false
+      tab.value = 'progress'
+    }
+  }
+)
+
+watch(
+  () => props.initialTab,
+  (nextTab) => {
+    if (props.modelValue && nextTab) {
+      tab.value = nextTab
+    }
+  }
+)
 
 const watchingId = ref(null)
 
@@ -1669,9 +1690,6 @@ function calculateEndDateFromDuration(startDate, duration) {
 
 
 onMounted(() => {
-  if (currentUserId.value) {
-    watchedStore.fetchForUser(currentUserId.value)
-  }
   document.addEventListener('click', onCalendarOutsideClick, true)
 })
 
