@@ -108,14 +108,63 @@
           height="6"
           rounded
           class="mission-progress"
+          :class="{ 'progress-resetting': progressResetting }"
         ></v-progress-linear>
       </div>
     </div>
 
-    <div v-if="isFinished" class="finish-tag" :class="{ 'failed': !isSuccessful }">
-      <v-icon size="14" class="mr-1">{{ isSuccessful ? 'mdi-check-decagram' : 'mdi-skull' }}</v-icon>
-      {{ isSuccessful ? t('missions.finished') : t('missions.failed') }}
+    <div v-if="isFinished" class="finish-actions">
+      <div class="finish-tag" :class="{ 'failed': !isSuccessful }">
+        <v-icon size="14" class="mr-1">{{ isSuccessful ? 'mdi-check-decagram' : 'mdi-skull' }}</v-icon>
+        {{ isSuccessful ? t('missions.finished') : t('missions.failed') }}
+      </div>
     </div>
+
+    <div v-if="isFinished && showExtendButton" class="extend-btn-overlay">
+      <v-tooltip
+        :text="insufficientSparksTooltip"
+        :disabled="hasEnoughSparks"
+        location="bottom"
+      >
+        <template #activator="{ props: tooltipProps }">
+          <span v-bind="tooltipProps" class="extend-btn-wrapper">
+            <button
+              type="button"
+              class="extend-btn"
+              :disabled="!hasEnoughSparks || isExtending"
+              @click.stop="openExtendConfirm"
+            >
+              <span>{{ t('missions.extendPath') }}</span>
+              <span class="extend-btn-price">
+                <span class="sparks-icon">✦</span>
+                {{ EXTEND_COST }}
+              </span>
+            </button>
+          </span>
+        </template>
+      </v-tooltip>
+    </div>
+
+    <v-dialog v-model="extendConfirmOpen" max-width="420">
+      <v-card class="extend-confirm-card">
+        <v-card-text class="pt-6">
+          {{ extendConfirmText }}
+        </v-card-text>
+        <v-card-actions class="px-4 pb-4">
+          <v-spacer />
+          <v-btn variant="text" @click="extendConfirmOpen = false">
+            {{ t('missions.extendCancel') }}
+          </v-btn>
+          <v-btn
+            class="extend-btn extend-btn--dialog"
+            :loading="isExtending"
+            @click="confirmExtend"
+          >
+            {{ t('missions.extendConfirmAction') }}
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-card>
 </template>
 
@@ -378,10 +427,37 @@
               0 0 20px 0px rgba(79, 209, 197, 0.4);
 }
 
-/* Финишный бейдж */
-.finish-tag {
+/* Финишный бейдж и продление */
+.finish-actions {
   position: absolute;
-  top: 15px; right: 15px;
+  top: 12px;
+  right: 12px;
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.finish-actions > * {
+  pointer-events: auto;
+}
+
+.extend-btn-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 12;
+  pointer-events: none;
+}
+
+.extend-btn-overlay > * {
+  pointer-events: auto;
+}
+
+.finish-tag {
   background: rgba(76, 175, 80, 0.2);
   color: #4CAF50;
   font-size: 10px;
@@ -389,12 +465,74 @@
   padding: 4px 12px;
   border-radius: 8px;
   border: 1px solid rgba(76, 175, 80, 0.3);
+  display: inline-flex;
+  align-items: center;
 }
 
 .finish-tag.failed {
   background: rgba(244, 67, 54, 0.2);
   color: #F44336;
   border-color: rgba(244, 67, 54, 0.3);
+}
+
+.extend-btn-wrapper {
+  display: inline-flex;
+}
+
+.extend-btn {
+  background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+  border-radius: 8px;
+  padding: 10px 20px;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.extend-btn:hover:not(:disabled) {
+  box-shadow: 0 0 16px rgba(112, 72, 232, 0.6);
+  transform: translateY(-1px);
+}
+
+.extend-btn:disabled {
+  opacity: 0.5;
+  filter: grayscale(1);
+  cursor: not-allowed;
+}
+
+.extend-btn-price {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 900;
+}
+
+.extend-btn .sparks-icon {
+  color: #FFC107;
+  font-size: 0.85rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 6px rgba(255, 193, 7, 0.45));
+}
+
+.extend-btn--dialog {
+  padding: 8px 16px;
+}
+
+.extend-confirm-card {
+  background: rgba(20, 22, 35, 0.98) !important;
+  color: #ffffff;
+  border: 1px solid rgba(112, 72, 232, 0.25);
+}
+
+.mission-progress.progress-resetting :deep(.v-progress-linear__determinate) {
+  transition: width 0.65s ease !important;
 }
 
 @keyframes flicker {
@@ -516,7 +654,13 @@
   color: rgba(255, 255, 255, 0.4);
   text-decoration: line-through rgba(255, 82, 82, 0.3);
 }
-.is-finished { filter: grayscale(0.8); opacity: 0.7; }
+.challenge-card.is-finished .card-content,
+.challenge-card.is-finished .card-background,
+.challenge-card.is-finished .habit-visual-wrapper,
+.challenge-card.is-finished .overlay-mask {
+  filter: grayscale(0.8);
+  opacity: 0.7;
+}
 
 @media (max-width: 600px) {
   .challenge-card {
@@ -571,10 +715,11 @@
 }
 </style>
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useChallengeType } from '../composables/useChallengeType'
 import { useChallengeCardProgress } from '../composables/useChallengeCardProgress'
+import { useExtendChallenge, EXTEND_COST } from '../composables/useExtendChallenge'
 import { Flame } from 'lucide-vue-next'
 import { isChallengeFinished } from '../utils/challengeStatus'
 
@@ -591,16 +736,43 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
+  showExtendButton: {
+    type: Boolean,
+    default: false
+  },
   disabled: {
     type: Boolean,
     default: false
   }
 })
 
-const emit = defineEmits(['click', 'update'])
+const emit = defineEmits(['click', 'update', 'extended'])
 
 const { t } = useI18n()
 const { getMissionTypeLabel } = useChallengeType()
+const {
+  extendingId,
+  getDurationDays,
+  hasEnoughSparks,
+  sparksNeeded,
+  extendChallenge
+} = useExtendChallenge()
+
+const extendConfirmOpen = ref(false)
+const progressResetting = ref(false)
+
+const isExtending = computed(() => extendingId.value === props.challenge._id)
+const durationDays = computed(() => getDurationDays(props.challenge))
+const insufficientSparksTooltip = computed(() =>
+  t('missions.extendInsufficientSparks', { count: sparksNeeded.value })
+)
+const extendConfirmText = computed(() =>
+  t('missions.extendConfirm', {
+    title: props.challenge.title,
+    days: durationDays.value,
+    cost: EXTEND_COST
+  })
+)
 
 const currentUserIdString = computed(() => props.currentUserId?.toString() || '')
 
@@ -656,6 +828,32 @@ const isSuccessful = computed(() => {
 function handleCardClick() {
   if (props.disabled) return
   emit('click', props.challenge)
+}
+
+function openExtendConfirm() {
+  if (!hasEnoughSparks.value || isExtending.value) {
+    return
+  }
+  extendConfirmOpen.value = true
+}
+
+async function confirmExtend() {
+  extendConfirmOpen.value = false
+  progressResetting.value = true
+
+  try {
+    const updatedChallenge = await extendChallenge(props.challenge)
+    if (updatedChallenge) {
+      emit('extended', updatedChallenge)
+    }
+    emit('update')
+  } catch {
+    // extendError is set in composable
+  } finally {
+    window.setTimeout(() => {
+      progressResetting.value = false
+    }, 700)
+  }
 }
 </script>
 

@@ -5,5 +5,6 @@ export const APP_EVENTS = Object.freeze({
   PARTICIPANT_COMPLETED_DAYS_UPDATED: 'participant-completed-days-updated',
   XP_AWARDED: 'xp-awarded',
   SPARKS_AWARDED: 'sparks-awarded',
+  SPARKS_SPENT: 'sparks-spent',
   OPEN_CHALLENGE: 'open-challenge'
 })

@@ -1,5 +1,35 @@
-import { isFutureDate, isPastDate } from './dateUtils'
+import { isFutureDate, isPastDate, getScheduledDaysCount } from './dateUtils'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
+
+function getParticipantUserId(participant) {
+  return participant?.userId?._id || participant?.userId || participant?._id || participant
+}
+
+function findChallengeParticipant(challenge, userId) {
+  if (!challenge || !userId || !Array.isArray(challenge.participants)) {
+    return null
+  }
+
+  return challenge.participants.find((participant) => {
+    const participantId = getParticipantUserId(participant)
+    return participantId && participantId.toString() === userId.toString()
+  }) || null
+}
+
+function isHabitChallengeCompleted(challenge, participant) {
+  const totalScheduled = getScheduledDaysCount(
+    challenge.startDate,
+    challenge.endDate,
+    challenge.frequency
+  )
+  if (totalScheduled <= 0) return false
+
+  const completedCount = Array.isArray(participant?.completedDays)
+    ? participant.completedDays.length
+    : 0
+
+  return completedCount >= totalScheduled
+}
 
 export function isChallengeEnded(challenge) {
   return isPastDate(challenge?.endDate)
@@ -41,4 +71,26 @@ export function isChallengeFinished(challenge) {
   }
 
   return false
+}
+
+export function isChallengeSuccessful(challenge, userId) {
+  if (!isChallengeFinished(challenge)) {
+    return false
+  }
+
+  if (challenge.challengeType === CHALLENGE_TYPES.RESULT) {
+    return areActionsCompleted(challenge.actions)
+  }
+
+  if (challenge.challengeType === CHALLENGE_TYPES.HABIT) {
+    const participant = findChallengeParticipant(challenge, userId)
+    if (!participant) return false
+    return isHabitChallengeCompleted(challenge, participant)
+  }
+
+  return false
+}
+
+export function isChallengeParticipant(challenge, userId) {
+  return Boolean(findChallengeParticipant(challenge, userId))
 }

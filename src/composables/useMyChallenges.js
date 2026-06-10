@@ -84,6 +84,20 @@ export function useMyChallenges(currentUserId) {
     }
   }
 
+  function replaceChallengeInList(updatedChallenge) {
+    if (!updatedChallenge?._id) return
+
+    challenges.value = challenges.value.map((item) => {
+      if (!challengeIdsMatch(item._id, updatedChallenge._id)) return item
+      return { ...item, ...updatedChallenge }
+    })
+
+    const selected = unref(selectedChallengeRef)
+    if (selected && challengeIdsMatch(selected._id, updatedChallenge._id)) {
+      selectedChallengeRef.value = { ...selected, ...updatedChallenge }
+    }
+  }
+
   async function fetchChallenges() {
     const userId = unref(currentUserId)
     if (!userId) {
@@ -259,6 +273,7 @@ export function useMyChallenges(currentUserId) {
     leaveChallenge,
     watchChallenge,
     unwatchChallenge,
+    replaceChallengeInList,
     configureDialogSync
   }
 }

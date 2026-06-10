@@ -23,7 +23,8 @@
     "world": "WORLD",
     "interested": "Interested",
     "reportBug": "Report a bug",
-    "sparksAriaLabel": "Sparks balance: {count}"
+    "sparksAriaLabel": "Sparks balance: {count}",
+    "sparksLabel": "Sparks"
   },
   "home": {
     "welcome": "Welcome to Ignite",
@@ -483,8 +484,8 @@
       "durationLine": "Walking this path for {days} days.",
       "ritualDurationLine": "Ritual duration is {days} days.",
       "pathWithoutDuration": "Walking the path of discipline and growth.",
-      "participantsLine": "{count} pioneers are already in this discipline.",
-      "firstPioneers": "Become one of the first pioneers in this discipline.",
+      "participantsLine": "{count} heroes are already in this mission.",
+      "firstPioneers": "Become one of the first pioneers in this mission.",
       "questProgressLine": "On the path to mastery: {done} of {total} tasks completed.",
       "cta": "Join the path in Ignite",
       "questCta": "Follow my quest",

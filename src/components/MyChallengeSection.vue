@@ -6,9 +6,11 @@
       :challenge="challenge"
       :current-user-id="currentUserId"
       :show-join-button="showJoinButton"
+      :show-extend-button="showExtendButton"
       :disabled="disabled"
       @click="forwardChallengeClick"
       @update="$emit('update')"
+      @extended="forwardExtended"
     />
   </div>
 </template>
@@ -36,13 +38,21 @@ const props = defineProps({
   disabled: {
     type: Boolean,
     default: false
+  },
+  showExtendButton: {
+    type: Boolean,
+    default: false
   }
 })
 
-const emit = defineEmits(['challenge-click', 'update'])
+const emit = defineEmits(['challenge-click', 'update', 'extended'])
 
 function forwardChallengeClick(event) {
   if (props.disabled) return
   emit('challenge-click', event)
+}
+
+function forwardExtended(challenge) {
+  emit('extended', challenge)
 }
 </script>

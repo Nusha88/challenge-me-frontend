@@ -94,7 +94,9 @@
               grid-class="challenges-grid"
               :class="activeChallenges.length > 0 ? 'mt-8' : undefined"
               :current-user-id="currentUserId"
+              show-extend-button
               @challenge-click="handleChallengeClick"
+              @extended="handleChallengeExtended"
             />
           </div>
         </div>
@@ -155,6 +157,7 @@ const {
   leaveChallenge,
   watchChallenge,
   unwatchChallenge,
+  replaceChallengeInList,
   configureDialogSync
 } = useMyChallenges(currentUserId)
 
@@ -190,6 +193,11 @@ const selectedJoinLoading = computed(() => {
 async function handleDialogJoin() {
   if (!selectedChallenge.value) return
   await joinChallenge(selectedChallenge.value)
+}
+
+function handleChallengeExtended(updatedChallenge) {
+  if (!updatedChallenge?._id) return
+  replaceChallengeInList(updatedChallenge)
 }
 
 onMounted(async () => {

@@ -33,8 +33,9 @@
             :aria-label="t('navigation.sparksAriaLabel', { count: userSparks })"
           >
             <span class="sparks-icon">✦</span>
-            <span class="sparks-count">{{ userSparks }}</span>
-            <span class="sparks-label">Sparks</span>
+            <span class="sparks-count" :class="{ 'sparks-count--spent': sparksSpentAnimating }">{{ userSparks }}</span>
+            <span v-if="spentDelta" class="sparks-spent-delta">{{ spentDelta }}</span>
+            <span class="sparks-label"> {{ t('navigation.sparksLabel') }}</span>
           </div>
         </div>
         <div v-if="!isLoggedIn && route.path === '/' && mobile" class="d-flex align-center gap-2">
@@ -111,11 +112,12 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useDisplay } from 'vuetify'
 import { useUserStore } from '../../stores/user'
+import { APP_EVENTS, addAppEventListener, removeAppEventListener } from '../../utils/appEvents'
 import awaImage from '../../assets/awa.png'
 import StreakBadge from './StreakBadge.vue'
 
@@ -136,6 +138,29 @@ const { t } = useI18n()
 const { mobile } = useDisplay()
 const userStore = useUserStore()
 const userSparks = computed(() => userStore.userSparks)
+const sparksSpentAnimating = ref(false)
+const spentDelta = ref('')
+
+function handleSparksSpent(event) {
+  const spent = Number(event?.detail?.spent || 0)
+  if (!spent) return
+
+  spentDelta.value = `−${spent}`
+  sparksSpentAnimating.value = true
+
+  window.setTimeout(() => {
+    sparksSpentAnimating.value = false
+    spentDelta.value = ''
+  }, 800)
+}
+
+onMounted(() => {
+  addAppEventListener(APP_EVENTS.SPARKS_SPENT, handleSparksSpent)
+})
+
+onBeforeUnmount(() => {
+  removeAppEventListener(APP_EVENTS.SPARKS_SPENT, handleSparksSpent)
+})
 </script>
 
 <style scoped>
@@ -250,6 +275,30 @@ const userSparks = computed(() => userStore.userSparks)
   font-size: 0.875rem;
   color: #ffffff;
   line-height: 1;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.sparks-count--spent {
+  animation: sparksSpentPulse 0.65s ease;
+}
+
+.sparks-spent-delta {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #7048E8;
+  line-height: 1;
+  animation: sparksDeltaFade 0.8s ease forwards;
+}
+
+@keyframes sparksSpentPulse {
+  0% { transform: scale(1); color: #ffffff; }
+  35% { transform: scale(1.12); color: #7048E8; }
+  100% { transform: scale(1); color: #ffffff; }
+}
+
+@keyframes sparksDeltaFade {
+  0% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-6px); }
 }
 
 .sparks-label {

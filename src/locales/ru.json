@@ -23,7 +23,8 @@
     "world": "МИР",
     "interested": "Интересно",
     "reportBug": "Сообщить об ошибке",
-    "sparksAriaLabel": "Баланс искр: {count}"
+    "sparksAriaLabel": "Баланс искр: {count}",
+    "sparksLabel": "Искры"
   },
   "home": {
     "welcome": "Добро пожаловать в Ignite",
@@ -483,8 +484,8 @@
       "durationLine": "Иду по пути {days} дней.",
       "ritualDurationLine": "Длительность ритуала: {days} дн.",
       "pathWithoutDuration": "Иду по пути дисциплины и роста.",
-      "participantsLine": "Нас уже {count} первопроходцев в этой дисциплине.",
-      "firstPioneers": "Стань одним из первых первопроходцев в этой дисциплине.",
+      "participantsLine": "Нас уже {count} первопроходцев в этой миссии.",
+      "firstPioneers": "Стань одним из первых первопроходцев в этой миссии.",
       "questProgressLine": "На пути к мастерству: закрыто {done} из {total} задач.",
       "cta": "Присоединяйся к пути в Ignite",
       "questCta": "Следи за моим квестом",
@@ -492,8 +493,8 @@
       "progress": "Мой прогресс: {percent}%",
       "difficulty": "Сложность: {level}",
       "author": "Автор: {name}",
-      "badgeRitual": "DAILY RITUAL",
-      "badgeQuest": "EPIC QUEST"
+      "badgeRitual": "Ежедневный ритуал",
+      "badgeQuest": "Эпический квест"
     },
     "loginPrompt": "Авторизуйтесь, чтобы увидеть свои миссии.",
     "mustBeLoggedIn": "Необходимо войти в систему, чтобы создать миссию.",
@@ -604,7 +605,14 @@
     "complete": "Завершено",
     "heroesInLine": "участников в движении",
     "viewDetailsToJoin": "Посмотреть детали и присоединиться",
-    "viewDetails": "Посмотреть детали"
+    "viewDetails": "Посмотреть детали",
+    "extendPath": "Продлить путь",
+    "extendConfirm": "Продлить миссию «{title}» на {days} дней за {cost} Искр?",
+    "extendInsufficientSparks": "Нужно еще {count} Искр для продления",
+    "extendSuccess": "Миссия продлена",
+    "extendError": "Не удалось продлить миссию",
+    "extendCancel": "Отмена",
+    "extendConfirmAction": "Продлить"
   },
   "filters": {
     "type": "Тип",

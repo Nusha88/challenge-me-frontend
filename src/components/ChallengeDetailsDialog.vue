@@ -23,7 +23,7 @@
             class="action-btn"
           ></v-btn>
           
-          <v-menu location="bottom end">
+          <v-menu v-if="!isFinished" location="bottom end">
             <template #activator="{ props: menuProps }">
               <v-btn
                 variant="text"
@@ -94,7 +94,7 @@
             <div class="tab-content-wrapper">
               <template v-if="challenge.challengeType === CHALLENGE_TYPES.HABIT">
                 <div class="progress-header mb-6">
-                  <div class="progress-header-row d-flex justify-space-between align-center flex-wrap gap-2">
+                  <div v-if="!isFinished" class="progress-header-row d-flex justify-space-between align-center flex-wrap gap-2">
                     <div v-if="showPersonalPace" class="personal-pace-row">
                       <span class="personal-pace-label">{{ t('challenges.personalPace') }}:</span>
                       <div class="personal-pace-main">
@@ -155,7 +155,7 @@
                   </div>
                 </div>
 
-                <div class="calendar-legend mt-8">
+                <div v-if="!isFinished" class="calendar-legend mt-8">
                   <div class="legend-item"><span class="dot completed"></span> {{ t('challenges.completed') }}</div>
                   <div class="legend-item"><span class="dot missed"></span> {{ t('challenges.missed') }}</div>
                   <div class="legend-item"><span class="dot today"></span> {{ t('challenges.today') }}</div>
@@ -175,7 +175,7 @@
                 ></v-progress-linear>
                 <ChallengeActions
                   v-model="actionsViewModel"
-                  :readonly="!isOwner"
+                  :readonly="!isOwner || isFinished"
                   :hide-add-button="false"
                   :simplified-view="!isOwner"
                   :hide-item-controls="false"

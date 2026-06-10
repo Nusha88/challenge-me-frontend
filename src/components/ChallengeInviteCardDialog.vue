@@ -147,7 +147,7 @@
                         {{ cardData?.ctaLabel }}
                       </div>
                       <div class="ignite-brand">
-                        Ignite
+                        Ignite-me.app
                       </div>
                     </div>
 
@@ -270,6 +270,8 @@ async function generateInviteCard() {
     link.download = `ignite-invite-${props.cardData?.challengeId || 'mission'}.png`
     link.href = dataUrl
     link.click()
+
+    dialogModel.value = false
 
     try {
       const response = await userService.awardManifestSparks({
@@ -490,7 +492,7 @@ async function generateInviteCard() {
 
 .ignite-brand {
   margin-top: 4px;
-  font-size: 1.8rem;
+  font-size: 1.3rem;
   font-weight: 950;
   letter-spacing: -0.04em;
   color: #ffffff;

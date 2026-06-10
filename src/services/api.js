@@ -186,6 +186,11 @@ export const challengeService = {
   deleteChallenge: (id) => {
     return api.delete(`/challenges/${id}`)
   },
+  extendChallenge: (id) => {
+    return api.post(`/challenges/${id}/extend`, {}, {
+      headers: userService._clientDayHeaders()
+    })
+  },
   getChallengesByUser: (userId, options = {}) => {
     const params = {}
     if (options.excludePrivate !== undefined) {
