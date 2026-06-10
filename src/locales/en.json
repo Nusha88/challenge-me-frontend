@@ -605,7 +605,14 @@
     "complete": "Complete",
     "heroesInLine": "members in motion",
     "viewDetailsToJoin": "View details to join",
-    "viewDetails": "View details"
+    "viewDetails": "View details",
+    "extendPath": "Extend path",
+    "extendConfirm": "Extend mission \"{title}\" for {days} days for {cost} Sparks?",
+    "extendInsufficientSparks": "Need {count} more Sparks to extend",
+    "extendSuccess": "Mission extended",
+    "extendError": "Could not extend mission",
+    "extendCancel": "Cancel",
+    "extendConfirmAction": "Extend"
   },
   "filters": {
     "type": "Type",
