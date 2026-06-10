@@ -3,10 +3,12 @@ import { useUserStore } from '../stores/user'
 import { notificationService } from '../services/api'
 import { syncAppBadge } from '../utils/appBadge'
 
+// Shared layout-level state (single drawer instance across the app)
+const unreadNotificationCount = ref(0)
+const notificationsDrawerOpen = ref(false)
+
 export function useUnreadNotifications({ onUnreadLoadSuccess } = {}) {
   const userStore = useUserStore()
-  const unreadNotificationCount = ref(0)
-  const notificationsDrawerOpen = ref(false)
   const isLoggedIn = computed(() => userStore.isLoggedIn)
 
   async function loadUnreadNotificationCount() {
@@ -23,7 +25,13 @@ export function useUnreadNotifications({ onUnreadLoadSuccess } = {}) {
   }
 
   function openNotifications() {
-    notificationsDrawerOpen.value = !notificationsDrawerOpen.value
+    if (notificationsDrawerOpen.value) {
+      notificationsDrawerOpen.value = false
+      return
+    }
+
+    notificationsDrawerOpen.value = true
+    loadUnreadNotificationCount()
   }
 
   function closeNotifications() {
@@ -51,6 +59,9 @@ export function useUnreadNotifications({ onUnreadLoadSuccess } = {}) {
     closeNotifications,
     handleUnreadCountChanged,
     reset,
-    getCurrentUserId: () => userStore.userId
+    getCurrentUserId: () => {
+      const id = userStore.userId
+      return id != null ? String(id) : null
+    }
   }
 }

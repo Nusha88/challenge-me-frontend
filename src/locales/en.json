@@ -707,6 +707,7 @@
     "title": "Notifications",
     "noNotifications": "No notifications",
     "loadError": "Failed to load notifications",
+    "retry": "Try again",
     "markAllAsRead": "Mark all as read",
     "markAllAsReadError": "Failed to mark all as read",
     "deleteError": "Failed to delete notification",

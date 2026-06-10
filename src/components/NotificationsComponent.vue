@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { notificationService } from '../services/api'
 import { useI18n } from 'vue-i18n'
@@ -33,21 +33,50 @@ const loading = ref(false)
 const errorMessage = ref('')
 const markingAllAsRead = ref(false)
 
+const normalizedUserId = computed(() => {
+  const id = props.currentUserId
+  return id != null && id !== '' ? String(id) : null
+})
+
 function handleDrawerUpdate(value) {
-  emit('update:modelValue', value)
+  if (!value) {
+    emit('update:modelValue', false)
+    emit('close')
+  }
+}
+
+function syncUnreadCountFromList() {
+  const unreadFromList = notifications.value.filter((notification) => !notification.read).length
+  if (unreadFromList !== props.unreadCount) {
+    emit('unread-count-changed', unreadFromList)
+  }
+}
+
+async function refreshUnreadCountFromApi() {
+  if (!normalizedUserId.value) return
+
+  try {
+    const { data } = await notificationService.getUnreadCount(normalizedUserId.value)
+    emit('unread-count-changed', Number(data?.count) || 0)
+  } catch (error) {
+    console.error('Error loading unread notification count:', error)
+  }
 }
 
 async function loadNotifications() {
-  if (!props.currentUserId) return
+  if (!normalizedUserId.value) return
 
   loading.value = true
   errorMessage.value = ''
   try {
-    const { data } = await notificationService.getNotifications(props.currentUserId, { limit: 50 })
+    const { data } = await notificationService.getNotifications(normalizedUserId.value, { limit: 50 })
     notifications.value = data.notifications || []
+    syncUnreadCountFromList()
   } catch (error) {
     console.error('Error loading notifications:', error)
+    notifications.value = []
     errorMessage.value = t('notifications.loadError')
+    await refreshUnreadCountFromApi()
   } finally {
     loading.value = false
   }
@@ -93,11 +122,11 @@ function handleNotificationClick(notification) {
 }
 
 async function markAllAsRead() {
-  if (!props.currentUserId || props.unreadCount === 0) return
+  if (!normalizedUserId.value || props.unreadCount === 0) return
 
   markingAllAsRead.value = true
   try {
-    await notificationService.markAllAsRead(props.currentUserId)
+    await notificationService.markAllAsRead(normalizedUserId.value)
     notifications.value.forEach((n) => { n.read = true })
     emit('unread-count-changed', 0)
   } catch (error) {
@@ -121,29 +150,41 @@ async function deleteNotification(notification) {
   }
 }
 
-watch(() => props.currentUserId, (userId) => {
-  if (userId && props.modelValue) {
-    loadNotifications()
+watch(
+  () => props.modelValue,
+  (isOpen) => {
+    if (isOpen && normalizedUserId.value) {
+      loadNotifications()
+    }
+    if (!isOpen) {
+      errorMessage.value = ''
+    }
   }
-})
+)
 
-watch(() => props.modelValue, (isOpen) => {
-  if (isOpen && props.currentUserId) {
-    loadNotifications()
+watch(
+  () => normalizedUserId.value,
+  (userId) => {
+    if (userId && props.modelValue) {
+      loadNotifications()
+    }
   }
-})
+)
 </script>
 
 <template>
-  <v-navigation-drawer
-    :model-value="modelValue"
-    location="right"
-    temporary
-    :width="mobile ? '100%' : '400'"
-    class="notification-drawer"
-    :class="{ 'notification-drawer-desktop': !mobile }"
-    @update:model-value="handleDrawerUpdate"
-  >
+  <Teleport to="body">
+    <v-navigation-drawer
+      v-if="modelValue"
+      :model-value="true"
+      location="right"
+      temporary
+      :width="mobile ? '100%' : '400'"
+      class="notification-drawer"
+      :class="{ 'notification-drawer-desktop': !mobile }"
+      :z-index="2400"
+      @update:model-value="handleDrawerUpdate"
+    >
     <div class="notification-header">
       <div class="header-left">
         <div class="bell-glow-container">
@@ -179,7 +220,22 @@ watch(() => props.modelValue, (isOpen) => {
     <div class="notification-content">
       <v-progress-linear v-if="loading" indeterminate color="#7048E8" height="2" />
 
-      <div v-if="!loading && notifications.length === 0" class="empty-state">
+      <div v-else-if="errorMessage" class="empty-state">
+        <div class="empty-icon-wrapper error">
+          <v-icon size="48">mdi-alert-circle-outline</v-icon>
+        </div>
+        <p class="empty-text error-text">{{ errorMessage }}</p>
+        <v-btn
+          variant="outlined"
+          color="#7048E8"
+          class="mt-4"
+          @click="loadNotifications"
+        >
+          {{ t('notifications.retry') }}
+        </v-btn>
+      </div>
+
+      <div v-else-if="notifications.length === 0" class="empty-state">
         <div class="empty-icon-wrapper">
           <v-icon size="48">mdi-ghost-outline</v-icon>
         </div>
@@ -196,7 +252,8 @@ watch(() => props.modelValue, (isOpen) => {
         />
       </div>
     </div>
-  </v-navigation-drawer>
+    </v-navigation-drawer>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -275,9 +332,17 @@ watch(() => props.modelValue, (isOpen) => {
   color: rgba(255, 255, 255, 0.2);
 }
 
+.empty-icon-wrapper.error {
+  color: rgba(255, 82, 82, 0.75);
+}
+
 .empty-text {
   color: rgba(255, 255, 255, 0.4);
   font-weight: 500;
+}
+
+.error-text {
+  color: rgba(255, 255, 255, 0.72);
 }
 
 @keyframes pulse {

@@ -32,6 +32,10 @@ const isAuthPage = computed(() => {
 })
 
 const isLoggedIn = computed(() => userStore.isLoggedIn)
+const currentUserId = computed(() => {
+  const id = userStore.userId
+  return id != null ? String(id) : null
+})
 const showAppChrome = computed(() => isLoggedIn.value && !isAuthPage.value)
 
 const push = usePushNotifications()
@@ -51,8 +55,7 @@ const {
   openNotifications,
   closeNotifications,
   handleUnreadCountChanged,
-  reset: resetNotifications,
-  getCurrentUserId
+  reset: resetNotifications
 } = useUnreadNotifications({
   onUnreadLoadSuccess: () => push.trySyncSubscription()
 })
@@ -61,7 +64,6 @@ const drawerOpen = ref(false)
 const onboardingStarted = ref(false)
 let notificationPollInterval = null
 
-const currentUserId = computed(() => userStore.userId)
 const {
   detailsDialogOpen: globalDetailsDialogOpen,
   selectedChallenge: globalSelectedChallenge,
@@ -148,6 +150,7 @@ watch(isLoggedIn, (loggedIn) => {
 })
 
 onMounted(() => {
+  closeNotifications()
   push.handleAuthChanged()
   if (isLoggedIn.value) {
     startLoggedInSession()
@@ -229,7 +232,7 @@ watch(
 
     <NotificationsComponent
       v-model="notificationsDrawerOpen"
-      :current-user-id="getCurrentUserId()"
+      :current-user-id="currentUserId"
       :unread-count="unreadNotificationCount"
       @unread-count-changed="handleUnreadCountChanged"
       @close="closeNotifications"
