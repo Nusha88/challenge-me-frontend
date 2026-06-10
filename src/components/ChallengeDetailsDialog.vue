@@ -291,6 +291,7 @@
                 :challenge-end-date="challenge.endDate"
                 :challenge-owner="challenge.owner"
                 :challenge-participants="challenge.participants || []"
+                :scroll-target="scrollTarget"
                 @join="emitJoin"
               />
               <v-alert v-else type="info" variant="tonal" class="info-message">
@@ -872,6 +873,14 @@ const props = defineProps({
   deleteLoading: {
     type: Boolean,
     default: false
+  },
+  initialTab: {
+    type: String,
+    default: null
+  },
+  scrollTarget: {
+    type: Object,
+    default: null
   }
 })
 
@@ -896,6 +905,25 @@ const snackbar = ref(false)
 const snackbarText = ref('')
 const tab = ref('progress')
 
+watch(
+  () => props.modelValue,
+  (open) => {
+    if (open && props.initialTab) {
+      tab.value = props.initialTab
+    } else if (!open) {
+      tab.value = 'progress'
+    }
+  }
+)
+
+watch(
+  () => props.initialTab,
+  (nextTab) => {
+    if (props.modelValue && nextTab) {
+      tab.value = nextTab
+    }
+  }
+)
 
 const dialogModel = computed({
   get: () => props.modelValue,
@@ -1537,12 +1565,15 @@ const currentUserCompletedDays = computed(() => {
 
 const isCurrentUserParticipant = computed(() => {
   if (!props.challenge || !props.challenge.participants || !currentUserId.value) return false
-  
-  return props.challenge.participants.some(p => {
-    const userId = p.userId?._id || p.userId || p._id
+
+  return props.challenge.participants.some((participant) => {
+    const userId =
+      participant.userId?._id || participant.userId || participant._id || participant
     return userId && userId.toString() === currentUserId.value.toString()
   })
 })
+
+const isJoined = computed(() => props.isParticipant || isCurrentUserParticipant.value)
 
 const canJoinPublicHabit = computed(() => {
   if (!props.challenge || !currentUserId.value) return false
@@ -1550,22 +1581,24 @@ const canJoinPublicHabit = computed(() => {
   if (props.challenge.challengeType !== CHALLENGE_TYPES.HABIT) return false
   if (props.challenge.privacy === 'private') return false
   if (props.isOwner) return false
-  if (isCurrentUserParticipant.value) return false
+  if (isJoined.value) return false
   return true
 })
 
 const showJoinActionButton = computed(() => {
-  return props.showJoinButton || canJoinPublicHabit.value
+  if (isJoined.value || props.isOwner || isFinished.value || !currentUserId.value) return false
+  if (props.showJoinButton) return true
+  return canJoinPublicHabit.value
 })
 
 const showMainActionButton = computed(() => {
   return showJoinActionButton.value ||
-    (isCurrentUserParticipant.value && props.challenge.challengeType === CHALLENGE_TYPES.HABIT && !isFinished.value) ||
+    (isJoined.value && props.challenge.challengeType === CHALLENGE_TYPES.HABIT && !isFinished.value) ||
     (props.isOwner && props.challenge.challengeType === CHALLENGE_TYPES.RESULT && tab.value === 'progress')
 })
 
 const showWatchActionButton = computed(() => {
-  return !props.isOwner && !isFinished.value && currentUserId.value && !isCurrentUserParticipant.value
+  return !props.isOwner && !isFinished.value && currentUserId.value && !isJoined.value
 })
 
 const mainActionButtonText = computed(() => {
@@ -2047,10 +2080,9 @@ async function handleWatch() {
 
   const challengeId = props.challenge._id
   watchingId.value = challengeId
-  watchedStore.addId(challengeId)
 
   try {
-    await watchedStore.watch(challengeId, currentUserId.value)
+    await watchedStore.watch(challengeId, currentUserId.value, props.challenge)
     emit('update:modelValue', false)
     emit('update')
   } catch (error) {

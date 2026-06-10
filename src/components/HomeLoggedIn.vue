@@ -23,6 +23,7 @@
     <v-window v-model="state.activeTab">
       <v-window-item value="today">
         <TodayProgressCard
+        v-if="totalItems > 0"
           :loading="isTodayProgressLoading"
           :completed-items="completedItems"
           :total-items="totalItems"
@@ -117,12 +118,13 @@
       :is-participant="selectedIsParticipant"
       :show-join-button="false"
       :show-leave-button="selectedIsParticipant"
-      :join-loading="false"
+      :join-loading="selectedJoinLoading"
       :leave-loading="selectedLeaveLoading"
       :save-loading="false"
       :save-error="''"
       :delete-loading="false"
       @update="handleDialogUpdate"
+      @join="handleDialogJoin"
       @leave="handleDialogLeave"
     />
   </div>
@@ -217,8 +219,10 @@ const {
   selectedIsOwner,
   selectedIsParticipant,
   selectedLeaveLoading,
+  selectedJoinLoading,
   navigateToChallenge,
   handleDialogUpdate,
+  handleDialogJoin,
   handleDialogLeave
 } = useHomeChallengeDialog({
   getUserId: () => userStore.userId,

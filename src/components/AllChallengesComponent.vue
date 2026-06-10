@@ -56,6 +56,8 @@
       :is-participant="selectedIsParticipant"
       :show-join-button="showDialogJoinButton"
       :show-leave-button="showDialogLeaveButton"
+      :initial-tab="dialogInitialTab"
+      :scroll-target="dialogScrollTarget"
       :join-loading="selectedJoinLoading"
       :leave-loading="selectedLeaveLoading"
       :save-loading="saveLoading"
@@ -166,6 +168,8 @@ const allChallengesDialog = useAllChallengesDialog({
 const {
   detailsDialogOpen,
   selectedChallenge,
+  dialogScrollTarget,
+  dialogInitialTab,
   selectedIsOwner,
   selectedIsParticipant,
   selectedJoinLoading,
@@ -218,16 +222,17 @@ onMounted(async () => {
   await nextTick()
   isSyncingFromUrl.value = false
 
-  if (showMainRitual.value) {
-    await fetchMainRitual()
+  const challengeIdFromRoute = route.params.id
+  if (challengeIdFromRoute) {
+    openChallengeById(challengeIdFromRoute)
   }
-  await fetchChallenges(1, false)
 
-  if (route.params.id) {
-    setTimeout(() => {
-      openChallengeById(route.params.id)
-    }, 100)
+  const listTasks = []
+  if (showMainRitual.value) {
+    listTasks.push(fetchMainRitual())
   }
+  listTasks.push(fetchChallenges(1, false))
+  await Promise.all(listTasks)
 })
 </script>
 

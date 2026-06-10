@@ -283,6 +283,10 @@
     "noUsersFound": "Пользователи по вашему запросу не найдены",
     "searchPlaceholder": "Поиск по имени",
     "search": "Поиск",
+    "levelShort": "Ур. {level}",
+    "levelBadge": "Ур. {level}",
+    "xpShort": "{count} XP",
+    "daysShort": "{count}д",
     "userChallenges": "Миссии пользователя",
     "noChallenges": "У этого пользователя пока нет миссий",
     "userNotFound": "Пользователь не найден"
@@ -648,7 +652,9 @@
     "surveillanceFeed": "Лента активности",
     "ritual": "Ежедневный ритуал",
     "quest": "Эпический квест",
-    "heroProgress": "Результат героя"
+    "heroProgress": "Результат героя",
+    "stopMonitoring": "Перестать следить",
+    "joinMission": "Присоединиться"
    },
   "onboarding": {
     "nextBtnText": "Далее",

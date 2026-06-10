@@ -2,7 +2,11 @@ import { APP_EVENTS } from '../constants/appEvents'
 
 export { APP_EVENTS }
 
-export function dispatchAppEvent(eventName) {
+export function dispatchAppEvent(eventName, detail) {
+  if (detail !== undefined) {
+    window.dispatchEvent(new CustomEvent(eventName, { detail }))
+    return
+  }
   window.dispatchEvent(new Event(eventName))
 }
 

@@ -5,6 +5,7 @@ import { useDisplay } from 'vuetify'
 import { useUserStore } from '../stores/user'
 import { useWatchedChallengesStore } from '../stores/watchedChallenges'
 import NotificationsComponent from './NotificationsComponent.vue'
+import ChallengeDetailsDialog from './ChallengeDetailsDialog.vue'
 import XpAwardToast from './XpAwardToast.vue'
 import AppHeader from './layout/AppHeader.vue'
 import AppSidebar from './layout/AppSidebar.vue'
@@ -14,6 +15,7 @@ import { useUserStreak } from '../composables/useUserStreak'
 import { usePushNotifications } from '../composables/usePushNotifications'
 import { useOnboarding } from '../composables/useOnboarding'
 import { useAppEventListeners } from '../composables/useAppEvents'
+import { useGlobalChallengeDialog } from '../composables/useGlobalChallengeDialog'
 import { APP_EVENTS, dispatchAppEvent } from '../utils/appEvents'
 import { clearAppBadge } from '../utils/appBadge'
 
@@ -58,6 +60,26 @@ const {
 const drawerOpen = ref(false)
 const onboardingStarted = ref(false)
 let notificationPollInterval = null
+
+const currentUserId = computed(() => userStore.userId)
+const {
+  detailsDialogOpen: globalDetailsDialogOpen,
+  selectedChallenge: globalSelectedChallenge,
+  scrollTarget: globalScrollTarget,
+  initialTab: globalInitialTab,
+  selectedIsOwner: globalSelectedIsOwner,
+  selectedIsParticipant: globalSelectedIsParticipant,
+  showDialogJoinButton: globalShowDialogJoinButton,
+  showDialogLeaveButton: globalShowDialogLeaveButton,
+  openFromNotification,
+  handleDialogClose: handleGlobalDialogClose
+} = useGlobalChallengeDialog(currentUserId)
+
+function handleOpenChallenge(event) {
+  const detail = event?.detail
+  if (!detail?.challengeId) return
+  openFromNotification(detail)
+}
 
 function startNotificationPolling() {
   stopNotificationPolling()
@@ -107,7 +129,8 @@ function stopLoggedInSession() {
 }
 
 useAppEventListeners([
-  { event: APP_EVENTS.AUTH_CHANGED, handler: push.handleAuthChanged }
+  { event: APP_EVENTS.AUTH_CHANGED, handler: push.handleAuthChanged },
+  { event: APP_EVENTS.OPEN_CHALLENGE, handler: handleOpenChallenge }
 ])
 
 watch(() => route.name, () => {
@@ -207,8 +230,26 @@ watch(
     <NotificationsComponent
       v-model="notificationsDrawerOpen"
       :current-user-id="getCurrentUserId()"
+      :unread-count="unreadNotificationCount"
       @unread-count-changed="handleUnreadCountChanged"
       @close="closeNotifications"
+    />
+
+    <ChallengeDetailsDialog
+      v-model="globalDetailsDialogOpen"
+      :challenge="globalSelectedChallenge"
+      :is-owner="globalSelectedIsOwner"
+      :is-participant="globalSelectedIsParticipant"
+      :show-join-button="globalShowDialogJoinButton"
+      :show-leave-button="globalShowDialogLeaveButton"
+      :initial-tab="globalInitialTab"
+      :scroll-target="globalScrollTarget"
+      :join-loading="false"
+      :leave-loading="false"
+      :save-loading="false"
+      :save-error="''"
+      :delete-loading="false"
+      @update:model-value="handleGlobalDialogClose"
     />
 
     <XpAwardToast />

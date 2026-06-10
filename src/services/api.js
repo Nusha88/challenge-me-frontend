@@ -247,6 +247,9 @@ export const challengeService = {
   getWatchedChallenges: (userId) => {
     return api.get(`/challenges/watched/${userId}`)
   },
+  getWatchedFeed: (userId) => {
+    return api.get(`/challenges/watched/feed/${userId}`)
+  },
   addComment: (challengeId, userId, text, imageUrl = null) => {
     return api.post(`/challenges/${challengeId}/comments`, { userId, text, imageUrl })
   },

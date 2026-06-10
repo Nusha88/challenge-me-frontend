@@ -283,6 +283,10 @@
     "noUsersFound": "No users found matching your search",
     "searchPlaceholder": "Search by name",
     "search": "Search",
+    "levelShort": "Lvl {level}",
+    "levelBadge": "Lvl {level}",
+    "xpShort": "{count} XP",
+    "daysShort": "{count}d",
     "userChallenges": "User Missions",
     "noChallenges": "This user has no missions yet",
     "userNotFound": "User not found"
@@ -648,7 +652,9 @@
     "surveillanceFeed": "Activity Feed",
     "ritual": "Ritual",
     "quest": "Quest",
-    "heroProgress": "Hero Result"
+    "heroProgress": "Hero Result",
+    "stopMonitoring": "Stop Monitoring",
+    "joinMission": "Join Mission"
    },
   "onboarding": {
     "nextBtnText": "Next",

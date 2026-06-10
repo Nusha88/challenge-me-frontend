@@ -11,6 +11,7 @@ export function useHomeChallengeDialog({ getUserId, updateChallengeInList, onRef
   const selectedIsOwner = ref(false)
   const selectedIsParticipant = ref(false)
   const selectedLeaveLoading = ref(false)
+  const selectedJoinLoading = ref(false)
 
   function syncParticipantFlags() {
     const userId = getUserId?.()
@@ -72,14 +73,46 @@ export function useHomeChallengeDialog({ getUserId, updateChallengeInList, onRef
     }
   }
 
+  async function handleDialogJoin() {
+    const userId = getUserId?.()
+    if (!selectedChallenge.value?._id || !userId) return
+
+    selectedJoinLoading.value = true
+    try {
+      const response = await challengeService.joinChallenge(selectedChallenge.value._id, { userId })
+      if (response.data?.challenge) {
+        selectedChallenge.value = response.data.challenge
+        syncParticipantFlags()
+      }
+
+      const { data } = await challengeService.getChallenge(selectedChallenge.value._id)
+      selectedChallenge.value = data
+      syncParticipantFlags()
+
+      if (updateChallengeInList) {
+        updateChallengeInList(data)
+      }
+
+      if (onRefresh) {
+        await onRefresh()
+      }
+    } catch (error) {
+      console.error('Error joining challenge:', error)
+    } finally {
+      selectedJoinLoading.value = false
+    }
+  }
+
   return {
     detailsDialogOpen,
     selectedChallenge,
     selectedIsOwner,
     selectedIsParticipant,
     selectedLeaveLoading,
+    selectedJoinLoading,
     navigateToChallenge,
     handleDialogUpdate,
-    handleDialogLeave
+    handleDialogLeave,
+    handleDialogJoin
   }
 }

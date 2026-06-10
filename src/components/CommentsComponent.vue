@@ -595,6 +595,10 @@ const props = defineProps({
   challengeParticipants: {
     type: Array,
     default: () => []
+  },
+  scrollTarget: {
+    type: Object,
+    default: null
   }
 })
 
@@ -1427,19 +1431,54 @@ function hasUserReacted(item, emoji) {
 }
 
 function scrollToComment(commentId, replyId) {
-  // Wait a bit for the page to render
-  setTimeout(() => {
-    const elementId = replyId ? `comment-${commentId}-${replyId}` : `comment-${commentId}`
+  if (!commentId) return
+
+  const elementId = replyId ? `comment-${commentId}-${replyId}` : `comment-${commentId}`
+
+  const tryScroll = () => {
     const element = document.getElementById(elementId)
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      // Highlight the element briefly
-      element.style.backgroundColor = 'rgba(25, 118, 210, 0.1)'
-      setTimeout(() => {
-        element.style.backgroundColor = ''
-      }, 2000)
-    }
-  }, 300)
+    if (!element) return false
+
+    element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    element.style.backgroundColor = 'rgba(25, 118, 210, 0.1)'
+    setTimeout(() => {
+      element.style.backgroundColor = ''
+    }, 2000)
+    return true
+  }
+
+  nextTick(() => {
+    if (tryScroll()) return
+    requestAnimationFrame(() => {
+      tryScroll()
+    })
+  })
+}
+
+function resolveScrollTargetFromHash() {
+  const hash = router.currentRoute.value.hash?.replace('#', '') || ''
+  if (!hash.startsWith('comment-')) return null
+
+  const parts = hash.split('-')
+  if (parts.length < 2) return null
+
+  return {
+    commentId: parts[1],
+    replyId: parts.length >= 3 ? parts[2] : null
+  }
+}
+
+function getActiveScrollTarget() {
+  if (props.scrollTarget?.commentId) {
+    return props.scrollTarget
+  }
+  return resolveScrollTargetFromHash()
+}
+
+function maybeScrollToTarget() {
+  const target = getActiveScrollTarget()
+  if (!target?.commentId || state.comments.length === 0) return
+  scrollToComment(target.commentId, target.replyId)
 }
 
 watch(() => props.challengeId, () => {
@@ -1454,29 +1493,26 @@ watch(() => props.allowComments, () => {
   }
 })
 
+watch(
+  () => props.scrollTarget,
+  () => {
+    maybeScrollToTarget()
+  },
+  { deep: true }
+)
+
+watch(
+  () => state.comments.length,
+  (length) => {
+    if (length > 0) {
+      maybeScrollToTarget()
+    }
+  }
+)
+
 onMounted(() => {
   if (props.allowComments !== false) {
     loadComments()
-  }
-  
-  // Check if there's a hash in URL to scroll to specific comment/reply
-  if (router.currentRoute.value.hash) {
-    const hash = router.currentRoute.value.hash.replace('#', '')
-    if (hash.startsWith('comment-')) {
-      const parts = hash.split('-')
-      if (parts.length >= 2) {
-        const commentId = parts[1]
-        const replyId = parts.length >= 3 ? parts[2] : null
-        // Wait for comments to load, then scroll
-        watch(() => state.comments.length, () => {
-          if (state.comments.length > 0) {
-            nextTick(() => {
-              scrollToComment(commentId, replyId)
-            })
-          }
-        }, { immediate: true })
-      }
-    }
   }
 })
 </script>

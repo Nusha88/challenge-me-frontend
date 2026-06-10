@@ -56,6 +56,30 @@ export const useWatchedChallengesStore = defineStore('watchedChallenges', () => 
     }
   }
 
+  function upsertChallenge(challenge) {
+    if (!challenge?._id) return
+
+    const normalized = normalizeId(challenge._id)
+    addId(normalized)
+
+    const exists = challenges.value.some((c) => normalizeId(c._id) === normalized)
+    if (!exists) {
+      challenges.value = [challenge, ...challenges.value]
+    }
+  }
+
+  function isListStale() {
+    if (ids.value.length !== challenges.value.length) return true
+
+    return ids.value.some(
+      (id) => !challenges.value.some((c) => normalizeId(c._id) === id)
+    )
+  }
+
+  function invalidateCache() {
+    loadedForUserId.value = null
+  }
+
   function removeId(id) {
     const normalized = normalizeId(id)
     ids.value = ids.value.filter((existing) => existing !== normalized)
@@ -78,7 +102,7 @@ export const useWatchedChallengesStore = defineStore('watchedChallenges', () => 
       return []
     }
 
-    if (!force && loadedForUserId.value === userId) {
+    if (!force && loadedForUserId.value === userId && !isListStale()) {
       return challenges.value
     }
 
@@ -106,9 +130,15 @@ export const useWatchedChallengesStore = defineStore('watchedChallenges', () => 
     return inflightFetch
   }
 
-  async function watch(challengeId, userId) {
+  async function watch(challengeId, userId, challenge = null) {
     await challengeService.watchChallenge(challengeId, userId)
-    addId(challengeId)
+
+    if (challenge) {
+      upsertChallenge(challenge)
+    } else {
+      addId(challengeId)
+      invalidateCache()
+    }
   }
 
   async function unwatch(challengeId, userId) {
@@ -123,8 +153,11 @@ export const useWatchedChallengesStore = defineStore('watchedChallenges', () => 
     idSet,
     isWatched,
     addId,
+    upsertChallenge,
     removeId,
     clear,
+    invalidateCache,
+    isListStale,
     fetchForUser,
     watch,
     unwatch,

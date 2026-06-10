@@ -108,12 +108,13 @@
       :is-participant="selectedIsParticipant"
       :show-join-button="false"
       :show-leave-button="showDialogLeaveButton"
-      :join-loading="false"
+      :join-loading="selectedJoinLoading"
       :leave-loading="selectedLeaveLoading"
       :save-loading="false"
       :save-error="''"
       :delete-loading="false"
       @update="handleDialogUpdate"
+      @join="handleDialogJoin"
       @leave="handleDialogLeave"
     />
   </div>
@@ -180,6 +181,16 @@ const {
 })
 
 configureDialogSync({ selectedChallenge, refreshSelectedChallenge })
+
+const selectedJoinLoading = computed(() => {
+  if (!selectedChallenge.value) return false
+  return joiningId.value === selectedChallenge.value._id
+})
+
+async function handleDialogJoin() {
+  if (!selectedChallenge.value) return
+  await joinChallenge(selectedChallenge.value)
+}
 
 onMounted(async () => {
   await fetchChallenges()

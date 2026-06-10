@@ -39,6 +39,8 @@ export function useAllChallengesDialog({
 
   const detailsDialogOpen = ref(false)
   const selectedChallenge = ref(null)
+  const dialogScrollTarget = ref(null)
+  const dialogInitialTab = ref('progress')
   const isOpeningChallenge = ref(false)
   const saveLoading = ref(false)
   const saveError = ref('')
@@ -92,10 +94,35 @@ export function useAllChallengesDialog({
     router.replace({ path: '/missions', query: route.query })
   }
 
+  function parseCommentHash(hash) {
+    const normalized = (hash || '').replace('#', '')
+    if (!normalized.startsWith('comment-')) return null
+
+    const parts = normalized.split('-')
+    if (parts.length < 2) return null
+
+    return {
+      commentId: parts[1],
+      replyId: parts.length >= 3 ? parts[2] : null
+    }
+  }
+
+  function applyScrollTargetFromRoute() {
+    const target = parseCommentHash(route.hash)
+    dialogScrollTarget.value = target
+    dialogInitialTab.value = target ? 'community' : 'progress'
+  }
+
+  function clearDialogScrollTarget() {
+    dialogScrollTarget.value = null
+    dialogInitialTab.value = 'progress'
+  }
+
   watch(detailsDialogOpen, (value) => {
     if (!value && !isOpeningChallenge.value) {
       selectedChallenge.value = null
       saveError.value = ''
+      clearDialogScrollTarget()
       if (route.params.id) {
         nextTick(() => {
           navigateToMissionsList()
@@ -114,47 +141,57 @@ export function useAllChallengesDialog({
     }
   }
 
-  async function openDetails(challenge) {
+  async function openDetails(challenge, { skipFetch = false, preserveScrollTarget = false } = {}) {
     if (isOpeningChallenge.value) return
+
+    if (!preserveScrollTarget) {
+      clearDialogScrollTarget()
+    }
 
     isOpeningChallenge.value = true
     saveError.value = ''
 
-    try {
-      const { data } = await challengeService.getChallenge(challenge._id)
-      selectedChallenge.value = data
-    } catch {
+    if (!skipFetch) {
+      try {
+        const { data } = await challengeService.getChallenge(challenge._id)
+        selectedChallenge.value = data
+      } catch {
+        selectedChallenge.value = challenge
+      }
+    } else {
       selectedChallenge.value = challenge
     }
 
-    if (String(route.params.id) !== String(challenge._id)) {
-      router.replace(`/missions/${challenge._id}`).finally(() => {
-        nextTick(() => {
-          detailsDialogOpen.value = true
-          isOpeningChallenge.value = false
-        })
-      })
-    } else {
+    const openDialog = () => {
       nextTick(() => {
         detailsDialogOpen.value = true
         isOpeningChallenge.value = false
       })
     }
+
+    if (String(route.params.id) !== String(challenge._id)) {
+      router.replace({ path: `/missions/${challenge._id}`, hash: route.hash }).finally(openDialog)
+    } else {
+      openDialog()
+    }
   }
 
   async function openChallengeById(challengeId) {
-    if (!challengeId || unref(loading)) return
+    if (!challengeId) return
 
-    let challenge = unref(challenges).find((c) => c._id === challengeId)
+    applyScrollTargetFromRoute()
+
+    let challenge = unref(challenges).find((c) => String(c._id) === String(challengeId))
+    let skipFetch = false
 
     if (!challenge) {
       try {
-        loading.value = true
         const { data } = await challengeService.getChallenge(challengeId)
         challenge = data
+        skipFetch = true
+
         if (challenge && challenge.privacy !== 'private') {
-          await nextTick()
-          const existingChallenge = unref(challenges).find((c) => c._id === challengeId)
+          const existingChallenge = unref(challenges).find((c) => String(c._id) === String(challengeId))
           if (!existingChallenge) {
             challenges.value.push(challenge)
           } else {
@@ -165,14 +202,11 @@ export function useAllChallengesDialog({
         console.error('Error fetching challenge:', error)
         errorMessage.value = error.response?.data?.message || t('challenges.notFound')
         return
-      } finally {
-        loading.value = false
       }
     }
 
     if (challenge) {
-      await nextTick()
-      await openDetails(challenge)
+      await openDetails(challenge, { skipFetch, preserveScrollTarget: true })
     }
   }
 
@@ -269,6 +303,8 @@ export function useAllChallengesDialog({
   return {
     detailsDialogOpen,
     selectedChallenge,
+    dialogScrollTarget,
+    dialogInitialTab,
     selectedIsOwner,
     selectedIsParticipant,
     selectedJoinLoading,

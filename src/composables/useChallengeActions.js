@@ -106,7 +106,14 @@ export function useChallengeActions({
     errorMessage.value = ''
 
     try {
-      await serviceCall(challenge._id, { userId })
+      const response = await serviceCall(challenge._id, { userId })
+      if (
+        response?.data?.challenge &&
+        selectedChallengeRef &&
+        challengeIdsMatch(unref(selectedChallengeRef)?._id, challenge._id)
+      ) {
+        selectedChallengeRef.value = response.data.challenge
+      }
       await refreshAfterMembershipChange(challenge._id, { refreshMainRitual })
     } catch (error) {
       errorMessage.value = error.response?.data?.message || errorFallback
@@ -135,14 +142,14 @@ export function useChallengeActions({
     setChallengeWatched(challenge._id, shouldWatch)
 
     if (shouldWatch) {
-      watchedStore.addId(challenge._id)
+      watchedStore.upsertChallenge(challenge)
     } else {
       watchedStore.removeId(challenge._id)
     }
 
     try {
       if (shouldWatch) {
-        await watchedStore.watch(challenge._id, userId)
+        await watchedStore.watch(challenge._id, userId, challenge)
       } else {
         await watchedStore.unwatch(challenge._id, userId)
       }
