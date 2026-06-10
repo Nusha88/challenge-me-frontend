@@ -38,13 +38,15 @@ export async function refreshChallengeInBackground(
 
   try {
     const { data } = await challengeService.getChallenge(id)
-    if (challengeIdsMatch(selectedChallenge.value?._id, id)) {
+    const currentId = selectedChallenge.value?._id
+    if (currentId == null || challengeIdsMatch(currentId, id)) {
       selectedChallenge.value = data
     }
     onRefreshed?.(data)
     return data
   } catch {
-    if (fallback && challengeIdsMatch(selectedChallenge.value?._id, id)) {
+    const currentId = selectedChallenge.value?._id
+    if (fallback && (currentId == null || challengeIdsMatch(currentId, id))) {
       selectedChallenge.value = fallback
     }
     return null

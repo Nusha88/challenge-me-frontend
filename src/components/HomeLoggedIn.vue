@@ -238,21 +238,28 @@ function getCurrentUserId() {
   return userStore.userId
 }
 
+let profileFetchInFlight = null
+
 async function updateUser() {
-  // Fetch fresh user data from API and update store
-  try {
-    const response = await userService.getProfile()
-    if (response.data?.user) {
-      userStore.setUser(response.data.user)
-      // Update userName for greeting
-      state.userName = response.data.user.name || ''
-      // Dispatch event to notify other components
-      window.dispatchEvent(new Event('auth-changed'))
-    }
-  } catch (error) {
-    // Error fetching user profile
-    state.userName = userStore.userName || ''
+  if (profileFetchInFlight) {
+    return profileFetchInFlight
   }
+
+  profileFetchInFlight = (async () => {
+    try {
+      const response = await userService.getProfile()
+      if (response.data?.user) {
+        userStore.setUser(response.data.user)
+        state.userName = response.data.user.name || ''
+      }
+    } catch {
+      state.userName = userStore.userName || ''
+    } finally {
+      profileFetchInFlight = null
+    }
+  })()
+
+  return profileFetchInFlight
 }
 
 function applyStreakFromData(checklists, allChallenges, userId) {
