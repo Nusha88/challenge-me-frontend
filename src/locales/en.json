@@ -24,7 +24,41 @@
     "interested": "Interested",
     "reportBug": "Report a bug",
     "sparksAriaLabel": "Sparks balance: {count}",
-    "sparksLabel": "Sparks"
+    "sparksLabel": "Sparks",
+    "sparksInfoAriaLabel": "Learn about Sparks"
+  },
+  "sparks": {
+    "info": {
+      "title": "What are Sparks?",
+      "description": "Sparks are in-game currency that helps you keep your progress on track.",
+      "currentBalance": "Your balance: {count}",
+      "usesTitle": "What you can use them for",
+      "freezeDay": "Freeze day",
+      "freezeDayHint": "Save your streak when you miss a day",
+      "secondChance": "Second chance",
+      "secondChanceHint": "Recover a missed day in a mission",
+      "customization": "Extension and mission upgrade",
+      "customizationHint": "Extend or adjust a finished mission"
+    },
+    "rituals": {
+      "freezeDayButton": "Freeze day",
+      "freezeTodayButton": "FREEZE TODAY",
+      "saveYesterdayStreakButton": "SAVE YESTERDAY'S STREAK",
+      "secondChanceButton": "Second chance",
+      "protectedBadge": "Protected",
+      "freezeConfirm": "Spend {cost} Sparks to freeze today for all incomplete rituals?",
+      "secondChanceConfirm": "Spend {cost} Sparks to protect today's progress for this ritual?",
+      "insufficientSparks": "Not enough Sparks",
+      "freezeError": "Could not freeze the day",
+      "freezeWindowError": "Freeze today is only available between 22:00 and 23:59",
+      "saveYesterdayWindowError": "Save yesterday streak is only available between 00:00 and 09:59",
+      "secondChanceError": "Could not apply second chance",
+      "secondChanceWindowError": "Second chance is only available between 22:00 and 23:59",
+      "calendar": {
+        "frozen": "Frozen",
+        "secondChance": "Second chance"
+      }
+    }
   },
   "home": {
     "welcome": "Welcome to Ignite",

@@ -3,6 +3,13 @@ import { useUserStore } from '../stores/user'
 import { challengeService } from '../services/api'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 import { getScheduledDaysCount, normalizeDateKey, toDateInputValue } from '../utils/dateUtils'
+import {
+  findParticipantForUser,
+  getDayProtectionSource,
+  getEffectiveCompletedDays,
+  isDayEffectiveCompleted
+} from '../utils/participantDays'
+import { getYesterdayDateStr, isDateScheduledForChallenge } from '../utils/ritualSchedule'
 import { useXpAwardFeedback } from './useXpAwardFeedback'
 
 function getParticipantUserId(participant) {
@@ -46,6 +53,7 @@ export function useTodayChallenges({ onUpdated } = {}) {
   const { applyXpAwardResponse } = useXpAwardFeedback()
 
   const challenges = ref([])
+  const participantHabitChallenges = ref([])
   const loadingChallenges = ref(true)
   const hasLoadedOnce = ref(false)
 
@@ -102,40 +110,38 @@ export function useTodayChallenges({ onUpdated } = {}) {
     return dayIndex % 2 === 0
   }
 
-  function isTodayCompleted(challenge) {
-    const userId = getUserId()
-    if (!userId || !challenge.participants) return false
-
-    const participant = challenge.participants.find((p) => {
-      const pUserId = getParticipantUserId(p)
-      return pUserId && pUserId.toString() === userId.toString()
-    })
-
-    if (!participant || !participant.completedDays || !Array.isArray(participant.completedDays)) {
-      return false
-    }
-
+  function getTodayDateStr() {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    const todayStr = toDateInputValue(today)
+    return toDateInputValue(today)
+  }
 
-    return participant.completedDays.some((date) => normalizeDateKey(date) === todayStr)
+  function getParticipantForChallenge(challenge) {
+    return findParticipantForUser(challenge, getUserId())
+  }
+
+  function isTodayCompleted(challenge) {
+    const participant = getParticipantForChallenge(challenge)
+    if (!participant) return false
+    return isDayEffectiveCompleted(participant, getTodayDateStr())
+  }
+
+  function getTodayDayStatus(challenge) {
+    const participant = getParticipantForChallenge(challenge)
+    if (!participant) return 'incomplete'
+
+    const todayStr = getTodayDateStr()
+    const source = getDayProtectionSource(participant, todayStr)
+
+    if (!source) return 'incomplete'
+    if (source === 'normal') return 'completed'
+    return 'protected'
   }
 
   function getChallengeCompletedDays(challenge) {
-    const userId = getUserId()
-    if (!userId || !challenge.participants) return 0
-
-    const participant = challenge.participants.find((p) => {
-      const pUserId = getParticipantUserId(p)
-      return pUserId && pUserId.toString() === userId.toString()
-    })
-
-    if (!participant || !participant.completedDays || !Array.isArray(participant.completedDays)) {
-      return 0
-    }
-
-    return participant.completedDays.length
+    const participant = getParticipantForChallenge(challenge)
+    if (!participant) return 0
+    return getEffectiveCompletedDays(participant).length
   }
 
   function getChallengeTotalDays(challenge) {
@@ -146,42 +152,52 @@ export function useTodayChallenges({ onUpdated } = {}) {
     )
   }
 
-  function loadTodaysChallenges(allChallenges, userId) {
-    challenges.value = allChallenges.filter((challenge) => {
-      if (isChallengeFinished(challenge)) return false
-      if (challenge.challengeType !== CHALLENGE_TYPES.HABIT) return false
+  function isParticipantHabitChallenge(challenge, userId) {
+    if (isChallengeFinished(challenge)) return false
+    if (challenge.challengeType !== CHALLENGE_TYPES.HABIT) return false
 
-      if (challenge.startDate) {
-        const startDate = new Date(challenge.startDate)
-        const today = new Date()
-        today.setHours(0, 0, 0, 0)
-        startDate.setHours(0, 0, 0, 0)
-        if (startDate > today) return false
-      }
+    if (challenge.startDate) {
+      const startDate = new Date(challenge.startDate)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      startDate.setHours(0, 0, 0, 0)
+      if (startDate > today) return false
+    }
 
-      if (!challenge.participants || challenge.participants.length === 0) {
-        return false
-      }
+    if (!challenge.participants || challenge.participants.length === 0) {
+      return false
+    }
 
-      const isParticipant = challenge.participants.some((p) => {
-        const pUserId = getParticipantUserId(p)
-        return pUserId && pUserId.toString() === userId.toString()
-      })
-
-      if (!isParticipant) {
-        return false
-      }
-
-      if (!isTodayValidForChallenge(challenge)) {
-        return false
-      }
-
-      return true
+    return challenge.participants.some((p) => {
+      const pUserId = getParticipantUserId(p)
+      return pUserId && pUserId.toString() === userId.toString()
     })
+  }
+
+  function isYesterdayIncompleteForChallenge(challenge) {
+    const participant = getParticipantForChallenge(challenge)
+    if (!participant) return false
+
+    const yesterdayStr = getYesterdayDateStr()
+    if (!isDateScheduledForChallenge(challenge, yesterdayStr)) return false
+
+    return !isDayEffectiveCompleted(participant, yesterdayStr)
+  }
+
+  function shouldShowSecondChance(challenge, { isSecondChanceWindow = false } = {}) {
+    if (!isSecondChanceWindow) return false
+    return getTodayDayStatus(challenge) === 'incomplete'
+  }
+
+  function loadTodaysChallenges(allChallenges, userId) {
+    const habits = allChallenges.filter((challenge) => isParticipantHabitChallenge(challenge, userId))
+    participantHabitChallenges.value = habits
+    challenges.value = habits.filter((challenge) => isTodayValidForChallenge(challenge))
   }
 
   function resetChallenges() {
     challenges.value = []
+    participantHabitChallenges.value = []
     loadingChallenges.value = false
     hasLoadedOnce.value = true
   }
@@ -194,6 +210,16 @@ export function useTodayChallenges({ onUpdated } = {}) {
   }
 
   const todaysChallenges = computed(() => challenges.value)
+
+  const incompleteTodayRitualsCount = computed(() => {
+    return todaysChallenges.value.filter((challenge) => getTodayDayStatus(challenge) === 'incomplete').length
+  })
+
+  const incompleteYesterdayRitualsCount = computed(() => {
+    return participantHabitChallenges.value.filter((challenge) => isYesterdayIncompleteForChallenge(challenge)).length
+  })
+
+  const isTodayFullyComplete = computed(() => incompleteTodayRitualsCount.value === 0)
 
   const tomorrowsChallenges = computed(() => {
     const userId = getUserId()
@@ -300,6 +326,12 @@ export function useTodayChallenges({ onUpdated } = {}) {
     resetChallenges,
     updateChallengeInList,
     isTodayCompleted,
+    getTodayDayStatus,
+    incompleteTodayRitualsCount,
+    incompleteYesterdayRitualsCount,
+    isTodayFullyComplete,
+    shouldShowSecondChance,
+    isYesterdayIncompleteForChallenge,
     isTodayValidForChallenge,
     isTomorrowValidForChallenge,
     toggleTodayCompletion,

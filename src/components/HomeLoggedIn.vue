@@ -15,10 +15,31 @@
       @inspiration="showInspiration"
     />
 
-    <v-tabs v-model="state.activeTab" class="home-tabs" bg-color="transparent">
-      <v-tab value="today">{{ t('home.loggedIn.tabs.today') }}</v-tab>
-      <v-tab value="tomorrow">{{ t('home.loggedIn.tabs.tomorrow') }}</v-tab>
-    </v-tabs>
+    <div class="home-tabs-row">
+      <v-tabs v-model="state.activeTab" class="home-tabs" bg-color="transparent">
+        <v-tab value="today">{{ t('home.loggedIn.tabs.today') }}</v-tab>
+        <v-tab value="tomorrow">{{ t('home.loggedIn.tabs.tomorrow') }}</v-tab>
+      </v-tabs>
+      <v-btn
+        v-if="state.activeTab === 'today' && freezeButtonConfig"
+        class="freeze-btn"
+        variant="flat"
+        height="64"
+        elevation="0"
+        :disabled="!hasEnoughSparksForFreeze || freezeLoading"
+        :loading="freezeLoading"
+        :title="!hasEnoughSparksForFreeze ? t('sparks.rituals.insufficientSparks') : ''"
+        @click="handleFreezeDay"
+      >
+        <v-icon class="mr-3" size="24">{{ freezeButtonConfig.icon }}</v-icon>
+        <span class="text-subtitle-1">{{ t(freezeButtonConfig.labelKey) }}</span>
+        <span class="freeze-day-cost">
+          <span>|</span>
+          <span>{{ FREEZE_COST }}</span>
+          <span class="sparks-icon">✦</span>
+        </span>
+      </v-btn>
+    </div>
 
     <v-window v-model="state.activeTab">
       <v-window-item value="today">
@@ -36,10 +57,16 @@
             :challenges="todaysChallenges"
             variant="today"
             :is-completed="isTodayCompleted"
+            :get-day-status="getTodayDayStatus"
             :get-completed-days="getChallengeCompletedDays"
             :get-total-days="getChallengeTotalDays"
+            :can-use-second-chance="hasEnoughSparksForSecondChance"
+            :show-second-chance="showSecondChanceForChallenge"
+            :second-chance-loading-id="secondChanceLoadingId"
+            :second-chance-cost="SECOND_CHANCE_COST"
             @navigate="navigateToChallenge"
             @toggle-completion="toggleTodayCompletion"
+            @second-chance="handleSecondChance"
           />
 
           <v-card
@@ -156,6 +183,12 @@ import { useTodayChallenges } from '../composables/useTodayChallenges'
 import { useTomorrowChecklist } from '../composables/useTomorrowChecklist'
 import { useCompletionCelebration } from '../composables/useCompletionCelebration'
 import { useHomeChallengeDialog } from '../composables/useHomeChallengeDialog'
+import {
+  useSparksRitualActions,
+  FREEZE_COST,
+  SECOND_CHANCE_COST
+} from '../composables/useSparksRitualActions'
+import { useRitualTimeWindows } from '../composables/useRitualTimeWindows'
 
 const { t, locale } = useI18n()
 const router = useRouter()
@@ -174,7 +207,14 @@ const state = reactive({
 
 const checklistRef = ref(null)
 const hasLoadedTodayStepsOnce = ref(false)
+const completedDates = ref(new Set())
 const refreshHomeDataRef = { current: async () => {} }
+
+const {
+  ritualTimePhase,
+  isSecondChanceWindow,
+  isYesterdayStreakBroken
+} = useRitualTimeWindows()
 
 const {
   loadingChallenges,
@@ -185,12 +225,81 @@ const {
   resetChallenges,
   updateChallengeInList,
   isTodayCompleted,
+  getTodayDayStatus,
+  incompleteTodayRitualsCount,
+  incompleteYesterdayRitualsCount,
+  isTodayFullyComplete,
+  shouldShowSecondChance,
   toggleTodayCompletion,
   getChallengeCompletedDays,
   getChallengeTotalDays
 } = useTodayChallenges({
   onUpdated: () => refreshHomeDataRef.current()
 })
+
+const {
+  freezeLoading,
+  secondChanceLoadingId,
+  hasEnoughSparksForFreeze,
+  hasEnoughSparksForSecondChance,
+  useSecondChance,
+  freezeDay
+} = useSparksRitualActions({
+  onUpdated: () => refreshHomeDataRef.current(),
+  updateChallengeInList
+})
+
+const freezeButtonConfig = computed(() => {
+  const phase = ritualTimePhase.value
+
+  if (phase === 'freeze_today') {
+    if (isTodayFullyComplete.value) return null
+    if (incompleteTodayRitualsCount.value < 2) return null
+
+    return {
+      target: 'today',
+      labelKey: 'sparks.rituals.freezeTodayButton',
+      icon: 'mdi-diamond-stone'
+    }
+  }
+
+  if (phase === 'save_yesterday') {
+    if (!isYesterdayStreakBroken(completedDates.value)) return null
+    if (incompleteYesterdayRitualsCount.value < 1) return null
+
+    return {
+      target: 'yesterday',
+      labelKey: 'sparks.rituals.saveYesterdayStreakButton',
+      icon: 'mdi-calendar-clock'
+    }
+  }
+
+  return null
+})
+
+function showSecondChanceForChallenge(challenge) {
+  return shouldShowSecondChance(challenge, {
+    isSecondChanceWindow: isSecondChanceWindow.value
+  })
+}
+
+async function handleFreezeDay() {
+  if (!freezeButtonConfig.value || !hasEnoughSparksForFreeze.value || freezeLoading.value) return
+  try {
+    await freezeDay({ target: freezeButtonConfig.value.target })
+  } catch {
+    // ritualError is set in composable
+  }
+}
+
+async function handleSecondChance(challenge) {
+  if (!hasEnoughSparksForSecondChance.value) return
+  try {
+    await useSecondChance(challenge)
+  } catch {
+    // ritualError is set in composable
+  }
+}
 
 const {
   tomorrowSteps,
@@ -266,20 +375,22 @@ function applyStreakFromData(checklists, allChallenges, userId) {
   const habitChallenges = allChallenges.filter(
     (challenge) => challenge.challengeType === CHALLENGE_TYPES.HABIT
   )
-  const completedDates = buildCompletedDateSet(checklists, habitChallenges, userId)
+  const completedDatesSet = buildCompletedDateSet(checklists, habitChallenges, userId)
+  completedDates.value = completedDatesSet
 
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
-  state.hasTodayCompletedTasks = completedDates.has(toDateInputValue(today))
-  state.streakDays = calculateStreakFromDate(today, completedDates)
+  state.hasTodayCompletedTasks = completedDatesSet.has(toDateInputValue(today))
+  state.streakDays = calculateStreakFromDate(today, completedDatesSet)
 
   const yesterday = new Date(today)
   yesterday.setDate(yesterday.getDate() - 1)
-  state.yesterdayStreakDays = calculateStreakFromDate(yesterday, completedDates)
+  state.yesterdayStreakDays = calculateStreakFromDate(yesterday, completedDatesSet)
 }
 
 function resetStreakState() {
+  completedDates.value = new Set()
   state.streakDays = 0
   state.yesterdayStreakDays = 0
   state.hasTodayCompletedTasks = false
@@ -746,8 +857,74 @@ watch(() => state.activeTab, (newTab) => {
   box-sizing: border-box;
 }
 
-.home-tabs {
+.home-tabs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   width: 100%;
+  margin-bottom: 4px;
+}
+
+@media (max-width: 959px) {
+  .home-tabs-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .home-tabs {
+    width: 100%;
+    flex: none;
+  }
+
+  .freeze-btn {
+    width: 100%;
+    align-self: flex-start;
+    max-width: 100%;
+  }
+}
+
+.freeze-btn {
+  background: linear-gradient(135deg, #6c47ff 0%, #a259ff 50%, #6c47ff 100%) !important;
+  color: #ffffff !important;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0.5px;
+  border-radius: 16px !important;
+  box-shadow: 0 0 20px 2px rgba(162, 89, 255, 0.4) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  transition: all 0.4s ease;
+  flex-shrink: 0;
+}
+
+.freeze-btn:hover:not(:disabled) {
+  box-shadow: 0 0 30px 5px rgba(162, 89, 255, 0.6) !important;
+  transform: translateY(-2px);
+}
+
+.freeze-btn:disabled {
+  opacity: 0.45;
+}
+
+.freeze-day-cost {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+  color: #ffc107;
+  font-weight: 800;
+}
+
+.freeze-day-cost .sparks-icon {
+  color: #ffc107;
+  font-size: 0.7rem;
+  filter: drop-shadow(0 0 4px rgba(255, 193, 7, 0.45));
+}
+
+.home-tabs {
+  width: auto;
+  flex: 1;
   align-self: flex-start;
 }
 

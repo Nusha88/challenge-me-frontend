@@ -27,16 +27,17 @@
           >
             <img :src="awaImage" alt="Awa" class="brand-logo" />
           </router-link>
-          <div
+          <button
             v-if="isLoggedIn"
+            type="button"
             class="sparks-container"
-            :aria-label="t('navigation.sparksAriaLabel', { count: userSparks })"
+            :aria-label="t('navigation.sparksInfoAriaLabel')"
+            @click="sparksInfoOpen = true"
           >
             <span class="sparks-icon">✦</span>
             <span class="sparks-count" :class="{ 'sparks-count--spent': sparksSpentAnimating }">{{ userSparks }}</span>
             <span v-if="spentDelta" class="sparks-spent-delta">{{ spentDelta }}</span>
-            <span class="sparks-label"> {{ t('navigation.sparksLabel') }}</span>
-          </div>
+          </button>
         </div>
         <div v-if="!isLoggedIn && route.path === '/' && mobile" class="d-flex align-center gap-2">
           <v-btn
@@ -108,6 +109,11 @@
         </v-btn>
       </div>
     </div>
+
+    <SparksInfoDialog
+      v-model="sparksInfoOpen"
+      :balance="userSparks"
+    />
   </v-app-bar>
 </template>
 
@@ -120,6 +126,7 @@ import { useUserStore } from '../../stores/user'
 import { APP_EVENTS, addAppEventListener, removeAppEventListener } from '../../utils/appEvents'
 import awaImage from '../../assets/awa.png'
 import StreakBadge from './StreakBadge.vue'
+import SparksInfoDialog from './SparksInfoDialog.vue'
 
 defineProps({
   isLoggedIn: { type: Boolean, default: false },
@@ -138,6 +145,7 @@ const { t } = useI18n()
 const { mobile } = useDisplay()
 const userStore = useUserStore()
 const userSparks = computed(() => userStore.userSparks)
+const sparksInfoOpen = ref(false)
 const sparksSpentAnimating = ref(false)
 const spentDelta = ref('')
 
@@ -256,11 +264,21 @@ onBeforeUnmount(() => {
   border: 1px solid rgba(255, 193, 7, 0.22);
   flex-shrink: 0;
   transition: background 0.2s ease, border-color 0.2s ease;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 .sparks-container:hover {
   background: rgba(255, 193, 7, 0.14);
   border-color: rgba(255, 193, 7, 0.38);
+}
+
+.sparks-container:focus-visible {
+  outline: 2px solid rgba(255, 193, 7, 0.55);
+  outline-offset: 2px;
 }
 
 .sparks-icon {

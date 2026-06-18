@@ -167,6 +167,11 @@ export const userService = {
     return api.post('/auth/sparks/manifest', { type, challengeId }, {
       headers: userService._clientDayHeaders()
     })
+  },
+  freezeDay: ({ target = 'today' } = {}) => {
+    return api.post('/auth/sparks/freeze-day', { target }, {
+      headers: userService._clientDayHeaders()
+    })
   }
 }
 
@@ -188,6 +193,11 @@ export const challengeService = {
   },
   extendChallenge: (id) => {
     return api.post(`/challenges/${id}/extend`, {}, {
+      headers: userService._clientDayHeaders()
+    })
+  },
+  secondChance: (id) => {
+    return api.post(`/challenges/${id}/second-chance`, {}, {
       headers: userService._clientDayHeaders()
     })
   },

@@ -26,6 +26,20 @@ export function buildCompletedDateSet(checklists, habitChallenges, userId) {
         completedDates.add(dateStr)
       }
     })
+
+    participant?.frozenDays?.forEach((frozenDate) => {
+      const dateStr = normalizeDateKey(frozenDate)
+      if (dateStr) {
+        completedDates.add(dateStr)
+      }
+    })
+
+    participant?.secondChanceDays?.forEach((secondChanceDate) => {
+      const dateStr = normalizeDateKey(secondChanceDate)
+      if (dateStr) {
+        completedDates.add(dateStr)
+      }
+    })
   })
 
   return completedDates

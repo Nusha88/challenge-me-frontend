@@ -3,6 +3,7 @@ import { useI18n } from 'vue-i18n'
 import { challengeService } from '../services/api'
 import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
 import { getScheduledDaysCount, normalizeDateKey, toDateInputValue } from '../utils/dateUtils'
+import { getEffectiveCompletedDays } from '../utils/participantDays'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 
 function getParticipantUserId(participant) {
@@ -50,7 +51,7 @@ export function useChallengeCardProgress(props, emit) {
 
   const targetCompletedDateSet = computed(() => {
     return new Set(
-      (targetParticipant.value?.completedDays || [])
+      getEffectiveCompletedDays(targetParticipant.value)
         .map((day) => normalizeDateKey(day))
         .filter(Boolean)
     )
@@ -58,7 +59,7 @@ export function useChallengeCardProgress(props, emit) {
 
   const currentUserCompletedDateSet = computed(() => {
     return new Set(
-      (currentUserParticipant.value?.completedDays || [])
+      getEffectiveCompletedDays(currentUserParticipant.value)
         .map((day) => normalizeDateKey(day))
         .filter(Boolean)
     )
@@ -147,7 +148,7 @@ export function useChallengeCardProgress(props, emit) {
       return resultActionsStats.value.done
     }
 
-    return targetParticipant.value?.completedDays?.length || 0
+    return getEffectiveCompletedDays(targetParticipant.value).length
   })
 
   const todayString = computed(() => toDateInputValue(new Date()))

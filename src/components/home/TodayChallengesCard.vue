@@ -9,19 +9,19 @@
             :key="challenge._id"
             class="challenge-card"
             :class="{
-              completed: variant === 'today' && isCompleted(challenge),
+              completed: variant === 'today' && isRowCompleted(challenge),
               'challenge-card-disabled': variant === 'tomorrow'
             }"
             @click="variant === 'today' && $emit('navigate', challenge)"
           >
             <div
               class="challenge-icon"
-              :class="{ 'has-hover': variant === 'today' && !isCompleted(challenge) }"
-              @click.stop="variant === 'today' && $emit('toggle-completion', challenge, !isCompleted(challenge))"
+              :class="{ 'has-hover': variant === 'today' && getDayStatus(challenge) === 'incomplete' }"
+              @click.stop="variant === 'today' && getDayStatus(challenge) === 'incomplete' && $emit('toggle-completion', challenge, true)"
             >
               <template v-if="variant === 'today'">
                 <v-icon
-                  v-if="isCompleted(challenge)"
+                  v-if="isRowCompleted(challenge)"
                   size="small"
                   color="#7048e8"
                 >mdi-check-circle</v-icon>
@@ -35,16 +35,39 @@
             <span
               class="challenge-text"
               :class="{
-                completed: variant === 'today' && isCompleted(challenge),
+                completed: variant === 'today' && isRowCompleted(challenge),
                 'challenge-text-disabled': variant === 'tomorrow'
               }"
             >
               {{ challenge.title }}
             </span>
+            <template v-if="variant === 'today'">
+              <span
+                v-if="getDayStatus(challenge) === 'protected'"
+                class="protected-badge"
+              >
+                {{ t('sparks.rituals.protectedBadge') }}
+              </span>
+              <button
+                v-else-if="showSecondChance(challenge)"
+                type="button"
+                class="second-chance-btn"
+                :disabled="!canUseSecondChance || secondChanceLoadingId === challenge._id"
+                :title="!canUseSecondChance ? t('sparks.rituals.insufficientSparks') : ''"
+                @click.stop="$emit('second-chance', challenge)"
+              >
+                <span>{{ t('sparks.rituals.secondChanceButton') }}</span>
+                <span class="second-chance-cost">
+                  <span>|</span>
+                  <span>{{ secondChanceCost }}</span>
+                  <span class="sparks-icon">✦</span>
+                </span>
+              </button>
+            </template>
             <span
               v-if="variant === 'today'"
               class="challenge-progress"
-              :class="{ completed: isCompleted(challenge) }"
+              :class="{ completed: isRowCompleted(challenge) }"
             >
               {{ getCompletedDays(challenge) }} / {{ getTotalDays(challenge) }}
             </span>
@@ -70,7 +93,7 @@
 <script setup>
 import { useI18n } from 'vue-i18n'
 
-defineProps({
+const props = defineProps({
   challenges: { type: Array, default: () => [] },
   variant: {
     type: String,
@@ -78,13 +101,29 @@ defineProps({
     validator: (value) => ['today', 'tomorrow'].includes(value)
   },
   isCompleted: { type: Function, default: () => false },
+  getDayStatus: { type: Function, default: () => 'incomplete' },
+  showSecondChance: {
+    type: Function,
+    default: (challenge) => {
+      void challenge
+      return false
+    }
+  },
   getCompletedDays: { type: Function, default: () => 0 },
-  getTotalDays: { type: Function, default: () => 0 }
+  getTotalDays: { type: Function, default: () => 0 },
+  canUseSecondChance: { type: Boolean, default: false },
+  secondChanceLoadingId: { type: String, default: null },
+  secondChanceCost: { type: Number, default: 30 }
 })
 
-defineEmits(['navigate', 'toggle-completion'])
+defineEmits(['navigate', 'toggle-completion', 'second-chance'])
 
 const { t } = useI18n()
+
+function isRowCompleted(challenge) {
+  const status = props.getDayStatus(challenge)
+  return status === 'completed' || status === 'protected'
+}
 </script>
 
 <style scoped>
@@ -111,6 +150,19 @@ const { t } = useI18n()
 
   .challenge-card {
     padding: 10px 14px !important;
+  }
+
+  .challenge-card:has(.second-chance-btn) {
+    position: relative;
+    padding-top: 38px !important;
+  }
+
+  .second-chance-btn {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    margin-left: 0;
+    z-index: 1;
   }
 }
 
@@ -204,8 +256,70 @@ const { t } = useI18n()
   font-weight: 600;
   color: #4FD1C5;
   opacity: 0.8;
-  margin-left: auto;
+  margin-left: 8px;
   white-space: nowrap;
+}
+
+.second-chance-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding: 4px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 82, 82, 0.75);
+  background: rgba(255, 82, 82, 0.08);
+  color: #ffffff;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(255, 82, 82, 0.35);
+  transition: background 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  flex-shrink: 0;
+}
+
+.second-chance-btn:hover:not(:disabled) {
+  background: rgba(255, 82, 82, 0.16);
+  box-shadow: 0 0 14px rgba(255, 82, 82, 0.55);
+}
+
+.second-chance-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.second-chance-cost {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #ffc107;
+  font-weight: 800;
+}
+
+.second-chance-cost .sparks-icon {
+  color: #ffc107;
+  font-size: 0.7rem;
+  filter: drop-shadow(0 0 4px rgba(255, 193, 7, 0.45));
+}
+
+.protected-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: auto;
+  padding: 4px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(79, 209, 197, 0.65);
+  background: rgba(60, 96, 232, 0.12);
+  color: #4fd1c5;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  box-shadow: 0 0 12px rgba(60, 96, 232, 0.45);
+  flex-shrink: 0;
 }
 
 .challenge-card.completed {

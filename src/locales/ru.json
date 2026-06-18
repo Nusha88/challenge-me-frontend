@@ -24,7 +24,41 @@
     "interested": "Интересно",
     "reportBug": "Сообщить об ошибке",
     "sparksAriaLabel": "Баланс искр: {count}",
-    "sparksLabel": "Искры"
+    "sparksLabel": "Искры",
+    "sparksInfoAriaLabel": "Узнать об Искрах"
+  },
+  "sparks": {
+    "info": {
+      "title": "Что такое Искры?",
+      "description": "Искры — игровая валюта, которая помогает поддерживать твой прогресс.",
+      "currentBalance": "Баланс: {count}",
+      "usesTitle": "На что можно потратить",
+      "freezeDay": "Заморозка дня",
+      "freezeDayHint": "Сохрани серию, если пропустил день",
+      "secondChance": "Второй шанс",
+      "secondChanceHint": "Восстанови пропущенный день в миссии",
+      "customization": "Продление и апгрейд миссий",
+      "customizationHint": "Продли или измени завершённую миссию"
+    },
+    "rituals": {
+      "freezeDayButton": "Заморозить день",
+      "freezeTodayButton": "ЗАМОРОЗИТЬ СЕГОДНЯ",
+      "saveYesterdayStreakButton": "СПАСТИ ВЧЕРАШНИЙ СТРИК",
+      "secondChanceButton": "Второй шанс",
+      "protectedBadge": "Защищён",
+      "freezeConfirm": "Потратить {cost} искр, чтобы заморозить сегодня для всех невыполненных ритуалов?",
+      "secondChanceConfirm": "Потратить {cost} искр, чтобы защитить сегодняшний прогресс в этом ритуале?",
+      "insufficientSparks": "Недостаточно искр",
+      "freezeError": "Не удалось заморозить день",
+      "freezeWindowError": "Заморозка сегодня доступна только с 22:00 до 23:59",
+      "saveYesterdayWindowError": "Спасение вчерашнего стрика доступно только с 00:00 до 09:59",
+      "secondChanceError": "Не удалось применить второй шанс",
+      "secondChanceWindowError": "Второй шанс доступен только с 22:00 до 23:59",
+      "calendar": {
+        "frozen": "Заморожен",
+        "secondChance": "Второй шанс"
+      }
+    }
   },
   "home": {
     "welcome": "Добро пожаловать в Ignite",

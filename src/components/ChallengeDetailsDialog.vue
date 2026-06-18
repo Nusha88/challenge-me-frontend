@@ -150,6 +150,13 @@
                       {{ getDayCellTooltip(day) }}
                     </v-tooltip>
                     <span class="day-number">{{ day.number }}</span>
+                    <v-icon
+                      v-if="isDayProtected(day)"
+                      icon="mdi-shield-check"
+                      size="x-small"
+                      class="absolute-shield"
+                      color="warning"
+                    />
                     <v-icon 
                       v-if="day.isToday && day.isUserCompleted" 
                       size="12" 
@@ -163,6 +170,7 @@
 
                 <div v-if="!isFinished" class="calendar-legend mt-8">
                   <div class="legend-item"><span class="dot completed"></span> {{ t('challenges.completed') }}</div>
+                  <div class="legend-item"><span class="dot protected"></span> {{ t('sparks.rituals.protectedBadge') }}</div>
                   <div class="legend-item"><span class="dot missed"></span> {{ t('challenges.missed') }}</div>
                   <div class="legend-item"><span class="dot today"></span> {{ t('challenges.today') }}</div>
                 </div>
@@ -449,8 +457,8 @@
   justify-content: center;
   font-weight: 600;
   cursor: pointer;
-  transition: 0.2s;
   position: relative;
+  transition: all 0.2s ease;
 }
 .day-cell.is-disabled {
   cursor: not-allowed;
@@ -474,7 +482,18 @@
     inset 0 0 8px rgba(79, 255, 176, 0.2);
 }
 
-.day-cell.is-today:not(.is-completed) {
+.day-cell.protected-day {
+  background-color: rgba(255, 193, 7, 0.1);
+  border-color: rgba(255, 193, 7, 0.5) !important;
+}
+
+.absolute-shield {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+}
+
+.day-cell.is-today:not(.is-completed):not(.protected-day) {
   border-color: #F4A782 !important;
   color: #F4A782 !important;
 }
@@ -713,6 +732,11 @@
   box-shadow: 0 0 8px rgba(79, 209, 197, 0.3);
 }
 
+.dot.protected {
+  background-color: rgba(255, 193, 7, 0.1) !important;
+  border-color: rgba(255, 193, 7, 0.5) !important;
+}
+
 .dot.missed {
   background: rgba(255, 255, 255, 0.02) !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
@@ -724,7 +748,7 @@
   box-shadow: 0 0 10px rgba(244, 167, 130, 0.4);
 }
 
-.day-cell.is-missed:not(.is-completed) {
+.day-cell.is-missed:not(.is-completed):not(.protected-day) {
   background: rgba(255, 255, 255, 0.02) !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
@@ -832,6 +856,9 @@ import { fireConfetti } from '../utils/confetti'
 import { getPaceStatus } from '../utils/challengePace'
 import { isChallengeEnded, isChallengeFinished } from '../utils/challengeStatus'
 import { getScheduledDaysCount, normalizeDateKey, toDateInputValue } from '../utils/dateUtils'
+import {
+  getEffectiveCompletedDays
+} from '../utils/participantDays'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 import { getLevelFromXp, getLevelInfo } from '../utils/levelSystem'
 import { Trophy } from 'lucide-vue-next'
@@ -1146,6 +1173,18 @@ const calendarDays = computed(() => {
   const normalizedCompletedDays = completedDays
     .map((day) => normalizeDateKey(day))
     .filter(Boolean)
+
+  const participant = props.challenge.participants?.find((p) => {
+    const userId = p.userId?._id || p.userId || p._id
+    return userId && currentUserId.value && userId.toString() === currentUserId.value.toString()
+  })
+
+  const frozenDayKeys = (participant?.frozenDays || [])
+    .map((day) => normalizeDateKey(day))
+    .filter(Boolean)
+  const secondChanceDayKeys = (participant?.secondChanceDays || [])
+    .map((day) => normalizeDateKey(day))
+    .filter(Boolean)
   
   const startForSchedule = new Date(start)
   startForSchedule.setHours(0, 0, 0, 0)
@@ -1154,7 +1193,10 @@ const calendarDays = computed(() => {
   while (current <= end) {
     const dateStr = toDateInputValue(current)
     const completedParticipantsCount = getCompletedParticipantsCountForDay(dateStr)
-    const isUserCompleted = normalizedCompletedDays.includes(dateStr)
+    const isUserNormalCompleted = normalizedCompletedDays.includes(dateStr)
+    const isUserFrozen = frozenDayKeys.includes(dateStr)
+    const isUserSecondChance = secondChanceDayKeys.includes(dateStr)
+    const isUserCompleted = isUserNormalCompleted || isUserFrozen || isUserSecondChance
     const isToday = dateStr === todayStr
     const isLocked = current > today
     const isPast = current < today
@@ -1174,6 +1216,9 @@ const calendarDays = computed(() => {
       date: dateStr,
       number: dayNumber,
       isUserCompleted,
+      isUserNormalCompleted,
+      isUserFrozen,
+      isUserSecondChance,
       completedParticipantsCount,
       isToday,
       isLocked,
@@ -1451,8 +1496,13 @@ function getCellColor(active, total) {
   return `rgba(79, 209, 197, ${opacity})`
 }
 
+function isDayProtected(day) {
+  return !day.isUserNormalCompleted && (day.isUserFrozen || day.isUserSecondChance)
+}
+
 function getDayCellStyle(day) {
   if (day.isLocked || day.isScheduled === false) return undefined
+  if (isDayProtected(day)) return undefined
   const total = totalParticipantsCount.value
   if (total <= 0) return undefined
   const bg = getCellColor(day.completedParticipantsCount, total)
@@ -1470,7 +1520,8 @@ function getDayCellTooltip(day) {
 
 function getDayClass(day) {
   return {
-    'is-completed': day.isUserCompleted,
+    'is-completed': day.isUserNormalCompleted,
+    'protected-day': isDayProtected(day),
     'is-missed': day.isMissed,
     'is-today': day.isToday,
     'is-locked': day.isLocked,
@@ -1482,22 +1533,22 @@ function getCompletedParticipantsCountForDay(dateStr) {
   if (!props.challenge?.participants || !Array.isArray(props.challenge.participants)) return 0
 
   return props.challenge.participants.reduce((count, participant) => {
-    const participantId = participant?.userId?._id || participant?.userId || participant?._id || participant?.id
-    const participantCompletedDays = Array.isArray(participant?.completedDays) ? participant.completedDays : []
-
-    
-    const sourceDays =
-      participantId &&
+    const participantUserId = participant?.userId?._id || participant?.userId || participant?._id || participant?.id
+    const isCurrentUser =
+      participantUserId &&
       currentUserId.value &&
-      participantId.toString() === currentUserId.value.toString()
-        ? (localCurrentUserCompletedDays.value.length > 0 ? localCurrentUserCompletedDays.value : participantCompletedDays)
-        : participantCompletedDays
+      participantUserId.toString() === currentUserId.value.toString()
 
-    const normalizedDays = sourceDays
-      .map(normalizeDateKey)
-      .filter(Boolean)
+    let sourceParticipant = participant
+    if (isCurrentUser && localCurrentUserCompletedDays.value.length > 0) {
+      sourceParticipant = {
+        ...participant,
+        completedDays: localCurrentUserCompletedDays.value
+      }
+    }
 
-    return normalizedDays.includes(dateStr) ? count + 1 : count
+    const effectiveDays = getEffectiveCompletedDays(sourceParticipant)
+    return effectiveDays.includes(dateStr) ? count + 1 : count
   }, 0)
 }
 
@@ -1533,6 +1584,7 @@ function onCalendarOutsideClick(event) {
 
 async function toggleDay(day) {
   if (isFinished.value || !day.isToday || !isCurrentUserParticipant.value || day.isScheduled === false) return
+  if (day.isUserFrozen || day.isUserSecondChance) return
   
   const completedDays = localCurrentUserCompletedDays.value.length > 0 
     ? [...localCurrentUserCompletedDays.value]
