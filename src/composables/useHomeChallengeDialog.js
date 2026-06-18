@@ -1,12 +1,14 @@
 import { ref } from 'vue'
 import { challengeService } from '../services/api'
 import { openChallengeDetails } from '../utils/openChallengeDetails'
+import { useXpAwardFeedback } from './useXpAwardFeedback'
 
 function getParticipantUserId(participant) {
   return participant?.userId?._id || participant?.userId || participant?._id
 }
 
 export function useHomeChallengeDialog({ getUserId, updateChallengeInList, onRefresh } = {}) {
+  const { applyRewardResponse } = useXpAwardFeedback()
   const detailsDialogOpen = ref(false)
   const selectedChallenge = ref(null)
   const selectedIsOwner = ref(false)
@@ -76,6 +78,7 @@ export function useHomeChallengeDialog({ getUserId, updateChallengeInList, onRef
     selectedJoinLoading.value = true
     try {
       const response = await challengeService.joinChallenge(selectedChallenge.value._id, { userId })
+      applyRewardResponse(response)
       if (response.data?.challenge) {
         selectedChallenge.value = response.data.challenge
         syncParticipantFlags()

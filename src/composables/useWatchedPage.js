@@ -3,9 +3,11 @@ import { useI18n } from 'vue-i18n'
 import { challengeService } from '../services/api'
 import { useWatchedChallengesStore } from '../stores/watchedChallenges'
 import { useWatchedActivityFeed } from './useWatchedActivityFeed'
+import { useXpAwardFeedback } from './useXpAwardFeedback'
 
 export function useWatchedPage(currentUserId) {
   const { t } = useI18n()
+  const { applyRewardResponse } = useXpAwardFeedback()
   const watchedStore = useWatchedChallengesStore()
   const { feedActivities, loadFeedActivities } = useWatchedActivityFeed()
 
@@ -55,6 +57,7 @@ export function useWatchedPage(currentUserId) {
 
     try {
       const response = await challengeService.joinChallenge(challenge._id, { userId })
+      applyRewardResponse(response)
       if (response.data?.challenge) {
         updateChallengeInList(response.data.challenge)
         if (selectedChallenge?.value?._id === challenge._id) {

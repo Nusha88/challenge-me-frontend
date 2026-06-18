@@ -126,6 +126,9 @@ export const userService = {
   getProfile: () => {
     return api.get('/auth/profile')
   },
+  getReferralStats: () => {
+    return api.get('/auth/referrals/me')
+  },
   updateProfile: (userData) => {
     return api.put('/auth/profile', userData)
   },

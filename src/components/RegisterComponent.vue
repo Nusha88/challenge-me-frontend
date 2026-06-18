@@ -130,17 +130,17 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
-import { authService } from '../services/api'
+import { ref, watch, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useUserStore } from '../stores/user'
-import GradientButton from './GradientButton.vue'
+import { authService } from '../services/api'
 import SuccessDialog from './SuccessDialog.vue'
 import swardImage from '../assets/sward.png'
 import registerBgImage from '../assets/register.png'
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
 const loading = ref(false)
 const error = ref('')
@@ -159,6 +159,36 @@ const nameTouched = ref(false)
 const emailTouched = ref(false)
 const passwordTouched = ref(false)
 const confirmTouched = ref(false)
+const referralCode = ref('')
+
+const REFERRAL_STORAGE_KEY = 'referralCode'
+
+function captureReferralCode() {
+  const fromQuery = typeof route.query.ref === 'string' ? route.query.ref.trim() : ''
+  const fromStorage = sessionStorage.getItem(REFERRAL_STORAGE_KEY) || ''
+  const code = (fromQuery || fromStorage).toUpperCase()
+
+  if (code) {
+    referralCode.value = code
+    sessionStorage.setItem(REFERRAL_STORAGE_KEY, code)
+  }
+}
+
+onMounted(() => {
+  if (userStore.isLoggedIn || localStorage.getItem('token')) {
+    router.replace('/today')
+    return
+  }
+
+  captureReferralCode()
+})
+
+watch(
+  () => route.query.ref,
+  () => {
+    captureReferralCode()
+  }
+)
 
 const isEmpty = (value) => value === '' || value === null || value === undefined
 
@@ -309,11 +339,17 @@ const handleSubmit = async () => {
   const trimmedEmail = formData.value.email.trim().toLowerCase()
 
   try {
-    const response = await authService.register({
+    const payload = {
       name: trimmedName,
       email: trimmedEmail,
       password: formData.value.password
-    })
+    }
+
+    if (referralCode.value) {
+      payload.referralCode = referralCode.value
+    }
+
+    const response = await authService.register(payload)
     // Store user data and token in Pinia store
     userStore.setUser(response.data.user)
     userStore.setToken(response.data.token)
@@ -332,6 +368,7 @@ const handleSubmit = async () => {
 
 function closeSuccessModal() {
   showSuccess.value = false
+  sessionStorage.removeItem(REFERRAL_STORAGE_KEY)
   if (localStorage.getItem('onboarding_complete') !== 'true') {
     localStorage.setItem('onboarding_pending', 'true')
   }

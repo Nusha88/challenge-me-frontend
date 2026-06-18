@@ -27,6 +27,27 @@
     "sparksLabel": "Искры",
     "sparksInfoAriaLabel": "Узнать об Искрах"
   },
+  "referral": {
+    "sidebarCta": "Пригласить друга",
+    "sidebarSpark": "✦",
+    "invitedStatus": "Приглашено: {count}/{max}",
+    "modalTitle": "Приведи друга — заберите по 50 Искр оба!",
+    "modalSubtitle": "Поделись персональной ссылкой. Когда друг примет первую миссию, вы оба получите по",
+    "yourLink": "Твоя ссылка",
+    "copyLink": "Скопировать ссылку",
+    "copied": "Скопировано!",
+    "shareTelegram": "Telegram",
+    "shareWhatsApp": "WhatsApp",
+    "welcomeTitle": "Добро пожаловать!",
+    "welcomeHook": "Прими свой первый вызов, чтобы ты и твой друг получили по 50 Искр!",
+    "welcomeTitleSignup": "Добро пожаловать в Ignite!",
+    "welcomeHookSignup": "Мы дарим тебе 100 Искр на развитие. Создай свою первую миссию, чтобы активировать бонус и начать свой путь с преимуществом!",
+    "welcomeCta": "Создать миссию",
+    "welcomeDismiss": "Позже",
+    "notificationTitle": "Друг принял вызов!",
+    "notificationText": "Твой друг {name} принял вызов! Вы оба получили по 50 Искр. Продолжайте в том же духе!",
+    "shareMessage": "Присоединяйся ко мне в Ignite — давай выполнять миссии вместе!"
+  },
   "sparks": {
     "info": {
       "title": "Что такое Искры?",

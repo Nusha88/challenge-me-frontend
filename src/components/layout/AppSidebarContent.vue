@@ -112,7 +112,28 @@
           </template>
           <v-list-item-title>{{ t('navigation.allUsers') }}</v-list-item-title>
         </v-list-item>
+
+        <div v-if="showReferralUi" class="sidebar-referral-block">
+          <button type="button" class="sidebar-referral-btn" @click="openReferralDialog">
+            <v-icon size="16" class="sidebar-referral-icon">mdi-gift</v-icon>
+            <span class="sidebar-referral-label">{{ t('referral.sidebarCta') }}</span>
+            <span class="sidebar-referral-reward">+50</span>
+            <span class="sidebar-referral-spark">{{ t('referral.sidebarSpark') }}</span>
+          </button>
+          <div class="sidebar-referral-status">
+            {{ t('referral.invitedStatus', { count: referralInvitedCount, max: referralMaxInvites }) }}
+          </div>
+        </div>
       </div>
+
+      <InviteFriendDialog
+        v-model="referralDialogOpen"
+        :referral-link="referralLink"
+        :copy-feedback="referralCopyFeedback"
+        @copy-link="copyReferralLink"
+        @share-telegram="openTelegramShare"
+        @share-whatsapp="openWhatsAppShare"
+      />
 
       <div class="menu-divider"></div>
 
@@ -134,8 +155,11 @@
 </template>
 
 <script setup>
+import { computed, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Sparkles, Mountain, Compass, Eye, Trophy, Star, Globe2, LogOut } from 'lucide-vue-next'
+import InviteFriendDialog from './InviteFriendDialog.vue'
+import { useReferralProgram } from '../../composables/useReferralProgram'
 
 const props = defineProps({
   userName: { type: String, default: '' },
@@ -153,6 +177,33 @@ const props = defineProps({
 const emit = defineEmits(['profile', 'logout', 'navigate'])
 
 const { t } = useI18n()
+
+const {
+  stats: referralStats,
+  dialogOpen: referralDialogOpen,
+  copyFeedback: referralCopyFeedback,
+  showReferralUi,
+  loadReferralStats,
+  openDialog: openReferralDialog,
+  copyReferralLink,
+  openTelegramShare,
+  openWhatsAppShare,
+  setupListeners,
+  teardownListeners
+} = useReferralProgram()
+
+const referralLink = computed(() => referralStats.value.referralLink || '')
+const referralInvitedCount = computed(() => referralStats.value.invitedCount || 0)
+const referralMaxInvites = computed(() => referralStats.value.maxInvites || 5)
+
+onMounted(() => {
+  setupListeners()
+  loadReferralStats()
+})
+
+onBeforeUnmount(() => {
+  teardownListeners()
+})
 
 function getUserInitials(name) {
   if (!name) return '?'
@@ -448,5 +499,67 @@ function handleNavClick() {
 
 .is-mobile .sidebar-menu-card {
   margin: 0 16px 16px 16px !important;
+}
+
+.sidebar-referral-block {
+  margin: 8px 12px 4px;
+  padding: 0 4px;
+}
+
+.is-mobile .sidebar-referral-block {
+  margin: 8px 16px 4px;
+}
+
+.sidebar-referral-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: nowrap;
+  gap: 4px;
+  width: 100%;
+  padding: 10px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  background: linear-gradient(135deg, #4FD1C5 0%, #38B2AC 100%);
+  color: #0F172A;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(79, 209, 197, 0.35);
+  transition: all 0.25s ease;
+}
+
+.sidebar-referral-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 18px rgba(79, 209, 197, 0.55);
+  filter: brightness(1.05);
+}
+
+.sidebar-referral-icon {
+  flex-shrink: 0;
+}
+
+.sidebar-referral-label,
+.sidebar-referral-reward,
+.sidebar-referral-spark {
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.sidebar-referral-spark {
+  font-size: 0.7rem;
+}
+
+.sidebar-referral-status {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: 0.3px;
 }
 </style>

@@ -108,11 +108,13 @@ import ResultSettingsSection from './challenge-form/ResultSettingsSection.vue'
 import { fireConfetti } from '../utils/confetti'
 import { toDateInputValue, addDays } from '../utils/dateUtils'
 import { useRestartChallengeDraft } from '../composables/useRestartChallengeDraft'
+import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 
 const router = useRouter()
 const { t } = useI18n()
 const userStore = useUserStore()
+const { applyRewardResponse } = useXpAwardFeedback()
 const {
   loadRestartDraft,
   getRestartedChallengeId,
@@ -450,6 +452,7 @@ function triggerHapticFeedback(pattern = 50) {
 }
 
 async function handleCreateSuccess(response) {
+  applyRewardResponse(response)
   const challengeId = getCreatedChallengeId(response)
 
   if (challengeId) {

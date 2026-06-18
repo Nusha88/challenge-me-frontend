@@ -27,6 +27,27 @@
     "sparksLabel": "Sparks",
     "sparksInfoAriaLabel": "Learn about Sparks"
   },
+  "referral": {
+    "sidebarCta": "Invite a friend",
+    "sidebarSpark": "✦",
+    "invitedStatus": "Invited: {count}/{max}",
+    "modalTitle": "Bring a friend — you both get 50 Sparks!",
+    "modalSubtitle": "Share your personal link. When your friend joins their first mission, you both earn",
+    "yourLink": "Your link",
+    "copyLink": "Copy link",
+    "copied": "Copied!",
+    "shareTelegram": "Telegram",
+    "shareWhatsApp": "WhatsApp",
+    "welcomeTitle": "Welcome, hero!",
+    "welcomeHook": "Accept your first challenge so you and your friend both get 50 Sparks!",
+    "welcomeTitleSignup": "Welcome to Ignite!",
+    "welcomeHookSignup": "We're giving you 100 Sparks to fuel your growth. Create your first mission to activate the bonus and start your journey with an advantage!",
+    "welcomeCta": "Start a mission",
+    "welcomeDismiss": "Later",
+    "notificationTitle": "Friend joined!",
+    "notificationText": "Your friend {name} accepted a challenge! You both received 50 Sparks. Keep it up!",
+    "shareMessage": "Join me on Ignite and let's complete missions together!"
+  },
   "sparks": {
     "info": {
       "title": "What are Sparks?",

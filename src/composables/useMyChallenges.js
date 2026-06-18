@@ -4,9 +4,11 @@ import { challengeService } from '../services/api'
 import { useWatchedChallengesStore } from '../stores/watchedChallenges'
 import { isChallengeFinished, isChallengeUpcoming } from '../utils/challengeStatus'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
+import { useXpAwardFeedback } from './useXpAwardFeedback'
 
 export function useMyChallenges(currentUserId) {
   const { t } = useI18n()
+  const { applyRewardResponse } = useXpAwardFeedback()
   const watchedStore = useWatchedChallengesStore()
 
   const challenges = ref([])
@@ -145,7 +147,8 @@ export function useMyChallenges(currentUserId) {
     error.value = ''
 
     try {
-      await challengeService.joinChallenge(challenge._id, { userId })
+      const response = await challengeService.joinChallenge(challenge._id, { userId })
+      applyRewardResponse(response)
       await refreshChallengesAfterMembershipChange(challenge._id)
     } catch (err) {
       error.value = err.response?.data?.message || t('notifications.joinError')

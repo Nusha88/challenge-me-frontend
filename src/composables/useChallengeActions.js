@@ -2,6 +2,7 @@ import { ref, unref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { challengeService } from '../services/api'
 import { useWatchedChallengesStore } from '../stores/watchedChallenges'
+import { useXpAwardFeedback } from './useXpAwardFeedback'
 
 export function useChallengeActions({
   challenges,
@@ -12,6 +13,7 @@ export function useChallengeActions({
   onAfterJoin
 }) {
   const { t } = useI18n()
+  const { applyRewardResponse } = useXpAwardFeedback()
   const watchedStore = useWatchedChallengesStore()
 
   const joiningId = ref(null)
@@ -107,6 +109,7 @@ export function useChallengeActions({
 
     try {
       const response = await serviceCall(challenge._id, { userId })
+      applyRewardResponse(response)
       if (
         response?.data?.challenge &&
         selectedChallengeRef &&

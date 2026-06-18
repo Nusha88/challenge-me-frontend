@@ -111,6 +111,14 @@ function handleNotificationClick(notification) {
     return
   }
 
+  if (notification.type === 'referral_completed') {
+    const friendId = notification.fromUserId?._id || notification.fromUserId
+    if (friendId) {
+      router.push(`/heroes/${friendId}`)
+    }
+    return
+  }
+
   const challengeId = notification.challengeId?._id || notification.challengeId
   if (!challengeId) return
 

@@ -38,6 +38,12 @@ function formatDate(dateString) {
       >
         <v-icon size="22" color="white">mdi-weather-sunset-up</v-icon>
       </div>
+      <div
+        v-else-if="notification.type === 'referral_completed'"
+        class="avatar-placeholder referral-avatar"
+      >
+        <v-icon size="22" color="white">mdi-gift</v-icon>
+      </div>
       <template v-else>
         <img
           v-if="notification.fromUserId?.avatarUrl"
@@ -129,6 +135,10 @@ function formatDate(dateString) {
 
 .recap-avatar {
   background: linear-gradient(135deg, #3c60e8 0%, #7048e8 100%);
+}
+
+.referral-avatar {
+  background: linear-gradient(135deg, #4fd1c5 0%, #38b2ac 100%);
 }
 
 .type-icon-small {

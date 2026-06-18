@@ -10,6 +10,8 @@ import XpAwardToast from './XpAwardToast.vue'
 import AppHeader from './layout/AppHeader.vue'
 import AppSidebar from './layout/AppSidebar.vue'
 import MobileFab from './layout/MobileFab.vue'
+import ReferralWelcomeDialog from './layout/ReferralWelcomeDialog.vue'
+import { userService } from '../services/api'
 import { useUnreadNotifications } from '../composables/useUnreadNotifications'
 import { useUserStreak } from '../composables/useUserStreak'
 import { usePushNotifications } from '../composables/usePushNotifications'
@@ -22,7 +24,7 @@ import { clearAppBadge } from '../utils/appBadge'
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
-const { mobile, mdAndUp } = useDisplay()
+const { mobile } = useDisplay()
 const { startTour } = useOnboarding()
 
 const isAuthPage = computed(() => {
@@ -62,6 +64,9 @@ const {
 
 const drawerOpen = ref(false)
 const onboardingStarted = ref(false)
+const referralWelcomeOpen = ref(false)
+const referralWelcomeVariant = ref('signup')
+let referralWelcomeChecked = false
 let notificationPollInterval = null
 
 const {
@@ -123,11 +128,53 @@ function startLoggedInSession() {
   push.initializeOnce()
 }
 
+async function maybeShowReferralWelcome() {
+  if (!isLoggedIn.value || isAuthPage.value) return
+  if (localStorage.getItem('referral_hook_dismissed') === 'true') return
+  if (referralWelcomeOpen.value || referralWelcomeChecked) return
+
+  try {
+    const response = await userService.getProfile()
+    referralWelcomeChecked = true
+    const user = response?.data?.user
+    const shouldShowWelcome = user?.welcomeHookPending ?? user?.referralHookPending
+    if (shouldShowWelcome) {
+      referralWelcomeVariant.value = (
+        user.welcomeHookType === 'referral' || user.referralHookPending
+      ) ? 'referral' : 'signup'
+      referralWelcomeOpen.value = true
+    }
+  } catch (error) {
+    console.error('Error checking referral welcome state:', error)
+  }
+}
+
+async function handleAppEnter() {
+  if (!isLoggedIn.value || isAuthPage.value) return
+  await maybeShowReferralWelcome()
+  if (!referralWelcomeOpen.value) {
+    maybeStartOnboarding()
+  }
+}
+
+function dismissReferralWelcome() {
+  localStorage.setItem('referral_hook_dismissed', 'true')
+  referralWelcomeOpen.value = false
+}
+
+function startMissionFromReferralWelcome() {
+  referralWelcomeOpen.value = false
+  router.push('/missions/add')
+}
+
 function stopLoggedInSession() {
   stopNotificationPolling()
   push.reset()
   resetNotifications()
   resetStreak()
+  referralWelcomeChecked = false
+  referralWelcomeOpen.value = false
+  referralWelcomeVariant.value = 'signup'
 }
 
 useAppEventListeners([
@@ -161,8 +208,24 @@ onBeforeUnmount(() => {
   stopNotificationPolling()
 })
 
+watch(
+  () => [isLoggedIn.value, isAuthPage.value],
+  () => {
+    handleAppEnter()
+  },
+  { immediate: true }
+)
+
+watch(referralWelcomeOpen, (open, wasOpen) => {
+  if (wasOpen && !open) {
+    maybeStartOnboarding()
+  }
+})
+
 async function maybeStartOnboarding() {
   if (onboardingStarted.value || !isLoggedIn.value) return
+  if (isAuthPage.value) return
+  if (referralWelcomeOpen.value) return
   if (localStorage.getItem('onboarding_complete') === 'true') return
   if (localStorage.getItem('onboarding_pending') !== 'true') return
 
@@ -176,14 +239,6 @@ async function maybeStartOnboarding() {
     }
   }, 500)
 }
-
-watch(
-  () => [isLoggedIn.value, route.path, mdAndUp.value],
-  () => {
-    maybeStartOnboarding()
-  },
-  { immediate: true }
-)
 </script>
 
 <template>
@@ -256,6 +311,13 @@ watch(
     />
 
     <XpAwardToast />
+
+    <ReferralWelcomeDialog
+      v-model="referralWelcomeOpen"
+      :variant="referralWelcomeVariant"
+      @start-mission="startMissionFromReferralWelcome"
+      @dismiss="dismissReferralWelcome"
+    />
   </v-app>
 </template>
 
