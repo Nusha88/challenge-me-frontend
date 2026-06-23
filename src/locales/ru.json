@@ -329,6 +329,7 @@
     "rankLabel": "РАНГ",
     "levelLabel": "УРОВЕНЬ",
     "missionsArchive": "Архив миссий",
+    "noMissions": "Публичных миссий пока нет.",
     "active": "Активные",
     "completed": "Завершенные",
     "ranks": {

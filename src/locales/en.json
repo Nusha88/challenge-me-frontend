@@ -329,6 +329,7 @@
     "rankLabel": "RANK",
     "levelLabel": "LEVEL",
     "missionsArchive": "Missions Archive",
+    "noMissions": "No public missions yet.",
     "active": "Active",
     "completed": "Completed",
     "ranks": {

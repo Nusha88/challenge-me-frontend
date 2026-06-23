@@ -54,6 +54,19 @@
     <v-expand-transition>
       <div v-show="showAdvanced" class="mt-4">
         <v-card variant="flat" class="advanced-panel-dark pa-6">
+          <div class="advanced-panel-header d-flex justify-end mb-4">
+            <v-btn
+              v-if="hasActiveFilters"
+              variant="text"
+              size="small"
+              color="teal-accent-4"
+              prepend-icon="mdi-filter-off"
+              class="reset-filters-btn"
+              @click="resetFilters"
+            >
+              {{ t('filters.clear') }}
+            </v-btn>
+          </div>
           <div class="advanced-grid">
             <v-select
               :model-value="modelValue.owner"
@@ -62,6 +75,7 @@
               variant="outlined"
               density="comfortable"
               class="custom-select-dark"
+              :menu-props="selectMenuProps"
               @update:model-value="updateFilter('owner', $event)"
             ></v-select>
 
@@ -72,6 +86,7 @@
               variant="outlined"
               density="comfortable"
               class="custom-select-dark"
+              :menu-props="selectMenuProps"
               @update:model-value="updateFilter('popularity', $event)"
             ></v-select>
 
@@ -118,6 +133,7 @@ const { getChallengeTypeLabel } = useChallengeType()
 
 const showAdvanced = ref(false)
 const users = ref([])
+const selectMenuProps = { contentClass: 'filter-select-menu-dark' }
 
 // Опции (аналогично вашему коду, укорочено для примера)
 const ownerOptions = computed(() => {
@@ -132,15 +148,31 @@ const popularityOptions = computed(() => [
 ])
 
 const hasActiveFilters = computed(() => {
-  return props.modelValue.title || props.modelValue.owner || (props.modelValue.type && props.modelValue.type !== 'all') || props.modelValue.popularity || props.modelValue.isCompleted
+  const { title, owner, type, popularity, showUpcoming, isCompleted } = props.modelValue
+  return Boolean(
+    title
+    || owner
+    || (type && type !== 'all')
+    || popularity
+    || isCompleted
+    || showUpcoming === false
+  )
 })
 
 function updateFilter(key, value) {
   emit('update:modelValue', { ...props.modelValue, [key]: value })
 }
 
-function clearFilters() {
-  emit('update:modelValue', { title: null, type: 'all', owner: null, popularity: null, showUpcoming: true, isCompleted: false })
+function resetFilters() {
+  emit('update:modelValue', {
+    title: null,
+    type: 'all',
+    owner: null,
+    popularity: null,
+    showUpcoming: true,
+    isCompleted: false
+  })
+  emit('search')
 }
 
 function handleSearch() { emit('search') }
@@ -366,5 +398,47 @@ watch(() => props.modelValue.owner, async (newOwner) => {
   .advanced-grid :deep(.v-switch .v-label) {
     font-size: 12px !important;
   }
+}
+
+.advanced-panel-header {
+  min-height: 36px;
+}
+
+.reset-filters-btn {
+  text-transform: none !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+}
+</style>
+
+<style>
+.filter-select-menu-dark {
+  background: #1A1A2E !important;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45) !important;
+}
+
+.filter-select-menu-dark .v-list {
+  background: #1A1A2E !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  padding: 4px 0 !important;
+}
+
+.filter-select-menu-dark .v-list-item {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.filter-select-menu-dark .v-list-item:hover {
+  background: rgba(79, 209, 197, 0.12) !important;
+}
+
+.filter-select-menu-dark .v-list-item--active {
+  background: rgba(79, 209, 197, 0.2) !important;
+  color: #4FD1C5 !important;
+}
+
+.filter-select-menu-dark .v-list-item-title {
+  color: inherit !important;
 }
 </style>

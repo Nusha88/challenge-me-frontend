@@ -22,6 +22,14 @@ export function useReferralProgram() {
 
   const showReferralUi = computed(() => stats.value.showReferralUi)
 
+  const canInviteMore = computed(() => {
+    if (!stats.value.showReferralUi) return false
+    if (stats.value.canInviteMore === false) return false
+    const invited = stats.value.invitedCount || 0
+    const max = stats.value.maxInvites || 5
+    return invited < max
+  })
+
   let copyTimeoutId = null
 
   async function loadReferralStats() {
@@ -139,6 +147,7 @@ export function useReferralProgram() {
     dialogOpen,
     copyFeedback,
     showReferralUi,
+    canInviteMore,
     loadReferralStats,
     openDialog,
     closeDialog,

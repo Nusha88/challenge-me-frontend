@@ -44,7 +44,7 @@
                 <template #prepend><v-icon size="18">mdi-link</v-icon></template>
                 <v-list-item-title>{{ t('challenges.share.copyLink') }}</v-list-item-title>
               </v-list-item>
-              <v-list-item @click="openInviteCardDialog">
+              <v-list-item v-if="canInviteFriends" @click="openInviteCardDialog">
                 <template #prepend><v-icon size="18">mdi-account-multiple-plus</v-icon></template>
                 <v-list-item-title>{{ t('challenges.share.inviteFriends') }}</v-list-item-title>
               </v-list-item>
@@ -1671,6 +1671,8 @@ const isCurrentUserParticipant = computed(() => {
 })
 
 const isJoined = computed(() => props.isParticipant || isCurrentUserParticipant.value)
+
+const canInviteFriends = computed(() => props.isOwner || isJoined.value)
 
 const canJoinPublicHabit = computed(() => {
   if (!props.challenge || !currentUserId.value) return false

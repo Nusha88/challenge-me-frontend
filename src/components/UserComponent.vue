@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, computed, watch, nextTick } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { userService, challengeService, pushService } from '../services/api'
 import { useI18n } from 'vue-i18n'
 import { SUPPORTED_LOCALES, setLocale } from '../i18n'
@@ -13,6 +13,9 @@ import {
 import { getLevelFromXp, getXpForLevel, getXpForNextLevel, getRank, getLevelInfo, getRankIcon } from '../utils/levelSystem'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 import { normalizeDateKey, toDateInputValue } from '../utils/dateUtils'
+import { isChallengeFinished } from '../utils/challengeStatus'
+import { APP_EVENTS, dispatchAppEvent } from '../utils/appEvents'
+import ChallengeCard from './ChallengeCard.vue'
 
 const props = defineProps({
   userId: {
@@ -22,7 +25,6 @@ const props = defineProps({
 })
 
 const route = useRoute()
-const router = useRouter()
 const userStore = useUserStore()
 const { t, locale } = useI18n()
 const availableLocales = SUPPORTED_LOCALES
@@ -44,8 +46,6 @@ const error = ref('')
 const checklistHistory = ref([])
 const heatmapChallenges = ref([])
 const uploading = ref(false)
-const uploadError = ref('')
-const uploadSuccess = ref('')
 const subscribingToPush = ref(false)
 const pushNotificationStatus = ref('default')
 const isPushSubscribed = ref(false)
@@ -120,49 +120,6 @@ const getUserInitials = (name) => {
   return initials.toUpperCase()
 }
 
-// Helper functions to determine if challenge is finished
-function isChallengeEnded(challenge) {
-  if (!challenge.endDate) return false
-  try {
-    const endDate = new Date(challenge.endDate)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    endDate.setHours(0, 0, 0, 0)
-    return endDate < today
-  } catch {
-    return false
-  }
-}
-
-function isChallengeFinished(challenge) {
-  // Check if endDate is in the past
-  if (isChallengeEnded(challenge)) {
-    return true
-  }
-  
-  // For result challenges, check if all actions are done
-  if (challenge.challengeType === CHALLENGE_TYPES.RESULT) {
-    if (!challenge.actions || !Array.isArray(challenge.actions) || challenge.actions.length === 0) {
-      return false
-    }
-    
-    // Check if all actions and their children are checked
-    return challenge.actions.every(action => {
-      // Parent action must be checked
-      if (!action.checked) return false
-      
-      // All children must be checked (if any exist)
-      if (action.children && Array.isArray(action.children) && action.children.length > 0) {
-        return action.children.every(child => child.checked)
-      }
-      
-      return true
-    })
-  }
-  
-  return false
-}
-
 const daysOnSite = computed(() => {
   if (!user.value?.createdAt) return 0
   try {
@@ -173,8 +130,8 @@ const daysOnSite = computed(() => {
     
     const diffTime = today - registrationDate
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-    
-    return diffDays
+
+    return Math.max(1, diffDays + 1)
   } catch {
     return 0
   }
@@ -184,10 +141,11 @@ const heatmapDays = computed(() => {
   return Array.from({ length: daysOnSite.value }, (_, i) => i + 1)
 })
 
-// User missions (habit challenges) for non-current user profiles
+// User missions for non-current user profiles. The API returns missions owned by
+// or participated in by the viewed user.
 const userMissions = computed(() => {
   if (isOwnProfile.value) return []
-  return challenges.value.filter(challenge => challenge.challengeType === CHALLENGE_TYPES.HABIT)
+  return challenges.value
 })
 
 // Active user missions (not finished)
@@ -202,15 +160,9 @@ const finishedUserMissions = computed(() => {
   return userMissions.value.filter(challenge => isChallengeFinished(challenge))
 })
 
-function goToUserMissions() {
-  if (!targetUserId.value) return
-  router.push({
-    name: 'challenges',
-    query: {
-      createdBy: targetUserId.value,
-      isCompleted: 'all'
-    }
-  })
+function handleMissionClick(challenge) {
+  if (!challenge?._id) return
+  dispatchAppEvent(APP_EVENTS.OPEN_CHALLENGE, { challengeId: challenge._id })
 }
 
 const fetchUser = async () => {
@@ -432,9 +384,6 @@ const readFileAsBase64 = (file) => {
 }
 
 const handleAvatarSelection = async (files) => {
-  uploadError.value = ''
-  uploadSuccess.value = ''
-
   if (!files || (Array.isArray(files) && files.length === 0)) {
     return
   }
@@ -443,13 +392,13 @@ const handleAvatarSelection = async (files) => {
   if (!file) return
 
   if (!file.type.startsWith('image/')) {
-    uploadError.value = t('profile.uploadInvalidType')
+    alert(t('profile.uploadInvalidType'))
     return
   }
 
   const maxSizeMb = 5
   if (file.size > maxSizeMb * 1024 * 1024) {
-    uploadError.value = t('profile.uploadTooLarge', { size: maxSizeMb })
+    alert(t('profile.uploadTooLarge', { size: maxSizeMb }))
     return
   }
 
@@ -491,10 +440,9 @@ const handleAvatarSelection = async (files) => {
       userStore.updateUser({ name: user.value.name })
     }
 
-    uploadSuccess.value = t('profile.uploadSuccess')
     window.dispatchEvent(new Event('auth-changed'))
   } catch (err) {
-    uploadError.value = err.message || t('profile.uploadError')
+    alert(err.message || t('profile.uploadError'))
   } finally {
     uploading.value = false
   }
@@ -609,11 +557,7 @@ const fetchHeatmapData = async () => {
       const habitChallenges = (data?.challenges || []).filter(c => {
         if (c.challengeType !== CHALLENGE_TYPES.HABIT) return false
         if (!c.participants || !Array.isArray(c.participants)) return false
-        // Check if the viewed user is a participant
-        return c.participants.some(p => {
-          const pUserId = p.userId?._id || p.userId || p._id
-          return pUserId && pUserId.toString() === userId.toString()
-        })
+        return Boolean(findParticipantByUserId(c, userId))
       })
       heatmapChallenges.value = habitChallenges
     } catch (err) {
@@ -632,6 +576,26 @@ function getChecklistDateKey(entry) {
     return toDateInputValue(new Date(entry.date))
   }
   return null
+}
+
+function getParticipantUserId(participant) {
+  return participant?.userId?._id || participant?.userId || participant?._id || participant
+}
+
+function findParticipantByUserId(challenge, userId) {
+  if (!challenge?.participants || !Array.isArray(challenge.participants) || !userId) {
+    return null
+  }
+
+  const userIdStr = userId.toString()
+  return challenge.participants.find((participant) => {
+    const participantUserId = getParticipantUserId(participant)
+    return participantUserId && participantUserId.toString() === userIdStr
+  }) || null
+}
+
+function getChecklistForDate(dateStr) {
+  return checklistHistory.value.find((entry) => getChecklistDateKey(entry) === dateStr) || null
 }
 
 // Get date for a specific day number (day 1 = registration date)
@@ -654,8 +618,7 @@ const getChallengesForDate = (dateString, userId) => {
   
   const targetDate = new Date(dateString)
   targetDate.setHours(0, 0, 0, 0)
-  const userIdStr = userId.toString()
-  
+
   return heatmapChallenges.value.filter(challenge => {
     // Must be a habit challenge (already filtered, but double-check)
     if (challenge.challengeType !== CHALLENGE_TYPES.HABIT) return false
@@ -674,14 +637,7 @@ const getChallengesForDate = (dateString, userId) => {
       if (endDate < targetDate) return false
     }
     
-    // Must be a participant (already filtered, but double-check)
-    const isParticipant = challenge.participants?.some(p => {
-      const pUserId = p.userId?._id || p.userId || p._id
-      if (!pUserId) return false
-      return pUserId.toString() === userIdStr
-    })
-    
-    return isParticipant
+    return Boolean(findParticipantByUserId(challenge, userId))
   })
 }
 
@@ -689,14 +645,7 @@ const getChallengesForDate = (dateString, userId) => {
 const isChallengeCompletedOnDate = (challenge, dateString, userId) => {
   if (!challenge.participants || !userId) return false
   
-  // Ensure userId is a string for comparison
-  const userIdStr = userId.toString()
-  
-  const participant = challenge.participants.find(p => {
-    const pUserId = p.userId?._id || p.userId || p._id
-    if (!pUserId) return false
-    return pUserId.toString() === userIdStr
-  })
+  const participant = findParticipantByUserId(challenge, userId)
   
   if (!participant || !participant.completedDays || !Array.isArray(participant.completedDays)) {
     return false
@@ -718,15 +667,7 @@ const getHeatmapLevel = (day) => {
   
   if (!userId) return 'level-0'
   
-  const checklistForDate = checklistHistory.value.find((c) => {
-    try {
-      const checklistDateStr = getChecklistDateKey(c)
-      if (!checklistDateStr) return false
-      return checklistDateStr === dateStr
-    } catch {
-      return false
-    }
-  })
+  const checklistForDate = getChecklistForDate(dateStr)
   
   // Count completed and total steps from checklist
   let completedSteps = 0
@@ -745,7 +686,7 @@ const getHeatmapLevel = (day) => {
   
   // Count completed and total missions
   let completedMissions = 0
-  let totalMissions = challengesForDate.length
+  const totalMissions = challengesForDate.length
   
   challengesForDate.forEach(challenge => {
     if (isChallengeCompletedOnDate(challenge, dateStr, userId)) {
@@ -778,15 +719,7 @@ const getTooltipText = (day) => {
   
   if (!userId) return `Day ${day}`
   
-  const checklistForDate = checklistHistory.value.find((c) => {
-    try {
-      const checklistDateStr = getChecklistDateKey(c)
-      if (!checklistDateStr) return false
-      return checklistDateStr === dateStr
-    } catch {
-      return false
-    }
-  })
+  const checklistForDate = getChecklistForDate(dateStr)
   
   // Count completed and total steps from checklist
   let completedSteps = 0
@@ -802,7 +735,7 @@ const getTooltipText = (day) => {
   
   // Count completed and total missions
   let completedMissions = 0
-  let totalMissions = challengesForDate.length
+  const totalMissions = challengesForDate.length
   
   challengesForDate.forEach(challenge => {
     if (isChallengeCompletedOnDate(challenge, dateStr, userId)) {
@@ -943,17 +876,35 @@ onMounted(async () => {
         </div>
       </v-card>
 
-      <v-card v-if="!isOwnProfile" class="activity-card mt-6" @click="goToUserMissions" style="cursor: pointer;">
-        <div class="d-flex align-center justify-space-between">
-          <div>
-            <h3 class="section-title mb-1">{{ t('profile.missionsArchive') }}</h3>
-            <div class="text-caption opacity-60">
-              {{ activeUserMissions.length }} {{ t('profile.active') }} • {{ finishedUserMissions.length }} {{ t('profile.completed') }}
+      <v-expansion-panels v-if="!isOwnProfile" class="profile-missions-panels mt-6 mb-6">
+        <v-expansion-panel elevation="0">
+          <v-expansion-panel-title class="profile-missions-title">
+            <div class="d-flex align-center justify-space-between w-100 pr-2">
+              <div>
+                <h3 class="section-title mb-1">{{ t('profile.missionsArchive') }}</h3>
+                <div class="text-caption opacity-60">
+                  {{ activeUserMissions.length }} {{ t('profile.active') }} • {{ finishedUserMissions.length }} {{ t('profile.completed') }}
+                </div>
+              </div>
             </div>
-          </div>
-          <v-btn icon="mdi-arrow-right" variant="text" color="#7048E8"></v-btn>
-        </div>
-      </v-card>
+          </v-expansion-panel-title>
+          <v-expansion-panel-text>
+            <div v-if="challenges.length" class="profile-missions-grid">
+              <ChallengeCard
+                v-for="challenge in challenges"
+                :key="challenge._id"
+                :challenge="challenge"
+                :current-user-id="currentUserId"
+                :show-join-button="false"
+                @click="handleMissionClick"
+              />
+            </div>
+            <div v-else class="profile-missions-empty">
+              {{ t('profile.noMissions') }}
+            </div>
+          </v-expansion-panel-text>
+        </v-expansion-panel>
+      </v-expansion-panels>
 
       <v-expansion-panels v-if="isOwnProfile" class="settings-panels mb-6">
         <v-expansion-panel elevation="0">
@@ -1128,9 +1079,6 @@ onMounted(async () => {
           </v-expansion-panel-text>
         </v-expansion-panel>
       </v-expansion-panels>
-
-      <div v-if="!isOwnProfile" class="missions-section">
-          </div>
 
     </div>
 
@@ -1347,6 +1295,51 @@ onMounted(async () => {
   border-radius: 24px !important;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.profile-missions-panels {
+  border-radius: 24px !important;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.profile-missions-panels :deep(.v-expansion-panel) {
+  background: rgba(255, 255, 255, 0.03) !important;
+  color: #fff !important;
+}
+
+.profile-missions-title {
+  font-weight: 700 !important;
+  padding: 20px 24px !important;
+}
+
+.profile-missions-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  padding-top: 8px;
+}
+
+.profile-missions-empty {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.9rem;
+  padding: 12px 0;
+}
+
+@media (max-width: 960px) {
+  .profile-missions-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .profile-missions-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-missions-title {
+    padding: 16px !important;
+  }
 }
 
 .settings-panels :deep(.v-expansion-panel) {

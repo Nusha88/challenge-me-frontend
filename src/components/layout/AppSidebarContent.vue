@@ -113,8 +113,12 @@
           <v-list-item-title>{{ t('navigation.allUsers') }}</v-list-item-title>
         </v-list-item>
 
-        <div v-if="showReferralUi" class="sidebar-referral-block">
-          <button type="button" class="sidebar-referral-btn" @click="openReferralDialog">
+        <div v-if="canInviteMore" class="sidebar-referral-block">
+          <button
+            type="button"
+            class="sidebar-referral-btn"
+            @click="openReferralDialog"
+          >
             <v-icon size="16" class="sidebar-referral-icon">mdi-gift</v-icon>
             <span class="sidebar-referral-label">{{ t('referral.sidebarCta') }}</span>
             <span class="sidebar-referral-reward">+50</span>
@@ -182,7 +186,7 @@ const {
   stats: referralStats,
   dialogOpen: referralDialogOpen,
   copyFeedback: referralCopyFeedback,
-  showReferralUi,
+  canInviteMore,
   loadReferralStats,
   openDialog: openReferralDialog,
   copyReferralLink,
