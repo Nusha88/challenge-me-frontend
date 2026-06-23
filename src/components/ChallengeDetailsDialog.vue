@@ -90,7 +90,8 @@
       <v-tabs v-model="tab" grow class="custom-tabs">
         <v-tab value="progress">{{ t('challenges.progress') }}</v-tab>
         <v-tab value="details">{{ t('challenges.about') }}</v-tab>
-        <v-tab v-if="challenge.allowComments" value="community">{{ t('challenges.diary.title') }}</v-tab>
+        <v-tab v-if="challenge.allowComments" value="community">{{ t('challenges.community.title') }}</v-tab>
+        <v-tab v-if="isOwner" value="diary">{{ t('challenges.diary.tabTitle') }}</v-tab>
       </v-tabs>
 
       <v-card-text class="pa-0 modal-body-bg">
@@ -297,6 +298,7 @@
             <div class="diary-container">
               <CommentsComponent
                 v-if="!isFinished"
+                :key="communityRefreshKey"
                 :challenge-id="challenge._id"
                 :allow-comments="challenge.allowComments"
                 :current-user-id="currentUserId"
@@ -315,6 +317,18 @@
                 </template>
                 {{ t('challenges.finishedChallengeComments') }}
               </v-alert>
+            </div>
+          </v-window-item>
+
+          <v-window-item v-if="isOwner" value="diary">
+            <div class="diary-container">
+              <DiaryComponent
+                :challenge-id="challenge._id"
+                :current-user-id="currentUserId"
+                :is-owner="isOwner"
+                :is-finished="isFinished"
+                @entry-shared="handleDiaryShared"
+              />
             </div>
           </v-window-item>
         </v-window>
@@ -780,6 +794,10 @@
     line-height: 1.35;
   }
 
+  .custom-tabs :deep(.v-tab) {
+    font-size: 0.55em;
+  }
+
   .progress-header-row {
     flex-direction: column;
     align-items: flex-start;
@@ -849,6 +867,7 @@ import { useWatchedChallengesStore } from '../stores/watchedChallenges'
 import ChallengeActions from './ChallengeActions.vue'
 import ChallengeInviteCardDialog from './ChallengeInviteCardDialog.vue'
 import CommentsComponent from './CommentsComponent.vue'
+import DiaryComponent from './DiaryComponent.vue'
 import {challengeService} from '../services/api'
 import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
 import { getMissionShareUrl } from '../utils/appUrl'
@@ -939,6 +958,11 @@ const snackbar = ref(false)
 const snackbarText = ref('')
 const tab = ref('progress')
 const heavyContentReady = ref(false)
+const communityRefreshKey = ref(0)
+
+function handleDiaryShared() {
+  communityRefreshKey.value += 1
+}
 
 const dialogModel = computed({
   get: () => props.modelValue,

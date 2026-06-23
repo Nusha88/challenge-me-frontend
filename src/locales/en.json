@@ -635,8 +635,15 @@
       "goToMention": "Go to mention",
       "joinPrompt": "Join the mission to share your progress in the diary!"
     },
+    "community": {
+      "title": "Community"
+    },
     "diary": {
       "title": "Diary",
+      "tabTitle": "Diary",
+      "shareToCommunity": "Share to Community",
+      "placeholder": "Write a private entry in your mission diary...",
+      "empty": "Your diary is empty. Start writing your private notes!",
       "heroJoined": "Hero {name} just joined the mission!",
       "missionProgress": "Mission is {percent}% complete!",
       "addReaction": "Add reaction",

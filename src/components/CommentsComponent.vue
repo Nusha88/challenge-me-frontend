@@ -4,7 +4,7 @@
       <div class="diary-icon-glow mr-3">
         <v-icon color="#4FD1C5" size="small">mdi-message-text-clock-outline</v-icon>
       </div>
-      <h3 class="text-h6 font-weight-bold text-white mb-0">{{ t('challenges.diary.title') }}</h3>
+      <h3 class="text-h6 font-weight-bold text-white mb-0">{{ t('challenges.community.title') }}</h3>
       <v-chip v-if="state.comments.length > 0" size="x-small" color="#4FD1C5" class="ml-3 tactical-count-chip">
         {{ state.comments.length }}
       </v-chip>
@@ -80,6 +80,10 @@
           <div class="d-flex align-start">
             <div class="comment-main flex-grow-1">
               <div class="d-flex align-center mb-1">
+                <v-avatar size="28" class="comment-avatar mr-2" @click.stop="navigateToUser(item.userId)">
+                  <v-img v-if="getCommentAvatar(item)" :src="getCommentAvatar(item)" cover></v-img>
+                  <span v-else>{{ getCommentInitial(item) }}</span>
+                </v-avatar>
                 <span class="author-name font-weight-bold" @click.stop="navigateToUser(item.userId)">
                   {{ getCommentName(item) }}
                 </span>
@@ -101,7 +105,7 @@
                 <div class="d-flex align-center mt-3 gap-2">
                   <div class="reactions-row d-flex">
                     <div
-                      v-for="emoji in ['👏', '🔥', '💪', '😢']"
+                      v-for="emoji in ['😂','👏', '🔥', '💪', '😢']"
                       :key="emoji"
                       class="reaction-capsule"
                       :class="{ 'active': hasUserReacted(item, emoji) }"
@@ -201,7 +205,6 @@
                     <span class="reply-author text-caption font-weight-bold" @click.stop="navigateToUser(reply.userId)">{{ getReplyName(reply) }}</span>
                     <v-icon size="10" class="mx-1 opacity-50 text-white">mdi-chevron-right</v-icon>
                     <span v-if="reply.mentionedUserId" class="mention text-caption">@{{ getMentionedName(reply) }}</span>
-                    <span class="post-time ml-2">{{ formatDate(reply.createdAt) }}</span>
 
                     <v-spacer></v-spacer>
 
@@ -232,7 +235,7 @@
                     <div class="d-flex align-center mt-2 gap-2">
                       <div class="reactions-row d-flex">
                         <div
-                          v-for="emoji in ['👏', '🔥', '💪', '😢']"
+                          v-for="emoji in ['😂','👏', '🔥', '💪', '😢']"
                           :key="emoji"
                           class="reaction-capsule"
                           :class="{ 'active': hasUserReacted(reply, emoji) }"
@@ -323,7 +326,6 @@
                         <span class="reply-author text-caption font-weight-bold" @click.stop="navigateToUser(nestedReply.userId)">{{ getReplyName(nestedReply) }}</span>
                         <v-icon size="10" class="mx-1 opacity-50 text-white">mdi-chevron-right</v-icon>
                         <span v-if="nestedReply.mentionedUserId" class="mention text-caption">@{{ getMentionedName(nestedReply) }}</span>
-                        <span class="post-time ml-2">{{ formatDate(nestedReply.createdAt) }}</span>
 
                         <v-spacer></v-spacer>
 
@@ -433,6 +435,15 @@
 .author-name {
   color: #4FD1C5;
   font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.comment-avatar {
+  border: 1px solid rgba(79, 209, 197, 0.45);
+  background: rgba(15, 23, 42, 0.9);
+  color: #FFFFFF;
+  font-weight: 700;
+  font-size: 12px;
   cursor: pointer;
 }
 
@@ -984,6 +995,16 @@ async function deleteComment(comment) {
 
 function getCommentName(comment) {
   return comment.userId?.name || t('common.unknown')
+}
+
+function getCommentAvatar(comment) {
+  return comment.userId?.avatarUrl || ''
+}
+
+function getCommentInitial(comment) {
+  const name = comment.userId?.name
+  if (!name) return '?'
+  return String(name).trim().charAt(0).toUpperCase() || '?'
 }
 
 function formatDate(dateString) {

@@ -297,6 +297,15 @@ export const challengeService = {
   },
   deleteNestedReply: (challengeId, commentId, replyId, nestedReplyId, userId) => {
     return api.delete(`/challenges/${challengeId}/comments/${commentId}/replies/${replyId}/replies/${nestedReplyId}`, { data: { userId } })
+  },
+  getDiaryEntries: (challengeId, userId) => {
+    return api.get(`/challenges/${challengeId}/diary`, { params: { userId } })
+  },
+  addDiaryEntry: (challengeId, userId, text, imageUrl = null, shareToCommunity = false) => {
+    return api.post(`/challenges/${challengeId}/diary`, { userId, text, imageUrl, shareToCommunity })
+  },
+  deleteDiaryEntry: (challengeId, entryId, userId) => {
+    return api.delete(`/challenges/${challengeId}/diary/${entryId}`, { data: { userId } })
   }
 }
 
