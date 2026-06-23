@@ -45,6 +45,96 @@
           </div>
         </div>
       </section>
+
+      <section class="mission-types-section">
+        <div class="section-header">
+          <h2 class="section-title">{{ t('home.missionTypes.title') }}</h2>
+          <div class="title-line"></div>
+        </div>
+
+        <div ref="missionGridRef" class="mission-grid">
+          <div
+            class="mission-card glass-card"
+            :class="{ 'mission-card--clickable': isMobile }"
+            :role="isMobile ? 'button' : undefined"
+            :tabindex="isMobile ? 0 : undefined"
+            @click="handleMissionCardClick('ritual')"
+            @keydown.enter="handleMissionCardClick('ritual')"
+          >
+            <v-icon v-if="isMobile" class="mission-card-hint">mdi-play-circle-outline</v-icon>
+            <div class="mission-icon-box">
+              <v-icon class="neon-icon">mdi-star-four-points-outline</v-icon>
+            </div>
+            <h3 class="mission-card-title">{{ t('home.missionTypes.ritual.title') }}</h3>
+            <p class="mission-card-desc">
+              {{ t('home.missionTypes.ritual.description') }}
+            </p>
+          </div>
+
+          <div
+            class="mission-card glass-card"
+            :class="{ 'mission-card--clickable': isMobile }"
+            :role="isMobile ? 'button' : undefined"
+            :tabindex="isMobile ? 0 : undefined"
+            @click="handleMissionCardClick('quest')"
+            @keydown.enter="handleMissionCardClick('quest')"
+          >
+            <v-icon v-if="isMobile" class="mission-card-hint">mdi-play-circle-outline</v-icon>
+            <div class="mission-icon-box">
+              <v-icon class="neon-icon">mdi-sword</v-icon>
+            </div>
+            <h3 class="mission-card-title">{{ t('home.missionTypes.quest.title') }}</h3>
+            <p class="mission-card-desc">
+              {{ t('home.missionTypes.quest.description') }}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <v-dialog
+        v-model="missionDialogOpen"
+        max-width="640"
+        scrollable
+        :fullscreen="isMobile"
+        transition="dialog-bottom-transition"
+        class="mission-dialog"
+      >
+        <v-card class="mission-guide-card">
+          <div class="mission-guide-header">
+            <div class="d-flex align-center">
+              <v-icon class="mission-guide-header-icon mr-3">{{ activeMissionType === 'quest' ? 'mdi-sword' : 'mdi-star-four-points-outline' }}</v-icon>
+              <h3 class="mission-guide-title">{{ missionDialogTitle }}</h3>
+            </div>
+            <v-btn icon="mdi-close" variant="text" size="small" class="mission-guide-close" @click="missionDialogOpen = false"></v-btn>
+          </div>
+
+          <v-card-text class="mission-guide-body">
+            <v-carousel
+              v-if="missionDialogOpen"
+              height="auto"
+              hide-delimiter-background
+              show-arrows="hover"
+              progress="#4FD1C5"
+              class="mission-carousel"
+            >
+              <v-carousel-item
+                v-for="(slide, index) in missionSlides"
+                :key="index"
+                class="mission-carousel-slide"
+              >
+                <img :src="slide" class="mission-carousel-image" alt="" />
+              </v-carousel-item>
+            </v-carousel>
+          </v-card-text>
+
+          <v-card-actions class="mission-guide-actions">
+            <GradientButton to="/login" block size="large">
+              {{ t('home.missionTypes.createMission') }}
+            </GradientButton>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
       <section class="features-section mt-12">
         <div class="section-header mb-12">
           <h2 class="section-title">{{ t('home.demoPreviewTitle') }}</h2>
@@ -89,15 +179,52 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useDisplay } from 'vuetify'
 import { userService } from '../services/api'
 import homePagePicture from '../assets/home_page.jpg' // Замени на кристалл
 import demoImage from '../assets/demo.png'
+import ritualSlide2 from '../assets/2-r.jpeg'
+import ritualSlide3 from '../assets/3-r.jpeg'
+import ritualSlide4 from '../assets/4-r.jpeg'
+import questSlide2 from '../assets/2-q.jpeg'
+import questSlide3 from '../assets/3-q.jpeg'
+import questSlide4 from '../assets/4-q.jpeg'
+import questSlide5 from '../assets/5-q.jpeg'
 import GradientButton from './GradientButton.vue'
 
 const { t, locale } = useI18n()
+const { mobile: isMobile } = useDisplay()
 const totalUsers = ref(0)
+const missionGridRef = ref(null)
+let missionObserver = null
+
+const missionDialogOpen = ref(false)
+const activeMissionType = ref('ritual')
+
+const missionSlidesByType = {
+  ritual: [ritualSlide2, ritualSlide3, ritualSlide4],
+  quest: [questSlide2, questSlide3, questSlide4, questSlide5]
+}
+
+const missionSlides = computed(() => missionSlidesByType[activeMissionType.value] || [])
+
+const missionDialogTitle = computed(() =>
+  activeMissionType.value === 'quest'
+    ? t('home.missionTypes.quest.guideTitle')
+    : t('home.missionTypes.ritual.guideTitle')
+)
+
+function openMissionDialog(type) {
+  activeMissionType.value = type
+  missionDialogOpen.value = true
+}
+
+function handleMissionCardClick(type) {
+  if (!isMobile.value) return
+  openMissionDialog(type)
+}
 
 const formattedUsersCount = computed(() => {
   return new Intl.NumberFormat(locale.value).format(totalUsers.value)
@@ -117,6 +244,28 @@ onMounted(async () => {
   } catch {
     // Keep default value if request fails
   }
+
+  await nextTick()
+  if (!missionGridRef.value) return
+
+  const cards = missionGridRef.value.querySelectorAll('.mission-card')
+  missionObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible')
+          missionObserver?.unobserve(entry.target)
+        }
+      })
+    },
+    { threshold: 0.2 }
+  )
+
+  cards.forEach((card) => missionObserver.observe(card))
+})
+
+onBeforeUnmount(() => {
+  missionObserver?.disconnect()
 })
 
 const getFeatureIcon = (index) => {
@@ -146,10 +295,12 @@ const getFeatureIcon = (index) => {
 
 .content-wrapper {
   max-width: 1200px;
+  width: 100%;
   margin: 0 auto;
   padding: 40px 20px;
   position: relative;
   z-index: 1;
+  box-sizing: border-box;
 }
 
 /* HERO */
@@ -216,6 +367,7 @@ const getFeatureIcon = (index) => {
   .floating-artifact {
   width: 100%;
   max-width: 450px;
+  height: auto;
   filter: drop-shadow(0 0 30px rgba(79, 209, 197, 0.3));
   animation: float 6s ease-in-out infinite;
   -webkit-mask-image: radial-gradient(circle, black 40%, transparent 80%);
@@ -223,9 +375,6 @@ const getFeatureIcon = (index) => {
   
   /* Дополнительно можно чуть подтянуть контраст, чтобы черный стал чернее */
   filter: brightness(1.1) contrast(1.1);
-  
-  width: 100%;
-  max-width: 450px;
 }
 @keyframes float {
   0%, 100% { transform: translateY(0); }
@@ -253,6 +402,8 @@ const getFeatureIcon = (index) => {
 .demo-preview-image {
   display: block;
   width: 100%;
+  max-width: 100%;
+  height: auto;
   border-radius: 18px;
   border: 1px solid rgba(79, 209, 197, 0.45);
   box-shadow:
@@ -341,6 +492,158 @@ const getFeatureIcon = (index) => {
   line-height: 1.6;
 }
 
+/* MISSION TYPES */
+.mission-types-section {
+  margin-top: 80px;
+}
+
+.mission-grid {
+  display: flex;
+  flex-direction: row;
+  gap: 24px;
+  margin-top: 40px;
+}
+
+.mission-card {
+  flex: 1;
+  position: relative;
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.6s ease, transform 0.6s ease, border-color 0.3s ease, background 0.3s ease;
+}
+
+.mission-card:nth-child(2) {
+  transition-delay: 0.2s;
+}
+
+.mission-card.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.mission-card--clickable {
+  cursor: pointer;
+}
+
+.mission-card--clickable.is-visible:hover {
+  border-color: rgba(79, 209, 197, 0.4);
+  transform: translateY(-10px) scale(1.02);
+  background: rgba(30, 41, 59, 0.8);
+}
+
+.mission-card--clickable.is-visible:focus-visible {
+  outline: none;
+  border-color: rgba(79, 209, 197, 0.6);
+  transform: translateY(-10px) scale(1.02);
+}
+
+.mission-card-hint {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  color: rgba(79, 209, 197, 0.5) !important;
+  font-size: 22px !important;
+  transition: color 0.3s ease, transform 0.3s ease;
+}
+
+.mission-card--clickable:hover .mission-card-hint {
+  color: #4FD1C5 !important;
+  transform: scale(1.15);
+}
+
+/* MISSION GUIDE DIALOG */
+.mission-guide-card {
+  background: #0f172a !important;
+  color: #f8fafc !important;
+  border: 1px solid rgba(79, 209, 197, 0.2);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.mission-guide-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(30, 41, 59, 0.6);
+}
+
+.mission-guide-header-icon {
+  color: #4FD1C5 !important;
+  filter: drop-shadow(0 0 5px rgba(79, 209, 197, 0.5));
+}
+
+.mission-guide-title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #fff;
+  margin: 0;
+}
+
+.mission-guide-close {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.mission-guide-body {
+  padding: 20px 24px !important;
+}
+
+.mission-carousel {
+  height: auto !important;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(79, 209, 197, 0.25);
+  box-shadow: 0 0 22px rgba(79, 209, 197, 0.15);
+}
+
+.mission-carousel :deep(.v-window),
+.mission-carousel :deep(.v-window__container),
+.mission-carousel :deep(.v-carousel-item),
+.mission-carousel-slide {
+  height: auto !important;
+}
+
+.mission-carousel-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+.mission-guide-actions {
+  padding: 8px 24px 24px !important;
+}
+
+.mission-icon-box {
+  width: 50px;
+  height: 50px;
+  background: rgba(79, 209, 197, 0.1);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.mission-card-title {
+  font-size: 1.25rem;
+  margin-bottom: 12px;
+  color: #fff;
+}
+
+.mission-card-desc {
+  font-size: 0.95rem;
+  color: #94a3b8;
+  line-height: 1.6;
+}
+
+@media (max-width: 960px) {
+  .mission-grid {
+    flex-direction: column;
+  }
+}
+
 /* FINAL CTA */
 .final-cta {
   margin-top: 100px;
@@ -371,9 +674,234 @@ const getFeatureIcon = (index) => {
 }
 
 @media (max-width: 600px) {
+  .landing-page,
+  .content-wrapper {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .content-wrapper {
+    padding: 24px 16px;
+  }
+
+  .hero-grid,
+  .features-section,
+  .mission-types-section,
+  .quote-section,
+  .final-cta,
+  .footer-simple {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .hero-left,
+  .hero-right,
+  .artifact-container {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .hero-title,
+  .hero-subtitle,
+  .section-title,
+  .feature-card-title,
+  .feature-card-desc,
+  .mission-card-title,
+  .mission-card-desc,
+  .cta-title,
+  .quote-text,
+  .quote-subtext {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .hero-grid {
+    padding: 28px 0 20px;
+    gap: 20px;
+  }
+
+  .status-badge {
+    font-size: 0.58rem;
+    letter-spacing: 1px;
+    padding: 3px 10px;
+    margin-bottom: 12px;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .hero-title {
+    font-size: clamp(1.65rem, 7vw, 2.1rem);
+    margin-bottom: 14px;
+  }
+
+  .hero-subtitle {
+    font-size: 0.92rem;
+    line-height: 1.5;
+    margin-bottom: 20px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .hero-actions {
+    gap: 12px;
+    width: 100%;
+    max-width: 100%;
+    justify-content: center;
+  }
+
+  .hero-actions :deep(.gradient-button) {
+    font-size: 0.82rem !important;
+    letter-spacing: 0.8px;
+    min-height: 40px !important;
+    height: auto !important;
+    padding: 0 18px !important;
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .user-stats-mini {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    line-height: 1.3;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .user-stats-mini .v-icon {
+    font-size: 16px !important;
+  }
+
+  .floating-artifact {
+    max-width: 240px;
+  }
+
+  .section-title {
+    font-size: 1.35rem;
+    line-height: 1.3;
+  }
+
+  .features-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 32px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .features-grid .feature-card {
+    padding: 16px;
+    border-radius: 16px;
+    min-width: 0;
+  }
+
+  .features-grid .feature-card:hover {
+    transform: none;
+  }
+
+  .features-grid .feature-icon-box {
+    width: 36px;
+    height: 36px;
+    margin-bottom: 10px;
+    border-radius: 10px;
+  }
+
+  .features-grid .feature-icon-box .neon-icon {
+    font-size: 20px !important;
+  }
+
+  .features-grid .feature-card-title {
+    font-size: 0.85rem;
+    margin-bottom: 6px;
+    line-height: 1.25;
+  }
+
+  .features-grid .feature-card-desc {
+    font-size: 0.72rem;
+    line-height: 1.45;
+  }
+
+  .mission-types-section {
+    margin-top: 48px;
+  }
+
+  .mission-grid {
+    gap: 12px;
+    margin-top: 24px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .mission-types-section .mission-card {
+    padding: 16px;
+    border-radius: 16px;
+    min-width: 0;
+  }
+
+  .mission-types-section .mission-card.is-visible:hover,
+  .mission-types-section .mission-card--clickable.is-visible:hover {
+    transform: none;
+  }
+
+  .mission-types-section .mission-icon-box {
+    width: 36px;
+    height: 36px;
+    margin-bottom: 10px;
+    border-radius: 10px;
+  }
+
+  .mission-types-section .mission-icon-box .neon-icon {
+    font-size: 20px !important;
+  }
+
+  .mission-types-section .mission-card-title {
+    font-size: 0.9rem;
+    margin-bottom: 6px;
+    line-height: 1.25;
+  }
+
+  .mission-types-section .mission-card-desc {
+    font-size: 0.75rem;
+    line-height: 1.45;
+  }
+
+  .mission-card-hint {
+    top: 12px;
+    right: 12px;
+    font-size: 18px !important;
+  }
+
+  .mission-guide-card {
+    border-radius: 0;
+    border: none;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .mission-guide-body {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+  }
+
   .quote-section {
     margin-top: 24px !important;
     margin-bottom: 24px !important;
+  }
+
+  .quote-section :deep(.v-container) {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
   }
 
   .quote-container {
@@ -386,6 +914,35 @@ const getFeatureIcon = (index) => {
 
   .quote-subtext {
     font-size: 0.95rem;
+  }
+
+  .cta-title {
+    font-size: 1.5rem;
+    line-height: 1.3;
+    margin-bottom: 24px;
+  }
+
+  .final-cta {
+    margin-top: 60px;
+    padding: 48px 20px;
+  }
+
+  .final-cta :deep(.gradient-button) {
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .footer-simple {
+    padding: 32px 0;
+    font-size: 0.68rem;
+    letter-spacing: 0.4px;
+    overflow-wrap: anywhere;
+  }
+
+  .footer-simple p {
+    margin: 0;
+    padding: 0 4px;
+    word-break: break-word;
   }
 }
 

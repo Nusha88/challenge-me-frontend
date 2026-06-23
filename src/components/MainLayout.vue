@@ -40,6 +40,10 @@ const currentUserId = computed(() => {
 })
 const showAppChrome = computed(() => isLoggedIn.value && !isAuthPage.value)
 
+const showMobileFab = computed(() => {
+  return showAppChrome.value && route.name !== 'add-challenge'
+})
+
 const push = usePushNotifications()
 const {
   displayStreakDays,
@@ -256,7 +260,7 @@ async function maybeStartOnboarding() {
       @open-notifications="openNotifications"
     />
 
-    <MobileFab :show="showAppChrome" />
+    <MobileFab :show="showMobileFab" />
 
     <v-main
       :class="['main-content', {

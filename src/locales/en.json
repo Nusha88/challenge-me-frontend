@@ -116,6 +116,20 @@
         "description": "Watch your growth through detailed statistics and interactive achievement charts."
       }
     },
+    "missionTypes": {
+      "title": "Choose Your Vector of Strength",
+      "createMission": "Create Mission",
+      "ritual": {
+        "title": "Daily Ritual",
+        "description": "A system of small wins to build an iron habit. Consistency is your greatest resource.",
+        "guideTitle": "How to Create a Ritual"
+      },
+      "quest": {
+        "title": "Epic Quest",
+        "description": "Focus your strength on your most important goal. Defeat yourself and earn a legendary reward.",
+        "guideTitle": "How to Create a Quest"
+      }
+    },
     "copyright": "© {year} Ignite. All rights reserved.",
     "loggedIn": {
       "greeting": "Hello, {name}",
