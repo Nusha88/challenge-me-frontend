@@ -11,58 +11,17 @@
     </div>
 
     <div v-if="canWrite" class="add-comment-container mb-8">
-      <div class="tactical-input-wrapper">
-        <v-textarea
-          v-model="state.newEntryText"
-          :placeholder="t('challenges.diary.placeholder')"
-          auto-grow
-          rows="1"
-          max-rows="6"
-          variant="plain"
-          class="comment-field px-4 pt-3"
-          hide-details
-          :disabled="state.addingEntry"
-        ></v-textarea>
-
-        <div v-if="state.newEntryImagePreview" class="px-4 pb-3">
-          <div class="preview-frame">
-            <v-img :src="state.newEntryImagePreview" max-height="180" cover class="rounded-lg border-accent">
-              <v-btn icon="mdi-close" size="x-small" color="error" class="remove-img-btn" @click="removeImagePreview"></v-btn>
-            </v-img>
-          </div>
-        </div>
-
-        <div class="input-footer pa-2">
-          <input ref="fileInputRef" type="file" accept="image/*" class="d-none" @change="handleImageSelect" />
-          <v-btn icon="mdi-camera-plus-outline" variant="text" color="rgba(255,255,255,0.5)" size="small" @click="fileInputRef?.click()"></v-btn>
-
-          <div class="share-switch-row">
-            <v-switch
-              v-model="state.shareToCommunity"
-              color="#4FD1C5"
-              density="compact"
-              hide-details
-              inset
-              class="share-switch"
-              :label="t('challenges.diary.shareToCommunity')"
-            ></v-switch>
-          </div>
-
-          <v-spacer class="footer-spacer"></v-spacer>
-
-          <v-btn
-            color="#4FD1C5"
-            variant="flat"
-            size="small"
-            class="post-btn px-6 font-weight-black"
-            :loading="state.addingEntry || state.uploadingImage"
-            :disabled="(!state.newEntryText.trim() && !state.newEntryImageUrl) || state.uploadingImage"
-            @click="addEntry"
-          >
-            {{ t('challenges.comments.post') }}
-          </v-btn>
-        </div>
-      </div>
+      <CommentComposer
+        ref="composerRef"
+        v-model:text="state.newEntryText"
+        v-model:image-url="state.newEntryImageUrl"
+        v-model:share-to-community="state.shareToCommunity"
+        :show-share-switch="true"
+        :placeholder="t('challenges.diary.placeholder')"
+        :loading="state.addingEntry"
+        @uploading="state.uploadingImage = $event"
+        @submit="addEntry"
+      />
     </div>
 
     <div v-if="state.entries.length > 0" class="comments-feed">
@@ -88,7 +47,11 @@
               </div>
 
               <div class="comment-body pa-3">
-                <p v-if="entry.text" class="text-content mb-0">{{ entry.text }}</p>
+                <div v-if="entry.actionTitle" class="diary-action-title mb-2">
+                  <v-icon size="13" color="#4FD1C5" class="mr-1">mdi-target-variant</v-icon>
+                  {{ entry.actionTitle }}
+                </div>
+                <p v-if="entry.text && entry.text.trim()" class="text-content mb-0">{{ entry.text }}</p>
                 <v-img v-if="entry.imageUrl" :src="entry.imageUrl" max-height="350" class="rounded-lg mt-3 border-accent"></v-img>
               </div>
             </div>
@@ -220,6 +183,20 @@
   border-left: 3px solid rgba(79, 209, 197, 0.4);
 }
 
+.diary-action-title {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #4FD1C5;
+  background: rgba(79, 209, 197, 0.1);
+  border: 1px solid rgba(79, 209, 197, 0.25);
+  border-radius: 8px;
+  padding: 3px 10px;
+}
+
 .author-avatar {
   border: 1px solid rgba(79, 209, 197, 0.45);
   background: rgba(15, 23, 42, 0.9);
@@ -271,6 +248,7 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { challengeService } from '../services/api'
 import { useI18n } from 'vue-i18n'
+import CommentComposer from './CommentComposer.vue'
 
 const props = defineProps({
   challengeId: {
@@ -301,110 +279,17 @@ const state = reactive({
   addingEntry: false,
   newEntryText: '',
   newEntryImageUrl: null,
-  newEntryImagePreview: null,
-  newEntryImageName: null,
   uploadingImage: false,
   shareToCommunity: false
 })
 
-const fileInputRef = ref(null)
-
-const IMGBB_API_KEY = 'd8a4925b372143b44469009f92023386'
+const composerRef = ref(null)
 
 const canWrite = computed(() => props.isOwner && !!props.currentUserId && !props.isFinished)
 
 const sortedEntries = computed(() => {
   return [...state.entries].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
 })
-
-const readFileAsBase64 = (file) => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      const result = reader.result
-      if (typeof result === 'string') {
-        const base64 = result.includes(',') ? result.split(',')[1] : result
-        resolve(base64)
-      } else {
-        reject(new Error('Unable to read file'))
-      }
-    }
-    reader.onerror = () => reject(reader.error || new Error('Unable to read file'))
-    reader.readAsDataURL(file)
-  })
-}
-
-async function uploadImage(file) {
-  state.uploadingImage = true
-  try {
-    const base64 = await readFileAsBase64(file)
-    const formData = new URLSearchParams()
-    formData.append('image', base64)
-
-    const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: formData
-    })
-
-    const payload = await response.json()
-
-    if (!response.ok || !payload.success) {
-      const errorMsg = payload?.error?.message || payload?.data?.error?.message || 'Upload failed'
-      throw new Error(errorMsg)
-    }
-
-    const imageUrl = payload?.data?.url || payload?.data?.display_url
-    if (!imageUrl) {
-      throw new Error('Upload did not return an image URL')
-    }
-
-    return imageUrl
-  } finally {
-    state.uploadingImage = false
-  }
-}
-
-async function handleImageSelect(event) {
-  const files = event.target.files
-  if (!files || files.length === 0) return
-
-  const file = files[0]
-  if (!file.type.startsWith('image/')) {
-    alert(t('challenges.uploadInvalidType'))
-    return
-  }
-
-  const maxSizeMb = 5
-  if (file.size > maxSizeMb * 1024 * 1024) {
-    alert(t('challenges.uploadTooLarge', { size: maxSizeMb }))
-    return
-  }
-
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    state.newEntryImagePreview = e.target.result
-    state.newEntryImageName = file.name
-  }
-  reader.readAsDataURL(file)
-
-  try {
-    state.newEntryImageUrl = await uploadImage(file)
-  } catch (error) {
-    alert(error.message || t('challenges.uploadError'))
-    state.newEntryImagePreview = null
-    state.newEntryImageName = null
-    state.newEntryImageUrl = null
-  }
-}
-
-function removeImagePreview() {
-  state.newEntryImageUrl = null
-  state.newEntryImagePreview = null
-  state.newEntryImageName = null
-}
 
 async function loadEntries() {
   if (!props.challengeId || !props.currentUserId || !props.isOwner) {
@@ -426,12 +311,9 @@ async function loadEntries() {
 async function addEntry() {
   if ((!state.newEntryText.trim() && !state.newEntryImageUrl) || !props.currentUserId || state.addingEntry) return
 
-  if (state.newEntryImagePreview && !state.newEntryImageUrl && state.uploadingImage) {
-    await new Promise(resolve => setTimeout(resolve, 500))
-    if (!state.newEntryImageUrl) {
-      alert(t('challenges.uploadInProgress'))
-      return
-    }
+  if (state.uploadingImage) {
+    alert(t('challenges.uploadInProgress'))
+    return
   }
 
   state.addingEntry = true
@@ -455,9 +337,8 @@ async function addEntry() {
 
     state.newEntryText = ''
     state.newEntryImageUrl = null
-    state.newEntryImagePreview = null
-    state.newEntryImageName = null
     state.shareToCommunity = false
+    composerRef.value?.reset()
 
     await loadEntries()
 

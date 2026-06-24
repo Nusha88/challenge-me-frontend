@@ -6,8 +6,7 @@ export function useOnboarding() {
   const { t } = useI18n()
 
   const startTour = () => {
-    const isMobile = window.innerWidth < 768
-    const desktopSteps = [
+    const steps = [
       {
         element: '.start-mission-btn',
         popover: {
@@ -40,21 +39,7 @@ export function useOnboarding() {
           side: 'bottom'
         }
       }
-    ]
-
-    const mobileSteps = [
-      {
-        element: '.start-mission-btn',
-        popover: {
-          title: t('onboarding.mobile.title'),
-          description: t('onboarding.mobile.description'),
-          side: 'bottom',
-          align: 'center'
-        }
-      }
-    ]
-
-    const steps = (isMobile ? mobileSteps : desktopSteps).filter((step) => !!document.querySelector(step.element))
+    ].filter((step) => !!document.querySelector(step.element))
 
     if (steps.length === 0) {
       localStorage.setItem('onboarding_complete', 'true')
@@ -63,12 +48,12 @@ export function useOnboarding() {
     }
 
     const driverObj = driver({
-      showProgress: !isMobile,
+      showProgress: true,
       animate: true,
       popoverClass: 'ignite-popover',
       allowClose: true,
       overlayColor: 'rgba(10, 11, 20, 0.85)',
-      disableActiveInteraction: isMobile,
+      disableActiveInteraction: false,
       nextBtnText: t('onboarding.nextBtnText'),
       prevBtnText: t('onboarding.prevBtnText'),
       doneBtnText: t('onboarding.doneBtnText'),

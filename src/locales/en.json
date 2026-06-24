@@ -320,6 +320,9 @@
     "dailyRecapSave": "Save",
     "dailyRecapSaved": "Daily recap settings updated.",
     "dailyRecapError": "Failed to update daily recap settings.",
+    "installApp": "Install App",
+    "installAppHint": "Add Ignite to your home screen for faster access.",
+    "installAppButton": "Install",
     "activityJourney": "Activity Journey",
     "heatmapLess": "Less",
     "heatmapMore": "More",
@@ -666,6 +669,21 @@
       "uploadImage": "Upload image",
       "imageUploaded": "Image uploaded",
       "streakBadge": "Streak"
+    },
+    "questSuccess": {
+      "title": "Mark success?",
+      "justCheck": "Just check",
+      "justCheckReward": "+1 spark",
+      "addReport": "Add report",
+      "addReportReward": "+3 sparks",
+      "confirm": "Lock in success"
+    },
+    "shareCard": {
+      "header": "QUEST STEP COMPLETED!",
+      "joinCta": "Join and become a legend",
+      "shareButton": "Share achievement",
+      "modalTitle": "Share your success",
+      "level": "Level"
     }
   },
 "allChallenges": {
@@ -741,6 +759,16 @@
     "stopMonitoring": "Stop Monitoring",
     "joinMission": "Join Mission"
    },
+  "installApp": {
+    "title": "Pin your path",
+    "subtitle": "Add Ignite to your home screen in two taps.",
+    "step1": "Step 1: Tap the 'Share' icon in your browser menu.",
+    "step2": "Step 2: Select 'Add to Home Screen'.",
+    "step1Alt": "Browser share menu instruction",
+    "step2Alt": "Add to Home Screen instruction",
+    "next": "Next",
+    "gotIt": "Got it"
+  },
   "onboarding": {
     "nextBtnText": "Next",
     "prevBtnText": "Back",

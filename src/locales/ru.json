@@ -320,6 +320,9 @@
     "dailyRecapSave": "Сохранить",
     "dailyRecapSaved": "Настройки итогов дня обновлены.",
     "dailyRecapError": "Не удалось обновить настройки итогов дня.",
+    "installApp": "Установить приложение",
+    "installAppHint": "Добавь Ignite на главный экран для быстрого доступа.",
+    "installAppButton": "Установить",
     "activityJourney": "Путь активности",
     "heatmapLess": "Меньше",
     "heatmapMore": "Больше",
@@ -666,6 +669,21 @@
       "uploadImage": "Загрузить изображение",
       "imageUploaded": "Изображение загружено",
       "streakBadge": "Стрик"
+    },
+    "questSuccess": {
+      "title": "Отметить успех?",
+      "justCheck": "Просто отметить",
+      "justCheckReward": "+1 искра",
+      "addReport": "Добавить отчёт",
+      "addReportReward": "+3 искры",
+      "confirm": "Зафиксировать успех"
+    },
+    "shareCard": {
+      "header": "ШАГ В КВЕСТЕ ВЫПОЛНЕН!",
+      "joinCta": "Присоединяйся и стань легендой",
+      "shareButton": "Поделиться достижением",
+      "modalTitle": "Поделитесь успехом",
+      "level": "Уровень"
     }
   },
 "allChallenges": {
@@ -741,6 +759,16 @@
     "stopMonitoring": "Перестать следить",
     "joinMission": "Присоединиться"
    },
+  "installApp": {
+    "title": "Закрепи свой путь",
+    "subtitle": "Добавь Ignite на главный экран в два шага.",
+    "step1": "Шаг 1: нажми на иконку «Поделиться» в меню браузера.",
+    "step2": "Шаг 2: выбери «На экран Домой».",
+    "step1Alt": "Инструкция с кнопкой Поделиться в браузере",
+    "step2Alt": "Инструкция с пунктом На экран Домой",
+    "next": "Далее",
+    "gotIt": "Понятно"
+  },
   "onboarding": {
     "nextBtnText": "Далее",
     "prevBtnText": "Назад",

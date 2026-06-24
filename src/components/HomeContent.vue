@@ -54,14 +54,13 @@
 
         <div ref="missionGridRef" class="mission-grid">
           <div
-            class="mission-card glass-card"
-            :class="{ 'mission-card--clickable': isMobile }"
-            :role="isMobile ? 'button' : undefined"
-            :tabindex="isMobile ? 0 : undefined"
+            class="mission-card glass-card mission-card--clickable"
+            role="button"
+            tabindex="0"
             @click="handleMissionCardClick('ritual')"
             @keydown.enter="handleMissionCardClick('ritual')"
           >
-            <v-icon v-if="isMobile" class="mission-card-hint">mdi-play-circle-outline</v-icon>
+            <v-icon class="mission-card-hint">mdi-play-circle-outline</v-icon>
             <div class="mission-icon-box">
               <v-icon class="neon-icon">mdi-star-four-points-outline</v-icon>
             </div>
@@ -72,14 +71,13 @@
           </div>
 
           <div
-            class="mission-card glass-card"
-            :class="{ 'mission-card--clickable': isMobile }"
-            :role="isMobile ? 'button' : undefined"
-            :tabindex="isMobile ? 0 : undefined"
+            class="mission-card glass-card mission-card--clickable"
+            role="button"
+            tabindex="0"
             @click="handleMissionCardClick('quest')"
             @keydown.enter="handleMissionCardClick('quest')"
           >
-            <v-icon v-if="isMobile" class="mission-card-hint">mdi-play-circle-outline</v-icon>
+            <v-icon class="mission-card-hint">mdi-play-circle-outline</v-icon>
             <div class="mission-icon-box">
               <v-icon class="neon-icon">mdi-sword</v-icon>
             </div>
@@ -93,11 +91,12 @@
 
       <v-dialog
         v-model="missionDialogOpen"
-        max-width="640"
+        max-width="480"
+        width="auto"
         scrollable
-        :fullscreen="isMobile"
         transition="dialog-bottom-transition"
         class="mission-dialog"
+        content-class="mission-dialog-content"
       >
         <v-card class="mission-guide-card">
           <div class="mission-guide-header">
@@ -109,22 +108,20 @@
           </div>
 
           <v-card-text class="mission-guide-body">
-            <v-carousel
-              v-if="missionDialogOpen"
-              height="auto"
-              hide-delimiter-background
-              show-arrows="hover"
-              progress="#4FD1C5"
-              class="mission-carousel"
-            >
-              <v-carousel-item
-                v-for="(slide, index) in missionSlides"
-                :key="index"
-                class="mission-carousel-slide"
-              >
-                <img :src="slide" class="mission-carousel-image" alt="" />
-              </v-carousel-item>
-            </v-carousel>
+            <div class="mission-guide-media">
+              <video
+                v-if="missionDialogOpen"
+                ref="missionVideoRef"
+                :key="activeMissionType"
+                class="mission-guide-video"
+                :src="activeMissionVideo"
+                autoplay
+                loop
+                muted
+                playsinline
+                preload="metadata"
+              />
+            </div>
           </v-card-text>
 
           <v-card-actions class="mission-guide-actions">
@@ -179,36 +176,27 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useDisplay } from 'vuetify'
 import { userService } from '../services/api'
 import homePagePicture from '../assets/home_page.jpg' // Замени на кристалл
 import demoImage from '../assets/demo.png'
-import ritualSlide2 from '../assets/2-r.jpeg'
-import ritualSlide3 from '../assets/3-r.jpeg'
-import ritualSlide4 from '../assets/4-r.jpeg'
-import questSlide2 from '../assets/2-q.jpeg'
-import questSlide3 from '../assets/3-q.jpeg'
-import questSlide4 from '../assets/4-q.jpeg'
-import questSlide5 from '../assets/5-q.jpeg'
+import ritualVideo from '../assets/ritual.mp4'
+import questVideo from '../assets/quest.mp4'
 import GradientButton from './GradientButton.vue'
 
 const { t, locale } = useI18n()
-const { mobile: isMobile } = useDisplay()
 const totalUsers = ref(0)
 const missionGridRef = ref(null)
 let missionObserver = null
 
 const missionDialogOpen = ref(false)
 const activeMissionType = ref('ritual')
+const missionVideoRef = ref(null)
 
-const missionSlidesByType = {
-  ritual: [ritualSlide2, ritualSlide3, ritualSlide4],
-  quest: [questSlide2, questSlide3, questSlide4, questSlide5]
-}
-
-const missionSlides = computed(() => missionSlidesByType[activeMissionType.value] || [])
+const activeMissionVideo = computed(() =>
+  activeMissionType.value === 'quest' ? questVideo : ritualVideo
+)
 
 const missionDialogTitle = computed(() =>
   activeMissionType.value === 'quest'
@@ -222,9 +210,18 @@ function openMissionDialog(type) {
 }
 
 function handleMissionCardClick(type) {
-  if (!isMobile.value) return
   openMissionDialog(type)
 }
+
+watch(missionDialogOpen, async (open) => {
+  if (!open) {
+    missionVideoRef.value?.pause()
+    return
+  }
+
+  await nextTick()
+  missionVideoRef.value?.play().catch(() => {})
+})
 
 const formattedUsersCount = computed(() => {
   return new Intl.NumberFormat(locale.value).format(totalUsers.value)
@@ -552,6 +549,18 @@ const getFeatureIcon = (index) => {
 }
 
 /* MISSION GUIDE DIALOG */
+:deep(.mission-dialog.v-overlay) {
+  align-items: center;
+  justify-content: center;
+}
+
+:deep(.mission-dialog-content) {
+  width: min(480px, calc(100vw - 32px)) !important;
+  max-width: 480px !important;
+  margin: auto;
+  align-self: center;
+}
+
 .mission-guide-card {
   background: #0f172a !important;
   color: #f8fafc !important;
@@ -564,7 +573,7 @@ const getFeatureIcon = (index) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 24px;
+  padding: 14px 18px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(30, 41, 59, 0.6);
 }
@@ -575,7 +584,7 @@ const getFeatureIcon = (index) => {
 }
 
 .mission-guide-title {
-  font-size: 1.2rem;
+  font-size: 1rem;
   font-weight: 800;
   color: #fff;
   margin: 0;
@@ -586,33 +595,27 @@ const getFeatureIcon = (index) => {
 }
 
 .mission-guide-body {
-  padding: 20px 24px !important;
+  padding: 14px 18px !important;
 }
 
-.mission-carousel {
-  height: auto !important;
-  border-radius: 14px;
+.mission-guide-media {
+  border-radius: 12px;
   overflow: hidden;
   border: 1px solid rgba(79, 209, 197, 0.25);
   box-shadow: 0 0 22px rgba(79, 209, 197, 0.15);
 }
 
-.mission-carousel :deep(.v-window),
-.mission-carousel :deep(.v-window__container),
-.mission-carousel :deep(.v-carousel-item),
-.mission-carousel-slide {
-  height: auto !important;
-}
-
-.mission-carousel-image {
+.mission-guide-video {
   display: block;
   width: 100%;
+  max-height: 52vh;
   height: auto;
   object-fit: contain;
+  background: #0f172a;
 }
 
 .mission-guide-actions {
-  padding: 8px 24px 24px !important;
+  padding: 4px 18px 18px !important;
 }
 
 .mission-icon-box {
@@ -877,9 +880,9 @@ const getFeatureIcon = (index) => {
   }
 
   .mission-guide-card {
-    border-radius: 0;
-    border: none;
-    height: 100%;
+    border-radius: 20px;
+    border: 1px solid rgba(79, 209, 197, 0.2);
+    max-height: calc(100vh - 32px);
     display: flex;
     flex-direction: column;
   }
@@ -888,6 +891,21 @@ const getFeatureIcon = (index) => {
     flex: 1 1 auto;
     display: flex;
     align-items: center;
+    justify-content: center;
+    min-height: 0;
+    padding: 12px 14px !important;
+  }
+
+  .mission-guide-media {
+    width: 100%;
+  }
+
+  .mission-guide-video {
+    max-height: 40vh;
+  }
+
+  .mission-guide-actions {
+    padding: 4px 14px 14px !important;
   }
 
   .quote-section {

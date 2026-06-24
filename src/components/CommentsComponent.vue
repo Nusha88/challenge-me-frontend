@@ -11,46 +11,15 @@
     </div>
 
     <div v-if="canComment" class="add-comment-container mb-8">
-      <div class="tactical-input-wrapper">
-        <v-textarea
-          v-model="state.newCommentText"
-          :placeholder="commentPlaceholder"
-          auto-grow
-          rows="1"
-          max-rows="6"
-          variant="plain"
-          class="comment-field px-4 pt-3"
-          hide-details
-          :disabled="state.addingComment"
-        ></v-textarea>
-
-        <div v-if="state.newCommentImagePreview" class="px-4 pb-3">
-          <div class="preview-frame">
-            <v-img :src="state.newCommentImagePreview" max-height="180" cover class="rounded-lg border-accent">
-              <v-btn icon="mdi-close" size="x-small" color="error" class="remove-img-btn" @click="removeImagePreview('comment')"></v-btn>
-            </v-img>
-          </div>
-        </div>
-
-        <div class="input-footer d-flex align-center pa-2">
-          <input ref="fileInputRef" type="file" accept="image/*" class="d-none" @change="handleImageSelect($event, 'comment')" />
-          <v-btn icon="mdi-camera-plus-outline" variant="text" color="rgba(255,255,255,0.5)" size="small" @click="fileInputRef?.click()"></v-btn>
-          
-          <v-spacer></v-spacer>
-          
-          <v-btn
-            color="#4FD1C5"
-            variant="flat"
-            size="small"
-            class="post-btn px-6 font-weight-black"
-            :loading="state.addingComment || state.uploadingImage"
-            :disabled="(!state.newCommentText.trim() && !state.newCommentImageUrl) || state.uploadingImage"
-            @click="addComment"
-          >
-            {{ t('challenges.comments.post') }}
-          </v-btn>
-        </div>
-      </div>
+      <CommentComposer
+        ref="composerRef"
+        v-model:text="state.newCommentText"
+        v-model:image-url="state.newCommentImageUrl"
+        :placeholder="commentPlaceholder"
+        :loading="state.addingComment"
+        @uploading="state.uploadingImage = $event"
+        @submit="addComment"
+      />
     </div>
 
     <div v-else-if="!isCurrentUserParticipant && props.currentUserId && props.challengeType === CHALLENGE_TYPES.HABIT" class="join-mission-card pa-6 text-center mb-8">
@@ -562,6 +531,7 @@ import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
 import { useI18n } from 'vue-i18n'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 import { normalizeDateKey, toDateInputValue } from '../utils/dateUtils'
+import CommentComposer from './CommentComposer.vue'
 
 const router = useRouter()
 const { applyXpAwardResponse } = useXpAwardFeedback()
@@ -919,6 +889,7 @@ const state = reactive({
 })
 
 const fileInputRef = ref(null)
+const composerRef = ref(null)
 const replyFileInputs = ref({})
 const nestedReplyFileInputs = ref({})
 
@@ -973,6 +944,7 @@ async function addComment() {
     state.newCommentImageUrl = null
     state.newCommentImagePreview = null
     state.newCommentImageName = null
+    composerRef.value?.reset()
     await loadComments()
     emit('comment-added', data.comment)
   } finally {

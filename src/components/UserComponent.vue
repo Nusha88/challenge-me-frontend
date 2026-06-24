@@ -16,6 +16,7 @@ import { normalizeDateKey, toDateInputValue } from '../utils/dateUtils'
 import { isChallengeFinished } from '../utils/challengeStatus'
 import { APP_EVENTS, dispatchAppEvent } from '../utils/appEvents'
 import ChallengeCard from './ChallengeCard.vue'
+import InstallAppInstructionModal from './InstallAppInstructionModal.vue'
 
 const props = defineProps({
   userId: {
@@ -56,7 +57,17 @@ const dailyRecapTime = ref('20:00')
 const dailyRecapSaving = ref(false)
 const dailyRecapError = ref('')
 const dailyRecapSuccess = ref('')
+const installInstructionOpen = ref(false)
 const fileInputRef = ref(null)
+
+const isIosDevice = computed(() => {
+  if (typeof navigator === 'undefined') return false
+  const userAgent = navigator.userAgent || ''
+  const platform = navigator.platform || ''
+  const isClassicIos = /iPad|iPhone|iPod/.test(userAgent)
+  const isModernIpadOs = platform === 'MacIntel' && Number(navigator.maxTouchPoints || 0) > 1
+  return isClassicIos || isModernIpadOs
+})
 
 // Hardcoded ImgBB API key for all users
 const IMGBB_API_KEY = 'd8a4925b372143b44469009f92023386'
@@ -999,6 +1010,25 @@ onMounted(async () => {
               </v-chip>
             </div>
 
+            <div v-if="isIosDevice" class="setting-row d-flex align-center py-2">
+              <div class="d-flex flex-column flex-grow-1">
+                <span class="text-white opacity-70">{{ t('profile.installApp') }}</span>
+                <span class="text-caption text-white opacity-50 mt-1">
+                  {{ t('profile.installAppHint') }}
+                </span>
+              </div>
+              <v-btn
+                variant="outlined"
+                color="#4FD1C5"
+                size="small"
+                prepend-icon="mdi-cellphone-arrow-down"
+                class="rounded-lg"
+                @click="installInstructionOpen = true"
+              >
+                {{ t('profile.installAppButton') }}
+              </v-btn>
+            </div>
+
             <div class="setting-row d-flex align-center py-2">
               <div class="d-flex flex-column flex-grow-1">
                 <span class="text-white opacity-70">{{ t('profile.dailyRecap') }}</span>
@@ -1079,6 +1109,8 @@ onMounted(async () => {
           </v-expansion-panel-text>
         </v-expansion-panel>
       </v-expansion-panels>
+
+      <InstallAppInstructionModal v-model="installInstructionOpen" />
 
     </div>
 

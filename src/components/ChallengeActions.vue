@@ -311,10 +311,11 @@ const props = defineProps({
   readonly: { type: Boolean, default: false },
   hideAddButton: { type: Boolean, default: false },
   simplifiedView: { type: Boolean, default: false },
-  hideItemControls: { type: Boolean, default: false }
+  hideItemControls: { type: Boolean, default: false },
+  confirmTopLevelCheck: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'request-complete'])
 const { t } = useI18n()
 
 const editingActions = ref({})
@@ -371,11 +372,30 @@ function removeChildAction(pIdx, cIdx) {
 }
 
 function updateActionChecked(index, value) {
+  if (props.confirmTopLevelCheck && value === true) {
+    const action = localActions.value[index]
+    emit('request-complete', {
+      index,
+      id: action?._id,
+      text: action?.text || ''
+    })
+    return
+  }
   localActions.value[index].checked = value
   if (localActions.value[index].children?.length > 0) {
     localActions.value[index].children.forEach(c => c.checked = value)
   }
 }
+
+function markActionChecked(index) {
+  if (index == null || !localActions.value[index]) return
+  localActions.value[index].checked = true
+  if (localActions.value[index].children?.length > 0) {
+    localActions.value[index].children.forEach(c => c.checked = true)
+  }
+}
+
+defineExpose({ markActionChecked })
 
 function updateChildActionChecked(pIdx, cIdx, value) {
   localActions.value[pIdx].children[cIdx].checked = value

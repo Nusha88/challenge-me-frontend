@@ -11,6 +11,7 @@ import AppHeader from './layout/AppHeader.vue'
 import AppSidebar from './layout/AppSidebar.vue'
 import MobileFab from './layout/MobileFab.vue'
 import ReferralWelcomeDialog from './layout/ReferralWelcomeDialog.vue'
+import InstallAppInstructionModal from './InstallAppInstructionModal.vue'
 import { userService } from '../services/api'
 import { useUnreadNotifications } from '../composables/useUnreadNotifications'
 import { useUserStreak } from '../composables/useUserStreak'
@@ -24,7 +25,7 @@ import { clearAppBadge } from '../utils/appBadge'
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
-const { mobile } = useDisplay()
+const { mobile, lgAndUp } = useDisplay()
 const { startTour } = useOnboarding()
 
 const isAuthPage = computed(() => {
@@ -68,6 +69,7 @@ const {
 
 const drawerOpen = ref(false)
 const onboardingStarted = ref(false)
+const installInstructionOpen = ref(false)
 const referralWelcomeOpen = ref(false)
 const referralWelcomeVariant = ref('signup')
 let referralWelcomeChecked = false
@@ -171,6 +173,12 @@ function startMissionFromReferralWelcome() {
   router.push('/missions/add')
 }
 
+function completeInstallInstructionOnboarding() {
+  localStorage.setItem('onboarding_complete', 'true')
+  localStorage.removeItem('onboarding_pending')
+  onboardingStarted.value = false
+}
+
 function stopLoggedInSession() {
   stopNotificationPolling()
   push.reset()
@@ -213,7 +221,7 @@ onBeforeUnmount(() => {
 })
 
 watch(
-  () => [isLoggedIn.value, isAuthPage.value],
+  () => [isLoggedIn.value, isAuthPage.value, lgAndUp.value],
   () => {
     handleAppEnter()
   },
@@ -226,6 +234,12 @@ watch(referralWelcomeOpen, (open, wasOpen) => {
   }
 })
 
+watch(installInstructionOpen, (open, wasOpen) => {
+  if (wasOpen && !open && localStorage.getItem('onboarding_pending') === 'true') {
+    onboardingStarted.value = false
+  }
+})
+
 async function maybeStartOnboarding() {
   if (onboardingStarted.value || !isLoggedIn.value) return
   if (isAuthPage.value) return
@@ -234,6 +248,12 @@ async function maybeStartOnboarding() {
   if (localStorage.getItem('onboarding_pending') !== 'true') return
 
   onboardingStarted.value = true
+
+  if (!lgAndUp.value) {
+    installInstructionOpen.value = true
+    return
+  }
+
   await nextTick()
   setTimeout(() => {
     try {
@@ -321,6 +341,11 @@ async function maybeStartOnboarding() {
       :variant="referralWelcomeVariant"
       @start-mission="startMissionFromReferralWelcome"
       @dismiss="dismissReferralWelcome"
+    />
+
+    <InstallAppInstructionModal
+      v-model="installInstructionOpen"
+      @completed="completeInstallInstructionOnboarding"
     />
   </v-app>
 </template>

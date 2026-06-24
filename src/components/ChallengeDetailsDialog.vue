@@ -189,12 +189,15 @@
                   class="mission-progress mb-6"
                 ></v-progress-linear>
                 <ChallengeActions
+                  ref="challengeActionsRef"
                   v-if="heavyContentReady"
                   v-model="actionsViewModel"
                   :readonly="!isOwner || isFinished"
                   :hide-add-button="false"
                   :simplified-view="!isOwner"
                   :hide-item-controls="false"
+                  :confirm-top-level-check="canConfirmQuestActions"
+                  @request-complete="openQuestSuccess"
                 />
               </template>
             </div>
@@ -404,8 +407,24 @@
         :invite-url="getShareUrl()"
         :card-data="inviteCardData"
       />
+
+      <QuestSuccessModal
+        v-model="questSuccessOpen"
+        :step-name="pendingAction.text"
+        :loading="questSuccessLoading"
+        @confirm="confirmQuestSuccess"
+      />
     </v-card>
   </v-dialog>
+
+  <ShareAchievementModal
+    v-model="shareCardOpen"
+    :quest-title="shareCardData.questTitle"
+    :step-name="shareCardData.stepName"
+    :user-text="shareCardData.userText"
+    :user-image="shareCardData.userImage"
+    :user-level="shareCardData.userLevel"
+  />
 </template>
 
 <style scoped>
@@ -868,6 +887,8 @@ import ChallengeActions from './ChallengeActions.vue'
 import ChallengeInviteCardDialog from './ChallengeInviteCardDialog.vue'
 import CommentsComponent from './CommentsComponent.vue'
 import DiaryComponent from './DiaryComponent.vue'
+import QuestSuccessModal from './QuestSuccessModal.vue'
+import ShareAchievementModal from './ShareAchievementModal.vue'
 import {challengeService} from '../services/api'
 import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
 import { getMissionShareUrl } from '../utils/appUrl'
@@ -2009,6 +2030,78 @@ function handleMainActionClick() {
     handleOwnerActionsSave()
   } else {
     handleParticipantSave()
+  }
+}
+
+const challengeActionsRef = ref(null)
+const questSuccessOpen = ref(false)
+const questSuccessLoading = ref(false)
+const pendingAction = reactive({ index: null, id: null, text: '' })
+const shareCardOpen = ref(false)
+const shareCardData = reactive({ questTitle: '', stepName: '', userText: '', userImage: '', userLevel: 1 })
+
+const canConfirmQuestActions = computed(() =>
+  props.isOwner &&
+  props.challenge?.challengeType === CHALLENGE_TYPES.RESULT &&
+  !isFinished.value
+)
+
+function openQuestSuccess(payload) {
+  pendingAction.index = payload?.index ?? null
+  pendingAction.id = payload?.id ?? null
+  pendingAction.text = payload?.text || ''
+  questSuccessOpen.value = true
+}
+
+async function confirmQuestSuccess(result) {
+  if (!props.challenge || pendingAction.id == null) return
+  const c = props.challenge
+
+  questSuccessLoading.value = true
+  try {
+    const response = await challengeService.completeQuestAction(c._id, pendingAction.id, {
+      userId: currentUserId.value,
+      mode: result.mode,
+      text: result.text,
+      imageUrl: result.imageUrl,
+      shareToCommunity: result.shareToCommunity
+    })
+
+    if (pendingAction.index != null && editForm.actions[pendingAction.index]) {
+      editForm.actions[pendingAction.index].checked = true
+      const children = editForm.actions[pendingAction.index].children
+      if (Array.isArray(children)) {
+        children.forEach((child) => { child.checked = true })
+      }
+    }
+    challengeActionsRef.value?.markActionChecked(pendingAction.index)
+
+    const xpGained = applyXpAwardResponse(response, {
+      toastAnchor: mainActionBtnRef.value
+    })
+    window.dispatchEvent(new Event('checklist-updated'))
+    if (xpGained > 0) {
+      setTimeout(fireConfetti, 300)
+    }
+
+    emit('update')
+
+    questSuccessOpen.value = false
+
+    if (result.mode === 'report') {
+      shareCardData.questTitle = c.title || ''
+      shareCardData.stepName = pendingAction.text
+      shareCardData.userText = result.text || ''
+      shareCardData.userImage = result.imageUrl || ''
+      shareCardData.userLevel = userLevel.value
+      handleVisibility(false)
+      await nextTick()
+      shareCardOpen.value = true
+    }
+  } catch (error) {
+    // keep modal open on failure
+  } finally {
+    questSuccessLoading.value = false
   }
 }
 

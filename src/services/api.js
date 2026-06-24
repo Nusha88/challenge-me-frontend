@@ -191,6 +191,17 @@ export const challengeService = {
       headers: userService._clientDayHeaders()
     })
   },
+  completeQuestAction: (challengeId, actionId, { userId, mode, text, imageUrl, shareToCommunity } = {}) => {
+    return api.post(`/challenges/${challengeId}/actions/${actionId}/complete`, {
+      userId,
+      mode,
+      text,
+      imageUrl,
+      shareToCommunity
+    }, {
+      headers: userService._clientDayHeaders()
+    })
+  },
   deleteChallenge: (id) => {
     return api.delete(`/challenges/${id}`)
   },
