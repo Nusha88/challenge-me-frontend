@@ -1,7 +1,19 @@
 <template>
   <div class="deadline-block" :class="{ 'deadline-block--tactical': variant === 'tactical' }">
-    <p v-if="variant !== 'tactical'" class="field-label mb-4">{{ labelText }}</p>
-    <span v-else class="label mb-3">{{ labelText }}</span>
+    <p
+      v-if="variant !== 'tactical'"
+      class="field-label mb-4"
+      :class="{ 'field-label--required': labelRequired }"
+    >
+      {{ labelText }}
+    </p>
+    <span
+      v-else
+      class="label mb-3"
+      :class="{ 'label--required': labelRequired }"
+    >
+      {{ labelText }}
+    </span>
 
     <v-menu
       v-if="variant !== 'tactical'"
@@ -15,7 +27,11 @@
         <div
           v-bind="menuProps"
           class="deadline-selector d-flex align-center pa-4"
-          :class="{ 'has-date': endDate, 'is-disabled': disabled }"
+          :class="{
+            'has-date': endDate,
+            'is-disabled': disabled,
+            'has-error': Boolean(errorMessage)
+          }"
         >
           <v-icon size="28" color="#7e46c4" class="mr-4">mdi-calendar-check</v-icon>
 
@@ -48,6 +64,7 @@
       <v-btn
         variant="outlined"
         class="mission-date-btn"
+        :class="{ 'has-error': Boolean(errorMessage) }"
         :disabled="disabled"
         @click="showTacticalPicker = true"
       >
@@ -64,6 +81,8 @@
         />
       </v-dialog>
     </template>
+
+    <p v-if="errorMessage" class="field-error-text mt-2">{{ errorMessage }}</p>
   </div>
 </template>
 
@@ -76,7 +95,9 @@ const props = defineProps({
   variant: { type: String, default: 'default' },
   disabled: { type: Boolean, default: false },
   min: { type: String, default: undefined },
-  label: { type: String, default: '' }
+  label: { type: String, default: '' },
+  errorMessage: { type: String, default: '' },
+  labelRequired: { type: Boolean, default: false }
 })
 
 const endDate = defineModel('endDate', { type: String, default: '' })
@@ -115,5 +136,25 @@ function handleTacticalPick(date) {
 .deadline-selector.is-disabled {
   opacity: 0.65;
   pointer-events: none;
+}
+
+.deadline-selector.has-error {
+  border-color: #f87171 !important;
+}
+
+.mission-date-btn.has-error {
+  border-color: #f87171 !important;
+}
+
+.field-label--required::after {
+  content: ' *';
+  color: #f87171;
+}
+
+.field-error-text {
+  color: #f87171;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  margin: 0;
 }
 </style>

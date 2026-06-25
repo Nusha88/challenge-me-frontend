@@ -7,6 +7,9 @@
     "register": "Sign Up",
     "login": "Login",
     "logout": "Logout",
+    "logoutConfirmTitle": "Log out?",
+    "logoutConfirmMessage": "Are you sure you want to log out of your account?",
+    "logoutConfirmAction": "Log out",
     "profile": "Profile",
     "addChallenge": "Start Mission",
     "allUsers": "Heroes",
@@ -263,6 +266,9 @@
     "ageInteger": "Age must be a whole number",
     "registrationFailed": "Registration failed. Please try again.",
     "loginFailed": "Login failed. Please try again.",
+    "invalidCredentials": "Invalid email or password",
+    "emailAlreadyExists": "A user with this email already exists",
+    "tooManyRegistrationAttempts": "Too many registration attempts from this IP. Please try again later.",
     "required": "This field is required",
     "passwordMismatch": "Passwords must match",
     "passwordLength": "Password must be at least 6 characters",
@@ -455,7 +461,8 @@
       "customDurationRequired": "Please enter the number of days",
       "frequencyRequired": "Frequency is required",
       "endDateRequired": "Final deadline is required",
-      "milestoneRequired": "Add at least one milestone"
+      "milestoneRequired": "Add at least one milestone",
+      "formIncomplete": "Please fill in all required fields"
     },
     "start": "Start",
     "startOptions": {
@@ -575,6 +582,7 @@
     "editTitle": "Mission Details",
     "notFound": "Mission not found",
     "notAuthorized": "You are not authorized to edit this mission",
+    "upcomingOwnerOnly": "Upcoming missions can only be opened by their owner",
     "challengeFinished": "This mission is finished and cannot be edited",
     "delete": "Delete",
     "deleteConfirmTitle": "Delete Mission",

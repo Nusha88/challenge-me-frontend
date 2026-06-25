@@ -79,10 +79,17 @@
           <div v-if="upcomingChallenges.length > 0" :class="{ 'upcoming-section': activeChallenges.length > 0 }">
             <h2 class="section-title mb-4" :class="{ 'mt-8': activeChallenges.length > 0 }">{{ t('challenges.upcoming') }}</h2>
             <MyChallengeSection
-              :challenges="upcomingChallenges"
-              grid-class="challenges-grid"
+              v-if="upcomingQuests.length"
+              :challenges="upcomingQuests"
+              grid-class="quests-grid mb-6"
               :current-user-id="currentUserId"
-              disabled
+              @challenge-click="handleChallengeClick"
+            />
+            <MyChallengeSection
+              v-if="upcomingRituals.length"
+              :challenges="upcomingRituals"
+              grid-class="rituals-grid"
+              :current-user-id="currentUserId"
               @challenge-click="handleChallengeClick"
             />
           </div>
@@ -150,6 +157,8 @@ const {
   activeQuests,
   activeRituals,
   upcomingChallenges,
+  upcomingQuests,
+  upcomingRituals,
   finishedChallenges,
   activeChallenges,
   fetchChallenges,
@@ -231,8 +240,17 @@ watch(() => route.query.challengeId, (newChallengeId) => {
   width: 100%;
 }
 
+:deep(.challenges-grid) {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  padding: 8px 0;
+  width: 100%;
+}
+
 @media (min-width: 600px) {
-  .challenges-grid {
+  .challenges-grid,
+  :deep(.challenges-grid) {
     grid-template-columns: repeat(2, 1fr);
     gap: 24px;
     padding: 16px 0;
@@ -240,7 +258,8 @@ watch(() => route.query.challengeId, (newChallengeId) => {
 }
 
 @media (min-width: 960px) {
-  .challenges-grid {
+  .challenges-grid,
+  :deep(.challenges-grid) {
     grid-template-columns: repeat(3, 1fr);
   }
 }
@@ -254,8 +273,17 @@ watch(() => route.query.challengeId, (newChallengeId) => {
   width: 100%;
 }
 
+:deep(.quests-grid) {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  padding: 8px 0;
+  width: 100%;
+}
+
 @media (min-width: 600px) {
-  .quests-grid {
+  .quests-grid,
+  :deep(.quests-grid) {
     grid-template-columns: repeat(2, 1fr);
     gap: 24px;
     padding: 16px 0;
@@ -271,8 +299,17 @@ watch(() => route.query.challengeId, (newChallengeId) => {
   width: 100%;
 }
 
+:deep(.rituals-grid) {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  padding: 8px 0;
+  width: 100%;
+}
+
 @media (min-width: 600px) {
-  .rituals-grid {
+  .rituals-grid,
+  :deep(.rituals-grid) {
     grid-template-columns: repeat(2, 1fr);
     gap: 24px;
     padding: 16px 0;
@@ -280,7 +317,8 @@ watch(() => route.query.challengeId, (newChallengeId) => {
 }
 
 @media (min-width: 960px) {
-  .rituals-grid {
+  .rituals-grid,
+  :deep(.rituals-grid) {
     grid-template-columns: repeat(3, 1fr);
   }
 }

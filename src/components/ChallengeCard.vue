@@ -721,7 +721,7 @@ import { useChallengeType } from '../composables/useChallengeType'
 import { useChallengeCardProgress } from '../composables/useChallengeCardProgress'
 import { useExtendChallenge, EXTEND_COST } from '../composables/useExtendChallenge'
 import { Flame } from 'lucide-vue-next'
-import { isChallengeFinished } from '../utils/challengeStatus'
+import { isChallengeFinished, isChallengeUpcoming } from '../utils/challengeStatus'
 
 const props = defineProps({
   challenge: {
@@ -802,7 +802,9 @@ const participantCount = computed(() => {
 
 const isFinished = computed(() => isChallengeFinished(props.challenge))
 
-const isActiveHabit = computed(() => isHabitType.value && !isFinished.value)
+const isUpcoming = computed(() => isChallengeUpcoming(props.challenge))
+
+const isActiveHabit = computed(() => isHabitType.value && !isFinished.value && !isUpcoming.value)
 
 const progressBarColor = computed(() => (isHabitType.value ? '#7048E8' : '#4FD1C5'))
 

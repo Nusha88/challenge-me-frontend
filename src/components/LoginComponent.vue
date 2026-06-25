@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import { authService } from '../services/api'
 import { useI18n } from 'vue-i18n'
 import { useUserStore } from '../stores/user'
+import { getAuthErrorMessage } from '../utils/authErrorMessage'
 import SuccessDialog from './SuccessDialog.vue'
 import registerBgImage from '../assets/register.png'
 import swardImage from '../assets/sward.png'
@@ -65,11 +66,11 @@ const handleLogin = async () => {
     // Show success dialog - don't dispatch auth-changed yet to prevent sidebar from showing
     showSuccess.value = true
   } catch (err) {
-    if (err.response?.data?.message) {
-      error.value = err.response.data.message
-    } else {
-      error.value = t('auth.loginFailed')
-    }
+    error.value = getAuthErrorMessage(
+      err.response?.data?.message,
+      t,
+      'auth.loginFailed'
+    )
   } finally {
     loading.value = false
   }
@@ -85,6 +86,10 @@ const particles = Array.from({ length: particleCount }).map(() => ({
     animationDuration: Math.random() * 10 + 10 + 's',
   }
 }));
+
+const clearError = () => {
+  error.value = ''
+}
 
 function closeSuccessModal() {
   showSuccess.value = false
@@ -150,7 +155,13 @@ function closeSuccessModal() {
               </a>
             </div>
 
-            <v-alert v-if="error" type="error" variant="tonal" class="mb-6 rounded-xl">
+            <v-alert
+              v-if="error"
+              type="error"
+              class="mb-4 rounded-xs"
+              closable
+              @click:close="clearError"
+            >
               {{ error }}
             </v-alert>
 
@@ -470,6 +481,12 @@ h2.text-h3 {
   color: #ff8a8a !important; /* Нежно-красный текст, который лучше читается на темном */
   backdrop-filter: blur(10px);
   box-shadow: 0 0 15px rgba(255, 50, 50, 0.1); /* Легкое красное эхо вокруг */
+}
+
+.v-alert :deep(.v-alert__close) {
+  color: #ff8a8a !important;
+  opacity: 0.9;
+  cursor: pointer;
 }
 
 /* Если ты используешь стандартный error-messages у v-text-field */

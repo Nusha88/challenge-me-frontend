@@ -5,15 +5,17 @@
       <div
         v-for="challenge in challenges"
         :key="challenge._id"
-        class="upcoming-card-disabled"
+        class="upcoming-card-cell"
+        :class="{ 'upcoming-card-disabled': !isOwner(challenge) }"
       >
         <ChallengeCard
           :challenge="challenge"
           :current-user-id="currentUserId"
           :show-join-button="true"
-          @click="$emit('open', $event)"
+          :disabled="!isOwner(challenge)"
+          @click="handleOpen(challenge)"
         />
-        <div class="upcoming-blur-overlay" />
+        <div v-if="!isOwner(challenge)" class="upcoming-blur-overlay" />
       </div>
     </div>
   </div>
@@ -22,8 +24,9 @@
 <script setup>
 import { useI18n } from 'vue-i18n'
 import ChallengeCard from '../ChallengeCard.vue'
+import { isChallengeOwner } from '../../utils/challengeStatus'
 
-defineProps({
+const props = defineProps({
   challenges: {
     type: Array,
     default: () => []
@@ -34,9 +37,18 @@ defineProps({
   }
 })
 
-defineEmits(['open'])
+const emit = defineEmits(['open'])
 
 const { t } = useI18n()
+
+function isOwner(challenge) {
+  return isChallengeOwner(challenge, props.currentUserId)
+}
+
+function handleOpen(challenge) {
+  if (!isOwner(challenge)) return
+  emit('open', challenge)
+}
 </script>
 
 <style scoped>
@@ -47,41 +59,33 @@ const { t } = useI18n()
   padding: 20px 4px;
 }
 
-.section-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: rgba(0, 0, 0, 0.87);
-  margin-bottom: 16px;
+.upcoming-card-cell {
+  position: relative;
+  min-width: 0;
+  width: 100%;
 }
 
-@media (min-width: 600px) {
-  .section-title {
-    font-size: 1.5rem;
-  }
-}
-
-.upcoming-section {
-  border-top: 2px solid rgba(0, 0, 0, 0.12);
-  padding-top: 24px;
-  margin-top: 24px;
+.upcoming-card-cell :deep(.challenge-card) {
+  width: 100%;
 }
 
 .upcoming-card-disabled {
-  position: relative;
-}
-
-.upcoming-card-disabled :deep(.challenge-card) {
   pointer-events: none;
 }
 
 .upcoming-blur-overlay {
   position: absolute;
   inset: 0;
-  border-radius: 18px;
+  border-radius: 20px;
   background: rgba(13, 17, 28, 0.38);
   backdrop-filter: blur(3px);
-  z-index: 5;
-  pointer-events: all;
+  pointer-events: none;
+}
+
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.87);
 }
 
 @media (max-width: 600px) {

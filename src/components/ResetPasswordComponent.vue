@@ -11,7 +11,7 @@ const loading = ref(false)
 const error = ref('')
 const errors = ref({})
 const passwordReset = ref(false)
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const formData = ref({
   password: '',
@@ -62,7 +62,8 @@ const handleSubmit = async () => {
   try {
     await authService.resetPassword({
       token: resetToken.value,
-      password: formData.value.password
+      password: formData.value.password,
+      language: locale.value
     })
     passwordReset.value = true
   } catch (err) {

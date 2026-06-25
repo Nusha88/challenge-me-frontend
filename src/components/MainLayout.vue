@@ -19,11 +19,13 @@ import { usePushNotifications } from '../composables/usePushNotifications'
 import { useOnboarding } from '../composables/useOnboarding'
 import { useAppEventListeners } from '../composables/useAppEvents'
 import { useGlobalChallengeDialog } from '../composables/useGlobalChallengeDialog'
+import { useI18n } from 'vue-i18n'
 import { APP_EVENTS, dispatchAppEvent } from '../utils/appEvents'
 import { clearAppBadge } from '../utils/appBadge'
 
 const router = useRouter()
 const route = useRoute()
+const { t } = useI18n()
 const userStore = useUserStore()
 const { mobile, lgAndUp } = useDisplay()
 const { startTour } = useOnboarding()
@@ -68,6 +70,7 @@ const {
 })
 
 const drawerOpen = ref(false)
+const logoutConfirmOpen = ref(false)
 const onboardingStarted = ref(false)
 const installInstructionOpen = ref(false)
 const referralWelcomeOpen = ref(false)
@@ -119,12 +122,21 @@ function toggleDrawer() {
   drawerOpen.value = !drawerOpen.value
 }
 
-function logout() {
+function requestLogout() {
+  logoutConfirmOpen.value = true
+}
+
+function confirmLogout() {
+  logoutConfirmOpen.value = false
   useWatchedChallengesStore().clear()
   userStore.clearUser()
   clearAppBadge()
   dispatchAppEvent(APP_EVENTS.AUTH_CHANGED)
   router.push('/login')
+}
+
+function logout() {
+  requestLogout()
 }
 
 function startLoggedInSession() {
@@ -347,6 +359,26 @@ async function maybeStartOnboarding() {
       v-model="installInstructionOpen"
       @completed="completeInstallInstructionOnboarding"
     />
+
+    <v-dialog v-model="logoutConfirmOpen" max-width="420">
+      <v-card class="logout-confirm-card rounded-xl">
+        <v-card-title class="logout-confirm-title">
+          {{ t('navigation.logoutConfirmTitle') }}
+        </v-card-title>
+        <v-card-text class="logout-confirm-text">
+          {{ t('navigation.logoutConfirmMessage') }}
+        </v-card-text>
+        <v-card-actions class="px-4 pb-4">
+          <v-spacer />
+          <v-btn variant="text" @click="logoutConfirmOpen = false">
+            {{ t('common.cancel') }}
+          </v-btn>
+          <v-btn color="error" variant="flat" @click="confirmLogout">
+            {{ t('navigation.logoutConfirmAction') }}
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-app>
 </template>
 
@@ -437,5 +469,20 @@ async function maybeStartOnboarding() {
   .auth-layout {
     overflow-y: auto !important;
   }
+}
+
+:deep(.logout-confirm-card) {
+  background: #1a1f2e !important;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+:deep(.logout-confirm-title) {
+  color: #fff;
+  font-weight: 700;
+}
+
+:deep(.logout-confirm-text) {
+  color: rgba(255, 255, 255, 0.7);
 }
 </style>

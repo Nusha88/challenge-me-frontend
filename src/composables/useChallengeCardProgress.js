@@ -157,7 +157,7 @@ export function useChallengeCardProgress(props, emit) {
     const days = []
     const today = todayString.value
 
-    for (let i = 6; i >= 0; i--) {
+    for (let i = 0; i <= 6; i++) {
       const date = new Date()
       date.setDate(date.getDate() - i)
 

@@ -7,6 +7,9 @@
     "register": "Регистрация",
     "login": "Вход",
     "logout": "Выйти",
+    "logoutConfirmTitle": "Выйти из аккаунта?",
+    "logoutConfirmMessage": "Вы уверены, что хотите выйти из аккаунта?",
+    "logoutConfirmAction": "Выйти",
     "profile": "Профиль",
     "addChallenge": "Бросить вызов",
     "allUsers": "Герои",
@@ -263,6 +266,9 @@
     "ageInteger": "Возраст должен быть целым числом",
     "registrationFailed": "Не удалось зарегистрироваться. Попробуйте ещё раз.",
     "loginFailed": "Не удалось войти. Попробуйте ещё раз.",
+    "invalidCredentials": "Неверный email или пароль",
+    "emailAlreadyExists": "Пользователь с таким email уже существует",
+    "tooManyRegistrationAttempts": "Слишком много попыток регистрации с этого IP. Попробуйте позже.",
     "required": "Поле обязательно",
     "passwordMismatch": "Пароли должны совпадать",
     "passwordLength": "Пароль должен содержать не менее 6 символов",
@@ -455,7 +461,8 @@
       "customDurationRequired": "Пожалуйста, введите количество дней",
       "frequencyRequired": "Частота обязательна",
       "endDateRequired": "Финальный дедлайн обязателен",
-      "milestoneRequired": "Добавьте хотя бы один этап"
+      "milestoneRequired": "Добавьте хотя бы один этап",
+      "formIncomplete": "Пожалуйста, заполните все обязательные поля"
     },
     "start": "Начало",
     "startOptions": {
@@ -575,6 +582,7 @@
     "editTitle": "Детали миссии",
     "notFound": "Миссия не найдена",
     "notAuthorized": "У вас нет прав на редактирование этой миссии",
+    "upcomingOwnerOnly": "Предстоящие миссии может открыть только их владелец",
     "challengeFinished": "Эта миссия завершена и не может быть отредактирована",
     "delete": "Удалить",
     "deleteConfirmTitle": "Удалить миссию",

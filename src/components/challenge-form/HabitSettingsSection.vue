@@ -5,10 +5,11 @@
         v-model:duration="duration"
         v-model:custom-duration="customDuration"
         :duration-error="durationError"
+        label-required
       />
 
       <div class="frequency-selector">
-        <p class="field-label">{{ t('challenges.frequency') }}</p>
+        <p class="field-label field-label--required">{{ t('challenges.frequency') }}</p>
         <div class="frequency-toggle-wrapper">
           <v-btn-toggle
             v-model="frequency"
@@ -222,6 +223,46 @@ watch(startOption, (newValue) => {
   .duration-frequency-row {
     flex-direction: column;
     gap: 16px;
+  }
+
+  .duration-frequency-row .frequency-selector,
+  .frequency-toggle-wrapper,
+  .frequency-selector .custom-chips-group,
+  .custom-toggle-group,
+  .calendar-btn {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .frequency-toggle-wrapper,
+  .start-time-selector .d-flex {
+    align-items: stretch !important;
+  }
+
+  .start-time-selector .d-flex {
+    flex-direction: column;
+    gap: 12px !important;
+  }
+
+  .frequency-selector .custom-chips-group .chip-btn,
+  .custom-toggle-group .toggle-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    padding-inline: 10px !important;
+  }
+
+  .frequency-selector .custom-chips-group .chip-btn :deep(.v-btn__content),
+  .custom-toggle-group .toggle-btn :deep(.v-btn__content),
+  .calendar-btn :deep(.v-btn__content) {
+    min-width: 0;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.2;
+  }
+
+  .calendar-btn {
+    margin-left: 0 !important;
+    justify-content: center;
   }
 }
 

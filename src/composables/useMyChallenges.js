@@ -64,6 +64,12 @@ export function useMyChallenges(currentUserId) {
   const activeQuests = computed(() => challengeGroups.value.activeQuests)
   const activeRituals = computed(() => challengeGroups.value.activeRituals)
   const upcomingChallenges = computed(() => challengeGroups.value.upcoming)
+  const upcomingQuests = computed(() =>
+    challengeGroups.value.upcoming.filter((c) => c.challengeType === CHALLENGE_TYPES.RESULT)
+  )
+  const upcomingRituals = computed(() =>
+    challengeGroups.value.upcoming.filter((c) => c.challengeType === CHALLENGE_TYPES.HABIT)
+  )
   const finishedChallenges = computed(() => challengeGroups.value.finished)
   const activeChallenges = computed(() => [
     ...activeQuests.value,
@@ -268,6 +274,8 @@ export function useMyChallenges(currentUserId) {
     activeQuests,
     activeRituals,
     upcomingChallenges,
+    upcomingQuests,
+    upcomingRituals,
     finishedChallenges,
     activeChallenges,
     isWatched,

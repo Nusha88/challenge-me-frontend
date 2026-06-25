@@ -94,3 +94,16 @@ export function isChallengeSuccessful(challenge, userId) {
 export function isChallengeParticipant(challenge, userId) {
   return Boolean(findChallengeParticipant(challenge, userId))
 }
+
+export function isChallengeOwner(challenge, userId) {
+  if (!challenge?.owner || !userId) return false
+
+  const ownerId = challenge.owner._id || challenge.owner
+  return Boolean(ownerId && ownerId.toString() === userId.toString())
+}
+
+export function canOpenChallenge(challenge, userId) {
+  if (!challenge) return false
+  if (!isChallengeUpcoming(challenge)) return true
+  return isChallengeOwner(challenge, userId)
+}

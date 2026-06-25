@@ -36,7 +36,7 @@
               <v-img :src="swardImage" width="100" height="100" class="mx-auto hero-image"></v-img>
               <div class="brand-glow-effect"></div>
             </div>
-            <h2 class="text-h3 font-weight-bold text-white mb-2">{{ t('auth.registerPageTitle') }}</h2>
+            <h2 class="text-h4 text-md-h3 font-weight-bold text-white mb-2">{{ t('auth.registerPageTitle') }}</h2>
             <p class="text-body-1 text-slate-400">{{ t('auth.registerSubtitle') }}</p>
           </div>
 
@@ -87,7 +87,14 @@
               color="primary"
             ></v-text-field>
 
-            <v-alert v-if="error" type="error" variant="tonal" class="mb-4 rounded-xl">
+            <v-alert
+              v-if="error"
+              type="error"
+              icon="none"
+              class="mb-4 pl-0 pr-0 pt-0 pb-0 rounded-xs"
+              closable
+              @click:close="clearError"
+            >
               {{ error }}
             </v-alert>
 
@@ -106,7 +113,7 @@
             </v-btn>
           </v-form>
 
-          <div class="text-center mt-8">
+          <div class="text-center mt-5">
             <p class="text-slate-400">
               {{ t('auth.alreadyHaveAccount') }}
               <v-btn variant="text" @click="router.push('/login')" class="signup-text-btn px-1">
@@ -135,6 +142,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useUserStore } from '../stores/user'
 import { authService } from '../services/api'
+import { getAuthErrorMessage } from '../utils/authErrorMessage'
 import SuccessDialog from './SuccessDialog.vue'
 import swardImage from '../assets/sward.png'
 import registerBgImage from '../assets/register.png'
@@ -356,14 +364,18 @@ const handleSubmit = async () => {
     // Show success dialog - don't dispatch auth-changed yet to prevent sidebar from showing
     showSuccess.value = true
   } catch (err) {
-    if (err.response?.data?.message) {
-      error.value = err.response.data.message
-    } else {
-      error.value = t('auth.registrationFailed')
-    }
+    error.value = getAuthErrorMessage(
+      err.response?.data?.message,
+      t,
+      'auth.registrationFailed'
+    )
   } finally {
     loading.value = false
   }
+}
+
+const clearError = () => {
+  error.value = ''
 }
 
 function closeSuccessModal() {
@@ -630,7 +642,7 @@ function closeSuccessModal() {
   color: #cbd5e1 !important;
 }
 
-h2.text-h3 {
+.form-wrapper h2 {
   color: #FFFFFF !important;
 }
 /* Стили для алерта об ошибке */
@@ -641,6 +653,12 @@ h2.text-h3 {
   color: #ff8a8a !important; /* Нежно-красный текст, который лучше читается на темном */
   backdrop-filter: blur(10px);
   box-shadow: 0 0 15px rgba(255, 50, 50, 0.1); /* Легкое красное эхо вокруг */
+}
+
+.v-alert :deep(.v-alert__close) {
+  color: #ff8a8a !important;
+  opacity: 0.9;
+  cursor: pointer;
 }
 
 /* Если ты используешь стандартный error-messages у v-text-field */

@@ -11,7 +11,8 @@
             class="back-tactical-btn"
         ></v-btn>
 
-          <div class="title-container flex-grow-1">
+          <div class="title-container flex-grow-1" data-validation-field="title">
+            <span class="section-tag section-tag--required mb-1">{{ t('challenges.title') }}</span>
             <h1 v-if="!isEditingTitle" class="page-title-display" @click="!isDisabled && (isEditingTitle = true)">
               {{ editForm.title || t('challenges.editTitle') }}
               <v-icon size="16" class="edit-hint-icon ml-2">mdi-pencil-outline</v-icon>
@@ -26,6 +27,7 @@
               @blur="isEditingTitle = false"
               @keyup.enter="isEditingTitle = false"
             ></v-text-field>
+            <p v-if="errors.title" class="field-error-text mt-1 mb-0">{{ errors.title }}</p>
           </div>
 
           <div class="header-status-badges">
@@ -111,6 +113,8 @@
                 class="date-info-box date-info-box--editable flex-grow-1"
                 :min="editForm.startDate || undefined"
                 :disabled="isDisabled"
+                label-required
+                :error-message="errors.endDate"
               />
             </div>
 
@@ -121,6 +125,7 @@
               :challenge-type="challenge.challengeType"
               :title-error="errors.title"
               :description-error="errors.description"
+              :description-required="challenge.challengeType === CHALLENGE_TYPES.RESULT"
               hide-title
               editable
               compact
@@ -139,7 +144,8 @@
               </div>
 
               <div v-if="challenge.challengeType === CHALLENGE_TYPES.HABIT" class="setting-item">
-                <span class="setting-label">{{ t('challenges.frequency') }}</span>
+                <span class="setting-label setting-label--required">{{ t('challenges.frequency') }}</span>
+                <p v-if="errors.frequency" class="field-error-text mb-2">{{ errors.frequency }}</p>
                 <v-select
                   v-model="editForm.frequency"
                   :items="frequencyOptions"
@@ -158,11 +164,17 @@
               v-model:custom-duration="editForm.customDuration"
               :duration-error="errors.duration"
               :disabled="isDisabled"
+              label-required
               class="mb-8"
             />
 
-            <div v-if="challenge.challengeType === CHALLENGE_TYPES.RESULT" class="actions-plan-section mb-8">
-              <div class="section-tag mb-4">{{ t('challenges.actionsPlan') }}</div>
+            <div
+              v-if="challenge.challengeType === CHALLENGE_TYPES.RESULT"
+              class="actions-plan-section mb-8"
+              data-validation-field="actions"
+            >
+              <div class="section-tag section-tag--required mb-4">{{ t('challenges.actionsPlan') }}</div>
+              <p v-if="errors.actions" class="field-error-text mb-3">{{ errors.actions }}</p>
               <div class="actions-glass-wrapper pa-2">
                 <ChallengeActions v-model="editForm.actions" :readonly="isDisabled" />
               </div>
@@ -867,6 +879,8 @@ function clearErrors() {
   errors.description = ''
   errors.duration = ''
   errors.frequency = ''
+  errors.endDate = ''
+  errors.actions = ''
 }
 
 function goBack() {
@@ -1006,7 +1020,7 @@ function validate() {
     errors.title = t('challenges.validation.titleRequired')
   }
 
-  if (!editForm.description?.trim()) {
+  if (challenge.value?.challengeType === CHALLENGE_TYPES.RESULT && !editForm.description?.trim()) {
     errors.description = t('challenges.validation.descriptionRequired')
   }
 
@@ -1042,8 +1056,38 @@ function validate() {
 }
 
 watch(
+  () => editForm.duration,
+  () => {
+    if (errors.duration) errors.duration = ''
+  }
+)
+
+watch(
+  () => editForm.customDuration,
+  () => {
+    if (errors.duration && editForm.customDuration) errors.duration = ''
+  }
+)
+
+watch(
+  () => editForm.title,
+  () => {
+    if (errors.title) errors.title = ''
+  }
+)
+
+watch(
+  () => editForm.description,
+  () => {
+    if (errors.description) errors.description = ''
+  }
+)
+
+watch(
   () => editForm.endDate,
   (newVal, oldVal) => {
+    if (errors.endDate) errors.endDate = ''
+
     if (isInitializing.value || challenge.value?.challengeType !== CHALLENGE_TYPES.RESULT) {
       return
     }
@@ -1052,6 +1096,23 @@ watch(
       syncDurationFromDates()
     }
   }
+)
+
+watch(
+  () => editForm.frequency,
+  () => {
+    if (errors.frequency) errors.frequency = ''
+  }
+)
+
+watch(
+  () => editForm.actions,
+  () => {
+    if (errors.actions && editForm.actions?.some((action) => action.text?.trim())) {
+      errors.actions = ''
+    }
+  },
+  { deep: true }
 )
 
 onMounted(async () => {

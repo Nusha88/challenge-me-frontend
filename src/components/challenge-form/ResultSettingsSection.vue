@@ -1,7 +1,8 @@
 <template>
   <div>
-    <div class="milestones-manager mt-6">
-      <p class="field-label mb-4">{{ t('challenges.milestonesTitle') }}</p>
+    <div class="milestones-manager mt-6" data-validation-field="milestones">
+      <p class="field-label field-label--required mb-1">{{ t('challenges.milestonesTitle') }}</p>
+      <p v-if="milestonesError" class="field-error-text mb-3">{{ milestonesError }}</p>
 
       <div class="milestones-timeline mb-4">
         <div
@@ -38,8 +39,12 @@
       </v-btn>
     </div>
 
-    <div class="mt-8">
-      <MissionDeadlinePicker v-model:end-date="endDate" />
+    <div class="mt-8" data-validation-field="endDate">
+      <MissionDeadlinePicker
+        v-model:end-date="endDate"
+        :error-message="endDateError"
+        label-required
+      />
     </div>
 
     <div class="mt-8">
@@ -92,6 +97,11 @@ const endDate = defineModel('endDate', { type: String, default: '' })
 const difficulty = defineModel('difficulty', { type: String, default: 'medium' })
 const privacy = defineModel('privacy', { type: String, default: 'private' })
 const reward = defineModel('reward', { type: String, default: '' })
+
+defineProps({
+  endDateError: { type: String, default: '' },
+  milestonesError: { type: String, default: '' }
+})
 
 const { t } = useI18n()
 
@@ -219,5 +229,17 @@ function removeStep(index) {
 
 .reward-input :deep(.v-field__shadow) {
   display: none !important;
+}
+
+.field-label--required::after {
+  content: ' *';
+  color: #f87171;
+}
+
+.field-error-text {
+  color: #f87171;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  margin: 0;
 }
 </style>

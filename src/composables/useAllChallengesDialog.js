@@ -6,7 +6,7 @@ import {
   refreshChallengeInBackground
 } from '../utils/openChallengeDetails'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
-import { isChallengeEnded } from '../utils/challengeStatus'
+import { isChallengeEnded, canOpenChallenge } from '../utils/challengeStatus'
 
 function isChallengeOwner(owner, currentUserId) {
   const userId = unref(currentUserId)
@@ -143,6 +143,7 @@ export function useAllChallengesDialog({
 
   function openDetails(challenge, { skipFetch = false, preserveScrollTarget = false } = {}) {
     if (isOpeningChallenge.value) return
+    if (!canOpenChallenge(challenge, unref(currentUserId))) return
 
     if (!preserveScrollTarget) {
       clearDialogScrollTarget()
@@ -190,6 +191,10 @@ export function useAllChallengesDialog({
     }
 
     if (challenge) {
+      if (!canOpenChallenge(challenge, unref(currentUserId))) {
+        errorMessage.value = t('challenges.upcomingOwnerOnly')
+        return
+      }
       await openDetails(challenge, { skipFetch, preserveScrollTarget: true })
     }
   }

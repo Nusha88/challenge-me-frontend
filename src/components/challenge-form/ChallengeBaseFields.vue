@@ -8,8 +8,8 @@
   >
     <v-row v-if="!hideTitle" class="mb-4">
       <v-col cols="12" :md="showImageToggle ? 6 : 12">
-        <label v-if="!compact" class="field-label">{{ t('challenges.title') }}</label>
-        <div v-else-if="editable" class="section-tag mb-2">{{ t('challenges.title') }}</div>
+        <label v-if="!compact" class="field-label field-label--required" data-validation-field="title">{{ t('challenges.title') }}</label>
+        <div v-else-if="editable" class="section-tag section-tag--required mb-2">{{ t('challenges.title') }}</div>
 
         <template v-if="editable && compact && !isEditingTitle">
           <h3
@@ -39,6 +39,7 @@
           :model-value="title"
           variant="outlined"
           required
+          data-validation-field="title"
           :error-messages="titleError"
           :placeholder="titlePlaceholder"
           :disabled="disabled"
@@ -78,12 +79,22 @@
     </div>
 
     <template v-if="editable && compact">
-      <div class="mission-description-block mb-8">
-        <div class="section-tag mb-2">{{ t('challenges.description') }}</div>
+      <div class="mission-description-block mb-8" data-validation-field="description">
+        <div
+          class="section-tag mb-2"
+          :class="{ 'section-tag--required': descriptionRequired }"
+        >
+          {{ t('challenges.description') }}
+        </div>
+        <p v-if="descriptionError" class="field-error-text mb-2">{{ descriptionError }}</p>
         <div
           v-if="!isEditingDescription"
           class="description-display-box"
-          :class="{ 'is-empty': !description, 'is-disabled': disabled }"
+          :class="{
+            'is-empty': !description,
+            'is-disabled': disabled,
+            'has-error': Boolean(descriptionError)
+          }"
           @click="!disabled && (isEditingDescription = true)"
         >
           {{ description || t('challenges.descriptionPlaceholder') }}
@@ -97,7 +108,7 @@
           class="description-input-active"
           auto-grow
           autofocus
-          hide-details
+          :error-messages="descriptionError"
           :disabled="disabled"
           @update:model-value="emit('update:description', $event)"
           @blur="isEditingDescription = false"
@@ -106,12 +117,20 @@
     </template>
 
     <template v-else>
-      <label class="field-label">{{ t('challenges.description') }}</label>
+      <label
+        class="field-label"
+        :class="{ 'field-label--required': descriptionRequired }"
+        data-validation-field="description"
+      >
+        {{ t('challenges.description') }}
+      </label>
       <v-textarea
         :model-value="description"
         variant="outlined"
         rows="5"
         class="mb-4"
+        data-validation-field="description"
+        :required="descriptionRequired"
         :error-messages="descriptionError"
         :disabled="disabled"
         @update:model-value="emit('update:description', $event)"
@@ -134,6 +153,7 @@ const props = defineProps({
   challengeType: { type: String, default: CHALLENGE_TYPES.HABIT },
   titleError: { type: String, default: '' },
   descriptionError: { type: String, default: '' },
+  descriptionRequired: { type: Boolean, default: false },
   editable: { type: Boolean, default: false },
   compact: { type: Boolean, default: false },
   showImageToggle: { type: Boolean, default: true },
@@ -266,6 +286,10 @@ const coverMediaTitle = computed(() => {
 
 .challenge-base-fields--compact .description-input-active :deep(.v-field--focused.v-field--variant-outlined .v-field__outline) {
   color: rgba(79, 209, 197, 0.45) !important;
+}
+
+.challenge-base-fields--compact .description-display-box.has-error {
+  border-color: #f87171 !important;
 }
 
 .challenge-base-fields--compact .title-input-active :deep(.v-field__input) {

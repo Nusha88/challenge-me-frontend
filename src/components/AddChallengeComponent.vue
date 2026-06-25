@@ -25,6 +25,7 @@
                   :challenge-type="form.challengeType"
                   :title-error="errors.title"
                   :description-error="errors.description"
+                  :description-required="!isHabit"
                 />
 
                 <HabitSettingsSection
@@ -46,6 +47,8 @@
                   v-model:difficulty="form.difficulty"
                   v-model:privacy="form.privacy"
                   v-model:reward="form.reward"
+                  :end-date-error="errors.endDate"
+                  :milestones-error="errors.milestones"
                 />
 
           <v-alert
@@ -62,12 +65,12 @@
               color="primary"
               size="large"
               :loading="loading"
-                    :disabled="loading || !isFormValid"
-                    class="create-mission-btn"
-                    :class="{ 
-                      'disabled-grayscale': !isFormValid,
-                      'create-mission-btn--ready': isFormValid && !loading
-                    }"
+              :disabled="loading"
+              class="create-mission-btn"
+              :class="{
+                'disabled-grayscale': !isFormValid,
+                'create-mission-btn--ready': isFormValid && !loading
+              }"
             >
               {{ createButtonText }}
             </v-btn>
@@ -90,6 +93,15 @@
       :is-public="form.privacy === 'public'"
       @add-another="resetForm"
     />
+
+    <v-snackbar
+      v-model="validationToastOpen"
+      color="error"
+      location="bottom"
+      :timeout="4000"
+    >
+      {{ t('challenges.validation.formIncomplete') }}
+    </v-snackbar>
   </div>
 </template>
 
@@ -154,6 +166,30 @@ watch(() => form.value.title, () => {
   }
 })
 
+watch(() => form.value.description, () => {
+  if (errors.value.description) {
+    errors.value.description = ''
+  }
+})
+
+watch(() => form.value.endDate, () => {
+  if (errors.value.endDate) {
+    errors.value.endDate = ''
+  }
+})
+
+watch(() => form.value.milestones, () => {
+  if (errors.value.milestones && form.value.milestones?.some((item) => item.title?.trim())) {
+    errors.value.milestones = ''
+  }
+}, { deep: true })
+
+watch(() => form.value.frequency, () => {
+  if (errors.value.frequency) {
+    errors.value.frequency = ''
+  }
+})
+
 watch(() => form.value.duration, () => {
   if (errors.value.duration) {
     errors.value.duration = ''
@@ -213,11 +249,21 @@ const createButtonText = computed(() => {
 
 const loading = ref(false)
 const errorMessage = ref('')
-const errors = ref({
-  title: '',
-  description: '',
-  duration: ''
-})
+const validationToastOpen = ref(false)
+
+function createEmptyErrors() {
+  return {
+    title: '',
+    description: '',
+    duration: '',
+    endDate: '',
+    milestones: '',
+    frequency: '',
+    startOption: ''
+  }
+}
+
+const errors = ref(createEmptyErrors())
 
 const isFormValid = computed(() => {
   const hasTitle = Boolean(form.value.title?.trim())
@@ -231,8 +277,9 @@ const isFormValid = computed(() => {
 
   const hasDeadline = Boolean(form.value.endDate)
   const hasMilestone = form.value.milestones?.some((item) => item.title?.trim())
+  const hasDescription = Boolean(form.value.description?.trim())
 
-  return hasTitle && hasDeadline && hasMilestone
+  return hasTitle && hasDescription && hasDeadline && hasMilestone
 })
 
 function getCurrentUserId() {
@@ -325,6 +372,10 @@ function validate() {
       validationErrors.frequency = t('challenges.validation.frequencyRequired')
     }
   } else {
+    if (!form.value.description?.trim()) {
+      validationErrors.description = t('challenges.validation.descriptionRequired')
+    }
+
     if (!form.value.endDate) {
       validationErrors.endDate = t('challenges.validation.endDateRequired')
     }
@@ -335,8 +386,27 @@ function validate() {
     }
   }
 
-  errors.value = validationErrors
+  errors.value = {
+    ...createEmptyErrors(),
+    ...validationErrors
+  }
   return Object.keys(validationErrors).length === 0
+}
+
+const VALIDATION_FIELD_ORDER = ['title', 'description', 'milestones', 'endDate', 'duration', 'frequency']
+
+async function scrollToFirstValidationError() {
+  await nextTick()
+
+  for (const field of VALIDATION_FIELD_ORDER) {
+    if (!errors.value[field]) continue
+
+    const target = document.querySelector(`[data-validation-field="${field}"]`)
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return
+    }
+  }
 }
 
 function calculateStartDate() {
@@ -479,7 +549,11 @@ function handleCreateError(error) {
 }
 
 async function handleSubmit() {
-  if (!validate()) return
+  if (!validate()) {
+    validationToastOpen.value = true
+    await scrollToFirstValidationError()
+    return
+  }
 
   const userId = getCurrentUserId()
   if (!userId) {
@@ -528,7 +602,8 @@ function resetForm() {
   showImageUpload.value = false
   createdChallengeId.value = ''
   errorMessage.value = ''
-  errors.value = {}
+  errors.value = createEmptyErrors()
+  validationToastOpen.value = false
   lastHabitPrivacy.value = 'private'
 
   // Scroll to top of form

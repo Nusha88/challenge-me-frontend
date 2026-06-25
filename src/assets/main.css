@@ -2,6 +2,7 @@
 @import './styles/mission-form.css';
 @import './styles/date-picker.css';
 @import './styles/difficulty-cards.css';
+@import './styles/auth-fields.css';
 
 #app {
   max-width: 1280px;

@@ -217,7 +217,7 @@ const loading = ref(false)
 const error = ref('')
 const errors = ref({})
 const emailSent = ref(false)
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const formData = ref({
   email: ''
@@ -247,7 +247,8 @@ const handleSubmit = async () => {
   error.value = ''
   try {
     await authService.forgotPassword({
-      email: formData.value.email.trim().toLowerCase()
+      email: formData.value.email.trim().toLowerCase(),
+      language: locale.value
     })
     emailSent.value = true
   } catch (err) {
