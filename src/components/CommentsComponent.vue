@@ -534,7 +534,7 @@ import { normalizeDateKey, toDateInputValue } from '../utils/dateUtils'
 import CommentComposer from './CommentComposer.vue'
 
 const router = useRouter()
-const { applyXpAwardResponse } = useXpAwardFeedback()
+const { applyRewardResponse } = useXpAwardFeedback()
 
 const props = defineProps({
   challengeId: {
@@ -938,7 +938,7 @@ async function addComment() {
       commentText,
       imageUrl
     )
-    applyXpAwardResponse(response)
+    applyRewardResponse(response)
     const { data } = response
     state.newCommentText = ''
     state.newCommentImageUrl = null
@@ -1195,7 +1195,7 @@ async function submitReply(comment) {
       return
     }
     
-    await challengeService.replyToComment(
+    const response = await challengeService.replyToComment(
       props.challengeId,
       comment._id,
       props.currentUserId,
@@ -1203,6 +1203,7 @@ async function submitReply(comment) {
       commentUserId.toString() === props.currentUserId.toString() ? null : commentUserId,
       imageUrl
     )
+    applyRewardResponse(response)
     state.replyTexts[comment._id] = ''
     state.replyImageUrls[comment._id] = null
     state.replyImagePreviews[comment._id] = null
@@ -1251,7 +1252,7 @@ async function submitReplyToReply(comment, parentReply) {
       return
     }
 
-    const { data } = await challengeService.replyToReply(
+    const response = await challengeService.replyToReply(
       props.challengeId,
       comment._id,
       parentReplyId,
@@ -1260,6 +1261,8 @@ async function submitReplyToReply(comment, parentReply) {
       parentReplyUserId && parentReplyUserId.toString() === props.currentUserId.toString() ? null : parentReplyUserId,
       imageUrl
     )
+    applyRewardResponse(response)
+    const { data } = response
 
     cancelReplyToReply(parentReplyId)
     // Prefer immediate UI update using the API response, then refresh as fallback.

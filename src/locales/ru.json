@@ -839,6 +839,7 @@
     "dailyRecapTitle": "Итоги дня",
     "dailyRecapFallback": "Миссии дня еще активны. Сделаем финальный рывок?",
     "xpGainedToast": "+{count} XP",
+    "sparksGainedToast": "+{count} Искр",
     "challenge": "миссия",
     "apiError": "Не удалось загрузить данные",
     "joinError": "Не удалось присоединиться к миссии",

@@ -280,7 +280,9 @@ export const challengeService = {
     return api.get(`/challenges/watched/feed/${userId}`)
   },
   addComment: (challengeId, userId, text, imageUrl = null) => {
-    return api.post(`/challenges/${challengeId}/comments`, { userId, text, imageUrl })
+    return api.post(`/challenges/${challengeId}/comments`, { userId, text, imageUrl }, {
+      headers: userService._clientDayHeaders()
+    })
   },
   getComments: (challengeId) => {
     return api.get(`/challenges/${challengeId}/comments`)
@@ -289,13 +291,17 @@ export const challengeService = {
     return api.delete(`/challenges/${challengeId}/comments/${commentId}`, { data: { userId } })
   },
   replyToComment: (challengeId, commentId, userId, text, mentionedUserId, imageUrl = null) => {
-    return api.post(`/challenges/${challengeId}/comments/${commentId}/reply`, { userId, text, mentionedUserId, imageUrl })
+    return api.post(`/challenges/${challengeId}/comments/${commentId}/reply`, { userId, text, mentionedUserId, imageUrl }, {
+      headers: userService._clientDayHeaders()
+    })
   },
   deleteReply: (challengeId, commentId, replyId, userId) => {
     return api.delete(`/challenges/${challengeId}/comments/${commentId}/replies/${replyId}`, { data: { userId } })
   },
   replyToReply: (challengeId, commentId, replyId, userId, text, mentionedUserId, imageUrl = null) => {
-    return api.post(`/challenges/${challengeId}/comments/${commentId}/replies/${replyId}/reply`, { userId, text, mentionedUserId, imageUrl })
+    return api.post(`/challenges/${challengeId}/comments/${commentId}/replies/${replyId}/reply`, { userId, text, mentionedUserId, imageUrl }, {
+      headers: userService._clientDayHeaders()
+    })
   },
   addReaction: (challengeId, commentId, emoji, userId, replyId = null, nestedReplyId = null) => {
     if (nestedReplyId && replyId) {

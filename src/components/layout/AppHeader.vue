@@ -35,8 +35,9 @@
             @click="sparksInfoOpen = true"
           >
             <span class="sparks-icon">✦</span>
-            <span class="sparks-count" :class="{ 'sparks-count--spent': sparksSpentAnimating }">{{ userSparks }}</span>
+            <span class="sparks-count" :class="sparksCountClass">{{ userSparks }}</span>
             <span v-if="spentDelta" class="sparks-spent-delta">{{ spentDelta }}</span>
+            <span v-if="gainedDelta" class="sparks-gained-delta">{{ gainedDelta }}</span>
           </button>
         </div>
         <div v-if="!isLoggedIn && route.path === '/' && mobile" class="d-flex align-center gap-2">
@@ -147,13 +148,22 @@ const userStore = useUserStore()
 const userSparks = computed(() => userStore.userSparks)
 const sparksInfoOpen = ref(false)
 const sparksSpentAnimating = ref(false)
+const sparksGainedAnimating = ref(false)
 const spentDelta = ref('')
+const gainedDelta = ref('')
+
+const sparksCountClass = computed(() => ({
+  'sparks-count--spent': sparksSpentAnimating.value,
+  'sparks-count--gained': sparksGainedAnimating.value
+}))
 
 function handleSparksSpent(event) {
   const spent = Number(event?.detail?.spent || 0)
   if (!spent) return
 
+  gainedDelta.value = ''
   spentDelta.value = `−${spent}`
+  sparksGainedAnimating.value = false
   sparksSpentAnimating.value = true
 
   window.setTimeout(() => {
@@ -162,12 +172,29 @@ function handleSparksSpent(event) {
   }, 800)
 }
 
+function handleSparksAwarded(event) {
+  const gained = Number(event?.detail?.gained || 0)
+  if (!gained) return
+
+  spentDelta.value = ''
+  gainedDelta.value = `+${gained}`
+  sparksSpentAnimating.value = false
+  sparksGainedAnimating.value = true
+
+  window.setTimeout(() => {
+    sparksGainedAnimating.value = false
+    gainedDelta.value = ''
+  }, 800)
+}
+
 onMounted(() => {
   addAppEventListener(APP_EVENTS.SPARKS_SPENT, handleSparksSpent)
+  addAppEventListener(APP_EVENTS.SPARKS_AWARDED, handleSparksAwarded)
 })
 
 onBeforeUnmount(() => {
   removeAppEventListener(APP_EVENTS.SPARKS_SPENT, handleSparksSpent)
+  removeAppEventListener(APP_EVENTS.SPARKS_AWARDED, handleSparksAwarded)
 })
 </script>
 
@@ -300,6 +327,10 @@ onBeforeUnmount(() => {
   animation: sparksSpentPulse 0.65s ease;
 }
 
+.sparks-count--gained {
+  animation: sparksGainedPulse 0.65s ease;
+}
+
 .sparks-spent-delta {
   font-size: 0.7rem;
   font-weight: 800;
@@ -308,9 +339,23 @@ onBeforeUnmount(() => {
   animation: sparksDeltaFade 0.8s ease forwards;
 }
 
+.sparks-gained-delta {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #4FD1C5;
+  line-height: 1;
+  animation: sparksDeltaFade 0.8s ease forwards;
+}
+
 @keyframes sparksSpentPulse {
   0% { transform: scale(1); color: #ffffff; }
   35% { transform: scale(1.12); color: #7048E8; }
+  100% { transform: scale(1); color: #ffffff; }
+}
+
+@keyframes sparksGainedPulse {
+  0% { transform: scale(1); color: #ffffff; }
+  35% { transform: scale(1.12); color: #4FD1C5; }
   100% { transform: scale(1); color: #ffffff; }
 }
 

@@ -8,11 +8,21 @@ const { t } = useI18n()
 
 const visible = ref(false)
 const gained = ref(0)
+const rewardKind = ref('xp')
 const variant = ref('spark')
 const anchor = ref(null)
 let hideTimer = null
 
-const label = computed(() => t('notifications.xpGainedToast', { count: gained.value }))
+const label = computed(() => {
+  if (rewardKind.value === 'sparks') {
+    return t('notifications.sparksGainedToast', { count: gained.value })
+  }
+  return t('notifications.xpGainedToast', { count: gained.value })
+})
+
+const iconName = computed(() => (
+  rewardKind.value === 'sparks' ? 'mdi-flare' : 'mdi-star-four-points'
+))
 
 const toastClass = computed(() => [
   'xp-toast',
@@ -36,13 +46,14 @@ function clearHideTimer() {
   }
 }
 
-function showToast(payload) {
+function showToast(payload, kind = 'xp') {
   const amount = Number(payload?.gained)
   if (!Number.isFinite(amount) || amount <= 0) return
 
   clearHideTimer()
   gained.value = amount
-  variant.value = getXpToastVariant(amount)
+  rewardKind.value = kind
+  variant.value = kind === 'sparks' ? 'medium' : getXpToastVariant(amount)
   anchor.value = normalizeToastAnchor(payload?.anchor)
   visible.value = false
 
@@ -56,15 +67,21 @@ function showToast(payload) {
 }
 
 function handleXpAwarded(event) {
-  showToast(event?.detail || {})
+  showToast(event?.detail || {}, 'xp')
+}
+
+function handleSparksAwarded(event) {
+  showToast(event?.detail || {}, 'sparks')
 }
 
 onMounted(() => {
   addAppEventListener(APP_EVENTS.XP_AWARDED, handleXpAwarded)
+  addAppEventListener(APP_EVENTS.SPARKS_AWARDED, handleSparksAwarded)
 })
 
 onBeforeUnmount(() => {
   removeAppEventListener(APP_EVENTS.XP_AWARDED, handleXpAwarded)
+  removeAppEventListener(APP_EVENTS.SPARKS_AWARDED, handleSparksAwarded)
   clearHideTimer()
 })
 </script>
@@ -80,7 +97,7 @@ onBeforeUnmount(() => {
         aria-live="polite"
       >
         <span class="xp-toast__glow" aria-hidden="true"></span>
-        <v-icon class="xp-toast__icon" size="18">mdi-star-four-points</v-icon>
+        <v-icon class="xp-toast__icon" size="18">{{ iconName }}</v-icon>
         <span class="xp-toast__text">{{ label }}</span>
       </div>
     </Transition>
