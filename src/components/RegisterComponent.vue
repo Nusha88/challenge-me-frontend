@@ -64,28 +64,56 @@
             ></v-text-field>
 
             <v-text-field
+              ref="passwordFieldRef"
               v-model="formData.password"
               :label="t('auth.password')"
-              type="password"
+              :type="showPassword ? 'text' : 'password'"
               prepend-inner-icon="mdi-lock-outline"
               variant="outlined"
               rounded="xl"
               class="mb-4 custom-field"
               :error-messages="errors.password"
               color="primary"
-            ></v-text-field>
+            >
+              <template #append-inner>
+                <v-btn
+                  type="button"
+                  variant="text"
+                  density="compact"
+                  tabindex="-1"
+                  :icon="showPassword ? 'mdi-eye-off-outline' : 'mdi-eye-outline'"
+                  :aria-label="showPassword ? t('auth.hidePassword') : t('auth.showPassword')"
+                  class="password-toggle-btn"
+                  @pointerdown.prevent.stop="toggleRegisterPassword"
+                />
+              </template>
+            </v-text-field>
 
             <v-text-field
+              ref="confirmPasswordFieldRef"
               v-model="formData.confirmPassword"
               :label="t('auth.confirmPassword')"
-              type="password"
+              :type="showConfirmPassword ? 'text' : 'password'"
               prepend-inner-icon="mdi-lock-check-outline"
               variant="outlined"
               rounded="xl"
               class="mb-2 custom-field"
               :error-messages="errors.confirmPassword"
               color="primary"
-            ></v-text-field>
+            >
+              <template #append-inner>
+                <v-btn
+                  type="button"
+                  variant="text"
+                  density="compact"
+                  tabindex="-1"
+                  :icon="showConfirmPassword ? 'mdi-eye-off-outline' : 'mdi-eye-outline'"
+                  :aria-label="showConfirmPassword ? t('auth.hidePassword') : t('auth.showPassword')"
+                  class="password-toggle-btn"
+                  @pointerdown.prevent.stop="toggleRegisterConfirmPassword"
+                />
+              </template>
+            </v-text-field>
 
             <v-alert
               v-if="error"
@@ -143,6 +171,7 @@ import { useI18n } from 'vue-i18n'
 import { useUserStore } from '../stores/user'
 import { authService } from '../services/api'
 import { getAuthErrorMessage } from '../utils/authErrorMessage'
+import { togglePasswordVisibility } from '../composables/usePasswordFieldToggle'
 import SuccessDialog from './SuccessDialog.vue'
 import swardImage from '../assets/sward.png'
 import registerBgImage from '../assets/register.png'
@@ -154,6 +183,10 @@ const loading = ref(false)
 const error = ref('')
 const errors = ref({})
 const showSuccess = ref(false)
+const showPassword = ref(false)
+const showConfirmPassword = ref(false)
+const passwordFieldRef = ref(null)
+const confirmPasswordFieldRef = ref(null)
 const { t, locale } = useI18n()
 
 const formData = ref({
@@ -291,6 +324,14 @@ watch(() => formData.value.confirmPassword, (newValue) => {
     errors.value.confirmPassword = getConfirmPasswordError(newValue, false)
   }
 })
+
+function toggleRegisterPassword() {
+  return togglePasswordVisibility(showPassword, passwordFieldRef)
+}
+
+function toggleRegisterConfirmPassword() {
+  return togglePasswordVisibility(showConfirmPassword, confirmPasswordFieldRef)
+}
 
 const validateForm = () => {
   errors.value = {}
@@ -563,8 +604,22 @@ function closeSuccessModal() {
 }
 
 .custom-field :deep(.v-label), 
-.custom-field :deep(.v-field__prepend-inner) {
+.custom-field :deep(.v-field__prepend-inner),
+.custom-field :deep(.v-field__append-inner) {
   color: #94A3B8 !important; /* Slate-400 */
+}
+
+.custom-field :deep(.v-field__append-inner) {
+  cursor: pointer;
+}
+
+.password-toggle-btn {
+  color: #94A3B8 !important;
+  min-width: 0 !important;
+}
+
+.password-toggle-btn:hover {
+  color: #FFFFFF !important;
 }
 
 .custom-field :deep(input) {

@@ -6,6 +6,7 @@ import { authService } from '../services/api'
 import { useI18n } from 'vue-i18n'
 import { useUserStore } from '../stores/user'
 import { getAuthErrorMessage } from '../utils/authErrorMessage'
+import { togglePasswordVisibility } from '../composables/usePasswordFieldToggle'
 import SuccessDialog from './SuccessDialog.vue'
 import registerBgImage from '../assets/register.png'
 import swardImage from '../assets/sward.png'
@@ -16,6 +17,8 @@ const loading = ref(false)
 const error = ref('')
 const errors = ref({})
 const showSuccess = ref(false)
+const showPassword = ref(false)
+const passwordFieldRef = ref(null)
 const { t } = useI18n()
 
 
@@ -45,6 +48,10 @@ const validateForm = () => {
   }
   
   return isValid
+}
+
+function toggleLoginPassword() {
+  return togglePasswordVisibility(showPassword, passwordFieldRef)
 }
 
 const handleForgotPassword = () => {
@@ -138,16 +145,30 @@ function closeSuccessModal() {
             ></v-text-field>
 
             <v-text-field
+                ref="passwordFieldRef"
                 v-model="formData.password"
                 :label="t('auth.password')"
-                type="password"
+                :type="showPassword ? 'text' : 'password'"
                 prepend-inner-icon="mdi-lock-outline"
                 variant="outlined"
                 rounded="xl"
                 class="mb-2 custom-field"
                 :error-messages="errors.password"
                 color="primary"
-            ></v-text-field>
+            >
+              <template #append-inner>
+                <v-btn
+                  type="button"
+                  variant="text"
+                  density="compact"
+                  tabindex="-1"
+                  :icon="showPassword ? 'mdi-eye-off-outline' : 'mdi-eye-outline'"
+                  :aria-label="showPassword ? t('auth.hidePassword') : t('auth.showPassword')"
+                  class="password-toggle-btn"
+                  @pointerdown.prevent.stop="toggleLoginPassword"
+                />
+              </template>
+            </v-text-field>
 
             <div class="d-flex justify-end mb-6">
               <a href="#" class="forgot-link" @click.prevent="handleForgotPassword">
@@ -256,8 +277,22 @@ function closeSuccessModal() {
 }
 
 .custom-field :deep(.v-label), 
-.custom-field :deep(.v-field__prepend-inner) {
+.custom-field :deep(.v-field__prepend-inner),
+.custom-field :deep(.v-field__append-inner) {
   color: #94A3B8 !important; /* Slate-400 */
+}
+
+.custom-field :deep(.v-field__append-inner) {
+  cursor: pointer;
+}
+
+.password-toggle-btn {
+  color: #94A3B8 !important;
+  min-width: 0 !important;
+}
+
+.password-toggle-btn:hover {
+  color: #FFFFFF !important;
 }
 
 .custom-field :deep(input) {

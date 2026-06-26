@@ -38,6 +38,17 @@ const currentLocaleLabel = computed(() => {
 
 function changeLanguage(code) {
   setLocale(code)
+  if (isOwnProfile.value) {
+    syncPreferredLanguage()
+  }
+}
+
+async function syncPreferredLanguage() {
+  try {
+    await userService.updatePreferredLanguage(getRecapLanguageCode())
+  } catch {
+    // Non-blocking: UI locale still updates locally
+  }
 }
 
 const user = ref(null)
@@ -57,6 +68,10 @@ const dailyRecapTime = ref('20:00')
 const dailyRecapSaving = ref(false)
 const dailyRecapError = ref('')
 const dailyRecapSuccess = ref('')
+const weeklyChronicleEnabled = ref(false)
+const weeklyChronicleSaving = ref(false)
+const weeklyChronicleError = ref('')
+const weeklyChronicleSuccess = ref('')
 const installInstructionOpen = ref(false)
 const fileInputRef = ref(null)
 
@@ -324,6 +339,8 @@ watch(isOwnProfile, (newValue) => {
   if (newValue) {
     checkPushNotificationStatus()
     loadDailyRecapSettings()
+    loadWeeklyChronicleSettings()
+    syncPreferredLanguage()
   }
 }, { immediate: true })
 
@@ -375,6 +392,41 @@ async function saveDailyRecapSettings() {
 async function handleDailyRecapToggle(value) {
   dailyRecapEnabled.value = !!value
   await saveDailyRecapSettings()
+}
+
+async function loadWeeklyChronicleSettings() {
+  if (!isOwnProfile.value) return
+  weeklyChronicleError.value = ''
+  try {
+    const response = await userService.getWeeklyChronicleSettings()
+    weeklyChronicleEnabled.value = !!response.data?.weeklyChronicleEmailEnabled
+  } catch {
+    weeklyChronicleError.value = t('profile.weeklyChronicleError')
+  }
+}
+
+async function saveWeeklyChronicleSettings() {
+  if (!isOwnProfile.value) return
+  weeklyChronicleSaving.value = true
+  weeklyChronicleError.value = ''
+  weeklyChronicleSuccess.value = ''
+
+  try {
+    await userService.updateWeeklyChronicleSettings({
+      weeklyChronicleEmailEnabled: !!weeklyChronicleEnabled.value,
+      language: getRecapLanguageCode()
+    })
+    weeklyChronicleSuccess.value = t('profile.weeklyChronicleSaved')
+  } catch {
+    weeklyChronicleError.value = t('profile.weeklyChronicleError')
+  } finally {
+    weeklyChronicleSaving.value = false
+  }
+}
+
+async function handleWeeklyChronicleToggle(value) {
+  weeklyChronicleEnabled.value = !!value
+  await saveWeeklyChronicleSettings()
 }
 
 const readFileAsBase64 = (file) => {
@@ -767,6 +819,7 @@ onMounted(async () => {
   if (isOwnProfile.value) {
     checkPushNotificationStatus()
     loadDailyRecapSettings()
+    loadWeeklyChronicleSettings()
   }
 })
 </script>
@@ -1065,6 +1118,43 @@ onMounted(async () => {
                 @update:model-value="handleDailyRecapToggle"
               />
             </div>
+
+            <div class="setting-row d-flex align-center py-2">
+              <div class="d-flex flex-column flex-grow-1">
+                <span class="text-white opacity-70">{{ t('profile.weeklyChronicle') }}</span>
+                <span class="text-caption text-white opacity-50 mt-1">
+                  {{ t('profile.weeklyChronicleHint') }}
+                </span>
+              </div>
+              <v-switch
+                :model-value="weeklyChronicleEnabled"
+                color="#7048E8"
+                hide-details
+                :disabled="weeklyChronicleSaving"
+                @update:model-value="handleWeeklyChronicleToggle"
+              />
+            </div>
+
+            <v-alert
+              v-if="weeklyChronicleError"
+              type="error"
+              variant="tonal"
+              density="compact"
+              class="mt-2"
+              @click:close="weeklyChronicleError = ''"
+            >
+              {{ weeklyChronicleError }}
+            </v-alert>
+            <v-alert
+              v-if="weeklyChronicleSuccess"
+              type="success"
+              variant="tonal"
+              density="compact"
+              class="mt-2"
+              @click:close="weeklyChronicleSuccess = ''"
+            >
+              {{ weeklyChronicleSuccess }}
+            </v-alert>
 
             <v-alert
               v-if="pushNotificationError"

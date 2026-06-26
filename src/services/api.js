@@ -132,6 +132,15 @@ export const userService = {
   updateProfile: (userData) => {
     return api.put('/auth/profile', userData)
   },
+  getWeeklyChronicleSettings: () => {
+    return api.get('/auth/weekly-chronicle-settings')
+  },
+  updateWeeklyChronicleSettings: (payload) => {
+    return api.put('/auth/weekly-chronicle-settings', payload)
+  },
+  updatePreferredLanguage: (language) => {
+    return api.put('/auth/preferred-language', { language })
+  },
   getAllUsers: (params = {}) => {
     return api.get('/auth/users', { params })
   },
