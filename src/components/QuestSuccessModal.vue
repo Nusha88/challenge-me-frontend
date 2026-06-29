@@ -58,20 +58,28 @@
         </div>
       </v-card-text>
 
-      <v-card-actions class="qs-actions">
-        <v-btn variant="text" class="qs-cancel" :disabled="loading" @click="close">
-          {{ t('common.cancel') }}
-        </v-btn>
-        <v-spacer></v-spacer>
+      <div class="qs-actions">
         <v-btn
           class="qs-confirm"
+          block
+          size="large"
           :loading="loading"
           :disabled="confirmDisabled"
           @click="confirm"
         >
           {{ t('challenges.questSuccess.confirm') }}
         </v-btn>
-      </v-card-actions>
+        <v-btn
+          variant="outlined"
+          class="qs-cancel"
+          block
+          size="large"
+          :disabled="loading"
+          @click="close"
+        >
+          {{ t('common.cancel') }}
+        </v-btn>
+      </div>
     </v-card>
   </v-dialog>
 </template>
@@ -224,12 +232,23 @@ function confirm() {
 }
 
 .qs-actions {
-  padding: 8px 24px 20px !important;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 20px 20px;
+}
+
+.qs-actions :deep(.v-btn) {
+  width: 100%;
+  min-height: 46px;
+  letter-spacing: 0.2px;
 }
 
 .qs-cancel {
   text-transform: none;
-  color: rgba(255, 255, 255, 0.6) !important;
+  color: rgba(255, 255, 255, 0.78) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  background: rgba(255, 255, 255, 0.03) !important;
 }
 
 .qs-confirm {
@@ -237,8 +256,7 @@ function confirm() {
   color: #0F172A !important;
   font-weight: 800;
   text-transform: none;
-  border-radius: 10px !important;
-  padding: 0 22px !important;
+  border-radius: 12px !important;
   box-shadow: 0 4px 14px rgba(79, 209, 197, 0.35) !important;
 }
 

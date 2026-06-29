@@ -211,6 +211,11 @@ export const challengeService = {
       headers: userService._clientDayHeaders()
     })
   },
+  endResultMission: (challengeId) => {
+    return api.post(`/challenges/${challengeId}/end-result-mission`, {}, {
+      headers: userService._clientDayHeaders()
+    })
+  },
   deleteChallenge: (id) => {
     return api.delete(`/challenges/${id}`)
   },
@@ -327,8 +332,15 @@ export const challengeService = {
   getDiaryEntries: (challengeId, userId) => {
     return api.get(`/challenges/${challengeId}/diary`, { params: { userId } })
   },
-  addDiaryEntry: (challengeId, userId, text, imageUrl = null, shareToCommunity = false) => {
-    return api.post(`/challenges/${challengeId}/diary`, { userId, text, imageUrl, shareToCommunity })
+  addDiaryEntry: (challengeId, userId, text, imageUrl = null, shareToCommunity = false, options = {}) => {
+    return api.post(`/challenges/${challengeId}/diary`, {
+      userId,
+      text,
+      imageUrl,
+      shareToCommunity,
+      isTriumph: options.isTriumph === true,
+      actionTitle: options.actionTitle || ''
+    })
   },
   deleteDiaryEntry: (challengeId, entryId, userId) => {
     return api.delete(`/challenges/${challengeId}/diary/${entryId}`, { data: { userId } })

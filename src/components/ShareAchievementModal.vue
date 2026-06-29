@@ -6,9 +6,9 @@
     transition="dialog-bottom-transition"
     @update:model-value="$emit('update:modelValue', $event)"
   >
-    <v-card class="share-modal-card">
+    <v-card class="share-modal-card" :class="{ 'share-modal-card--final': isFinal }">
       <div class="sm-header">
-        <h3 class="sm-title">{{ t('challenges.shareCard.modalTitle') }}</h3>
+        <h3 class="sm-title">{{ modalTitle }}</h3>
         <v-btn icon="mdi-close" variant="text" size="small" class="sm-close" @click="close"></v-btn>
       </div>
 
@@ -19,6 +19,13 @@
           :user-text="userText"
           :user-image="userImage"
           :user-level="userLevel"
+          :user-rank-title="userRankTitle"
+          :is-final="isFinal"
+          :xp-earned="xpEarned"
+          :sparks-earned="sparksEarned"
+          :completed-steps="completedSteps"
+          :total-steps="totalSteps"
+          :mission-dates="missionDates"
         />
       </v-card-text>
     </v-card>
@@ -26,21 +33,35 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ShareAchievementCard from './ShareAchievementCard.vue'
 
-defineProps({
+const props = defineProps({
   modelValue: { type: Boolean, default: false },
   questTitle: { type: String, default: '' },
   stepName: { type: String, default: '' },
   userText: { type: String, default: '' },
   userImage: { type: String, default: '' },
-  userLevel: { type: [Number, String], default: 1 }
+  userLevel: { type: [Number, String], default: 1 },
+  userRankTitle: { type: String, default: '' },
+  isFinal: { type: Boolean, default: false },
+  xpEarned: { type: [Number, String], default: 0 },
+  sparksEarned: { type: [Number, String], default: 0 },
+  completedSteps: { type: [Number, String], default: 0 },
+  totalSteps: { type: [Number, String], default: 0 },
+  missionDates: { type: String, default: '' }
 })
 
 const emit = defineEmits(['update:modelValue'])
 
 const { t } = useI18n()
+
+const modalTitle = computed(() =>
+  props.isFinal
+    ? t('challenges.shareCard.finalModalTitle')
+    : t('challenges.shareCard.modalTitle')
+)
 
 function close() {
   emit('update:modelValue', false)
@@ -53,6 +74,11 @@ function close() {
   border: 1px solid rgba(79, 209, 197, 0.15);
   border-radius: 20px !important;
   color: #fff;
+}
+
+.share-modal-card--final {
+  background: linear-gradient(165deg, #1a1030 0%, #16213e 100%) !important;
+  border-color: rgba(245, 158, 11, 0.28);
 }
 
 .sm-header {

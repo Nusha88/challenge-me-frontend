@@ -359,6 +359,18 @@
           </v-btn>
 
           <v-btn
+            v-if="showEndMissionButton"
+            variant="outlined"
+            color="#4FD1C5"
+            class="rounded-lg action-outline-btn end-mission-btn"
+            :loading="endMissionLoading"
+            :disabled="endMissionLoading || isMainActionLoading"
+            @click="handleEndMission"
+          >
+            {{ t('challenges.endMission') }}
+          </v-btn>
+
+          <v-btn
             v-if="showMainActionButton"
             ref="mainActionBtnRef"
             class="main-action-btn ml-2"
@@ -407,15 +419,23 @@
         :invite-url="getShareUrl()"
         :card-data="inviteCardData"
       />
-
-      <QuestSuccessModal
-        v-model="questSuccessOpen"
-        :step-name="pendingAction.text"
-        :loading="questSuccessLoading"
-        @confirm="confirmQuestSuccess"
-      />
     </v-card>
   </v-dialog>
+
+  <QuestSuccessModal
+    v-model="questSuccessOpen"
+    :step-name="pendingAction.text"
+    :loading="questSuccessLoading"
+    @confirm="confirmQuestSuccess"
+  />
+
+  <MissionAccomplishedModal
+    v-model="missionAccomplishedOpen"
+    :quest-title="missionAccomplishedData.questTitle"
+    :xp-gained="missionAccomplishedData.xpGained"
+    :sparks-gained="missionAccomplishedData.sparksGained"
+    @share="openFinalShareCard"
+  />
 
   <ShareAchievementModal
     v-model="shareCardOpen"
@@ -424,6 +444,13 @@
     :user-text="shareCardData.userText"
     :user-image="shareCardData.userImage"
     :user-level="shareCardData.userLevel"
+    :user-rank-title="shareCardData.userRankTitle"
+    :is-final="shareCardData.isFinal"
+    :xp-earned="shareCardData.xpEarned"
+    :sparks-earned="shareCardData.sparksEarned"
+    :completed-steps="shareCardData.completedSteps"
+    :total-steps="shareCardData.totalSteps"
+    :mission-dates="shareCardData.missionDates"
   />
 </template>
 
@@ -889,12 +916,13 @@ import CommentsComponent from './CommentsComponent.vue'
 import DiaryComponent from './DiaryComponent.vue'
 import QuestSuccessModal from './QuestSuccessModal.vue'
 import ShareAchievementModal from './ShareAchievementModal.vue'
+import MissionAccomplishedModal from './MissionAccomplishedModal.vue'
 import {challengeService} from '../services/api'
 import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
 import { getMissionShareUrl } from '../utils/appUrl'
-import { fireConfetti } from '../utils/confetti'
+import { fireConfetti, fireEpicConfetti } from '../utils/confetti'
 import { getPaceStatus } from '../utils/challengePace'
-import { isChallengeEnded, isChallengeFinished } from '../utils/challengeStatus'
+import { isChallengeEnded, areActionsCompleted } from '../utils/challengeStatus'
 import { getScheduledDaysCount, normalizeDateKey, toDateInputValue } from '../utils/dateUtils'
 import {
   getEffectiveCompletedDays
@@ -966,6 +994,7 @@ const inviteCardDialog = ref(false)
 const isInitializing = ref(true)
 const participantSaveLoading = ref(false)
 const ownerActionsSaveLoading = ref(false)
+const endMissionLoading = ref(false)
 const mainActionBtnRef = ref(null)
 
 const isMainActionLoading = computed(
@@ -973,6 +1002,7 @@ const isMainActionLoading = computed(
     props.joinLoading ||
     participantSaveLoading.value ||
     ownerActionsSaveLoading.value ||
+    endMissionLoading.value ||
     props.saveLoading
 )
 const snackbar = ref(false)
@@ -1148,23 +1178,44 @@ const isFinished = computed(() => {
     return false
   }
 
-  return isChallengeFinished({
-    challengeType: props.challenge.challengeType,
-    endDate: props.isOwner ? editForm.endDate : props.challenge.endDate,
-    actions: props.isOwner ? editForm.actions : props.challenge.actions
-  })
+  if (isMissionEnded.value) {
+    return true
+  }
+
+  if (props.challenge.challengeType === CHALLENGE_TYPES.RESULT) {
+    return Boolean(props.challenge.resultMissionEndedAt)
+  }
+
+  return false
 })
 
-/** Keep save visible for result owners until mission end date — all actions checked is not "closed" yet. */
+const allQuestActionsComplete = computed(() => {
+  if (props.challenge?.challengeType !== CHALLENGE_TYPES.RESULT) {
+    return false
+  }
+
+  const actions = props.isOwner ? editForm.actions : (props.challenge.actions || [])
+  return areActionsCompleted(actions)
+})
+
+/** Keep save/end visible for result owners until the mission is formally ended. */
 const showProgressFooterActions = computed(() => {
   if (tab.value !== 'progress') return false
 
   if (props.isOwner && props.challenge?.challengeType === CHALLENGE_TYPES.RESULT) {
-    return !isMissionEnded.value
+    return !isFinished.value
   }
 
   return !isFinished.value
 })
+
+const showEndMissionButton = computed(() =>
+  props.isOwner &&
+  props.challenge?.challengeType === CHALLENGE_TYPES.RESULT &&
+  tab.value === 'progress' &&
+  allQuestActionsComplete.value &&
+  !isFinished.value
+)
 
 const progressTotal = computed(() => {
   if (!props.challenge) return 0
@@ -2038,7 +2089,26 @@ const questSuccessOpen = ref(false)
 const questSuccessLoading = ref(false)
 const pendingAction = reactive({ index: null, id: null, text: '' })
 const shareCardOpen = ref(false)
-const shareCardData = reactive({ questTitle: '', stepName: '', userText: '', userImage: '', userLevel: 1 })
+const shareCardData = reactive({
+  questTitle: '',
+  stepName: '',
+  userText: '',
+  userImage: '',
+  userLevel: 1,
+  userRankTitle: '',
+  isFinal: false,
+  xpEarned: 0,
+  sparksEarned: 0,
+  completedSteps: 0,
+  totalSteps: 0,
+  missionDates: ''
+})
+const missionAccomplishedOpen = ref(false)
+const missionAccomplishedData = reactive({
+  questTitle: '',
+  xpGained: 0,
+  sparksGained: 0
+})
 
 const canConfirmQuestActions = computed(() =>
   props.isOwner &&
@@ -2056,10 +2126,11 @@ function openQuestSuccess(payload) {
 async function confirmQuestSuccess(result) {
   if (!props.challenge || pendingAction.id == null) return
   const c = props.challenge
+  const actionId = String(pendingAction.id)
 
   questSuccessLoading.value = true
   try {
-    const response = await challengeService.completeQuestAction(c._id, pendingAction.id, {
+    const response = await challengeService.completeQuestAction(c._id, actionId, {
       userId: currentUserId.value,
       mode: result.mode,
       text: result.text,
@@ -2094,12 +2165,23 @@ async function confirmQuestSuccess(result) {
       shareCardData.userText = result.text || ''
       shareCardData.userImage = result.imageUrl || ''
       shareCardData.userLevel = userLevel.value
+      shareCardData.userRankTitle = heroRank.value.title
+      shareCardData.isFinal = false
+      shareCardData.xpEarned = 0
+      shareCardData.sparksEarned = 0
+      shareCardData.completedSteps = 0
+      shareCardData.totalSteps = 0
+      shareCardData.missionDates = ''
       handleVisibility(false)
       await nextTick()
       shareCardOpen.value = true
     }
   } catch (error) {
-    // keep modal open on failure
+    snackbarText.value = error.response?.data?.message
+      || error.response?.data?.error
+      || error.message
+      || 'Failed to complete action'
+    snackbar.value = true
   } finally {
     questSuccessLoading.value = false
   }
@@ -2132,6 +2214,97 @@ async function handleOwnerActionsSave() {
   } finally {
     ownerActionsSaveLoading.value = false
   }
+}
+
+async function handleEndMission() {
+  if (!props.challenge || !props.isOwner || !allQuestActionsComplete.value) return
+
+  endMissionLoading.value = true
+  try {
+    const response = await challengeService.endResultMission(props.challenge._id)
+    const summary = response.data?.missionRewardsSummary
+
+    missionAccomplishedData.questTitle = props.challenge.title || ''
+    missionAccomplishedData.xpGained = Number(summary?.totalXp) || 0
+    missionAccomplishedData.sparksGained = Number(summary?.totalSparks) || 0
+
+    fireEpicConfetti()
+    emit('update')
+    handleVisibility(false)
+    await nextTick()
+    missionAccomplishedOpen.value = true
+  } catch (error) {
+    snackbarText.value = error.response?.data?.message || t('challenges.endMissionError')
+    snackbar.value = true
+  } finally {
+    endMissionLoading.value = false
+  }
+}
+
+async function openFinalShareCard(payload = {}) {
+  if (!props.challenge) return
+  const c = props.challenge
+  const actions = c.actions || editForm.actions || []
+  const totalSteps = countResultActionNodes(actions)
+  const reflection = (payload.userReflection || '').trim()
+
+  if (reflection && c._id && currentUserId.value) {
+    try {
+      const { data } = await challengeService.addDiaryEntry(
+        c._id,
+        currentUserId.value,
+        reflection,
+        null,
+        true,
+        { isTriumph: true, actionTitle: c.title || '' }
+      )
+      if (data?.sharedCommentId) {
+        handleDiaryShared()
+      }
+    } catch (error) {
+      console.error('Failed to save triumph reflection:', error)
+    }
+  }
+
+  shareCardData.questTitle = c.title || ''
+  shareCardData.stepName = ''
+  shareCardData.userText = reflection
+  shareCardData.userImage = ''
+  shareCardData.userLevel = userLevel.value
+  shareCardData.userRankTitle = heroRank.value.title
+  shareCardData.isFinal = true
+  shareCardData.xpEarned = missionAccomplishedData.xpGained
+  shareCardData.sparksEarned = missionAccomplishedData.sparksGained
+  shareCardData.completedSteps = totalSteps
+  shareCardData.totalSteps = totalSteps
+  shareCardData.missionDates = formatMissionDateRange(c)
+
+  missionAccomplishedOpen.value = false
+  await nextTick()
+  shareCardOpen.value = true
+}
+
+function countResultActionNodes(actions) {
+  let count = 0
+
+  function walk(items) {
+    for (const action of items || []) {
+      count += 1
+      if (Array.isArray(action.children) && action.children.length) {
+        walk(action.children)
+      }
+    }
+  }
+
+  walk(actions)
+  return count
+}
+
+function formatMissionDateRange(challenge) {
+  const start = formatDisplayDate(challenge?.startDate)
+  const end = formatDisplayDate(challenge?.endDate)
+  if (start && end) return `${start} — ${end}`
+  return start || end || ''
 }
 
 function formatDisplayDate(value) {

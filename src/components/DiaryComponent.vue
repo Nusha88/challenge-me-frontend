@@ -47,7 +47,11 @@
               </div>
 
               <div class="comment-body pa-3">
-                <div v-if="entry.actionTitle" class="diary-action-title mb-2">
+                <div v-if="entry.isTriumph" class="diary-triumph-badge mb-2">
+                  <v-icon size="13" color="#FBBF24" class="mr-1">mdi-trophy</v-icon>
+                  {{ t('challenges.diary.triumphBadge') }}
+                </div>
+                <div v-else-if="entry.actionTitle" class="diary-action-title mb-2">
                   <v-icon size="13" color="#4FD1C5" class="mr-1">mdi-target-variant</v-icon>
                   {{ entry.actionTitle }}
                 </div>
@@ -195,6 +199,26 @@
   border: 1px solid rgba(79, 209, 197, 0.25);
   border-radius: 8px;
   padding: 3px 10px;
+}
+
+.diary-triumph-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  border-radius: 8px;
+  padding: 3px 10px;
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.15);
+}
+
+.diary-triumph-badge + .text-content,
+.comment-body:has(.diary-triumph-badge) {
+  border-left-color: rgba(251, 191, 36, 0.45);
 }
 
 .author-avatar {

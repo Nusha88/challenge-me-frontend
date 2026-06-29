@@ -67,7 +67,7 @@ export function isChallengeFinished(challenge) {
   }
 
   if (challenge.challengeType === CHALLENGE_TYPES.RESULT) {
-    return areActionsCompleted(challenge.actions)
+    return Boolean(challenge.resultMissionEndedAt)
   }
 
   return false

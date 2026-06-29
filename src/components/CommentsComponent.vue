@@ -67,7 +67,11 @@
                 <v-btn v-if="canDeleteComment(item)" icon="mdi-delete-outline" size="x-small" variant="text" color="rgba(255,255,255,0.3)" @click="deleteComment(item)"></v-btn>
               </div>
 
-              <div class="comment-body pa-3">
+              <div class="comment-body pa-3" :class="{ 'comment-body--triumph': item.isTriumph }">
+                <div v-if="item.isTriumph" class="comment-triumph-badge mb-2">
+                  <v-icon size="13" color="#FBBF24" class="mr-1">mdi-trophy</v-icon>
+                  {{ t('challenges.comments.triumphBadge') }}
+                </div>
                 <p v-if="item.text" class="text-content mb-0">{{ item.text }}</p>
                 <v-img v-if="item.imageUrl" :src="item.imageUrl" max-height="350" class="rounded-lg mt-3 border-accent"></v-img>
                 
@@ -399,6 +403,25 @@
   background: rgba(255, 255, 255, 0.03);
   border-radius: 12px;
   border-left: 3px solid rgba(79, 209, 197, 0.4);
+}
+
+.comment-body--triumph {
+  border-left-color: rgba(251, 191, 36, 0.5);
+  background: rgba(245, 158, 11, 0.06);
+}
+
+.comment-triumph-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  border-radius: 8px;
+  padding: 3px 10px;
 }
 
 .author-name {

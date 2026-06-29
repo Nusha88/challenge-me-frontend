@@ -618,6 +618,19 @@
     "about": "О вызове",
     "giveUp": "Сдаться",
     "joinMission": "Присоединиться к миссии",
+    "endMission": "Завершить миссию",
+    "endMissionSuccess": "Миссия завершена!",
+    "endMissionError": "Не удалось завершить миссию",
+    "missionAccomplished": {
+      "title": "Миссия выполнена!",
+      "subtitle": "Ты прошёл каждый шаг этого эпического квеста.",
+      "rewardsTitle": "Заработано",
+      "xpLabel": "Опыт",
+      "sparksLabel": "Искры",
+      "shareTriumph": "Поделиться триумфом",
+      "continue": "Продолжить",
+      "reflectionPlaceholder": "Напиши пару слов о своих результатах и впечатлениях..."
+    },
     "saveProgress": "Сохранить прогресс",
     "notStarted": "Не начат",
     "of": "из",
@@ -654,6 +667,7 @@
       "addError": "Не удалось добавить комментарий",
       "deleteError": "Не удалось удалить комментарий",
       "deleteConfirm": "Вы уверены, что хотите удалить этот комментарий?",
+      "triumphBadge": "Триумф миссии",
       "reply": "Ответить",
       "replyPlaceholder": "Ответить {name}...",
       "placeholder1": "Как прошел твой сегодняшний шаг к цели?",
@@ -682,7 +696,8 @@
       "removeReaction": "Удалить реакцию",
       "uploadImage": "Загрузить изображение",
       "imageUploaded": "Изображение загружено",
-      "streakBadge": "Стрик"
+      "streakBadge": "Стрик",
+      "triumphBadge": "Триумф миссии"
     },
     "questSuccess": {
       "title": "Отметить успех?",
@@ -694,10 +709,19 @@
     },
     "shareCard": {
       "header": "ШАГ В КВЕСТЕ ВЫПОЛНЕН!",
+      "finalHeader": "МИССИЯ ВЫПОЛНЕНА!",
       "joinCta": "Присоединяйся и стань легендой",
+      "joinMe": "Присоединяйся",
+      "levelLine": "LVL {level} | {rank}",
       "shareButton": "Поделиться достижением",
       "modalTitle": "Поделитесь успехом",
-      "level": "Уровень"
+      "finalModalTitle": "Поделитесь легендарной победой",
+      "level": "Уровень",
+      "lootXp": "Опыт",
+      "lootSparks": "Искры",
+      "statsSteps": "Шаги",
+      "statsPeriod": "Период",
+      "defaultTriumphQuote": "Миссия выполнена. Легенда продолжается!"
     }
   },
 "allChallenges": {
