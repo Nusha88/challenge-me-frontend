@@ -167,20 +167,16 @@ const heatmapDays = computed(() => {
   return Array.from({ length: daysOnSite.value }, (_, i) => i + 1)
 })
 
-// User missions for non-current user profiles. The API returns missions owned by
-// or participated in by the viewed user.
 const userMissions = computed(() => {
   if (isOwnProfile.value) return []
   return challenges.value
 })
 
-// Active user missions (not finished)
 const activeUserMissions = computed(() => {
   if (isOwnProfile.value) return []
   return userMissions.value.filter(challenge => !isChallengeFinished(challenge))
 })
 
-// Finished user missions
 const finishedUserMissions = computed(() => {
   if (isOwnProfile.value) return []
   return userMissions.value.filter(challenge => isChallengeFinished(challenge))
@@ -874,6 +870,10 @@ onMounted(async () => {
                   {{ getHeroRank(userLevel).title }}
                 </v-chip>
                 <span class="days-badge">
+                  <v-icon size="16" class="mr-1">mdi-sword</v-icon>
+                  {{ user.challengeCount ?? 0 }}
+                </span>
+                <span class="days-badge">
                   <v-icon size="16" class="mr-1">mdi-timer-sand</v-icon>
                   {{ daysOnSite }} {{ t('users.daysOnSite') }}
                 </span>
@@ -947,7 +947,7 @@ onMounted(async () => {
               <div>
                 <h3 class="section-title mb-1">{{ t('profile.missionsArchive') }}</h3>
                 <div class="text-caption opacity-60">
-                  {{ activeUserMissions.length }} {{ t('profile.active') }} • {{ finishedUserMissions.length }} {{ t('profile.completed') }}
+                  {{ user.challengeCount ?? 0 }} {{ t('users.challenges') }} • {{ activeUserMissions.length }} {{ t('profile.activePublic') }} • {{ finishedUserMissions.length }} {{ t('profile.completedPublic') }}
                 </div>
               </div>
             </div>

@@ -347,6 +347,8 @@
     "noMissions": "No public missions yet.",
     "active": "Active",
     "completed": "Completed",
+    "activePublic": "Active (public)",
+    "completedPublic": "Completed (public)",
     "ranks": {
       "explorer": "Pathfinder",
       "adept": "Expert",
