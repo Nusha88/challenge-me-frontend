@@ -216,6 +216,16 @@ export const challengeService = {
       headers: userService._clientDayHeaders()
     })
   },
+  endHabitMission: (challengeId, completedDays) => {
+    return api.post(`/challenges/${challengeId}/end-habit-mission`, { completedDays }, {
+      headers: userService._clientDayHeaders()
+    })
+  },
+  continueSoloMission: (challengeId, options = {}) => {
+    return api.post(`/challenges/${challengeId}/continue-solo`, options, {
+      headers: userService._clientDayHeaders()
+    })
+  },
   deleteChallenge: (id) => {
     return api.delete(`/challenges/${id}`)
   },

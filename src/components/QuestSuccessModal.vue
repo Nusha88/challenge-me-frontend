@@ -138,6 +138,7 @@ function confirm() {
     mode: mode.value,
     text: mode.value === 'report' ? reportText.value.trim() : '',
     imageUrl: mode.value === 'report' ? reportImageUrl.value : null,
+    imageDataUrl: mode.value === 'report' ? composerRef.value?.getImagePreview?.() || null : null,
     shareToCommunity: mode.value === 'report' ? shareToCommunity.value : false
   })
 }

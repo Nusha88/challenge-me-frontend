@@ -5,6 +5,8 @@ import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
 import { getScheduledDaysCount, normalizeDateKey, toDateInputValue } from '../utils/dateUtils'
 import { getEffectiveCompletedDays } from '../utils/participantDays'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
+import { shouldTriggerHabitMissionCompletion } from '../utils/missionParticipation'
+import { useMissionCompletionFlow } from './useMissionCompletionFlow'
 
 function getParticipantUserId(participant) {
   return participant?.userId?._id || participant?.userId || participant?._id || participant
@@ -19,6 +21,7 @@ function triggerHapticFeedback(pattern = 50) {
 export function useChallengeCardProgress(props, emit) {
   const { t } = useI18n()
   const { applyXpAwardResponse } = useXpAwardFeedback()
+  const { completeHabitMission } = useMissionCompletionFlow()
 
   const isHabitType = computed(() => props.challenge.challengeType === CHALLENGE_TYPES.HABIT)
   const isResultType = computed(() => props.challenge.challengeType === CHALLENGE_TYPES.RESULT)
@@ -206,6 +209,13 @@ export function useChallengeCardProgress(props, emit) {
     const newCompletedDays = [...(currentUserParticipant.value.completedDays || []), todayStr]
 
     try {
+      if (shouldTriggerHabitMissionCompletion(props.challenge, newCompletedDays)) {
+        await completeHabitMission(props.challenge, newCompletedDays, {
+          onUpdate: () => emit('update')
+        })
+        return
+      }
+
       const response = await challengeService.updateParticipantCompletedDays(
         props.challenge._id,
         props.currentUserId,

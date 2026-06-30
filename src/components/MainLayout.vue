@@ -7,6 +7,7 @@ import { useWatchedChallengesStore } from '../stores/watchedChallenges'
 import NotificationsComponent from './NotificationsComponent.vue'
 import ChallengeDetailsDialog from './ChallengeDetailsDialog.vue'
 import XpAwardToast from './XpAwardToast.vue'
+import MissionCompletionFlow from './MissionCompletionFlow.vue'
 import AppHeader from './layout/AppHeader.vue'
 import AppSidebar from './layout/AppSidebar.vue'
 import MobileFab from './layout/MobileFab.vue'
@@ -347,6 +348,8 @@ async function maybeStartOnboarding() {
     />
 
     <XpAwardToast />
+
+    <MissionCompletionFlow />
 
     <ReferralWelcomeDialog
       v-model="referralWelcomeOpen"

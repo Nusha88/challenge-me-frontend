@@ -626,12 +626,36 @@
     "missionAccomplished": {
       "title": "Миссия выполнена!",
       "subtitle": "Ты прошёл каждый шаг этого эпического квеста.",
+      "personalStats": "Выполнено {done} из {total} дней ритуала",
       "rewardsTitle": "Заработано",
       "xpLabel": "Опыт",
       "sparksLabel": "Искры",
       "shareTriumph": "Поделиться триумфом",
       "continue": "Продолжить",
-      "reflectionPlaceholder": "Напиши пару слов о своих результатах и впечатлениях..."
+      "next": "Сохранить и показать награды",
+      "reflectionPlaceholder": "Напиши пару слов о своих результатах и впечатлениях...",
+      "extinguishedTitle": "Пламя потускло",
+      "extinguishedSupport": "Не каждый цикл горит на полную — и это нормально.",
+      "extinguishedReframe": "Главное — ты приходил. Следующий ритуал — новая искра."
+    },
+    "missionTiers": {
+      "perfect": "Идеальное пламя",
+      "bright": "Яркое пламя",
+      "sustained": "Поддерживающее горение",
+      "extinguished": "Потухло",
+      "badges": {
+        "perfect_flame": "Значок «Идеальное пламя»"
+      }
+    },
+    "soloContinuation": {
+      "title": "Твоё путешествие продолжается",
+      "subtitle": "Групповой челлендж завершён, но твой ритуал ещё не закончен.",
+      "description": "У тебя осталось {remaining} дней, чтобы пройти полный личный цикл.",
+      "autoExtend": "Продолжить соло (+{days} дней)",
+      "customLabel": "Или выбери свою дату окончания",
+      "customButton": "Продолжить с выбранной датой",
+      "skip": "Не сейчас",
+      "error": "Не удалось создать соло-миссию"
     },
     "saveProgress": "Сохранить прогресс",
     "notStarted": "Не начат",
@@ -649,6 +673,7 @@
       "commented": "прокомментировал(а) в {mission}"
     },
     "calendarDayHeroesActive": "Активно: {active} из {total} героев",
+    "joinedHere": "Присоединился здесь 🚩",
     "calendarLegend": {
       "completed": "Выполнено",
       "missed": "Пропущено",
@@ -722,7 +747,12 @@
       "lootXp": "Опыт",
       "lootSparks": "Искры",
       "statsSteps": "Шаги",
+      "statsDiscipline": "Дисциплина",
       "statsPeriod": "Период",
+      "accuracy": "Точность",
+      "disciplineDays": "{completed}/{total} дней",
+      "tierStatus": "Статус: {tier}",
+      "tierStatusFallback": "Статус: Яркое пламя",
       "defaultTriumphQuote": "Миссия выполнена. Легенда продолжается!"
     }
   },

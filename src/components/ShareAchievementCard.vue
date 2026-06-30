@@ -3,7 +3,10 @@
     <div
       ref="cardRef"
       class="share-card"
-      :class="{ 'share-card--final': isFinal }"
+      :class="{
+        'share-card--final': isFinal,
+        'share-card--ritual': isFinal && isRitual
+      }"
     >
       <div class="sc-bg-pattern"></div>
 
@@ -17,9 +20,51 @@
         <p v-if="stepName && !isFinal" class="sc-step-name">{{ stepName }}</p>
       </header>
 
-      <section class="sc-content" :class="{ 'sc-content--final': isFinal }">
-        <!-- Legendary mission accomplished -->
-        <template v-if="isFinal">
+      <section
+        class="sc-content"
+        :class="{
+          'sc-content--final': isFinal,
+          'sc-content--final-ritual': isFinal && isRitual,
+          'sc-content--image-text': !isFinal && hasImage && hasText
+        }"
+      >
+        <!-- Legendary mission accomplished — Daily Ritual -->
+        <template v-if="isFinal && isRitual">
+          <div class="sc-final-content sc-final-content--ritual">
+            <div class="sc-loot-row">
+              <div class="sc-loot-badge sc-loot-badge--xp">
+                ✨ +{{ xpEarned }} {{ t('challenges.shareCard.lootXp') }}
+              </div>
+              <div class="sc-loot-badge sc-loot-badge--sparks">
+                ⚡ +{{ sparksEarned }} {{ t('challenges.shareCard.lootSparks') }}
+              </div>
+            </div>
+
+            <div class="sc-ritual-hero">
+              <div class="sc-ritual-icon" :class="tierIconClass">{{ tierIcon }}</div>
+              <p class="sc-ritual-tier">{{ tierStatusLabel }}</p>
+              <div class="sc-accuracy-badge">
+                🎯 {{ t('challenges.shareCard.accuracy') }}: {{ accuracy }}%
+              </div>
+            </div>
+
+            <div ref="finalReflectionCardRef" class="sc-text-card sc-text-card--ritual-reflection">
+              <p ref="finalReflectionRef" class="sc-handwritten sc-handwritten--ritual">{{ fittedFinalReflection }}</p>
+            </div>
+
+            <div class="sc-stats-grid">
+              <p class="sc-stat">
+                🔥 {{ t('challenges.shareCard.statsDiscipline') }}: {{ disciplineDisplay }}
+              </p>
+              <p class="sc-stat">
+                📅 {{ t('challenges.shareCard.statsPeriod') }}: {{ missionDates }}
+              </p>
+            </div>
+          </div>
+        </template>
+
+        <!-- Legendary mission accomplished — Quest -->
+        <template v-else-if="isFinal">
           <div class="sc-final-content">
             <div class="sc-loot-row">
               <div class="sc-loot-badge sc-loot-badge--xp">
@@ -48,7 +93,7 @@
         <!-- Both image and text -->
         <template v-else-if="hasImage && hasText">
           <div class="sc-photo-frame">
-            <img :src="userImage" alt="" class="sc-photo" crossorigin="anonymous" />
+            <img v-bind="photoImgAttrs" alt="" class="sc-photo" />
           </div>
           <div ref="textCardRef" class="sc-text-card">
             <p ref="compactTextRef" class="sc-handwritten sc-handwritten--with-image">{{ fittedImageText }}</p>
@@ -58,7 +103,7 @@
         <!-- Image only -->
         <template v-else-if="hasImage">
           <div class="sc-photo-frame sc-photo-frame--large">
-            <img :src="userImage" alt="" class="sc-photo" crossorigin="anonymous" />
+            <img v-bind="photoImgAttrs" alt="" class="sc-photo" />
           </div>
         </template>
 
@@ -119,6 +164,7 @@ const props = defineProps({
   stepName: { type: String, default: '' },
   userText: { type: String, default: '' },
   userImage: { type: String, default: '' },
+  userImageDataUrl: { type: String, default: '' },
   userLevel: { type: [Number, String], default: 1 },
   userRankTitle: { type: String, default: '' },
   isFinal: { type: Boolean, default: false },
@@ -126,7 +172,11 @@ const props = defineProps({
   sparksEarned: { type: [Number, String], default: 0 },
   completedSteps: { type: [Number, String], default: 0 },
   totalSteps: { type: [Number, String], default: 0 },
-  missionDates: { type: String, default: '' }
+  missionDates: { type: String, default: '' },
+  missionType: { type: String, default: 'quest' },
+  completedDays: { type: Number, default: 0 },
+  totalDays: { type: Number, default: 0 },
+  completionTier: { type: String, default: '' }
 })
 
 const { t } = useI18n()
@@ -143,8 +193,17 @@ const fittedImageText = ref('')
 const fittedLargeText = ref('')
 const fittedFinalReflection = ref('')
 
-const hasImage = computed(() => !!props.userImage)
+const hasImage = computed(() => !!(props.userImageDataUrl || props.userImage))
 const hasText = computed(() => !!(props.userText && props.userText.trim()))
+
+const displayUserImage = computed(() => props.userImageDataUrl || props.userImage)
+
+const photoImgAttrs = computed(() => {
+  const src = displayUserImage.value
+  if (!src) return { src: '' }
+  if (src.startsWith('data:')) return { src }
+  return { src, crossorigin: 'anonymous' }
+})
 
 function truncateWithEllipsis(text, maxLines, charsPerLine) {
   const normalized = String(text || '').trim()
@@ -192,7 +251,11 @@ const reflectionSource = computed(() => {
 })
 
 const finalReflectionFallback = computed(() =>
-  truncateWithEllipsis(reflectionSource.value, 5, 28)
+  truncateWithEllipsis(
+    reflectionSource.value,
+    finalReflectionLineLimit.value,
+    finalReflectionCharsPerLine.value
+  )
 )
 
 const stepsDisplay = computed(() => {
@@ -205,6 +268,47 @@ const stepsDisplay = computed(() => {
 
 const xpEarned = computed(() => props.xpEarned ?? 0)
 const sparksEarned = computed(() => props.sparksEarned ?? 0)
+
+const isRitual = computed(() => props.missionType === 'ritual')
+
+const accuracy = computed(() => {
+  const total = Number(props.totalDays) || 0
+  if (total <= 0) return 0
+  return Math.round((Number(props.completedDays) / total) * 100)
+})
+
+const disciplineDisplay = computed(() =>
+  t('challenges.shareCard.disciplineDays', {
+    completed: props.completedDays,
+    total: props.totalDays
+  })
+)
+
+const tierIcon = computed(() => {
+  switch (props.completionTier) {
+    case 'perfect': return '🏆'
+    case 'bright': return '🔥'
+    case 'sustained': return '🕯️'
+    case 'extinguished': return '💨'
+    default: return '🔥'
+  }
+})
+
+const tierIconClass = computed(() =>
+  props.completionTier ? `sc-ritual-icon--${props.completionTier}` : 'sc-ritual-icon--bright'
+)
+
+const tierStatusLabel = computed(() => {
+  if (!props.completionTier) {
+    return t('challenges.shareCard.tierStatusFallback')
+  }
+  return t('challenges.shareCard.tierStatus', {
+    tier: t(`challenges.missionTiers.${props.completionTier}`)
+  })
+})
+
+const finalReflectionLineLimit = computed(() => (isRitual.value ? 3 : 5))
+const finalReflectionCharsPerLine = computed(() => (isRitual.value ? 22 : 28))
 
 function fitTextToContainer(full, container, paragraph, fallbackText) {
   if (!container || !paragraph) {
@@ -320,6 +424,7 @@ watch(
   () => [
     props.userText,
     props.userImage,
+    props.userImageDataUrl,
     props.questTitle,
     props.stepName,
     props.isFinal,
@@ -327,7 +432,11 @@ watch(
     props.sparksEarned,
     props.completedSteps,
     props.totalSteps,
-    props.missionDates
+    props.missionDates,
+    props.missionType,
+    props.completedDays,
+    props.totalDays,
+    props.completionTier
   ],
   () => nextTick(fitAllTextContent),
   { immediate: true }
@@ -368,6 +477,89 @@ const displayRankTitle = computed(() => {
   return t(`profile.ranks.${rankKey}`)
 })
 
+function waitForImageLoad(img) {
+  if (img.complete && img.naturalWidth > 0) return Promise.resolve()
+  return new Promise((resolve) => {
+    img.onload = resolve
+    img.onerror = resolve
+  })
+}
+
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = reject
+    reader.readAsDataURL(blob)
+  })
+}
+
+async function resolveImageDataUrl(src) {
+  if (!src || src.startsWith('data:')) return src
+
+  try {
+    const response = await fetch(src, { mode: 'cors', cache: 'no-cache' })
+    if (!response.ok) throw new Error('fetch failed')
+    return await blobToDataUrl(await response.blob())
+  } catch {
+    return new Promise((resolve, reject) => {
+      const loader = new Image()
+      loader.crossOrigin = 'anonymous'
+      loader.onload = () => {
+        try {
+          const canvas = document.createElement('canvas')
+          canvas.width = loader.naturalWidth
+          canvas.height = loader.naturalHeight
+          canvas.getContext('2d').drawImage(loader, 0, 0)
+          resolve(canvas.toDataURL('image/png'))
+        } catch (err) {
+          reject(err)
+        }
+      }
+      loader.onerror = () => reject(new Error('Image load failed'))
+      loader.src = src.includes('?') ? `${src}&_=${Date.now()}` : `${src}?_=${Date.now()}`
+    })
+  }
+}
+
+async function embedImagesForExport(root) {
+  const restores = []
+
+  await Promise.all(
+    Array.from(root.querySelectorAll('img')).map(async (img) => {
+      const originalSrc = img.getAttribute('src') || ''
+      if (!originalSrc || originalSrc.startsWith('data:')) {
+        await waitForImageLoad(img)
+        return
+      }
+
+      try {
+        const dataUrl = await resolveImageDataUrl(originalSrc)
+        restores.push({
+          img,
+          originalSrc,
+          crossOrigin: img.getAttribute('crossorigin')
+        })
+        img.removeAttribute('crossorigin')
+        img.src = dataUrl
+        await waitForImageLoad(img)
+      } catch (error) {
+        console.warn('Share card image embed failed', error)
+        await waitForImageLoad(img)
+      }
+    })
+  )
+
+  return () => {
+    for (const { img, originalSrc, crossOrigin } of restores) {
+      img.src = originalSrc
+      if (crossOrigin != null) {
+        img.setAttribute('crossorigin', crossOrigin)
+      }
+    }
+  }
+}
+
 async function shareCard() {
   if (!cardRef.value) return
 
@@ -376,6 +568,11 @@ async function shareCard() {
   if (props.isFinal) {
     cardRef.value.classList.add('share-card--export-final')
   }
+  if (hasImage.value && hasText.value && !props.isFinal) {
+    cardRef.value.classList.add('share-card--export-image-text')
+  }
+
+  let restoreImages = () => {}
 
   try {
     await nextTick()
@@ -386,16 +583,7 @@ async function shareCard() {
       await document.fonts.ready
     }
 
-    const images = cardRef.value.querySelectorAll('img')
-    await Promise.all(
-      Array.from(images).map((img) => {
-        if (img.complete) return Promise.resolve()
-        return new Promise((resolve) => {
-          img.onload = resolve
-          img.onerror = resolve
-        })
-      })
-    )
+    restoreImages = await embedImagesForExport(cardRef.value)
 
     const dataUrl = await toPng(cardRef.value, {
       pixelRatio: 2,
@@ -410,8 +598,10 @@ async function shareCard() {
   } catch (error) {
     console.error('Share failed:', error)
   } finally {
+    restoreImages()
     cardRef.value?.classList.remove('share-card--export')
     cardRef.value?.classList.remove('share-card--export-final')
+    cardRef.value?.classList.remove('share-card--export-image-text')
     sharing.value = false
   }
 }
@@ -517,7 +707,8 @@ defineExpose({ shareCard })
 }
 
 .sc-content:has(.sc-text-card),
-.sc-content:has(.sc-text-only) {
+.sc-content:has(.sc-text-only),
+.sc-content--image-text {
   gap: 10px;
   justify-content: flex-start;
   padding: 8px 0;
@@ -696,12 +887,33 @@ defineExpose({ shareCard })
 }
 
 .share-card--export .sc-content:has(.sc-text-card),
-.share-card--export .sc-content:has(.sc-text-only) {
+.share-card--export .sc-content:has(.sc-text-only),
+.share-card--export .sc-content--image-text {
   justify-content: flex-start !important;
   padding: 8px 0 !important;
 }
 
-.share-card--export .sc-content:not(:has(.sc-text-card)):not(:has(.sc-text-only)) {
+.share-card--export .sc-content--image-text .sc-photo-frame {
+  width: 100px !important;
+  height: 100px !important;
+  min-width: 100px !important;
+  min-height: 100px !important;
+  flex-shrink: 0 !important;
+  overflow: hidden !important;
+  border-radius: 50% !important;
+  border: 3px solid #4FD1C5 !important;
+  background: #0F172A !important;
+  box-shadow: 0 0 20px rgba(79, 209, 197, 0.3) !important;
+}
+
+.share-card--export .sc-content--image-text .sc-photo {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+
+.share-card--export .sc-content:not(:has(.sc-text-card)):not(:has(.sc-text-only)):not(.sc-content--image-text) {
   justify-content: center !important;
   overflow: hidden !important;
   padding: 10px 0 !important;
@@ -856,6 +1068,124 @@ defineExpose({ shareCard })
   text-overflow: ellipsis;
 }
 
+.sc-final-content--ritual {
+  gap: 6px;
+}
+
+.sc-content--final-ritual {
+  gap: 6px;
+  padding: 4px 0;
+}
+
+.sc-ritual-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 4px 0;
+  text-align: center;
+}
+
+.sc-ritual-icon {
+  font-size: 3.4rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 18px rgba(251, 191, 36, 0.45));
+  animation: sc-ritual-glow 2.4s ease-in-out infinite;
+}
+
+.sc-ritual-icon--perfect {
+  filter: drop-shadow(0 0 22px rgba(251, 191, 36, 0.65));
+}
+
+.sc-ritual-icon--bright {
+  filter: drop-shadow(0 0 20px rgba(245, 158, 11, 0.55));
+}
+
+.sc-ritual-icon--sustained {
+  filter: drop-shadow(0 0 16px rgba(251, 191, 36, 0.35));
+}
+
+.sc-ritual-icon--extinguished {
+  filter: drop-shadow(0 0 12px rgba(148, 163, 184, 0.35));
+  opacity: 0.85;
+}
+
+.sc-ritual-tier {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.55px;
+  text-transform: uppercase;
+  line-height: 1.25;
+  background: linear-gradient(90deg, #fff 0%, #fbbf24 55%, #f59e0b 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sc-accuracy-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.25px;
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(79, 209, 197, 0.1);
+  border: 1px solid rgba(79, 209, 197, 0.35);
+  box-shadow:
+    0 0 14px rgba(79, 209, 197, 0.18),
+    inset 0 0 12px rgba(79, 209, 197, 0.06);
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+.sc-text-card--ritual-reflection {
+  flex: 0 1 auto;
+  max-height: 22%;
+  min-height: 52px;
+  width: 100%;
+  padding: 8px 10px !important;
+  background: rgba(42, 21, 5, 0.42);
+  border-color: rgba(251, 191, 36, 0.18);
+  overflow: hidden;
+}
+
+.sc-handwritten--ritual {
+  font-size: 0.82rem;
+  line-height: 1.32;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+.share-card--ritual .sc-stats-grid {
+  border-color: rgba(79, 209, 197, 0.18);
+}
+
+@keyframes sc-ritual-glow {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sc-ritual-icon {
+    animation: none;
+  }
+}
+
 .share-card--final .sc-photo-frame {
   width: 88px;
   height: 88px;
@@ -948,6 +1278,48 @@ defineExpose({ shareCard })
 .share-card--export-final .sc-content:has(.sc-text-card) {
   justify-content: flex-start !important;
   padding: 6px 0 !important;
+}
+
+.share-card--export-final .sc-ritual-icon {
+  animation: none !important;
+  font-size: 3rem !important;
+}
+
+.share-card--export-final .sc-ritual-tier {
+  background: none !important;
+  -webkit-background-clip: unset;
+  background-clip: unset;
+  color: #fbbf24 !important;
+  font-size: 0.68rem !important;
+}
+
+.share-card--export-final .sc-accuracy-badge {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: rgba(15, 23, 42, 0.92) !important;
+  border-color: rgba(79, 209, 197, 0.4) !important;
+  box-shadow: none !important;
+  font-size: 0.62rem !important;
+}
+
+.share-card--export-final .sc-text-card--ritual-reflection {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: rgba(42, 21, 5, 0.92) !important;
+  border-color: rgba(251, 191, 36, 0.3) !important;
+  max-height: 24% !important;
+}
+
+.share-card--export-final .sc-handwritten--ritual {
+  font-size: 0.78rem !important;
+  line-height: 1.3 !important;
+  -webkit-line-clamp: 3 !important;
+  line-clamp: 3 !important;
+}
+
+.share-card--export-final .sc-final-content--ritual {
+  gap: 5px !important;
+  overflow: hidden !important;
 }
 
 .sc-share-btn {

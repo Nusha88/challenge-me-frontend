@@ -18,6 +18,7 @@
           :step-name="stepName"
           :user-text="userText"
           :user-image="userImage"
+          :user-image-data-url="userImageDataUrl"
           :user-level="userLevel"
           :user-rank-title="userRankTitle"
           :is-final="isFinal"
@@ -26,6 +27,10 @@
           :completed-steps="completedSteps"
           :total-steps="totalSteps"
           :mission-dates="missionDates"
+          :mission-type="missionType"
+          :completed-days="completedDays"
+          :total-days="totalDays"
+          :completion-tier="completionTier"
         />
       </v-card-text>
     </v-card>
@@ -43,6 +48,7 @@ const props = defineProps({
   stepName: { type: String, default: '' },
   userText: { type: String, default: '' },
   userImage: { type: String, default: '' },
+  userImageDataUrl: { type: String, default: '' },
   userLevel: { type: [Number, String], default: 1 },
   userRankTitle: { type: String, default: '' },
   isFinal: { type: Boolean, default: false },
@@ -50,7 +56,11 @@ const props = defineProps({
   sparksEarned: { type: [Number, String], default: 0 },
   completedSteps: { type: [Number, String], default: 0 },
   totalSteps: { type: [Number, String], default: 0 },
-  missionDates: { type: String, default: '' }
+  missionDates: { type: String, default: '' },
+  missionType: { type: String, default: 'quest' },
+  completedDays: { type: Number, default: 0 },
+  totalDays: { type: Number, default: 0 },
+  completionTier: { type: String, default: '' }
 })
 
 const emit = defineEmits(['update:modelValue'])

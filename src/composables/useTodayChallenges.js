@@ -11,6 +11,8 @@ import {
 } from '../utils/participantDays'
 import { getYesterdayDateStr, isDateScheduledForChallenge } from '../utils/ritualSchedule'
 import { useXpAwardFeedback } from './useXpAwardFeedback'
+import { shouldTriggerHabitMissionCompletion } from '../utils/missionParticipation'
+import { useMissionCompletionFlow } from './useMissionCompletionFlow'
 
 function getParticipantUserId(participant) {
   return participant?.userId?._id || participant?.userId || participant?._id
@@ -51,6 +53,7 @@ function isChallengeFinished(challenge) {
 export function useTodayChallenges({ onUpdated } = {}) {
   const userStore = useUserStore()
   const { applyXpAwardResponse } = useXpAwardFeedback()
+  const { completeHabitMission } = useMissionCompletionFlow()
 
   const challenges = ref([])
   const participantHabitChallenges = ref([])
@@ -296,6 +299,13 @@ export function useTodayChallenges({ onUpdated } = {}) {
     }
 
     try {
+      if (checked && shouldTriggerHabitMissionCompletion(challenge, newCompletedDays)) {
+        await completeHabitMission(challenge, newCompletedDays, {
+          onUpdate: onUpdated
+        })
+        return
+      }
+
       const response = await challengeService.updateParticipantCompletedDays(
         challenge._id,
         userId,

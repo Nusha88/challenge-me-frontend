@@ -158,7 +158,11 @@ function reset() {
   imagePreview.value = null
 }
 
-defineExpose({ reset })
+function getImagePreview() {
+  return imagePreview.value
+}
+
+defineExpose({ reset, getImagePreview })
 </script>
 
 <style scoped>

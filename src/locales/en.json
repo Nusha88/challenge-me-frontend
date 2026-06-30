@@ -626,12 +626,36 @@
     "missionAccomplished": {
       "title": "Mission Accomplished!",
       "subtitle": "You conquered every step of this epic quest.",
+      "personalStats": "{done} of {total} ritual days completed",
       "rewardsTitle": "Rewards earned",
       "xpLabel": "Experience",
       "sparksLabel": "Sparks",
       "shareTriumph": "Share your triumph",
       "continue": "Continue",
-      "reflectionPlaceholder": "Write a few words about your results and impressions..."
+      "next": "Save & reveal rewards",
+      "reflectionPlaceholder": "Write a few words about your results and impressions...",
+      "extinguishedTitle": "The flame flickered",
+      "extinguishedSupport": "Not every cycle burns at full strength — and that's okay.",
+      "extinguishedReframe": "What matters is that you showed up. Your next ritual is a fresh spark."
+    },
+    "missionTiers": {
+      "perfect": "Perfect Flame",
+      "bright": "Bright Flame",
+      "sustained": "Sustained Glow",
+      "extinguished": "Extinguished",
+      "badges": {
+        "perfect_flame": "Perfect Flame badge"
+      }
+    },
+    "soloContinuation": {
+      "title": "Your journey continues",
+      "subtitle": "The group challenge is over, but your ritual isn't finished yet.",
+      "description": "You still have {remaining} days left to complete your full personal cycle.",
+      "autoExtend": "Continue solo (+{days} days)",
+      "customLabel": "Or pick a custom end date",
+      "customButton": "Continue with custom date",
+      "skip": "Not now",
+      "error": "Could not create solo mission"
     },
     "saveProgress": "Save Progress",
     "notStarted": "Not started",
@@ -649,6 +673,7 @@
       "commented": "commented in {mission}"
     },
     "calendarDayHeroesActive": "Active: {active} of {total} heroes",
+    "joinedHere": "Joined here",
     "calendarLegend": {
       "completed": "Completed",
       "missed": "Missed",
@@ -722,7 +747,12 @@
       "lootXp": "XP",
       "lootSparks": "Sparks",
       "statsSteps": "Steps",
+      "statsDiscipline": "Discipline",
       "statsPeriod": "Period",
+      "accuracy": "Accuracy",
+      "disciplineDays": "{completed}/{total} days",
+      "tierStatus": "Status: {tier}",
+      "tierStatusFallback": "Status: Bright Flame",
       "defaultTriumphQuote": "Mission complete. The legend continues!"
     }
   },

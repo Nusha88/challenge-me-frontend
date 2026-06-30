@@ -11,99 +11,183 @@
       <div class="ma-glow"></div>
 
       <div class="ma-header">
-        <div class="ma-trophy-wrap">
+        <div class="ma-trophy-wrap" :class="{ 'ma-trophy-wrap--dim': isExtinguished }">
           <Trophy :size="34" :stroke-width="1.8" class="ma-trophy-icon" />
         </div>
-        <h2 class="ma-title">{{ t('challenges.missionAccomplished.title') }}</h2>
-        <p class="ma-subtitle">{{ t('challenges.missionAccomplished.subtitle') }}</p>
+        <h2 class="ma-title">{{ headerTitle }}</h2>
+        <p class="ma-subtitle">{{ headerSubtitle }}</p>
         <p v-if="questTitle" class="ma-quest-title">{{ questTitle }}</p>
 
-        <v-textarea
-          v-model="userReflection"
-          class="ma-reflection mt-3"
-          :placeholder="t('challenges.missionAccomplished.reflectionPlaceholder')"
-          variant="solo-filled"
-          flat
-          rows="2"
-          auto-grow
-          maxlength="150"
-          counter
-          hide-details="auto"
-        />
+        <div v-if="tierLabel" class="ma-tier-chip mt-3">
+          <span class="ma-tier-icon">{{ tierIcon }}</span>
+          <span>{{ tierLabel }}</span>
+          <span v-if="completionRate != null" class="ma-tier-rate">{{ completionRate }}%</span>
+        </div>
+
+        <template v-if="step === 'reflection'">
+          <v-textarea
+            v-model="userReflection"
+            class="ma-reflection mt-3"
+            :placeholder="t('challenges.missionAccomplished.reflectionPlaceholder')"
+            variant="solo-filled"
+            flat
+            rows="2"
+            auto-grow
+            maxlength="150"
+            counter
+            hide-details="auto"
+          />
+        </template>
       </div>
 
-      <v-card-text class="ma-body">
-        <p class="ma-rewards-label">{{ t('challenges.missionAccomplished.rewardsTitle') }}</p>
+      <v-card-text v-if="step === 'rewards'" class="ma-body">
+        <template v-if="isExtinguished">
+          <p class="ma-support-text">{{ t('challenges.missionAccomplished.extinguishedSupport') }}</p>
+          <p class="ma-support-subtext">{{ t('challenges.missionAccomplished.extinguishedReframe') }}</p>
+        </template>
 
-        <div class="ma-rewards">
-          <div class="ma-reward ma-reward--xp" :class="{ 'is-visible': rewardsVisible }">
-            <div class="ma-reward-icon-wrap">
-              <Zap :size="22" :stroke-width="2.5" class="ma-reward-icon" />
+        <template v-else>
+          <p class="ma-rewards-label">{{ t('challenges.missionAccomplished.rewardsTitle') }}</p>
+
+          <div class="ma-rewards">
+            <div class="ma-reward ma-reward--xp" :class="{ 'is-visible': rewardsVisible }">
+              <div class="ma-reward-icon-wrap">
+                <Zap :size="22" :stroke-width="2.5" class="ma-reward-icon" />
+              </div>
+              <div>
+                <p class="ma-reward-value">+{{ xpGained }}</p>
+                <p class="ma-reward-label">{{ t('challenges.missionAccomplished.xpLabel') }}</p>
+              </div>
             </div>
-            <div>
-              <p class="ma-reward-value">+{{ xpGained }}</p>
-              <p class="ma-reward-label">{{ t('challenges.missionAccomplished.xpLabel') }}</p>
+
+            <div
+              class="ma-reward ma-reward--sparks"
+              :class="{ 'is-visible': rewardsVisible }"
+              :style="{ transitionDelay: '120ms' }"
+            >
+              <div class="ma-reward-icon-wrap">
+                <Sparkles :size="22" :stroke-width="2.2" class="ma-reward-icon" />
+              </div>
+              <div>
+                <p class="ma-reward-value">+{{ sparksGained }}</p>
+                <p class="ma-reward-label">{{ t('challenges.missionAccomplished.sparksLabel') }}</p>
+              </div>
             </div>
           </div>
 
-          <div
-            class="ma-reward ma-reward--sparks"
-            :class="{ 'is-visible': rewardsVisible }"
-            :style="{ transitionDelay: '120ms' }"
-          >
-            <div class="ma-reward-icon-wrap">
-              <Sparkles :size="22" :stroke-width="2.2" class="ma-reward-icon" />
-            </div>
-            <div>
-              <p class="ma-reward-value">+{{ sparksGained }}</p>
-              <p class="ma-reward-label">{{ t('challenges.missionAccomplished.sparksLabel') }}</p>
-            </div>
+          <div v-if="badge" class="ma-badge-row" :class="{ 'is-visible': rewardsVisible }">
+            🏅 {{ t(`challenges.missionTiers.badges.${badge}`) }}
           </div>
-        </div>
+        </template>
       </v-card-text>
 
       <div class="ma-actions">
-        <v-btn class="ma-share" block size="large" @click="shareTriumph">
-          {{ t('challenges.missionAccomplished.shareTriumph') }}
+        <v-btn
+          v-if="step === 'reflection'"
+          class="ma-share"
+          block
+          size="large"
+          @click="goToRewards"
+        >
+          {{ t('challenges.missionAccomplished.next') }}
         </v-btn>
-        <v-btn variant="outlined" class="ma-continue" block size="large" @click="close">
-          {{ t('challenges.missionAccomplished.continue') }}
-        </v-btn>
+
+        <template v-else>
+          <v-btn
+            v-if="!isExtinguished"
+            class="ma-share"
+            block
+            size="large"
+            @click="shareTriumph"
+          >
+            {{ t('challenges.missionAccomplished.shareTriumph') }}
+          </v-btn>
+          <v-btn variant="outlined" class="ma-continue" block size="large" @click="close">
+            {{ t('challenges.missionAccomplished.continue') }}
+          </v-btn>
+        </template>
       </div>
     </v-card>
   </v-dialog>
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Sparkles, Trophy, Zap } from 'lucide-vue-next'
+import { MISSION_TIERS } from '../utils/missionParticipation'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
   questTitle: { type: String, default: '' },
   xpGained: { type: Number, default: 0 },
-  sparksGained: { type: Number, default: 0 }
+  sparksGained: { type: Number, default: 0 },
+  tier: { type: String, default: '' },
+  completionRate: { type: Number, default: null },
+  personalDone: { type: Number, default: null },
+  personalTotal: { type: Number, default: null },
+  badge: { type: String, default: '' }
 })
 
 const emit = defineEmits(['update:modelValue', 'share'])
 
 const { t } = useI18n()
+const step = ref('reflection')
 const rewardsVisible = ref(false)
 const userReflection = ref('')
+
+const isExtinguished = computed(() => props.tier === MISSION_TIERS.EXTINGUISHED)
+
+const tierLabel = computed(() => {
+  if (!props.tier) return ''
+  return t(`challenges.missionTiers.${props.tier}`)
+})
+
+const tierIcon = computed(() => {
+  switch (props.tier) {
+    case MISSION_TIERS.PERFECT: return '🔥'
+    case MISSION_TIERS.BRIGHT: return '✨'
+    case MISSION_TIERS.SUSTAINED: return '🕯️'
+    case MISSION_TIERS.EXTINGUISHED: return '💨'
+    default: return '🏆'
+  }
+})
+
+const headerTitle = computed(() => {
+  if (isExtinguished.value && step.value === 'rewards') {
+    return t('challenges.missionAccomplished.extinguishedTitle')
+  }
+  return t('challenges.missionAccomplished.title')
+})
+
+const headerSubtitle = computed(() => {
+  if (props.personalDone != null && props.personalTotal != null) {
+    return t('challenges.missionAccomplished.personalStats', {
+      done: props.personalDone,
+      total: props.personalTotal
+    })
+  }
+  return t('challenges.missionAccomplished.subtitle')
+})
 
 watch(
   () => props.modelValue,
   (open) => {
+    step.value = 'reflection'
     rewardsVisible.value = false
     if (open) {
       userReflection.value = ''
-      requestAnimationFrame(() => {
-        rewardsVisible.value = true
-      })
     }
   }
 )
+
+function goToRewards() {
+  step.value = 'rewards'
+  rewardsVisible.value = false
+  requestAnimationFrame(() => {
+    rewardsVisible.value = true
+  })
+}
 
 function close() {
   emit('update:modelValue', false)
@@ -158,6 +242,12 @@ function shareTriumph() {
   animation: ma-pop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
+.ma-trophy-wrap--dim {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: none;
+}
+
 .ma-trophy-icon {
   color: #fbbf24;
   filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.6));
@@ -174,14 +264,12 @@ function shareTriumph() {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  animation: ma-rise 0.5s ease 0.1s both;
 }
 
 .ma-subtitle {
   margin: 10px 0 0;
   font-size: 0.9rem;
   color: rgba(255, 255, 255, 0.72);
-  animation: ma-rise 0.5s ease 0.18s both;
 }
 
 .ma-quest-title {
@@ -189,41 +277,57 @@ function shareTriumph() {
   font-size: 0.95rem;
   font-weight: 700;
   color: rgba(255, 255, 255, 0.9);
-  animation: ma-rise 0.5s ease 0.24s both;
+}
+
+.ma-tier-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.28);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+}
+
+.ma-tier-rate {
+  color: rgba(255, 255, 255, 0.55);
+  font-weight: 700;
 }
 
 .ma-reflection :deep(.v-field) {
   background: rgba(255, 255, 255, 0.03) !important;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-}
-
-.ma-reflection :deep(.v-field__overlay) {
-  opacity: 0;
 }
 
 .ma-reflection :deep(textarea) {
   color: rgba(255, 255, 255, 0.92);
   font-size: 0.88rem;
-  line-height: 1.45;
-}
-
-.ma-reflection :deep(textarea::placeholder) {
-  color: rgba(255, 255, 255, 0.38);
-}
-
-.ma-reflection :deep(.v-counter) {
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 0.72rem;
 }
 
 .ma-body {
   position: relative;
   z-index: 1;
   padding: 8px 24px 12px !important;
+}
+
+.ma-support-text {
+  margin: 0;
+  text-align: center;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.ma-support-subtext {
+  margin: 12px 0 0;
+  text-align: center;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.58);
 }
 
 .ma-rewards-label {
@@ -262,15 +366,8 @@ function shareTriumph() {
   transform: translateY(0) scale(1);
 }
 
-.ma-reward--xp {
-  border-color: rgba(251, 191, 36, 0.25);
-  box-shadow: inset 0 0 20px rgba(251, 191, 36, 0.06);
-}
-
-.ma-reward--sparks {
-  border-color: rgba(79, 209, 197, 0.25);
-  box-shadow: inset 0 0 20px rgba(79, 209, 197, 0.06);
-}
+.ma-reward--xp { border-color: rgba(251, 191, 36, 0.25); }
+.ma-reward--sparks { border-color: rgba(79, 209, 197, 0.25); }
 
 .ma-reward-icon-wrap {
   display: flex;
@@ -282,27 +379,15 @@ function shareTriumph() {
   flex-shrink: 0;
 }
 
-.ma-reward--xp .ma-reward-icon-wrap {
-  background: rgba(251, 191, 36, 0.15);
-}
-
-.ma-reward--sparks .ma-reward-icon-wrap {
-  background: rgba(79, 209, 197, 0.15);
-}
-
-.ma-reward--xp .ma-reward-icon {
-  color: #fbbf24;
-}
-
-.ma-reward--sparks .ma-reward-icon {
-  color: #4fd1c5;
-}
+.ma-reward--xp .ma-reward-icon-wrap { background: rgba(251, 191, 36, 0.15); }
+.ma-reward--sparks .ma-reward-icon-wrap { background: rgba(79, 209, 197, 0.15); }
+.ma-reward--xp .ma-reward-icon { color: #fbbf24; }
+.ma-reward--sparks .ma-reward-icon { color: #4fd1c5; }
 
 .ma-reward-value {
   margin: 0;
   font-size: 1.35rem;
   font-weight: 900;
-  line-height: 1.1;
   color: #fff;
 }
 
@@ -310,9 +395,24 @@ function shareTriumph() {
   margin: 2px 0 0;
   font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.4px;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.55);
+}
+
+.ma-badge-row {
+  margin-top: 14px;
+  text-align: center;
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #fbbf24;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.45s ease, transform 0.45s ease;
+}
+
+.ma-badge-row.is-visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .ma-actions {
@@ -327,7 +427,6 @@ function shareTriumph() {
 .ma-actions :deep(.v-btn) {
   width: 100%;
   min-height: 46px;
-  letter-spacing: 0.2px;
 }
 
 .ma-continue {
@@ -343,34 +442,14 @@ function shareTriumph() {
   font-weight: 800;
   text-transform: none;
   border-radius: 12px !important;
-  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4) !important;
 }
 
 @keyframes ma-pop {
-  from {
-    opacity: 0;
-    transform: scale(0.5);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes ma-rise {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: scale(0.5); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 @media (max-width: 599px) {
-  .ma-rewards {
-    grid-template-columns: 1fr;
-  }
+  .ma-rewards { grid-template-columns: 1fr; }
 }
 </style>

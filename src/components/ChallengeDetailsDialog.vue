@@ -150,7 +150,8 @@
                     >
                       {{ getDayCellTooltip(day) }}
                     </v-tooltip>
-                    <span class="day-number">{{ day.number }}</span>
+                    <span v-if="day.isJoinMarker" class="join-marker">🚩</span>
+                    <span v-else-if="!day.isBeforeJoin" class="day-number">{{ day.number }}</span>
                     <v-icon
                       v-if="isDayProtected(day)"
                       icon="mdi-shield-check"
@@ -429,28 +430,25 @@
     @confirm="confirmQuestSuccess"
   />
 
-  <MissionAccomplishedModal
-    v-model="missionAccomplishedOpen"
-    :quest-title="missionAccomplishedData.questTitle"
-    :xp-gained="missionAccomplishedData.xpGained"
-    :sparks-gained="missionAccomplishedData.sparksGained"
-    @share="openFinalShareCard"
-  />
-
   <ShareAchievementModal
-    v-model="shareCardOpen"
-    :quest-title="shareCardData.questTitle"
-    :step-name="shareCardData.stepName"
-    :user-text="shareCardData.userText"
-    :user-image="shareCardData.userImage"
-    :user-level="shareCardData.userLevel"
-    :user-rank-title="shareCardData.userRankTitle"
-    :is-final="shareCardData.isFinal"
-    :xp-earned="shareCardData.xpEarned"
-    :sparks-earned="shareCardData.sparksEarned"
-    :completed-steps="shareCardData.completedSteps"
-    :total-steps="shareCardData.totalSteps"
-    :mission-dates="shareCardData.missionDates"
+    v-model="questShareCardOpen"
+    :quest-title="questShareCardData.questTitle"
+    :step-name="questShareCardData.stepName"
+    :user-text="questShareCardData.userText"
+    :user-image="questShareCardData.userImage"
+    :user-image-data-url="questShareCardData.userImageDataUrl"
+    :user-level="questShareCardData.userLevel"
+    :user-rank-title="questShareCardData.userRankTitle"
+    :is-final="questShareCardData.isFinal"
+    :xp-earned="questShareCardData.xpEarned"
+    :sparks-earned="questShareCardData.sparksEarned"
+    :completed-steps="questShareCardData.completedSteps"
+    :total-steps="questShareCardData.totalSteps"
+    :mission-dates="questShareCardData.missionDates"
+    :mission-type="questShareCardData.missionType"
+    :completed-days="questShareCardData.completedDays"
+    :total-days="questShareCardData.totalDays"
+    :completion-tier="questShareCardData.completionTier"
   />
 </template>
 
@@ -808,9 +806,28 @@
   box-shadow: 0 0 10px rgba(244, 167, 130, 0.4);
 }
 
-.day-cell.is-missed:not(.is-completed):not(.protected-day) {
+.day-cell.is-missed:not(.is-completed):not(.protected-day):not(.is-pre-join) {
   background: rgba(255, 255, 255, 0.02) !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.day-cell.is-pre-join {
+  background: rgba(255, 255, 255, 0.015) !important;
+  border: 1px dashed rgba(255, 255, 255, 0.06) !important;
+  opacity: 0.35;
+  cursor: default;
+  pointer-events: none;
+}
+
+.day-cell.is-join-marker {
+  border-color: rgba(79, 209, 197, 0.45) !important;
+  background: rgba(79, 209, 197, 0.08) !important;
+  box-shadow: 0 0 12px rgba(79, 209, 197, 0.18);
+}
+
+.join-marker {
+  font-size: 1rem;
+  line-height: 1;
 }
 
 .today-checkmark {
@@ -916,17 +933,24 @@ import CommentsComponent from './CommentsComponent.vue'
 import DiaryComponent from './DiaryComponent.vue'
 import QuestSuccessModal from './QuestSuccessModal.vue'
 import ShareAchievementModal from './ShareAchievementModal.vue'
-import MissionAccomplishedModal from './MissionAccomplishedModal.vue'
 import {challengeService} from '../services/api'
 import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
+import { useMissionCompletionFlow } from '../composables/useMissionCompletionFlow'
 import { getMissionShareUrl } from '../utils/appUrl'
-import { fireConfetti, fireEpicConfetti } from '../utils/confetti'
+import { fireConfetti } from '../utils/confetti'
 import { getPaceStatus } from '../utils/challengePace'
 import { isChallengeEnded, areActionsCompleted } from '../utils/challengeStatus'
 import { getScheduledDaysCount, normalizeDateKey, toDateInputValue } from '../utils/dateUtils'
 import {
   getEffectiveCompletedDays
 } from '../utils/participantDays'
+import {
+  countPersonalEffectiveDays,
+  countPersonalScheduledDays,
+  getParticipantJoinedAtKey,
+  isLateJoiner,
+  shouldTriggerHabitMissionCompletion
+} from '../utils/missionParticipation'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 import { getLevelFromXp, getLevelInfo } from '../utils/levelSystem'
 import { Trophy } from 'lucide-vue-next'
@@ -1024,6 +1048,7 @@ const dialogModel = computed({
 const userStore = useUserStore()
 const watchedStore = useWatchedChallengesStore()
 const { applyXpAwardResponse } = useXpAwardFeedback()
+const { completeHabitMission, completeQuestMission } = useMissionCompletionFlow()
 
 function getCurrentUserId() {
   return userStore.userId
@@ -1247,6 +1272,20 @@ const progressPercentage = computed(() => {
 })
 
 
+const currentParticipant = computed(() => {
+  if (!props.challenge?.participants || !currentUserId.value) return null
+
+  return props.challenge.participants.find((participant) => {
+    const userId = participant.userId?._id || participant.userId || participant._id
+    return userId && userId.toString() === currentUserId.value.toString()
+  }) || null
+})
+
+const joinedAtKey = computed(() => {
+  if (!props.challenge || !currentParticipant.value) return null
+  return getParticipantJoinedAtKey(props.challenge, currentParticipant.value)
+})
+
 const calendarDays = computed(() => {
   if (!props.challenge || props.challenge.challengeType !== CHALLENGE_TYPES.HABIT) return []
   if (!props.challenge.startDate || !props.challenge.endDate) return []
@@ -1270,10 +1309,9 @@ const calendarDays = computed(() => {
     .map((day) => normalizeDateKey(day))
     .filter(Boolean)
 
-  const participant = props.challenge.participants?.find((p) => {
-    const userId = p.userId?._id || p.userId || p._id
-    return userId && currentUserId.value && userId.toString() === currentUserId.value.toString()
-  })
+  const participant = currentParticipant.value
+  const participantJoinedKey = joinedAtKey.value
+  const viewerIsLateJoiner = participant ? isLateJoiner(props.challenge, participant) : false
 
   const frozenDayKeys = (participant?.frozenDays || [])
     .map((day) => normalizeDateKey(day))
@@ -1301,7 +1339,11 @@ const calendarDays = computed(() => {
     const isScheduled =
       props.challenge.frequency !== 'everyOtherDay' ? true : (diffDaysFromStart % 2 === 0)
 
+    const isBeforeJoin = viewerIsLateJoiner && participantJoinedKey && dateStr < participantJoinedKey
+    const isJoinMarker = viewerIsLateJoiner && participantJoinedKey && dateStr === participantJoinedKey
+
     const isMissed =
+      !isBeforeJoin &&
       !isUserCompleted &&
       !isLocked &&
       isPast &&
@@ -1320,7 +1362,9 @@ const calendarDays = computed(() => {
       isLocked,
       isPast,
       isScheduled,
-      isMissed
+      isMissed,
+      isBeforeJoin,
+      isJoinMarker
     })
     
     current.setDate(current.getDate() + 1)
@@ -1332,6 +1376,9 @@ const calendarDays = computed(() => {
 
 const totalDays = computed(() => {
   if (!props.challenge || props.challenge.challengeType !== CHALLENGE_TYPES.HABIT) return 0
+  if (currentParticipant.value) {
+    return countPersonalScheduledDays(props.challenge, currentParticipant.value)
+  }
 
   return getScheduledDaysCount(
     props.challenge.startDate,
@@ -1341,12 +1388,23 @@ const totalDays = computed(() => {
 })
 
 const daysPassed = computed(() => {
-  return calendarDays.value.filter((day) => day.isScheduled !== false && !day.isLocked).length
+  return calendarDays.value.filter(
+    (day) => day.isScheduled !== false && !day.isLocked && !day.isBeforeJoin
+  ).length
 })
 
 const userCompletedCount = computed(() => {
+  if (currentParticipant.value) {
+    return countPersonalEffectiveDays(props.challenge, {
+      ...currentParticipant.value,
+      completedDays: localCurrentUserCompletedDays.value.length > 0
+        ? localCurrentUserCompletedDays.value
+        : currentUserCompletedDays.value
+    })
+  }
+
   return calendarDays.value.filter(
-    (day) => day.isScheduled !== false && !day.isLocked && day.isUserCompleted
+    (day) => day.isScheduled !== false && !day.isLocked && !day.isBeforeJoin && day.isUserCompleted
   ).length
 })
 
@@ -1606,6 +1664,11 @@ function getDayCellStyle(day) {
 }
 
 function getDayCellTooltip(day) {
+  if (day.isJoinMarker) {
+    return t('challenges.joinedHere')
+  }
+  if (day.isBeforeJoin) return ''
+
   const total = totalParticipantsCount.value
   if (total <= 0 || day.isScheduled === false) return ''
   return t('challenges.calendarDayHeroesActive', {
@@ -1621,7 +1684,14 @@ function getDayClass(day) {
     'is-missed': day.isMissed,
     'is-today': day.isToday,
     'is-locked': day.isLocked,
-    'is-disabled': isFinished.value || !day.isToday || !isCurrentUserParticipant.value || day.isScheduled === false
+    'is-pre-join': day.isBeforeJoin,
+    'is-join-marker': day.isJoinMarker,
+    'is-disabled':
+      day.isBeforeJoin ||
+      isFinished.value ||
+      !day.isToday ||
+      !isCurrentUserParticipant.value ||
+      day.isScheduled === false
   }
 }
 
@@ -1680,15 +1750,14 @@ function onCalendarOutsideClick(event) {
 
 async function toggleDay(day) {
   if (isFinished.value || !day.isToday || !isCurrentUserParticipant.value || day.isScheduled === false) return
-  if (day.isUserFrozen || day.isUserSecondChance) return
+  if (day.isUserFrozen || day.isUserSecondChance || day.isBeforeJoin) return
   
   const completedDays = localCurrentUserCompletedDays.value.length > 0 
     ? [...localCurrentUserCompletedDays.value]
     : [...currentUserCompletedDays.value]
   
-  
   const normalizedCompletedDays = completedDays
-    .map((day) => normalizeDateKey(day))
+    .map((entry) => normalizeDateKey(entry))
     .filter(Boolean)
   
   const dayDateStr = normalizeDateKey(day.date)
@@ -1696,10 +1765,11 @@ async function toggleDay(day) {
   
   if (index > -1) {
     normalizedCompletedDays.splice(index, 1)
-  } else {
-    normalizedCompletedDays.push(dayDateStr)
+    localCurrentUserCompletedDays.value = normalizedCompletedDays.sort()
+    return
   }
-  
+
+  normalizedCompletedDays.push(dayDateStr)
   localCurrentUserCompletedDays.value = normalizedCompletedDays.sort()
 }
 
@@ -2088,12 +2158,13 @@ const challengeActionsRef = ref(null)
 const questSuccessOpen = ref(false)
 const questSuccessLoading = ref(false)
 const pendingAction = reactive({ index: null, id: null, text: '' })
-const shareCardOpen = ref(false)
-const shareCardData = reactive({
+const questShareCardOpen = ref(false)
+const questShareCardData = reactive({
   questTitle: '',
   stepName: '',
   userText: '',
   userImage: '',
+  userImageDataUrl: '',
   userLevel: 1,
   userRankTitle: '',
   isFinal: false,
@@ -2101,13 +2172,11 @@ const shareCardData = reactive({
   sparksEarned: 0,
   completedSteps: 0,
   totalSteps: 0,
-  missionDates: ''
-})
-const missionAccomplishedOpen = ref(false)
-const missionAccomplishedData = reactive({
-  questTitle: '',
-  xpGained: 0,
-  sparksGained: 0
+  missionDates: '',
+  missionType: 'quest',
+  completedDays: 0,
+  totalDays: 0,
+  completionTier: ''
 })
 
 const canConfirmQuestActions = computed(() =>
@@ -2160,21 +2229,26 @@ async function confirmQuestSuccess(result) {
     questSuccessOpen.value = false
 
     if (result.mode === 'report') {
-      shareCardData.questTitle = c.title || ''
-      shareCardData.stepName = pendingAction.text
-      shareCardData.userText = result.text || ''
-      shareCardData.userImage = result.imageUrl || ''
-      shareCardData.userLevel = userLevel.value
-      shareCardData.userRankTitle = heroRank.value.title
-      shareCardData.isFinal = false
-      shareCardData.xpEarned = 0
-      shareCardData.sparksEarned = 0
-      shareCardData.completedSteps = 0
-      shareCardData.totalSteps = 0
-      shareCardData.missionDates = ''
+      questShareCardData.questTitle = c.title || ''
+      questShareCardData.stepName = pendingAction.text
+      questShareCardData.userText = result.text || ''
+      questShareCardData.userImage = result.imageUrl || ''
+      questShareCardData.userImageDataUrl = result.imageDataUrl || ''
+      questShareCardData.userLevel = userLevel.value
+      questShareCardData.userRankTitle = heroRank.value.title
+      questShareCardData.isFinal = false
+      questShareCardData.xpEarned = 0
+      questShareCardData.sparksEarned = 0
+      questShareCardData.completedSteps = 0
+      questShareCardData.totalSteps = 0
+      questShareCardData.missionDates = ''
+      questShareCardData.missionType = 'quest'
+      questShareCardData.completedDays = 0
+      questShareCardData.totalDays = 0
+      questShareCardData.completionTier = ''
       handleVisibility(false)
       await nextTick()
-      shareCardOpen.value = true
+      questShareCardOpen.value = true
     }
   } catch (error) {
     snackbarText.value = error.response?.data?.message
@@ -2221,90 +2295,16 @@ async function handleEndMission() {
 
   endMissionLoading.value = true
   try {
-    const response = await challengeService.endResultMission(props.challenge._id)
-    const summary = response.data?.missionRewardsSummary
-
-    missionAccomplishedData.questTitle = props.challenge.title || ''
-    missionAccomplishedData.xpGained = Number(summary?.totalXp) || 0
-    missionAccomplishedData.sparksGained = Number(summary?.totalSparks) || 0
-
-    fireEpicConfetti()
-    emit('update')
-    handleVisibility(false)
-    await nextTick()
-    missionAccomplishedOpen.value = true
+    await completeQuestMission(props.challenge, {
+      onUpdate: () => emit('update'),
+      closeDialog: () => handleVisibility(false)
+    })
   } catch (error) {
     snackbarText.value = error.response?.data?.message || t('challenges.endMissionError')
     snackbar.value = true
   } finally {
     endMissionLoading.value = false
   }
-}
-
-async function openFinalShareCard(payload = {}) {
-  if (!props.challenge) return
-  const c = props.challenge
-  const actions = c.actions || editForm.actions || []
-  const totalSteps = countResultActionNodes(actions)
-  const reflection = (payload.userReflection || '').trim()
-
-  if (reflection && c._id && currentUserId.value) {
-    try {
-      const { data } = await challengeService.addDiaryEntry(
-        c._id,
-        currentUserId.value,
-        reflection,
-        null,
-        true,
-        { isTriumph: true, actionTitle: c.title || '' }
-      )
-      if (data?.sharedCommentId) {
-        handleDiaryShared()
-      }
-    } catch (error) {
-      console.error('Failed to save triumph reflection:', error)
-    }
-  }
-
-  shareCardData.questTitle = c.title || ''
-  shareCardData.stepName = ''
-  shareCardData.userText = reflection
-  shareCardData.userImage = ''
-  shareCardData.userLevel = userLevel.value
-  shareCardData.userRankTitle = heroRank.value.title
-  shareCardData.isFinal = true
-  shareCardData.xpEarned = missionAccomplishedData.xpGained
-  shareCardData.sparksEarned = missionAccomplishedData.sparksGained
-  shareCardData.completedSteps = totalSteps
-  shareCardData.totalSteps = totalSteps
-  shareCardData.missionDates = formatMissionDateRange(c)
-
-  missionAccomplishedOpen.value = false
-  await nextTick()
-  shareCardOpen.value = true
-}
-
-function countResultActionNodes(actions) {
-  let count = 0
-
-  function walk(items) {
-    for (const action of items || []) {
-      count += 1
-      if (Array.isArray(action.children) && action.children.length) {
-        walk(action.children)
-      }
-    }
-  }
-
-  walk(actions)
-  return count
-}
-
-function formatMissionDateRange(challenge) {
-  const start = formatDisplayDate(challenge?.startDate)
-  const end = formatDisplayDate(challenge?.endDate)
-  if (start && end) return `${start} — ${end}`
-  return start || end || ''
 }
 
 function formatDisplayDate(value) {
@@ -2378,6 +2378,17 @@ async function handleParticipantSave() {
     const completedDays = localCurrentUserCompletedDays.value.length > 0 
       ? localCurrentUserCompletedDays.value 
       : currentUserCompletedDays.value
+
+    if (shouldTriggerHabitMissionCompletion(props.challenge, completedDays)) {
+      await completeHabitMission(props.challenge, completedDays, {
+        onUpdate: () => emit('update'),
+        closeDialog: () => {
+          handleVisibility(false)
+          navigateAfterDialogClose()
+        }
+      })
+      return
+    }
     
     const response = await challengeService.updateParticipantCompletedDays(
       props.challenge._id,
@@ -2397,6 +2408,8 @@ async function handleParticipantSave() {
     emit('update:modelValue', false)
     navigateAfterDialogClose()
   } catch (error) {
+    snackbarText.value = error.response?.data?.message || t('challenges.endMissionError')
+    snackbar.value = true
   } finally {
     participantSaveLoading.value = false
   }
