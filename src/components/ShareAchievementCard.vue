@@ -485,6 +485,10 @@ function waitForImageLoad(img) {
   })
 }
 
+function getImgSrc(img) {
+  return img.currentSrc || img.src || img.getAttribute('src') || ''
+}
+
 function blobToDataUrl(blob) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -527,7 +531,7 @@ async function embedImagesForExport(root) {
 
   await Promise.all(
     Array.from(root.querySelectorAll('img')).map(async (img) => {
-      const originalSrc = img.getAttribute('src') || ''
+      const originalSrc = getImgSrc(img)
       if (!originalSrc || originalSrc.startsWith('data:')) {
         await waitForImageLoad(img)
         return
@@ -560,6 +564,63 @@ async function embedImagesForExport(root) {
   }
 }
 
+/**
+ * html-to-image often fails to paint <img> inside overflow:hidden + gradient borders.
+ * Paint the photo via background-image on the frame during export instead.
+ */
+async function preparePhotoFramesForExport(root, fallbackSrc = '') {
+  const restores = []
+
+  for (const frame of root.querySelectorAll('.sc-photo-frame')) {
+    const img = frame.querySelector('img.sc-photo')
+    if (!img) continue
+
+    let dataUrl = getImgSrc(img) || fallbackSrc
+    if (!dataUrl) continue
+
+    if (!dataUrl.startsWith('data:')) {
+      try {
+        dataUrl = await resolveImageDataUrl(dataUrl)
+      } catch (error) {
+        console.warn('Share card photo frame embed failed', error)
+        continue
+      }
+    }
+
+    restores.push({
+      frame,
+      img,
+      frameStyle: frame.getAttribute('style'),
+      imgStyle: img.getAttribute('style')
+    })
+
+    img.style.display = 'none'
+    frame.style.backgroundImage = `url("${dataUrl}")`
+    frame.style.backgroundSize = 'cover'
+    frame.style.backgroundPosition = 'center'
+    frame.style.backgroundRepeat = 'no-repeat'
+  }
+
+  return () => {
+    for (const { frame, img, frameStyle, imgStyle } of restores) {
+      if (frameStyle != null) {
+        frame.setAttribute('style', frameStyle)
+      } else {
+        frame.style.backgroundImage = ''
+        frame.style.backgroundSize = ''
+        frame.style.backgroundPosition = ''
+        frame.style.backgroundRepeat = ''
+      }
+
+      if (imgStyle != null) {
+        img.setAttribute('style', imgStyle)
+      } else {
+        img.style.display = ''
+      }
+    }
+  }
+}
+
 async function shareCard() {
   if (!cardRef.value) return
 
@@ -573,6 +634,7 @@ async function shareCard() {
   }
 
   let restoreImages = () => {}
+  let restorePhotoFrames = () => {}
 
   try {
     await nextTick()
@@ -584,11 +646,15 @@ async function shareCard() {
     }
 
     restoreImages = await embedImagesForExport(cardRef.value)
+    restorePhotoFrames = await preparePhotoFramesForExport(
+      cardRef.value,
+      displayUserImage.value
+    )
 
     const dataUrl = await toPng(cardRef.value, {
       pixelRatio: 2,
       cacheBust: true,
-      backgroundColor: 'transparent'
+      backgroundColor: '#0F172A'
     })
 
     const link = document.createElement('a')
@@ -598,6 +664,7 @@ async function shareCard() {
   } catch (error) {
     console.error('Share failed:', error)
   } finally {
+    restorePhotoFrames()
     restoreImages()
     cardRef.value?.classList.remove('share-card--export')
     cardRef.value?.classList.remove('share-card--export-final')
@@ -902,15 +969,13 @@ defineExpose({ shareCard })
   overflow: hidden !important;
   border-radius: 50% !important;
   border: 3px solid #4FD1C5 !important;
-  background: #0F172A !important;
+  background-color: #0F172A !important;
+  background-clip: border-box !important;
   box-shadow: 0 0 20px rgba(79, 209, 197, 0.3) !important;
 }
 
-.share-card--export .sc-content--image-text .sc-photo {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
-  display: block !important;
+.share-card--export .sc-content--image-text .sc-photo-frame .sc-photo {
+  display: none !important;
 }
 
 .share-card--export .sc-content:not(:has(.sc-text-card)):not(:has(.sc-text-only)):not(.sc-content--image-text) {
@@ -921,7 +986,13 @@ defineExpose({ shareCard })
 
 .share-card--export .sc-photo-frame {
   border: 3px solid #4FD1C5;
-  background: transparent;
+  background-color: #0F172A;
+  background-clip: border-box;
+  overflow: hidden;
+}
+
+.share-card--export .sc-photo-frame .sc-photo {
+  display: none;
 }
 
 .share-card--export .sc-photo-frame--large {
