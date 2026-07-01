@@ -93,7 +93,12 @@
         <!-- Both image and text -->
         <template v-else-if="hasImage && hasText">
           <div class="sc-photo-frame">
-            <img v-bind="photoImgAttrs" alt="" class="sc-photo" />
+            <img
+              :src="displayUserImage"
+              alt=""
+              class="sc-photo"
+              :crossorigin="displayUserImage.startsWith('data:') ? undefined : 'anonymous'"
+            />
           </div>
           <div ref="textCardRef" class="sc-text-card">
             <p ref="compactTextRef" class="sc-handwritten sc-handwritten--with-image">{{ fittedImageText }}</p>
@@ -103,7 +108,12 @@
         <!-- Image only -->
         <template v-else-if="hasImage">
           <div class="sc-photo-frame sc-photo-frame--large">
-            <img v-bind="photoImgAttrs" alt="" class="sc-photo" />
+            <img
+              :src="displayUserImage"
+              alt=""
+              class="sc-photo"
+              :crossorigin="displayUserImage.startsWith('data:') ? undefined : 'anonymous'"
+            />
           </div>
         </template>
 
@@ -157,6 +167,7 @@ import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Zap, Quote, Trophy, UserPlus } from 'lucide-vue-next'
 import { toPng } from 'html-to-image'
+import html2canvas from 'html2canvas'
 import { getLevelInfo } from '../utils/levelSystem'
 
 const props = defineProps({
@@ -192,18 +203,12 @@ const sharing = ref(false)
 const fittedImageText = ref('')
 const fittedLargeText = ref('')
 const fittedFinalReflection = ref('')
+const exportImageDataUrl = ref('')
 
 const hasImage = computed(() => !!(props.userImageDataUrl || props.userImage))
 const hasText = computed(() => !!(props.userText && props.userText.trim()))
 
 const displayUserImage = computed(() => props.userImageDataUrl || props.userImage)
-
-const photoImgAttrs = computed(() => {
-  const src = displayUserImage.value
-  if (!src) return { src: '' }
-  if (src.startsWith('data:')) return { src }
-  return { src, crossorigin: 'anonymous' }
-})
 
 function truncateWithEllipsis(text, maxLines, charsPerLine) {
   const normalized = String(text || '').trim()
@@ -421,6 +426,30 @@ function fitAllTextContent() {
 }
 
 watch(
+  () => [props.userImageDataUrl, props.userImage],
+  async ([dataUrl, remoteUrl]) => {
+    const src = dataUrl || remoteUrl
+    if (!src) {
+      exportImageDataUrl.value = ''
+      return
+    }
+
+    if (src.startsWith('data:')) {
+      exportImageDataUrl.value = src
+      return
+    }
+
+    try {
+      exportImageDataUrl.value = await resolveImageDataUrl(src)
+    } catch (error) {
+      console.warn('Share card image preload failed', error)
+      exportImageDataUrl.value = dataUrl || ''
+    }
+  },
+  { immediate: true }
+)
+
+watch(
   () => [
     props.userText,
     props.userImage,
@@ -477,14 +506,6 @@ const displayRankTitle = computed(() => {
   return t(`profile.ranks.${rankKey}`)
 })
 
-function waitForImageLoad(img) {
-  if (img.complete && img.naturalWidth > 0) return Promise.resolve()
-  return new Promise((resolve) => {
-    img.onload = resolve
-    img.onerror = resolve
-  })
-}
-
 function getImgSrc(img) {
   return img.currentSrc || img.src || img.getAttribute('src') || ''
 }
@@ -526,99 +547,130 @@ async function resolveImageDataUrl(src) {
   }
 }
 
-async function embedImagesForExport(root) {
+async function loadImageFromSrc(src) {
+  const dataUrl = !src || src.startsWith('data:') ? src : await resolveImageDataUrl(src)
+  if (!dataUrl) throw new Error('Missing image source')
+
+  return new Promise((resolve, reject) => {
+    const image = new Image()
+    image.onload = () => resolve(image)
+    image.onerror = () => reject(new Error('Image load failed'))
+    image.src = dataUrl
+  })
+}
+
+function paintImageCover(canvas, image) {
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+
+  const width = canvas.width
+  const height = canvas.height
+  ctx.clearRect(0, 0, width, height)
+
+  const scale = Math.max(width / image.naturalWidth, height / image.naturalHeight)
+  const drawWidth = image.naturalWidth * scale
+  const drawHeight = image.naturalHeight * scale
+  const offsetX = (width - drawWidth) / 2
+  const offsetY = (height - drawHeight) / 2
+
+  ctx.drawImage(image, offsetX, offsetY, drawWidth, drawHeight)
+}
+
+function getPhotoFrameSize(frame) {
+  const isLarge = frame.classList.contains('sc-photo-frame--large')
+  if (!isLarge) {
+    return { width: 100, height: 100 }
+  }
+
+  const rect = frame.getBoundingClientRect()
+  return {
+    width: Math.max(Math.round(rect.width), 280),
+    height: Math.max(Math.round(rect.height), 220)
+  }
+}
+
+function waitForPaint() {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(resolve))
+  })
+}
+
+/**
+ * Replace photo frames with pre-rendered canvases — reliable for html2canvas / html-to-image.
+ */
+async function preparePhotoFramesForExport(root, fallbackSrc = '', pixelRatio = 2) {
   const restores = []
 
-  await Promise.all(
-    Array.from(root.querySelectorAll('img')).map(async (img) => {
-      const originalSrc = getImgSrc(img)
-      if (!originalSrc || originalSrc.startsWith('data:')) {
-        await waitForImageLoad(img)
-        return
-      }
+  for (const frame of root.querySelectorAll('.sc-photo-frame')) {
+    const existingImg = frame.querySelector('img.sc-photo')
+    const src = (existingImg && getImgSrc(existingImg)) || fallbackSrc
+    if (!src) continue
 
-      try {
-        const dataUrl = await resolveImageDataUrl(originalSrc)
-        restores.push({
-          img,
-          originalSrc,
-          crossOrigin: img.getAttribute('crossorigin')
-        })
-        img.removeAttribute('crossorigin')
-        img.src = dataUrl
-        await waitForImageLoad(img)
-      } catch (error) {
-        console.warn('Share card image embed failed', error)
-        await waitForImageLoad(img)
-      }
-    })
-  )
+    try {
+      const image = await loadImageFromSrc(src)
+      const { width, height } = getPhotoFrameSize(frame)
+
+      const canvas = document.createElement('canvas')
+      canvas.width = width * pixelRatio
+      canvas.height = height * pixelRatio
+      canvas.className = 'sc-photo-export'
+      canvas.style.width = `${width}px`
+      canvas.style.height = `${height}px`
+      canvas.style.display = 'block'
+      paintImageCover(canvas, image)
+
+      restores.push({
+        frame,
+        innerHTML: frame.innerHTML,
+        className: frame.getAttribute('class'),
+        style: frame.getAttribute('style')
+      })
+
+      frame.innerHTML = ''
+      frame.style.setProperty('background', 'none', 'important')
+      frame.style.setProperty('box-shadow', 'none', 'important')
+      frame.style.setProperty('border', '3px solid #4FD1C5', 'important')
+      frame.style.setProperty('overflow', 'hidden', 'important')
+      frame.appendChild(canvas)
+    } catch (error) {
+      console.warn('Share card photo canvas failed', error)
+    }
+  }
 
   return () => {
-    for (const { img, originalSrc, crossOrigin } of restores) {
-      img.src = originalSrc
-      if (crossOrigin != null) {
-        img.setAttribute('crossorigin', crossOrigin)
+    for (const { frame, innerHTML, className, style } of restores) {
+      frame.innerHTML = innerHTML
+      if (className != null) {
+        frame.setAttribute('class', className)
+      }
+      if (style != null) {
+        frame.setAttribute('style', style)
+      } else {
+        frame.removeAttribute('style')
       }
     }
   }
 }
 
-/**
- * html-to-image often fails to paint <img> inside overflow:hidden + gradient borders.
- * Paint the photo via background-image on the frame during export instead.
- */
-async function preparePhotoFramesForExport(root, fallbackSrc = '') {
-  const restores = []
+async function captureShareCard(element) {
+  await waitForPaint()
 
-  for (const frame of root.querySelectorAll('.sc-photo-frame')) {
-    const img = frame.querySelector('img.sc-photo')
-    if (!img) continue
-
-    let dataUrl = getImgSrc(img) || fallbackSrc
-    if (!dataUrl) continue
-
-    if (!dataUrl.startsWith('data:')) {
-      try {
-        dataUrl = await resolveImageDataUrl(dataUrl)
-      } catch (error) {
-        console.warn('Share card photo frame embed failed', error)
-        continue
-      }
-    }
-
-    restores.push({
-      frame,
-      img,
-      frameStyle: frame.getAttribute('style'),
-      imgStyle: img.getAttribute('style')
+  if (hasImage.value) {
+    const canvas = await html2canvas(element, {
+      backgroundColor: '#0F172A',
+      scale: 2,
+      useCORS: true,
+      allowTaint: false,
+      logging: false
     })
-
-    img.style.display = 'none'
-    frame.style.backgroundImage = `url("${dataUrl}")`
-    frame.style.backgroundSize = 'cover'
-    frame.style.backgroundPosition = 'center'
-    frame.style.backgroundRepeat = 'no-repeat'
+    return canvas.toDataURL('image/png')
   }
 
-  return () => {
-    for (const { frame, img, frameStyle, imgStyle } of restores) {
-      if (frameStyle != null) {
-        frame.setAttribute('style', frameStyle)
-      } else {
-        frame.style.backgroundImage = ''
-        frame.style.backgroundSize = ''
-        frame.style.backgroundPosition = ''
-        frame.style.backgroundRepeat = ''
-      }
-
-      if (imgStyle != null) {
-        img.setAttribute('style', imgStyle)
-      } else {
-        img.style.display = ''
-      }
-    }
-  }
+  return toPng(element, {
+    pixelRatio: 2,
+    cacheBust: true,
+    backgroundColor: '#0F172A'
+  })
 }
 
 async function shareCard() {
@@ -633,7 +685,6 @@ async function shareCard() {
     cardRef.value.classList.add('share-card--export-image-text')
   }
 
-  let restoreImages = () => {}
   let restorePhotoFrames = () => {}
 
   try {
@@ -645,17 +696,20 @@ async function shareCard() {
       await document.fonts.ready
     }
 
-    restoreImages = await embedImagesForExport(cardRef.value)
+    if (hasImage.value && !exportImageDataUrl.value && displayUserImage.value) {
+      const src = displayUserImage.value
+      exportImageDataUrl.value = src.startsWith('data:')
+        ? src
+        : await resolveImageDataUrl(src)
+    }
+
     restorePhotoFrames = await preparePhotoFramesForExport(
       cardRef.value,
-      displayUserImage.value
+      exportImageDataUrl.value || displayUserImage.value,
+      2
     )
 
-    const dataUrl = await toPng(cardRef.value, {
-      pixelRatio: 2,
-      cacheBust: true,
-      backgroundColor: '#0F172A'
-    })
+    const dataUrl = await captureShareCard(cardRef.value)
 
     const link = document.createElement('a')
     link.download = props.isFinal ? 'ignite-mission-accomplished.png' : 'ignite-achievement.png'
@@ -665,7 +719,6 @@ async function shareCard() {
     console.error('Share failed:', error)
   } finally {
     restorePhotoFrames()
-    restoreImages()
     cardRef.value?.classList.remove('share-card--export')
     cardRef.value?.classList.remove('share-card--export-final')
     cardRef.value?.classList.remove('share-card--export-image-text')
