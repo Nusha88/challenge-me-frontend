@@ -669,7 +669,7 @@ async function captureShareCard(element) {
   return toPng(element, {
     pixelRatio: 2,
     cacheBust: true,
-    backgroundColor: '#0F172A'
+    backgroundColor: 'transparent'
   })
 }
 
