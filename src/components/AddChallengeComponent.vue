@@ -224,12 +224,6 @@ function applyRestartDraft(draft) {
   if (draft.duration) {
     form.value.duration = draft.duration
     form.value.customDuration = draft.customDuration || ''
-    if (draft.customDays != null) {
-      customDays.value = draft.customDays
-    }
-    if (draft.showCustomSlider) {
-      showSlider.value = true
-    }
   }
 
   if (draft.endDate) form.value.endDate = draft.endDate

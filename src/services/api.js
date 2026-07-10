@@ -357,6 +357,14 @@ export const challengeService = {
   }
 }
 
+// Image upload service — proxies to the backend, which holds the ImgBB key.
+export const uploadService = {
+  // image: base64 string (without the data: prefix). Returns { url }.
+  uploadImageBase64: (image) => {
+    return api.post('/uploads/image', { image }, { timeout: 30000 })
+  }
+}
+
 // Notification service
 export const notificationService = {
   getNotifications: (userId, options = {}) => {

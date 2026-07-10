@@ -56,6 +56,7 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ImageUp } from 'lucide-vue-next'
+import { uploadService } from '../services/api'
 
 const props = defineProps({
   modelValue: {
@@ -71,9 +72,6 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 
 const { t } = useI18n()
-
-// Hardcoded ImgBB API key
-const IMGBB_API_KEY = 'd8a4925b372143b44469009f92023386'
 
 const fileInputRef = ref(null)
 const uploadingImage = ref(false)
@@ -131,26 +129,10 @@ const handleImageSelection = async (event) => {
 
   try {
     const base64 = await readFileAsBase64(file)
-    
-    const formData = new URLSearchParams()
-    formData.append('image', base64)
 
-    const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: formData
-    })
-
-    const payload = await response.json()
-
-    if (!response.ok || !payload.success) {
-      const errorMsg = payload?.error?.message || payload?.data?.error?.message || 'Upload failed'
-      throw new Error(errorMsg)
-    }
-
-    const imageUrl = payload?.data?.url || payload?.data?.display_url
+    // Upload via the backend proxy (ImgBB key stays server-side).
+    const response = await uploadService.uploadImageBase64(base64)
+    const imageUrl = response?.data?.url
     if (!imageUrl) {
       throw new Error('Upload did not return an image URL')
     }

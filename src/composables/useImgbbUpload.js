@@ -1,6 +1,5 @@
 import { ref } from 'vue'
-
-const IMGBB_API_KEY = 'd8a4925b372143b44469009f92023386'
+import { uploadService } from '../services/api'
 
 function readFileAsBase64(file) {
   return new Promise((resolve, reject) => {
@@ -19,37 +18,25 @@ function readFileAsBase64(file) {
   })
 }
 
+// Uploads an image via the backend proxy (which holds the ImgBB key) and
+// returns the resulting URL.
+async function uploadImageFile(file) {
+  const base64 = await readFileAsBase64(file)
+  const response = await uploadService.uploadImageBase64(base64)
+  const imageUrl = response?.data?.url
+  if (!imageUrl) {
+    throw new Error('Upload did not return an image URL')
+  }
+  return imageUrl
+}
+
 export function useImgbbUpload() {
   const uploadingImage = ref(false)
 
   async function uploadImage(file) {
     uploadingImage.value = true
     try {
-      const base64 = await readFileAsBase64(file)
-      const formData = new URLSearchParams()
-      formData.append('image', base64)
-
-      const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: formData
-      })
-
-      const payload = await response.json()
-
-      if (!response.ok || !payload.success) {
-        const errorMsg = payload?.error?.message || payload?.data?.error?.message || 'Upload failed'
-        throw new Error(errorMsg)
-      }
-
-      const imageUrl = payload?.data?.url || payload?.data?.display_url
-      if (!imageUrl) {
-        throw new Error('Upload did not return an image URL')
-      }
-
-      return imageUrl
+      return await uploadImageFile(file)
     } finally {
       uploadingImage.value = false
     }
@@ -62,4 +49,4 @@ export function useImgbbUpload() {
   }
 }
 
-export { IMGBB_API_KEY, readFileAsBase64 }
+export { readFileAsBase64, uploadImageFile }

@@ -731,6 +731,45 @@ async function captureShareCard(element) {
   return canvasToRoundedPng(canvas, SHARE_CARD_RADIUS_PX, scale)
 }
 
+function dataUrlToFile(dataUrl, fileName) {
+  const [head, body] = dataUrl.split(',')
+  const mime = head.match(/:(.*?);/)?.[1] || 'image/png'
+  const binary = atob(body)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i)
+  }
+  return new File([bytes], fileName, { type: mime })
+}
+
+// Returns true if the image was handed to the OS share sheet (or the user
+// cancelled it), false if native file-sharing isn't available.
+async function shareImageFile(dataUrl, fileName) {
+  try {
+    if (typeof navigator === 'undefined' || !navigator.canShare) return false
+    const file = dataUrlToFile(dataUrl, fileName)
+    if (!navigator.canShare({ files: [file] })) return false
+    await navigator.share({
+      files: [file],
+      title: 'Ignite',
+      text: props.questTitle || headlineText.value
+    })
+    return true
+  } catch (error) {
+    // User dismissed the share sheet — nothing more to do, don't fall back.
+    if (error?.name === 'AbortError') return true
+    console.warn('Native share unavailable, falling back to download:', error)
+    return false
+  }
+}
+
+function downloadImage(dataUrl, fileName) {
+  const link = document.createElement('a')
+  link.download = fileName
+  link.href = dataUrl
+  link.click()
+}
+
 async function shareCard() {
   if (!cardRef.value) return
 
@@ -768,11 +807,16 @@ async function shareCard() {
     )
 
     const dataUrl = await captureShareCard(cardRef.value)
+    const fileName = props.isFinal ? 'ignite-mission-accomplished.png' : 'ignite-achievement.png'
 
-    const link = document.createElement('a')
-    link.download = props.isFinal ? 'ignite-mission-accomplished.png' : 'ignite-achievement.png'
-    link.href = dataUrl
-    link.click()
+    // Prefer the native share sheet on mobile; fall back to a download on
+    // desktop / browsers without file-share support. A synthetic <a download>
+    // click does nothing on iOS Safari, which is why mobile "share" appeared
+    // to do nothing.
+    const shared = await shareImageFile(dataUrl, fileName)
+    if (!shared) {
+      downloadImage(dataUrl, fileName)
+    }
   } catch (error) {
     console.error('Share failed:', error)
   } finally {

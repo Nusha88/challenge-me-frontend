@@ -549,7 +549,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import { challengeService } from '../services/api'
+import { challengeService, uploadService } from '../services/api'
 import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
 import { useI18n } from 'vue-i18n'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
@@ -647,25 +647,9 @@ async function uploadImage(file) {
   state.uploadingImage = true
   try {
     const base64 = await readFileAsBase64(file)
-    const formData = new URLSearchParams()
-    formData.append('image', base64)
-
-    const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: formData
-    })
-
-    const payload = await response.json()
-
-    if (!response.ok || !payload.success) {
-      const errorMsg = payload?.error?.message || payload?.data?.error?.message || 'Upload failed'
-      throw new Error(errorMsg)
-    }
-
-    const imageUrl = payload?.data?.url || payload?.data?.display_url
+    // Upload via the backend proxy (ImgBB key stays server-side).
+    const response = await uploadService.uploadImageBase64(base64)
+    const imageUrl = response?.data?.url
     if (!imageUrl) {
       throw new Error('Upload did not return an image URL')
     }
@@ -915,9 +899,6 @@ const fileInputRef = ref(null)
 const composerRef = ref(null)
 const replyFileInputs = ref({})
 const nestedReplyFileInputs = ref({})
-
-// ImgBB API key
-const IMGBB_API_KEY = 'd8a4925b372143b44469009f92023386'
 
 async function loadComments() {
   if (!props.challengeId || props.allowComments === false) return

@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, computed, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
-import { userService, challengeService, pushService } from '../services/api'
+import { userService, challengeService, pushService, uploadService } from '../services/api'
 import { useI18n } from 'vue-i18n'
 import { SUPPORTED_LOCALES, setLocale } from '../i18n'
 import { useUserStore } from '../stores/user'
@@ -83,9 +83,6 @@ const isIosDevice = computed(() => {
   const isModernIpadOs = platform === 'MacIntel' && Number(navigator.maxTouchPoints || 0) > 1
   return isClassicIos || isModernIpadOs
 })
-
-// Hardcoded ImgBB API key for all users
-const IMGBB_API_KEY = 'd8a4925b372143b44469009f92023386'
 
 // Get current user ID from store
 const currentUserId = computed(() => userStore.userId)
@@ -465,27 +462,10 @@ const handleAvatarSelection = async (files) => {
 
   try {
     const base64 = await readFileAsBase64(file)
-    
-    // ImgBB API expects form-encoded data, not FormData
-    const formData = new URLSearchParams()
-    formData.append('image', base64)
 
-    const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: formData
-    })
-
-    const payload = await response.json()
-
-    if (!response.ok || !payload.success) {
-      const errorMsg = payload?.error?.message || payload?.data?.error?.message || 'Upload failed'
-      throw new Error(errorMsg)
-    }
-
-    const imageUrl = payload?.data?.url || payload?.data?.display_url
+    // Upload via the backend proxy (ImgBB key stays server-side).
+    const uploadResponse = await uploadService.uploadImageBase64(base64)
+    const imageUrl = uploadResponse?.data?.url
     if (!imageUrl) {
       throw new Error('Upload did not return an image URL')
     }

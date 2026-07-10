@@ -1,38 +1,30 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeComponent from '../components/HomeComponent.vue'
-import RegisterComponent from '../components/RegisterComponent.vue'
-import UsersList from '../components/UsersList.vue'
-import LoginComponent from '../components/LoginComponent.vue'
-import HomeLoggedIn from '../components/HomeLoggedIn.vue'
-import AllChallengesComponent from '../components/AllChallengesComponent.vue'
-import AddChallengeComponent from '../components/AddChallengeComponent.vue'
-import ChallengeEditPage from '../components/ChallengeEditPage.vue'
-import WatchedChallengesComponent from '../components/WatchedChallengesComponent.vue'
-import NotFoundPage from '../components/NotFoundPage.vue'
 
+// All route components are lazy-loaded so the initial bundle only ships the
+// code for the first route the user lands on.
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
       name: 'home',
-      component: HomeComponent
+      component: () => import('../components/HomeComponent.vue')
     },
     {
       path: '/today',
       name: 'today',
-      component: HomeLoggedIn,
+      component: () => import('../components/HomeLoggedIn.vue'),
       meta: { requiresAuth: true }
     },
     {
       path: '/register',
       name: 'register',
-      component: RegisterComponent
+      component: () => import('../components/RegisterComponent.vue')
     },
     {
       path: '/heroes',
       name: 'users',
-      component: UsersList
+      component: () => import('../components/UsersList.vue')
     },
     {
       path: '/heroes/:id',
@@ -42,7 +34,7 @@ const router = createRouter({
     {
       path: '/login',
       name: 'login',
-      component: LoginComponent
+      component: () => import('../components/LoginComponent.vue')
     },
     {
       path: '/forgot-password',
@@ -57,42 +49,47 @@ const router = createRouter({
     {
       path: '/profile',
       name: 'profile',
-      component: () => import('../components/UserComponent.vue')
+      component: () => import('../components/UserComponent.vue'),
+      meta: { requiresAuth: true }
     },
     {
       path: '/missions',
       name: 'challenges',
-      component: AllChallengesComponent
+      component: () => import('../components/AllChallengesComponent.vue')
     },
     {
       path: '/missions/my',
       name: 'my-challenges',
-      component: () => import('../components/MyChallengesComponent.vue')
+      component: () => import('../components/MyChallengesComponent.vue'),
+      meta: { requiresAuth: true }
     },
     {
       path: '/missions/add',
       name: 'add-challenge',
-      component: AddChallengeComponent
+      component: () => import('../components/AddChallengeComponent.vue'),
+      meta: { requiresAuth: true }
     },
     {
       path: '/missions/edit/:id',
       name: 'edit-challenge',
-      component: ChallengeEditPage
+      component: () => import('../components/ChallengeEditPage.vue'),
+      meta: { requiresAuth: true }
     },
     {
       path: '/missions/watched',
       name: 'watched-challenges',
-      component: WatchedChallengesComponent
+      component: () => import('../components/WatchedChallengesComponent.vue'),
+      meta: { requiresAuth: true }
     },
     {
       path: '/missions/:id',
       name: 'view-challenge',
-      component: AllChallengesComponent
+      component: () => import('../components/AllChallengesComponent.vue')
     },
     {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
-      component: NotFoundPage
+      component: () => import('../components/NotFoundPage.vue')
     }
   ]
 })

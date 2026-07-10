@@ -54,6 +54,7 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { getPublicAppOrigin } from '../utils/appUrl'
 
 const props = defineProps({
   modelValue: {
@@ -73,7 +74,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'addAnother'])
 const router = useRouter()
 const { t } = useI18n()
-const SHARE_BASE_URL = 'https://ignite-me.app'
+const SHARE_BASE_URL = getPublicAppOrigin()
 
 const showModal = computed({
   get: () => props.modelValue,
@@ -94,10 +95,7 @@ const successMessage = computed(() => {
 })
 
 function copyLink() {
-  navigator.clipboard.writeText(shareLink.value).then(() => {
-    // You can add a snackbar notification here if needed
-    console.log('Link copied to clipboard')
-  }).catch(err => {
+  navigator.clipboard.writeText(shareLink.value).catch(err => {
     console.error('Failed to copy link:', err)
   })
 }

@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+
+# Auth-only / user-specific pages have no public content to index.
+Disallow: /today
+Disallow: /profile
+Disallow: /missions/add
+Disallow: /missions/edit/
+Disallow: /missions/my
+Disallow: /missions/watched
+Disallow: /forgot-password
+Disallow: /reset-password
+
+Sitemap: https://ignite-me.app/sitemap.xml
