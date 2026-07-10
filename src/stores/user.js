@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { isTokenExpired } from '../utils/tokenUtils'
 
 export const useUserStore = defineStore('user', () => {
   // State
@@ -73,11 +74,16 @@ export const useUserStore = defineStore('user', () => {
   }
 
   function initializeFromStorage() {
-    // Initialize token from localStorage
+    // Initialize token from localStorage — an expired token is discarded so
+    // the app never boots into a logged-in state it can't back up.
     try {
       const storedToken = localStorage.getItem('token')
-      if (storedToken) {
+      if (storedToken && !isTokenExpired(storedToken)) {
         token.value = storedToken
+      } else if (storedToken) {
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        return
       }
     } catch (error) {
       console.error('Failed to read token from localStorage:', error)

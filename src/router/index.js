@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { isTokenExpired, clearStoredAuth } from '../utils/tokenUtils'
 
 // All route components are lazy-loaded so the initial bundle only ships the
 // code for the first route the user lands on.
@@ -96,13 +97,20 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   const requiresAuth = to.matched.some(r => r.meta?.requiresAuth)
-  const token = (() => {
+  let token = (() => {
     try {
       return localStorage.getItem('token')
     } catch {
       return null
     }
   })()
+
+  // An expired token is as good as no token: clear it proactively so the UI
+  // flips to logged-out instead of waiting for the first API call to 401.
+  if (token && isTokenExpired(token)) {
+    clearStoredAuth()
+    token = null
+  }
 
   if (requiresAuth && !token) {
     return { name: 'login', query: { redirect: to.fullPath } }

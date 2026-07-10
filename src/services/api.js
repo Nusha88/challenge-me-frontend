@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { isTokenExpired, clearStoredAuth } from '../utils/tokenUtils'
 
 function resolveDefaultBaseUrl() {
   // Default to Render backend API
@@ -42,10 +43,16 @@ const api = axios.create({
 // Request interceptor
 api.interceptors.request.use(
   config => {
-    // Attach JWT token if available
+    // Attach JWT token if available. A token that is already expired is
+    // cleared up-front instead of being sent — the server would 401 anyway,
+    // and clearing here flips the UI to logged-out without a failed request.
     const token = localStorage.getItem('token')
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+      if (isTokenExpired(token)) {
+        clearStoredAuth()
+      } else {
+        config.headers.Authorization = `Bearer ${token}`
+      }
     }
     return config
   },
@@ -53,6 +60,10 @@ api.interceptors.request.use(
     return Promise.reject(error)
   }
 )
+
+// One-shot guard: several requests can 401 at the same moment (parallel
+// fetches after expiry) — only the first one may trigger the login redirect.
+let isRedirectingToLogin = false
 
 // Response interceptor
 api.interceptors.response.use(
@@ -65,13 +76,16 @@ api.interceptors.response.use(
     if ((error.response?.status === 401 || error.response?.status === 403) && !isPushEndpoint) {
       const token = localStorage.getItem('token')
       if (token) {
-        // Clear invalid token
-        localStorage.removeItem('token')
-        localStorage.removeItem('user')
-        // Dispatch auth-changed event to update UI
-        window.dispatchEvent(new Event('auth-changed'))
-        // Only redirect if not already on login/register page
-        if (typeof window !== 'undefined' && !window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
+        // Clear invalid token and notify the UI
+        clearStoredAuth()
+        // Only redirect once, and never while already on an auth page
+        if (
+          !isRedirectingToLogin &&
+          typeof window !== 'undefined' &&
+          !window.location.pathname.includes('/login') &&
+          !window.location.pathname.includes('/register')
+        ) {
+          isRedirectingToLogin = true
           window.location.href = '/login'
         }
       }
