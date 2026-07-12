@@ -119,7 +119,7 @@
                       v-if="options.showDifficulty && cardData?.hasDifficulty"
                       class="meta-pill"
                     >
-                      <v-icon size="16">mdi-flash</v-icon>
+                      <Zap :size="14" :stroke-width="2.5" class="meta-pill-icon" />
                       {{ cardData.difficultyLabel }}
                     </div>
 
@@ -127,7 +127,7 @@
                       v-if="options.showAuthor && cardData?.hasAuthor"
                       class="meta-pill"
                     >
-                      <v-icon size="16">mdi-account</v-icon>
+                      <User :size="14" :stroke-width="2.5" class="meta-pill-icon" />
                       {{ cardData.authorLabel }}
                     </div>
 
@@ -135,7 +135,7 @@
                       v-if="cardData?.showProgressOption && options.showProgress"
                       class="meta-pill"
                     >
-                      <v-icon size="16">mdi-chart-line</v-icon>
+                      <ChartLine :size="14" :stroke-width="2.5" class="meta-pill-icon" />
                       {{ cardData?.progressLabel }}
                     </div>
                   </div>
@@ -189,7 +189,7 @@
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import QRCode from 'qrcode'
-import { toPng } from 'html-to-image'
+import { ChartLine, User, Zap } from 'lucide-vue-next'
 import { userService } from '../services/api'
 import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
 import {
@@ -324,7 +324,7 @@ async function generateInviteCard() {
     const dataUrl = await captureElementToPng(inviteCardRef.value, {
       backgroundColor: '#0f172a',
       scale: 2,
-      useHtml2Canvas: hasHeroImage
+      useHtml2Canvas: true
     })
 
     const fileName = `ignite-invite-${props.cardData?.challengeId || 'mission'}.png`
@@ -541,6 +541,11 @@ async function generateInviteCard() {
   color: rgba(255, 255, 255, 0.82);
   font-size: 0.78rem;
   font-weight: 700;
+}
+
+.meta-pill-icon {
+  flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.82);
 }
 
 .invite-card-footer {
