@@ -1,3 +1,5 @@
+import { toPng } from 'html-to-image'
+import html2canvas from 'html2canvas'
 import { uploadService } from '../services/api'
 
 export function dataUrlToFile(dataUrl, fileName) {
@@ -95,17 +97,26 @@ async function resolveViaBackendProxy(src) {
 export async function resolveImageDataUrl(src) {
   if (!src || src.startsWith('data:')) return src
 
+  // Server-side fetch is the most reliable path on mobile Safari.
+  try {
+    return await resolveViaBackendProxy(src)
+  } catch (backendError) {
+    console.warn('Backend image proxy failed, trying direct fetch:', backendError)
+  }
+
   try {
     const response = await fetch(src, { mode: 'cors', cache: 'no-cache' })
     if (!response.ok) throw new Error('fetch failed')
     return await blobToDataUrl(await response.blob())
   } catch {
-    try {
-      return await resolveViaImageElement(src)
-    } catch {
-      return resolveViaBackendProxy(src)
-    }
+    return resolveViaImageElement(src)
   }
+}
+
+export function waitForPaint() {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(resolve))
+  })
 }
 
 function paintImageCover(ctx, width, height, image) {
@@ -142,6 +153,16 @@ async function loadImageFromDataUrl(dataUrl) {
   })
 }
 
+function measureHeroSize(hero, existingImg) {
+  const heroRect = hero.getBoundingClientRect()
+  const imgRect = existingImg?.getBoundingClientRect?.()
+
+  const width = Math.round(Math.max(heroRect.width, imgRect?.width || 0, hero.clientWidth, 1))
+  const height = Math.round(Math.max(heroRect.height, imgRect?.height || 0, hero.clientHeight, 180))
+
+  return { width, height }
+}
+
 export async function replaceHeroWithCanvasForExport(rootElement, imageSrc, selector = '.invite-card-hero-image') {
   const hero = rootElement?.querySelector('.invite-card-hero')
   const existingImg = rootElement?.querySelector(selector)
@@ -151,9 +172,7 @@ export async function replaceHeroWithCanvasForExport(rootElement, imageSrc, sele
 
   const dataUrl = imageSrc.startsWith('data:') ? imageSrc : await resolveImageDataUrl(imageSrc)
   const image = await loadImageFromDataUrl(dataUrl)
-
-  const width = existingImg?.clientWidth || hero.clientWidth || 420
-  const height = existingImg?.clientHeight || hero.clientHeight || 210
+  const { width, height } = measureHeroSize(hero, existingImg)
   const pixelRatio = 2
 
   const canvas = document.createElement('canvas')
@@ -165,6 +184,8 @@ export async function replaceHeroWithCanvasForExport(rootElement, imageSrc, sele
   canvas.style.width = '100%'
   canvas.style.height = '100%'
   canvas.style.display = 'block'
+  canvas.style.zIndex = '0'
+  canvas.style.pointerEvents = 'none'
 
   const ctx = canvas.getContext('2d')
   ctx.scale(pixelRatio, pixelRatio)
@@ -184,36 +205,30 @@ export async function replaceHeroWithCanvasForExport(rootElement, imageSrc, sele
 }
 
 export async function prepareHeroImageForExport(rootElement, imageSrc, selector = '.invite-card-hero-image') {
-  const heroImg = rootElement?.querySelector(selector)
   if (!imageSrc) {
     return () => {}
   }
 
-  if (heroImg?.src?.startsWith('data:')) {
-    return () => {}
+  return replaceHeroWithCanvasForExport(rootElement, imageSrc, selector)
+}
+
+export async function captureElementToPng(element, { backgroundColor = '#0f172a', scale = 2, useHtml2Canvas = false } = {}) {
+  await waitForPaint()
+
+  if (useHtml2Canvas) {
+    const canvas = await html2canvas(element, {
+      backgroundColor,
+      scale,
+      useCORS: true,
+      allowTaint: false,
+      logging: false
+    })
+    return canvas.toDataURL('image/png')
   }
 
-  try {
-    const dataUrl = await resolveImageDataUrl(imageSrc)
-    if (heroImg) {
-      const previousSrc = heroImg.src
-      heroImg.src = dataUrl
-      await new Promise((resolve) => {
-        if (heroImg.complete) {
-          resolve()
-          return
-        }
-        heroImg.onload = () => resolve()
-        heroImg.onerror = () => resolve()
-      })
-      return () => {
-        heroImg.src = previousSrc
-      }
-    }
-
-    return await replaceHeroWithCanvasForExport(rootElement, dataUrl, selector)
-  } catch (error) {
-    console.warn('Hero image export preparation failed:', error)
-    return await replaceHeroWithCanvasForExport(rootElement, imageSrc, selector)
-  }
+  return toPng(element, {
+    cacheBust: true,
+    pixelRatio: scale,
+    backgroundColor
+  })
 }

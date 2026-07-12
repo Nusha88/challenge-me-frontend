@@ -174,6 +174,7 @@
         </v-btn>
         <v-btn
           class="generate-invite-btn"
+          :disabled="heroImageLoading && Boolean(cardData?.imageUrl)"
           :loading="generating"
           @click="generateInviteCard"
         >
@@ -191,7 +192,12 @@ import QRCode from 'qrcode'
 import { toPng } from 'html-to-image'
 import { userService } from '../services/api'
 import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
-import { prepareHeroImageForExport, resolveImageDataUrl, shareOrDownloadImage } from '../utils/shareImage'
+import {
+  captureElementToPng,
+  prepareHeroImageForExport,
+  resolveImageDataUrl,
+  shareOrDownloadImage
+} from '../utils/shareImage'
 
 const props = defineProps({
   modelValue: {
@@ -287,7 +293,10 @@ async function generateInviteCard() {
       await document.fonts.ready
     }
 
-    if (props.cardData?.imageUrl) {
+    const hasHeroImage = Boolean(props.cardData?.imageUrl)
+    let exportImageSrc = heroImageSrc.value || props.cardData?.imageUrl || ''
+
+    if (hasHeroImage) {
       if (heroImageLoading.value) {
         await new Promise((resolve) => {
           const stop = watch(heroImageLoading, (loading) => {
@@ -299,24 +308,23 @@ async function generateInviteCard() {
         })
       }
 
-      if (heroImageSrc.value && !heroImageSrc.value.startsWith('data:')) {
-        try {
-          heroImageSrc.value = await resolveImageDataUrl(props.cardData.imageUrl)
-        } catch (error) {
-          console.warn('Invite card hero export preload failed:', error)
-        }
+      if (!exportImageSrc.startsWith('data:')) {
+        exportImageSrc = await resolveImageDataUrl(props.cardData.imageUrl)
+        heroImageSrc.value = exportImageSrc
       }
+
+      if (!exportImageSrc.startsWith('data:')) {
+        throw new Error('Could not load mission image for export')
+      }
+
+      restoreHeroImage = await prepareHeroImageForExport(inviteCardRef.value, exportImageSrc)
+      await nextTick()
     }
 
-    restoreHeroImage = await prepareHeroImageForExport(
-      inviteCardRef.value,
-      heroImageSrc.value || props.cardData?.imageUrl
-    )
-
-    const dataUrl = await toPng(inviteCardRef.value, {
-      cacheBust: true,
-      pixelRatio: 2,
-      backgroundColor: '#0f172a'
+    const dataUrl = await captureElementToPng(inviteCardRef.value, {
+      backgroundColor: '#0f172a',
+      scale: 2,
+      useHtml2Canvas: hasHeroImage
     })
 
     const fileName = `ignite-invite-${props.cardData?.challengeId || 'mission'}.png`
