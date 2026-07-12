@@ -72,9 +72,8 @@
                 <div class="invite-card-hero">
                   <img
                     v-if="cardData?.imageUrl"
-                    :src="cardData.imageUrl"
+                    :src="heroImageSrc || cardData.imageUrl"
                     alt=""
-                    crossorigin="anonymous"
                     class="invite-card-hero-image"
                   />
                   <div
@@ -192,7 +191,7 @@ import QRCode from 'qrcode'
 import { toPng } from 'html-to-image'
 import { userService } from '../services/api'
 import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
-import { prepareHeroImageForExport, shareOrDownloadImage } from '../utils/shareImage'
+import { prepareHeroImageForExport, resolveImageDataUrl, shareOrDownloadImage } from '../utils/shareImage'
 
 const props = defineProps({
   modelValue: {
@@ -225,11 +224,32 @@ const options = reactive({
 const inviteCardRef = ref(null)
 const generating = ref(false)
 const qrCodeUrl = ref('')
+const heroImageSrc = ref('')
+const heroImageLoading = ref(false)
 
 const dialogModel = computed({
   get: () => props.modelValue,
   set: (value) => emit('update:modelValue', value)
 })
+
+watch(
+  () => [props.modelValue, props.cardData?.imageUrl],
+  async ([open, imageUrl]) => {
+    heroImageSrc.value = ''
+    if (!open || !imageUrl) return
+
+    heroImageLoading.value = true
+    try {
+      heroImageSrc.value = await resolveImageDataUrl(imageUrl)
+    } catch (error) {
+      console.warn('Invite card hero preload failed:', error)
+      heroImageSrc.value = imageUrl
+    } finally {
+      heroImageLoading.value = false
+    }
+  },
+  { immediate: true }
+)
 
 watch(
   () => props.inviteUrl,
@@ -267,7 +287,31 @@ async function generateInviteCard() {
       await document.fonts.ready
     }
 
-    restoreHeroImage = await prepareHeroImageForExport(inviteCardRef.value)
+    if (props.cardData?.imageUrl) {
+      if (heroImageLoading.value) {
+        await new Promise((resolve) => {
+          const stop = watch(heroImageLoading, (loading) => {
+            if (!loading) {
+              stop()
+              resolve()
+            }
+          })
+        })
+      }
+
+      if (heroImageSrc.value && !heroImageSrc.value.startsWith('data:')) {
+        try {
+          heroImageSrc.value = await resolveImageDataUrl(props.cardData.imageUrl)
+        } catch (error) {
+          console.warn('Invite card hero export preload failed:', error)
+        }
+      }
+    }
+
+    restoreHeroImage = await prepareHeroImageForExport(
+      inviteCardRef.value,
+      heroImageSrc.value || props.cardData?.imageUrl
+    )
 
     const dataUrl = await toPng(inviteCardRef.value, {
       cacheBust: true,

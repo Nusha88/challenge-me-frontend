@@ -1,3 +1,5 @@
+import { uploadService } from '../services/api'
+
 export function dataUrlToFile(dataUrl, fileName) {
   const [head, body] = dataUrl.split(',')
   const mime = head.match(/:(.*?);/)?.[1] || 'image/png'
@@ -61,6 +63,35 @@ function blobToDataUrl(blob) {
   })
 }
 
+function resolveViaImageElement(src) {
+  return new Promise((resolve, reject) => {
+    const loader = new Image()
+    loader.crossOrigin = 'anonymous'
+    loader.onload = () => {
+      try {
+        const canvas = document.createElement('canvas')
+        canvas.width = loader.naturalWidth
+        canvas.height = loader.naturalHeight
+        canvas.getContext('2d').drawImage(loader, 0, 0)
+        resolve(canvas.toDataURL('image/png'))
+      } catch (err) {
+        reject(err)
+      }
+    }
+    loader.onerror = () => reject(new Error('Image load failed'))
+    loader.src = src.includes('?') ? `${src}&_=${Date.now()}` : `${src}?_=${Date.now()}`
+  })
+}
+
+async function resolveViaBackendProxy(src) {
+  const response = await uploadService.fetchImageDataUrl(src)
+  const dataUrl = response?.data?.dataUrl
+  if (!dataUrl || typeof dataUrl !== 'string') {
+    throw new Error('Backend image proxy did not return dataUrl')
+  }
+  return dataUrl
+}
+
 export async function resolveImageDataUrl(src) {
   if (!src || src.startsWith('data:')) return src
 
@@ -69,49 +100,120 @@ export async function resolveImageDataUrl(src) {
     if (!response.ok) throw new Error('fetch failed')
     return await blobToDataUrl(await response.blob())
   } catch {
-    return new Promise((resolve, reject) => {
-      const loader = new Image()
-      loader.crossOrigin = 'anonymous'
-      loader.onload = () => {
-        try {
-          const canvas = document.createElement('canvas')
-          canvas.width = loader.naturalWidth
-          canvas.height = loader.naturalHeight
-          canvas.getContext('2d').drawImage(loader, 0, 0)
-          resolve(canvas.toDataURL('image/png'))
-        } catch (err) {
-          reject(err)
-        }
-      }
-      loader.onerror = () => reject(new Error('Image load failed'))
-      loader.src = src.includes('?') ? `${src}&_=${Date.now()}` : `${src}?_=${Date.now()}`
-    })
+    try {
+      return await resolveViaImageElement(src)
+    } catch {
+      return resolveViaBackendProxy(src)
+    }
   }
 }
 
-export async function prepareHeroImageForExport(rootElement, selector = '.invite-card-hero-image') {
-  const heroImg = rootElement?.querySelector(selector)
-  if (!heroImg?.src || heroImg.src.startsWith('data:')) {
+function paintImageCover(ctx, width, height, image) {
+  if (!ctx) return
+
+  const imgRatio = image.naturalWidth / image.naturalHeight
+  const canvasRatio = width / height
+  let drawWidth
+  let drawHeight
+  let offsetX
+  let offsetY
+
+  if (imgRatio > canvasRatio) {
+    drawHeight = height
+    drawWidth = height * imgRatio
+    offsetX = (width - drawWidth) / 2
+    offsetY = 0
+  } else {
+    drawWidth = width
+    drawHeight = width / imgRatio
+    offsetX = 0
+    offsetY = (height - drawHeight) / 2
+  }
+
+  ctx.drawImage(image, offsetX, offsetY, drawWidth, drawHeight)
+}
+
+async function loadImageFromDataUrl(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const image = new Image()
+    image.onload = () => resolve(image)
+    image.onerror = () => reject(new Error('Image load failed'))
+    image.src = dataUrl
+  })
+}
+
+export async function replaceHeroWithCanvasForExport(rootElement, imageSrc, selector = '.invite-card-hero-image') {
+  const hero = rootElement?.querySelector('.invite-card-hero')
+  const existingImg = rootElement?.querySelector(selector)
+  if (!hero || !imageSrc) {
     return () => {}
   }
 
-  const previousSrc = heroImg.src
+  const dataUrl = imageSrc.startsWith('data:') ? imageSrc : await resolveImageDataUrl(imageSrc)
+  const image = await loadImageFromDataUrl(dataUrl)
 
-  try {
-    heroImg.src = await resolveImageDataUrl(previousSrc)
-    await new Promise((resolve) => {
-      if (heroImg.complete) {
-        resolve()
-        return
-      }
-      heroImg.onload = () => resolve()
-      heroImg.onerror = () => resolve()
-    })
-  } catch (error) {
-    console.warn('Hero image export preparation failed:', error)
+  const width = existingImg?.clientWidth || hero.clientWidth || 420
+  const height = existingImg?.clientHeight || hero.clientHeight || 210
+  const pixelRatio = 2
+
+  const canvas = document.createElement('canvas')
+  canvas.width = width * pixelRatio
+  canvas.height = height * pixelRatio
+  canvas.className = `${selector.replace('.', '')} invite-card-hero-canvas`
+  canvas.style.position = 'absolute'
+  canvas.style.inset = '0'
+  canvas.style.width = '100%'
+  canvas.style.height = '100%'
+  canvas.style.display = 'block'
+
+  const ctx = canvas.getContext('2d')
+  ctx.scale(pixelRatio, pixelRatio)
+  paintImageCover(ctx, width, height, image)
+
+  if (existingImg) {
+    existingImg.style.display = 'none'
   }
+  hero.insertBefore(canvas, hero.firstChild)
 
   return () => {
-    heroImg.src = previousSrc
+    canvas.remove()
+    if (existingImg) {
+      existingImg.style.display = ''
+    }
+  }
+}
+
+export async function prepareHeroImageForExport(rootElement, imageSrc, selector = '.invite-card-hero-image') {
+  const heroImg = rootElement?.querySelector(selector)
+  if (!imageSrc) {
+    return () => {}
+  }
+
+  if (heroImg?.src?.startsWith('data:')) {
+    return () => {}
+  }
+
+  try {
+    const dataUrl = await resolveImageDataUrl(imageSrc)
+    if (heroImg) {
+      const previousSrc = heroImg.src
+      heroImg.src = dataUrl
+      await new Promise((resolve) => {
+        if (heroImg.complete) {
+          resolve()
+          return
+        }
+        heroImg.onload = () => resolve()
+        heroImg.onerror = () => resolve()
+      })
+      return () => {
+        heroImg.src = previousSrc
+      }
+    }
+
+    return await replaceHeroWithCanvasForExport(rootElement, dataUrl, selector)
+  } catch (error) {
+    console.warn('Hero image export preparation failed:', error)
+    return await replaceHeroWithCanvasForExport(rootElement, imageSrc, selector)
   }
 }

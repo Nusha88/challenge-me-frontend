@@ -57,6 +57,7 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ImageUp } from 'lucide-vue-next'
 import { uploadService } from '../services/api'
+import { isImageFile, prepareImageForUpload } from '../utils/imageUpload'
 
 const props = defineProps({
   modelValue: {
@@ -82,23 +83,6 @@ const triggerFileInput = () => {
   fileInputRef.value.click()
 }
 
-const readFileAsBase64 = (file) => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      const result = reader.result
-      if (typeof result === 'string') {
-        const base64 = result.includes(',') ? result.split(',')[1] : result
-        resolve(base64)
-      } else {
-        reject(new Error('Unable to read file'))
-      }
-    }
-    reader.onerror = () => reject(reader.error || new Error('Unable to read file'))
-    reader.readAsDataURL(file)
-  })
-}
-
 const deleteImage = () => {
   emit('update:modelValue', '')
   imageError.value = ''
@@ -114,21 +98,17 @@ const handleImageSelection = async (event) => {
   const file = files[0]
   if (!file) return
 
-  if (!file.type.startsWith('image/')) {
+  if (!isImageFile(file)) {
     imageError.value = t('challenges.uploadInvalidType')
     return
   }
 
   const maxSizeMb = 5
-  if (file.size > maxSizeMb * 1024 * 1024) {
-    imageError.value = t('challenges.uploadTooLarge', { size: maxSizeMb })
-    return
-  }
 
   uploadingImage.value = true
 
   try {
-    const base64 = await readFileAsBase64(file)
+    const base64 = await prepareImageForUpload(file, { maxSizeMb })
 
     // Upload via the backend proxy (ImgBB key stays server-side).
     const response = await uploadService.uploadImageBase64(base64)
@@ -140,7 +120,11 @@ const handleImageSelection = async (event) => {
     emit('update:modelValue', imageUrl)
   } catch (err) {
     console.error('Image upload failed:', err)
-    imageError.value = err.message || t('challenges.uploadError')
+    if (err.message?.includes('exceeds')) {
+      imageError.value = t('challenges.uploadTooLarge', { size: maxSizeMb })
+    } else {
+      imageError.value = err.message || t('challenges.uploadError')
+    }
   } finally {
     uploadingImage.value = false
     // Reset input so same file can be selected again

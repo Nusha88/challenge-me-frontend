@@ -379,6 +379,10 @@ export const uploadService = {
   // image: base64 string (without the data: prefix). Returns { url }.
   uploadImageBase64: (image) => {
     return api.post('/uploads/image', { image }, { timeout: 30000 })
+  },
+  // Returns { dataUrl } for remote images (server-side fetch bypasses CORS).
+  fetchImageDataUrl: (url) => {
+    return api.get('/uploads/image-data', { params: { url }, timeout: 30000 })
   }
 }
 
