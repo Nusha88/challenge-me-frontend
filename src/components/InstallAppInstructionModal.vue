@@ -22,7 +22,7 @@
           variant="text"
           size="small"
           class="install-close"
-          @click="$emit('update:modelValue', false)"
+          @click="dismiss"
         ></v-btn>
       </div>
 
@@ -117,9 +117,13 @@ watch(() => props.modelValue, (open) => {
   }
 })
 
-function complete() {
+function dismiss() {
   emit('completed')
   emit('update:modelValue', false)
+}
+
+function complete() {
+  dismiss()
 }
 </script>
 

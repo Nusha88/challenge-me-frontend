@@ -48,6 +48,11 @@ const router = createRouter({
       component: () => import('../components/ResetPasswordComponent.vue')
     },
     {
+      path: '/email/unsubscribe',
+      name: 'email-unsubscribe',
+      component: () => import('../components/EmailUnsubscribePage.vue')
+    },
+    {
       path: '/profile',
       name: 'profile',
       component: () => import('../components/UserComponent.vue'),

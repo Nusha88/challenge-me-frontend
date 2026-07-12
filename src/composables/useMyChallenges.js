@@ -132,7 +132,7 @@ export function useMyChallenges(currentUserId) {
   async function refreshChallengesAfterMembershipChange(challengeId) {
     await fetchChallenges()
 
-    if (getSelectedChallengeId() === challengeId) {
+    if (challengeIdsMatch(getSelectedChallengeId(), challengeId)) {
       await refreshSelectedChallenge(challengeId)
     }
   }

@@ -912,5 +912,14 @@
     "mustLogin": "You must be logged in to continue.",
     "profileError": "Error fetching profile",
     "usersError": "Error fetching users"
+  },
+  "emailUnsubscribe": {
+    "successTitle": "You're unsubscribed",
+    "successMessage": "You will no longer receive this type of email.",
+    "errorTitle": "Unsubscribe failed",
+    "errorMessage": "We could not process your unsubscribe request. The link may be invalid or expired.",
+    "invalidLink": "This unsubscribe link is invalid.",
+    "profile": "Go to profile",
+    "processing": "Processing your unsubscribe request..."
   }
 }

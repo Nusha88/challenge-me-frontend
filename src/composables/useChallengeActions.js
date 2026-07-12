@@ -81,7 +81,7 @@ export function useChallengeActions({
       await onAfterJoin?.()
     }
 
-    if (getSelectedChallengeId() === challengeId) {
+    if (challengeIdsMatch(getSelectedChallengeId(), challengeId)) {
       await refreshSelectedChallenge(challengeId)
     }
   }
@@ -110,13 +110,6 @@ export function useChallengeActions({
     try {
       const response = await serviceCall(challenge._id, { userId })
       applyRewardResponse(response)
-      if (
-        response?.data?.challenge &&
-        selectedChallengeRef &&
-        challengeIdsMatch(unref(selectedChallengeRef)?._id, challenge._id)
-      ) {
-        selectedChallengeRef.value = response.data.challenge
-      }
       await refreshAfterMembershipChange(challenge._id, { refreshMainRitual })
     } catch (error) {
       errorMessage.value = error.response?.data?.message || errorFallback

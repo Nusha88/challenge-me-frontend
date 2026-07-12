@@ -192,6 +192,13 @@ function completeInstallInstructionOnboarding() {
   onboardingStarted.value = false
 }
 
+function handleInstallInstructionUpdate(open) {
+  installInstructionOpen.value = open
+  if (!open && localStorage.getItem('onboarding_pending') === 'true') {
+    completeInstallInstructionOnboarding()
+  }
+}
+
 function stopLoggedInSession() {
   stopNotificationPolling()
   push.reset()
@@ -244,12 +251,6 @@ watch(
 watch(referralWelcomeOpen, (open, wasOpen) => {
   if (wasOpen && !open) {
     maybeStartOnboarding()
-  }
-})
-
-watch(installInstructionOpen, (open, wasOpen) => {
-  if (wasOpen && !open && localStorage.getItem('onboarding_pending') === 'true') {
-    onboardingStarted.value = false
   }
 })
 
@@ -359,7 +360,8 @@ async function maybeStartOnboarding() {
     />
 
     <InstallAppInstructionModal
-      v-model="installInstructionOpen"
+      :model-value="installInstructionOpen"
+      @update:model-value="handleInstallInstructionUpdate"
       @completed="completeInstallInstructionOnboarding"
     />
 

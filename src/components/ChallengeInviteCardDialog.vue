@@ -186,12 +186,13 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import QRCode from 'qrcode'
 import { toPng } from 'html-to-image'
 import { userService } from '../services/api'
 import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
+import { prepareHeroImageForExport, shareOrDownloadImage } from '../utils/shareImage'
 
 const props = defineProps({
   modelValue: {
@@ -258,18 +259,29 @@ async function generateInviteCard() {
   if (!inviteCardRef.value) return
 
   generating.value = true
+  let restoreHeroImage = () => {}
 
   try {
+    await nextTick()
+    if (document.fonts?.ready) {
+      await document.fonts.ready
+    }
+
+    restoreHeroImage = await prepareHeroImageForExport(inviteCardRef.value)
+
     const dataUrl = await toPng(inviteCardRef.value, {
       cacheBust: true,
       pixelRatio: 2,
       backgroundColor: '#0f172a'
     })
 
-    const link = document.createElement('a')
-    link.download = `ignite-invite-${props.cardData?.challengeId || 'mission'}.png`
-    link.href = dataUrl
-    link.click()
+    const fileName = `ignite-invite-${props.cardData?.challengeId || 'mission'}.png`
+    const outcome = await shareOrDownloadImage(dataUrl, fileName, {
+      title: 'Ignite',
+      text: props.cardData?.title || ''
+    })
+
+    if (outcome === 'cancelled') return
 
     dialogModel.value = false
 
@@ -282,7 +294,10 @@ async function generateInviteCard() {
     } catch (manifestError) {
       console.warn('Manifest sparks award failed', manifestError)
     }
+  } catch (error) {
+    console.error('Invite card export failed:', error)
   } finally {
+    restoreHeroImage()
     generating.value = false
   }
 }

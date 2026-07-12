@@ -72,6 +72,10 @@
                   <v-icon size="13" color="#FBBF24" class="mr-1">mdi-trophy</v-icon>
                   {{ t('challenges.comments.triumphBadge') }}
                 </div>
+                <div v-else-if="item.actionTitle" class="comment-action-title mb-2">
+                  <v-icon size="13" color="#4FD1C5" class="mr-1">mdi-target-variant</v-icon>
+                  {{ item.actionTitle }}
+                </div>
                 <p v-if="item.text" class="text-content mb-0">{{ item.text }}</p>
                 <v-img v-if="item.imageUrl" :src="item.imageUrl" max-height="350" class="rounded-lg mt-3 border-accent"></v-img>
                 
@@ -420,6 +424,20 @@
   color: #fbbf24;
   background: rgba(245, 158, 11, 0.12);
   border: 1px solid rgba(251, 191, 36, 0.35);
+  border-radius: 8px;
+  padding: 3px 10px;
+}
+
+.comment-action-title {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #4FD1C5;
+  background: rgba(79, 209, 197, 0.1);
+  border: 1px solid rgba(79, 209, 197, 0.25);
   border-radius: 8px;
   padding: 3px 10px;
 }

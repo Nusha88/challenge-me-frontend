@@ -151,7 +151,7 @@
                       {{ getDayCellTooltip(day) }}
                     </v-tooltip>
                     <span v-if="day.isJoinMarker" class="join-marker">🚩</span>
-                    <span v-else-if="!day.isBeforeJoin" class="day-number">{{ day.number }}</span>
+                    <span v-else class="day-number">{{ day.number }}</span>
                     <v-icon
                       v-if="isDayProtected(day)"
                       icon="mdi-shield-check"
@@ -1342,8 +1342,12 @@ const calendarDays = computed(() => {
     const isBeforeJoin = viewerIsLateJoiner && participantJoinedKey && dateStr < participantJoinedKey
     const isJoinMarker = viewerIsLateJoiner && participantJoinedKey && dateStr === participantJoinedKey
 
+    if (isBeforeJoin) {
+      current.setDate(current.getDate() + 1)
+      continue
+    }
+
     const isMissed =
-      !isBeforeJoin &&
       !isUserCompleted &&
       !isLocked &&
       isPast &&
@@ -1363,7 +1367,7 @@ const calendarDays = computed(() => {
       isPast,
       isScheduled,
       isMissed,
-      isBeforeJoin,
+      isBeforeJoin: false,
       isJoinMarker
     })
     
@@ -1389,7 +1393,7 @@ const totalDays = computed(() => {
 
 const daysPassed = computed(() => {
   return calendarDays.value.filter(
-    (day) => day.isScheduled !== false && !day.isLocked && !day.isBeforeJoin
+    (day) => day.isScheduled !== false && !day.isLocked
   ).length
 })
 
@@ -1404,7 +1408,7 @@ const userCompletedCount = computed(() => {
   }
 
   return calendarDays.value.filter(
-    (day) => day.isScheduled !== false && !day.isLocked && !day.isBeforeJoin && day.isUserCompleted
+    (day) => day.isScheduled !== false && !day.isLocked && day.isUserCompleted
   ).length
 })
 

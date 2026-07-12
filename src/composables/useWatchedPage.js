@@ -4,6 +4,7 @@ import { challengeService } from '../services/api'
 import { useWatchedChallengesStore } from '../stores/watchedChallenges'
 import { useWatchedActivityFeed } from './useWatchedActivityFeed'
 import { useXpAwardFeedback } from './useXpAwardFeedback'
+import { challengeIdsMatch } from '../utils/openChallengeDetails'
 
 export function useWatchedPage(currentUserId) {
   const { t } = useI18n()
@@ -58,13 +59,23 @@ export function useWatchedPage(currentUserId) {
     try {
       const response = await challengeService.joinChallenge(challenge._id, { userId })
       applyRewardResponse(response)
-      if (response.data?.challenge) {
-        updateChallengeInList(response.data.challenge)
-        if (selectedChallenge?.value?._id === challenge._id) {
-          selectedChallenge.value = response.data.challenge
-        }
-      }
       await loadWatchedChallenges({ force: true, refreshFeed: false })
+
+      if (selectedChallenge?.value && challengeIdsMatch(selectedChallenge.value._id, challenge._id)) {
+        try {
+          const { data } = await challengeService.getChallenge(challenge._id)
+          selectedChallenge.value = data
+          updateChallengeInList(data)
+        } catch {
+          if (response.data?.challenge) {
+            selectedChallenge.value = response.data.challenge
+            updateChallengeInList(response.data.challenge)
+          }
+        }
+      } else if (response.data?.challenge) {
+        updateChallengeInList(response.data.challenge)
+      }
+
       await onAfterJoin?.()
     } catch (error) {
       console.error('Error joining challenge:', error)

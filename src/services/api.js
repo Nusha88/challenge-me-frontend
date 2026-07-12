@@ -152,6 +152,9 @@ export const userService = {
   updateWeeklyChronicleSettings: (payload) => {
     return api.put('/auth/weekly-chronicle-settings', payload)
   },
+  unsubscribeFromEmail: (token) => {
+    return api.get('/auth/email/unsubscribe', { params: { token } })
+  },
   updatePreferredLanguage: (language) => {
     return api.put('/auth/preferred-language', { language })
   },
