@@ -652,9 +652,68 @@ async function preparePhotoFramesForExport(root, fallbackSrc = '', pixelRatio = 
   }
 }
 
-// Opaque fill for Instagram Stories — transparent PNG corners get a dark bg there.
-const SHARE_CARD_EXPORT_BG = '#0F172A'
-const SHARE_CARD_EXPORT_BG_FINAL = '#0f172a'
+const SHARE_CARD_RADIUS_PX = 20
+// Transparent export background so the clipped corners stay see-through and the
+// card reads as genuinely rounded on any Instagram Story backdrop.
+const SHARE_CARD_EXPORT_BG = null
+const SHARE_CARD_EXPORT_BG_FINAL = null
+
+function roundedRectPath(ctx, x, y, width, height, radius) {
+  const r = Math.min(radius, width / 2, height / 2)
+  ctx.beginPath()
+  ctx.moveTo(x + r, y)
+  ctx.lineTo(x + width - r, y)
+  ctx.quadraticCurveTo(x + width, y, x + width, y + r)
+  ctx.lineTo(x + width, y + height - r)
+  ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height)
+  ctx.lineTo(x + r, y + height)
+  ctx.quadraticCurveTo(x, y + height, x, y + height - r)
+  ctx.lineTo(x, y + r)
+  ctx.quadraticCurveTo(x, y, x + r, y)
+  ctx.closePath()
+}
+
+// Clips the rendered card to a rounded rectangle, leaving the four corners
+// transparent (no fill) so Instagram shows real rounded borders.
+function clipCanvasToRoundedRect(sourceCanvas, borderRadiusCssPx, scale) {
+  const width = sourceCanvas.width
+  const height = sourceCanvas.height
+  const radius = borderRadiusCssPx * scale
+
+  const output = document.createElement('canvas')
+  output.width = width
+  output.height = height
+  const ctx = output.getContext('2d')
+  if (!ctx) return sourceCanvas
+
+  ctx.save()
+  roundedRectPath(ctx, 0, 0, width, height, radius)
+  ctx.clip()
+  ctx.drawImage(sourceCanvas, 0, 0)
+  ctx.restore()
+
+  return output
+}
+
+function canvasToRoundedPng(sourceCanvas, borderRadiusCssPx, scale) {
+  const clipped = clipCanvasToRoundedRect(sourceCanvas, borderRadiusCssPx, scale)
+  return clipped.toDataURL('image/png')
+}
+
+function dataUrlToCanvas(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const image = new Image()
+    image.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = image.naturalWidth
+      canvas.height = image.naturalHeight
+      canvas.getContext('2d').drawImage(image, 0, 0)
+      resolve(canvas)
+    }
+    image.onerror = () => reject(new Error('Failed to decode export image'))
+    image.src = dataUrl
+  })
+}
 
 async function captureShareCard(element) {
   await waitForPaint()
@@ -669,14 +728,16 @@ async function captureShareCard(element) {
       allowTaint: false,
       logging: false
     })
-    return canvas.toDataURL('image/png')
+    return canvasToRoundedPng(canvas, SHARE_CARD_RADIUS_PX, scale)
   }
 
-  return toPng(element, {
+  const dataUrl = await toPng(element, {
     pixelRatio: scale,
     cacheBust: true,
-    backgroundColor
+    backgroundColor: 'transparent'
   })
+  const canvas = await dataUrlToCanvas(dataUrl)
+  return canvasToRoundedPng(canvas, SHARE_CARD_RADIUS_PX, scale)
 }
 
 function dataUrlToFile(dataUrl, fileName) {
@@ -1032,9 +1093,8 @@ defineExpose({ shareCard })
   background: linear-gradient(90deg, #4FD1C5, #8B5CF6);
 }
 
-/* html-to-image / html2canvas: opaque square export (no transparent rounded corners) */
+/* html-to-image / html2canvas: solid fill + rounded corners applied in canvas export */
 .share-card--export {
-  border-radius: 0 !important;
   background: #0F172A !important;
   box-shadow: none !important;
   border-color: transparent !important;

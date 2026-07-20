@@ -1,13 +1,24 @@
 import html2canvas from 'html2canvas'
 import crystalImage from '../assets/crystal.png'
+import { shareOrDownloadImage, waitForPaint, dataUrlToFile } from './shareImage'
 
-export async function generateImage(options) {
+function waitForImageLoad(img) {
+  if (img.complete && img.naturalWidth > 0) {
+    return Promise.resolve()
+  }
+
+  return new Promise((resolve, reject) => {
+    img.onload = () => resolve()
+    img.onerror = () => reject(new Error('Crystal image failed to load'))
+  })
+}
+
+export async function buildVictoryImageDataUrl(options) {
   const {
     userName = 'HERO',
     challenges = [],
     checklistTasks = [],
     streakDays = null,
-    filenamePrefix = 'ignite-victory',
     translations = {}
   } = options
 
@@ -23,8 +34,7 @@ export async function generateImage(options) {
     ...translations
   }
 
-  try {
-    const container = document.createElement('div')
+  const container = document.createElement('div')
     // Стили контейнера (Формат Story)
     Object.assign(container.style, {
       position: 'absolute',
@@ -160,6 +170,8 @@ export async function generateImage(options) {
     header.appendChild(crystalContainer)
     container.appendChild(header)
 
+    await waitForImageLoad(crystal)
+
     // 3. CONTENT AREA
     const content = document.createElement('div')
     Object.assign(content.style, { position: 'relative', zIndex: '10', flex: '1' })
@@ -265,23 +277,37 @@ export async function generateImage(options) {
     }
     container.appendChild(footer)
 
-    // RENDER
     document.body.appendChild(container)
-    const canvas = await html2canvas(container, {
-      scale: 2, // 1080x1920 для Story
-      useCORS: true,
-      backgroundColor: '#0f172a',
-      logging: false
-    })
-    document.body.removeChild(container)
+    await waitForPaint()
 
-    // DOWNLOAD
-    const link = document.createElement('a')
-    link.download = `${filenamePrefix}-${new Date().toISOString().split('T')[0]}.png`
-    link.href = canvas.toDataURL('image/png')
-    link.click()
+    try {
+      const canvas = await html2canvas(container, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#0f172a',
+        logging: false
+      })
+      return canvas.toDataURL('image/png')
+    } finally {
+      document.body.removeChild(container)
+    }
+}
 
-  } catch (error) {
-    console.error('Render failed:', error)
-  }
+export function buildVictoryShareFile(dataUrl, fileName) {
+  return dataUrlToFile(dataUrl, fileName)
+}
+
+export async function shareVictoryImage(dataUrl, fileName, shareOptions = {}) {
+  return shareOrDownloadImage(dataUrl, fileName, shareOptions)
+}
+
+export async function generateImage(options) {
+  const { filenamePrefix = 'ignite-victory', translations = {}, ...buildOptions } = options
+  const dataUrl = await buildVictoryImageDataUrl({ ...buildOptions, translations })
+  const fileName = `${filenamePrefix}-${new Date().toISOString().split('T')[0]}.png`
+
+  return shareVictoryImage(dataUrl, fileName, {
+    title: 'Ignite',
+    text: translations.reportSuccess || 'LEGENDARY MOMENT'
+  })
 }

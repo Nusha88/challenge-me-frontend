@@ -181,7 +181,8 @@
         "conqueredTitle": "DAY CONQUERED!",
         "congrats": "Congratulations, {name}!",
         "chooseShare": "Choose what to share",
-        "captureTriumph": "Capture Triumph"
+        "captureTriumph": "Capture Triumph",
+        "shareUnavailable": "Could not open the share menu. Allow pop-ups or try again."
       },
       "tabs": {
         "today": "Today",

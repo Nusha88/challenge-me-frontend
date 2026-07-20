@@ -17,7 +17,33 @@ export function downloadImage(dataUrl, fileName) {
   const link = document.createElement('a')
   link.download = fileName
   link.href = dataUrl
+  document.body.appendChild(link)
   link.click()
+  link.remove()
+}
+
+export function openImagePreview(dataUrl) {
+  const preview = window.open('', '_blank')
+  if (!preview) return false
+
+  preview.document.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Ignite triumph</title>
+        <style>
+          body { margin: 0; background: #0f172a; display: flex; justify-content: center; }
+          img { width: 100%; max-width: 540px; height: auto; display: block; }
+        </style>
+      </head>
+      <body>
+        <img src="${dataUrl}" alt="Ignite triumph" />
+      </body>
+    </html>
+  `)
+  preview.document.close()
+  return true
 }
 
 /**
@@ -212,23 +238,82 @@ export async function prepareHeroImageForExport(rootElement, imageSrc, selector 
   return replaceHeroWithCanvasForExport(rootElement, imageSrc, selector)
 }
 
-export async function captureElementToPng(element, { backgroundColor = '#0f172a', scale = 2, useHtml2Canvas = false } = {}) {
+function roundedRectPath(ctx, x, y, width, height, radius) {
+  const r = Math.min(radius, width / 2, height / 2)
+  ctx.beginPath()
+  ctx.moveTo(x + r, y)
+  ctx.lineTo(x + width - r, y)
+  ctx.quadraticCurveTo(x + width, y, x + width, y + r)
+  ctx.lineTo(x + width, y + height - r)
+  ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height)
+  ctx.lineTo(x + r, y + height)
+  ctx.quadraticCurveTo(x, y + height, x, y + height - r)
+  ctx.lineTo(x, y + r)
+  ctx.quadraticCurveTo(x, y, x + r, y)
+  ctx.closePath()
+}
+
+// Clips a rendered canvas to a rounded rectangle, leaving the corners
+// transparent so the exported PNG reads as genuinely rounded on any backdrop.
+function clipCanvasToRoundedRect(sourceCanvas, radiusPx) {
+  const output = document.createElement('canvas')
+  output.width = sourceCanvas.width
+  output.height = sourceCanvas.height
+  const ctx = output.getContext('2d')
+  if (!ctx) return sourceCanvas
+
+  ctx.save()
+  roundedRectPath(ctx, 0, 0, output.width, output.height, radiusPx)
+  ctx.clip()
+  ctx.drawImage(sourceCanvas, 0, 0)
+  ctx.restore()
+
+  return output
+}
+
+function dataUrlToCanvas(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const image = new Image()
+    image.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = image.naturalWidth
+      canvas.height = image.naturalHeight
+      canvas.getContext('2d').drawImage(image, 0, 0)
+      resolve(canvas)
+    }
+    image.onerror = () => reject(new Error('Failed to decode export image'))
+    image.src = dataUrl
+  })
+}
+
+export async function captureElementToPng(
+  element,
+  { backgroundColor = '#0f172a', scale = 2, useHtml2Canvas = false, borderRadius = 0 } = {}
+) {
   await waitForPaint()
 
+  let canvas
   if (useHtml2Canvas) {
-    const canvas = await html2canvas(element, {
+    canvas = await html2canvas(element, {
       backgroundColor,
       scale,
       useCORS: true,
       allowTaint: false,
       logging: false
     })
-    return canvas.toDataURL('image/png')
+  } else {
+    const dataUrl = await toPng(element, {
+      cacheBust: true,
+      pixelRatio: scale,
+      backgroundColor
+    })
+    if (!borderRadius) return dataUrl
+    canvas = await dataUrlToCanvas(dataUrl)
   }
 
-  return toPng(element, {
-    cacheBust: true,
-    pixelRatio: scale,
-    backgroundColor
-  })
+  if (borderRadius) {
+    canvas = clipCanvasToRoundedRect(canvas, borderRadius * scale)
+  }
+
+  return canvas.toDataURL('image/png')
 }

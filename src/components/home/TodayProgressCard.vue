@@ -15,7 +15,7 @@
 
     <v-fade-transition>
       <v-btn
-        v-if="percentage === 100"
+        v-if="canShare"
         variant="outlined"
         color="white"
         class="share-triumph-btn mt-2"
@@ -38,7 +38,8 @@ defineProps({
   completedItems: { type: Number, default: 0 },
   totalItems: { type: Number, default: 0 },
   percentage: { type: Number, default: 0 },
-  showProgressGlow: { type: Boolean, default: true }
+  showProgressGlow: { type: Boolean, default: true },
+  canShare: { type: Boolean, default: false }
 })
 
 defineEmits(['share'])

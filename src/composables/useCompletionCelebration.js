@@ -3,7 +3,11 @@ import { useI18n } from 'vue-i18n'
 import { useUserStore } from '../stores/user'
 import { userService } from '../services/api'
 import { useXpAwardFeedback } from './useXpAwardFeedback'
-import { generateImage } from '../utils/imageGenerator'
+import {
+  buildVictoryImageDataUrl,
+  shareVictoryImage
+} from '../utils/imageGenerator'
+import { openImagePreview } from '../utils/shareImage'
 
 function getDismissalKey() {
   const todayStr = new Date().toISOString().slice(0, 10)
@@ -39,6 +43,12 @@ function clearDismissalForToday() {
   }
 }
 
+function buildTaskKey(tasks = []) {
+  return tasks
+    .map((task) => `${task.type}:${task.id}:${task.selected !== false ? '1' : '0'}`)
+    .join('|')
+}
+
 export function useCompletionCelebration({
   isAllCompleted,
   completedItems,
@@ -58,6 +68,11 @@ export function useCompletionCelebration({
   const showCompletionDialog = ref(false)
   const hasShownCompletionDialog = ref(false)
   const generatingImage = ref(false)
+  const preparingShare = ref(false)
+  const shareError = ref('')
+  const shareDialogPinned = ref(false)
+  const prefetchedDataUrl = ref(null)
+  const prefetchedTaskKey = ref(null)
 
   const shouldShowCompletionDialog = computed(() => {
     return showCompletionDialog.value
@@ -65,6 +80,74 @@ export function useCompletionCelebration({
       && completedItems.value === totalItems.value
       && totalItems.value > 0
   })
+
+  function buildImageOptions(tasksToUse) {
+    const selectedChallenges = tasksToUse.filter((task) => task.type === 'challenge')
+    const selectedChecklistTasks = tasksToUse.filter((task) => task.type === 'checklist')
+    const { userName, streakDays } = getCompletionImageData()
+
+    const challenges = selectedChallenges.map((task) => {
+      const challenge = task.payload
+      return {
+        title: challenge.title,
+        completedDays: getChallengeCompletedDays(challenge),
+        totalDays: getChallengeTotalDays(challenge)
+      }
+    })
+
+    const doneSteps = selectedChecklistTasks.map((task) => task.payload)
+    const checklistTasks = doneSteps.length > 3
+      ? [{
+        title: t('home.loggedIn.completionImage.completedTasksSummary', { count: doneSteps.length }),
+        isSummary: true
+      }]
+      : doneSteps.map((step) => ({ title: step.title, done: true }))
+
+    return {
+      userName: userName || 'Hero',
+      date: new Date(),
+      challenges,
+      checklistTasks,
+      streakDays,
+      locale: locale.value,
+      translations: {
+        reportSuccess: t('home.loggedIn.completionImage.reportSuccess'),
+        excellentWork: t('home.loggedIn.completionImage.excellentWork'),
+        activeMissions: t('home.loggedIn.completionImage.activeMissions'),
+        progress: t('home.loggedIn.completionImage.progress'),
+        operationalLog: t('home.loggedIn.completionImage.operationalLog'),
+        dailyGoalsCompleted: t('home.loggedIn.completionImage.dailyGoalsCompleted'),
+        systemStatus: t('home.loggedIn.completionImage.systemStatus'),
+        dayStreak: t('home.loggedIn.completionImage.dayStreak')
+      }
+    }
+  }
+
+  async function prefetchVictoryImage(tasksToUse) {
+    if (!Array.isArray(tasksToUse) || tasksToUse.length === 0) {
+      prefetchedDataUrl.value = null
+      prefetchedTaskKey.value = null
+      return
+    }
+
+    const taskKey = buildTaskKey(tasksToUse)
+    if (prefetchedTaskKey.value === taskKey && prefetchedDataUrl.value) {
+      return
+    }
+
+    preparingShare.value = true
+    try {
+      const dataUrl = await buildVictoryImageDataUrl(buildImageOptions(tasksToUse))
+      prefetchedDataUrl.value = dataUrl
+      prefetchedTaskKey.value = taskKey
+    } catch (error) {
+      console.warn('Victory image prefetch failed:', error)
+      prefetchedDataUrl.value = null
+      prefetchedTaskKey.value = null
+    } finally {
+      preparingShare.value = false
+    }
+  }
 
   async function tryAwardDailyBonusXp() {
     try {
@@ -91,9 +174,18 @@ export function useCompletionCelebration({
   }
 
   function closeCompletionDialog() {
+    shareDialogPinned.value = false
+    shareError.value = ''
     dismissDialogToday()
     showCompletionDialog.value = false
     hasShownCompletionDialog.value = true
+  }
+
+  function openCompletionShare() {
+    clearDismissalForToday()
+    shareError.value = ''
+    shareDialogPinned.value = true
+    showCompletionDialog.value = true
   }
 
   function checkAndShowCompletionDialog() {
@@ -118,6 +210,7 @@ export function useCompletionCelebration({
         const finalCompleted = completedItems.value
         const finalTotal = totalItems.value
         if (finalTotal > 0 && finalCompleted === finalTotal && isAllCompleted.value && !hasDismissedToday()) {
+          shareDialogPinned.value = true
           showCompletionDialog.value = true
           hasShownCompletionDialog.value = true
         }
@@ -135,57 +228,46 @@ export function useCompletionCelebration({
 
   async function generateCompletionImage(selectedTasks = null) {
     generatingImage.value = true
+    shareError.value = ''
 
     try {
-      await nextTick()
-      await new Promise((resolve) => requestAnimationFrame(resolve))
-
-      const { userName, streakDays } = getCompletionImageData()
-
       const tasksToUse = Array.isArray(selectedTasks)
         ? selectedTasks
         : (getDefaultShareTasks?.() || [])
 
       if (tasksToUse.length === 0) {
+        shareError.value = t('home.loggedIn.completionDialog.shareUnavailable')
         return
       }
 
-      const selectedChallenges = tasksToUse.filter((task) => task.type === 'challenge')
-      const selectedChecklistTasks = tasksToUse.filter((task) => task.type === 'checklist')
+      const taskKey = buildTaskKey(tasksToUse)
+      const imageOptions = buildImageOptions(tasksToUse)
+      const fileName = `ignite-victory-${new Date().toISOString().split('T')[0]}.png`
+      const shareMeta = {
+        title: 'Ignite',
+        text: imageOptions.translations.reportSuccess
+      }
 
-      const challenges = selectedChallenges.map((task) => {
-        const challenge = task.payload
-        return {
-          title: challenge.title,
-          completedDays: getChallengeCompletedDays(challenge),
-          totalDays: getChallengeTotalDays(challenge)
+      let dataUrl = prefetchedDataUrl.value
+      if (!dataUrl || prefetchedTaskKey.value !== taskKey) {
+        dataUrl = await buildVictoryImageDataUrl(imageOptions)
+        prefetchedDataUrl.value = dataUrl
+        prefetchedTaskKey.value = taskKey
+      }
+
+      const shareResult = await shareVictoryImage(dataUrl, fileName, shareMeta)
+
+      if (shareResult === 'cancelled') {
+        return
+      }
+
+      if (shareResult === 'unsupported') {
+        const openedPreview = openImagePreview(dataUrl)
+        if (!openedPreview) {
+          shareError.value = t('home.loggedIn.completionDialog.shareUnavailable')
+          return
         }
-      })
-
-      const doneSteps = selectedChecklistTasks.map((task) => task.payload)
-      const checklistTasks = doneSteps.length > 3
-        ? [{ title: t('home.loggedIn.completionImage.completedTasksSummary', { count: doneSteps.length }), isSummary: true }]
-        : doneSteps.map((step) => ({ title: step.title, done: true }))
-
-      await generateImage({
-        userName: userName || 'Hero',
-        date: new Date(),
-        challenges,
-        checklistTasks,
-        streakDays,
-        locale: locale.value,
-        filenamePrefix: 'ignite-victory',
-        translations: {
-          reportSuccess: t('home.loggedIn.completionImage.reportSuccess'),
-          excellentWork: t('home.loggedIn.completionImage.excellentWork'),
-          activeMissions: t('home.loggedIn.completionImage.activeMissions'),
-          progress: t('home.loggedIn.completionImage.progress'),
-          operationalLog: t('home.loggedIn.completionImage.operationalLog'),
-          dailyGoalsCompleted: t('home.loggedIn.completionImage.dailyGoalsCompleted'),
-          systemStatus: t('home.loggedIn.completionImage.systemStatus'),
-          dayStreak: t('home.loggedIn.completionImage.dayStreak')
-        }
-      })
+      }
 
       try {
         const response = await userService.awardManifestSparks({ type: 'victory' })
@@ -195,14 +277,38 @@ export function useCompletionCelebration({
       }
 
       dismissDialogToday()
+      shareDialogPinned.value = false
       showCompletionDialog.value = false
       hasShownCompletionDialog.value = true
     } catch (error) {
       console.error('Generation failed', error)
+      shareError.value = t('home.loggedIn.completionDialog.shareUnavailable')
     } finally {
       generatingImage.value = false
     }
   }
+
+  watch(showCompletionDialog, (open) => {
+    if (open) {
+      shareDialogPinned.value = true
+      shareError.value = ''
+      prefetchVictoryImage(getDefaultShareTasks?.() || [])
+      return
+    }
+
+    prefetchedDataUrl.value = null
+    prefetchedTaskKey.value = null
+    preparingShare.value = false
+  })
+
+  watch(
+    () => getDefaultShareTasks?.() || [],
+    (tasks) => {
+      if (!showCompletionDialog.value) return
+      prefetchVictoryImage(tasks)
+    },
+    { deep: true }
+  )
 
   watch(isAllCompleted, (val, oldVal) => {
     if (val) {
@@ -218,7 +324,7 @@ export function useCompletionCelebration({
         })
       }
     } else {
-      if (showCompletionDialog.value) {
+      if (showCompletionDialog.value && !shareDialogPinned.value) {
         showCompletionDialog.value = false
       }
       hasShownCompletionDialog.value = false
@@ -227,7 +333,7 @@ export function useCompletionCelebration({
   }, { immediate: false })
 
   watch([completedItems, totalItems], ([completed, total], [oldCompleted, oldTotal]) => {
-    if (showCompletionDialog.value) {
+    if (showCompletionDialog.value && !shareDialogPinned.value) {
       if (total === 0 || completed !== total) {
         showCompletionDialog.value = false
         hasShownCompletionDialog.value = false
@@ -271,8 +377,11 @@ export function useCompletionCelebration({
     showCompletionDialog,
     hasShownCompletionDialog,
     generatingImage,
+    preparingShare,
+    shareError,
     shouldShowCompletionDialog,
     closeCompletionDialog,
+    openCompletionShare,
     checkAndShowCompletionDialog,
     scheduleCompletionDialogCheck,
     generateCompletionImage

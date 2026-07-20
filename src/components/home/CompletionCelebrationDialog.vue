@@ -3,6 +3,8 @@
     :model-value="modelValue"
     max-width="450"
     persistent
+    scrollable
+    :retain-focus="false"
     overlay-color="#1A1A2E"
     overlay-opacity="0.8"
     transition="dialog-bottom-transition"
@@ -72,12 +74,16 @@
           height="56"
           class="celebration-button text-none"
           elevation="0"
-          :loading="generatingImage"
-          :disabled="selectedTasks.length === 0 || generatingImage"
+          :loading="generatingImage || preparingShare"
+          :disabled="selectedTasks.length === 0 || generatingImage || preparingShare"
           @click="handleGenerateImage"
         >
           {{ t('home.loggedIn.completionDialog.captureTriumph') }}
         </v-btn>
+
+        <p v-if="shareError" class="share-error mt-3 mb-0">
+          {{ shareError }}
+        </p>
       </v-card-text>
     </v-card>
   </v-dialog>
@@ -91,6 +97,8 @@ import crystalImage from '../../assets/crystal.png'
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
   generatingImage: { type: Boolean, default: false },
+  preparingShare: { type: Boolean, default: false },
+  shareError: { type: String, default: '' },
   userName: { type: String, default: '' },
   tasks: { type: Array, default: () => [] },
   completed: { type: Number, default: 0 },
@@ -294,6 +302,12 @@ function handleGenerateImage() {
   50% {
     transform: translateY(-10px);
   }
+}
+
+.share-error {
+  color: #fca5a5;
+  font-size: 0.85rem;
+  line-height: 1.4;
 }
 
 @media (prefers-reduced-motion: reduce) {

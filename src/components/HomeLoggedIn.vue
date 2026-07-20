@@ -49,6 +49,7 @@
           :completed-items="completedItems"
           :total-items="totalItems"
           :percentage="combinedProgressPercentage"
+          :can-share="isAllCompleted"
           @share="openCompletionShare"
         />
 
@@ -129,6 +130,8 @@
     <CompletionCelebrationDialog
       v-model="showCompletionDialog"
       :generating-image="generatingImage"
+      :preparing-share="preparingShare"
+      :share-error="shareError"
       :user-name="state.userName"
       :tasks="completionShareTasks"
       :completed="completedItems"
@@ -435,17 +438,29 @@ function showInspiration() {
   router.push('/missions')
 }
 
+function resolveExposedArray(value) {
+  if (Array.isArray(value)) return value
+  if (Array.isArray(value?.value)) return value.value
+  return []
+}
+
+function resolveExposedNumber(value, fallback = 0) {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value?.value === 'number' && Number.isFinite(value.value)) return value.value
+  return fallback
+}
+
 // Calculate combined progress (challenges + checklist)
 const completedChallenges = computed(() => {
   return todaysChallenges.value.filter(challenge => isTodayCompleted(challenge)).length
 })
 
 const checklistCompletedSteps = computed(() => {
-  return checklistRef.value?.completedSteps || 0
+  return resolveExposedNumber(checklistRef.value?.completedSteps, 0)
 })
 
 const checklistTotalSteps = computed(() => {
-  return checklistRef.value?.totalSteps || 0
+  return resolveExposedNumber(checklistRef.value?.totalSteps, 0)
 })
 
 const completedItems = computed(() => {
@@ -492,7 +507,7 @@ const completionShareTasks = computed(() => {
       payload: challenge
     }))
 
-  const checklistTasks = (checklistRef.value?.todaySteps || [])
+  const checklistTasks = resolveExposedArray(checklistRef.value?.todaySteps)
     .filter((step) => step.done)
     .map((step, index) => ({
       id: `checklist-${step._id || index}`,
@@ -508,7 +523,10 @@ const completionShareTasks = computed(() => {
 const {
   showCompletionDialog,
   generatingImage,
+  preparingShare,
+  shareError,
   closeCompletionDialog,
+  openCompletionShare,
   scheduleCompletionDialogCheck,
   generateCompletionImage
 } = useCompletionCelebration({
@@ -526,10 +544,6 @@ const {
   }),
   watchChecklistCompletedSteps: () => checklistRef.value?.completedSteps
 })
-
-function openCompletionShare() {
-  showCompletionDialog.value = true
-}
 
 // Count unfinished steps (not missions)
 const unfinishedStepsCount = computed(() => {

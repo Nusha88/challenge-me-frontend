@@ -149,13 +149,6 @@
                         Ignite-me.app
                       </div>
                     </div>
-
-                    <img
-                      v-if="qrCodeUrl"
-                      :src="qrCodeUrl"
-                      alt="QR"
-                      class="qr-code"
-                    />
                   </div>
                 </div>
               </div>
@@ -188,7 +181,6 @@
 <script setup>
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import QRCode from 'qrcode'
 import { ChartLine, User, Zap } from 'lucide-vue-next'
 import { userService } from '../services/api'
 import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
@@ -229,7 +221,6 @@ const options = reactive({
 
 const inviteCardRef = ref(null)
 const generating = ref(false)
-const qrCodeUrl = ref('')
 const heroImageSrc = ref('')
 const heroImageLoading = ref(false)
 
@@ -252,30 +243,6 @@ watch(
       heroImageSrc.value = imageUrl
     } finally {
       heroImageLoading.value = false
-    }
-  },
-  { immediate: true }
-)
-
-watch(
-  () => props.inviteUrl,
-  async (url) => {
-    if (!url) {
-      qrCodeUrl.value = ''
-      return
-    }
-
-    try {
-      qrCodeUrl.value = await QRCode.toDataURL(url, {
-        width: 180,
-        margin: 1,
-        color: {
-          dark: '#0f172a',
-          light: '#ffffff'
-        }
-      })
-    } catch {
-      qrCodeUrl.value = ''
     }
   },
   { immediate: true }
@@ -322,9 +289,10 @@ async function generateInviteCard() {
     }
 
     const dataUrl = await captureElementToPng(inviteCardRef.value, {
-      backgroundColor: '#0f172a',
+      backgroundColor: null,
       scale: 2,
-      useHtml2Canvas: true
+      useHtml2Canvas: true,
+      borderRadius: 32
     })
 
     const fileName = `ignite-invite-${props.cardData?.challengeId || 'mission'}.png`
@@ -568,14 +536,6 @@ async function generateInviteCard() {
   font-weight: 950;
   letter-spacing: -0.04em;
   color: #ffffff;
-}
-
-.qr-code {
-  width: 96px;
-  height: 96px;
-  padding: 7px;
-  border-radius: 18px;
-  background: #ffffff;
 }
 
 .generate-invite-btn {
