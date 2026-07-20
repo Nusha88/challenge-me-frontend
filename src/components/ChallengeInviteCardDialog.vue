@@ -380,6 +380,8 @@ async function generateInviteCard() {
   flex-shrink: 0;
   height: 210px;
   overflow: hidden;
+  border-top-left-radius: 32px;
+  border-top-right-radius: 32px;
 }
 
 .invite-card-hero-image {

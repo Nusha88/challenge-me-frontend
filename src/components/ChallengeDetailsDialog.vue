@@ -1397,6 +1397,33 @@ const daysPassed = computed(() => {
   ).length
 })
 
+// Calendar days the current user has been on the path: counted from their join
+// date (late joiners) or the mission start, inclusive of today, capped at end.
+const daysOnPath = computed(() => {
+  const challenge = props.challenge
+  if (!challenge || challenge.challengeType !== CHALLENGE_TYPES.HABIT) return 0
+  if (!challenge.startDate) return 0
+
+  const startKey = joinedAtKey.value || normalizeDateKey(challenge.startDate)
+  if (!startKey) return 0
+
+  const start = new Date(`${startKey}T00:00:00`)
+  if (Number.isNaN(start.getTime())) return 0
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  let endBound = today
+  if (challenge.endDate) {
+    const end = new Date(challenge.endDate)
+    end.setHours(0, 0, 0, 0)
+    if (!Number.isNaN(end.getTime()) && end < endBound) endBound = end
+  }
+
+  if (endBound < start) return 0
+  return Math.floor((endBound.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
+})
+
 const userCompletedCount = computed(() => {
   if (currentParticipant.value) {
     return countPersonalEffectiveDays(props.challenge, {
@@ -1490,19 +1517,27 @@ const inviteCardData = computed(() => {
     : progressPercentage.value
 
   const isQuest = challenge.challengeType === CHALLENGE_TYPES.RESULT
-  const durationDays = isQuest ? 0 : totalDays.value
+  const totalDuration = isQuest ? 0 : totalDays.value
+  const daysWalked = isQuest ? 0 : daysOnPath.value
   const isRitualMember = props.isOwner || isCurrentUserParticipant.value
 
-  const statusLine = isQuest
-    ? t('challenges.inviteCard.questProgressLine', {
+  let statusLine
+  if (isQuest) {
+    statusLine = t('challenges.inviteCard.questProgressLine', {
       done: progressDone.value,
       total: progressTotal.value
     })
-    : durationDays > 0
-      ? (isRitualMember
-        ? t('challenges.inviteCard.durationLine', { days: durationDays })
-        : t('challenges.inviteCard.ritualDurationLine', { days: durationDays }))
+  } else if (isRitualMember) {
+    // Member: show how many days they've personally been walking the path.
+    statusLine = daysWalked > 0
+      ? t('challenges.inviteCard.durationLine', { count: daysWalked }, daysWalked)
       : t('challenges.inviteCard.pathWithoutDuration')
+  } else {
+    // Non-member: show the overall mission duration instead.
+    statusLine = totalDuration > 0
+      ? t('challenges.inviteCard.ritualDurationLine', { count: totalDuration }, totalDuration)
+      : t('challenges.inviteCard.pathWithoutDuration')
+  }
 
   const participantsCount = totalParticipantsCount.value
   const participantsLine = participantsCount <= 1
