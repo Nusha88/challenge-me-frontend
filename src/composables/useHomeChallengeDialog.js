@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { challengeService } from '../services/api'
 import { openChallengeDetails } from '../utils/openChallengeDetails'
 import { useXpAwardFeedback } from './useXpAwardFeedback'
@@ -11,30 +11,31 @@ export function useHomeChallengeDialog({ getUserId, updateChallengeInList, onRef
   const { applyRewardResponse } = useXpAwardFeedback()
   const detailsDialogOpen = ref(false)
   const selectedChallenge = ref(null)
-  const selectedIsOwner = ref(false)
-  const selectedIsParticipant = ref(false)
   const selectedLeaveLoading = ref(false)
   const selectedJoinLoading = ref(false)
 
-  function syncParticipantFlags() {
+  const selectedIsOwner = computed(() => {
     const userId = getUserId?.()
     const challenge = selectedChallenge.value
-    if (!challenge) return
+    if (!challenge || !userId) return false
 
     const ownerId = challenge.owner?._id || challenge.owner
-    selectedIsOwner.value = Boolean(ownerId && ownerId.toString() === userId?.toString())
+    return Boolean(ownerId && ownerId.toString() === userId.toString())
+  })
 
-    selectedIsParticipant.value = challenge.participants?.some((participant) => {
+  const selectedIsParticipant = computed(() => {
+    const userId = getUserId?.()
+    const challenge = selectedChallenge.value
+    if (!challenge || !userId) return false
+
+    return challenge.participants?.some((participant) => {
       const participantUserId = getParticipantUserId(participant)
-      return participantUserId && participantUserId.toString() === userId?.toString()
+      return participantUserId && participantUserId.toString() === userId.toString()
     }) || false
-  }
+  })
 
   function navigateToChallenge(challenge) {
-    openChallengeDetails(selectedChallenge, detailsDialogOpen, challenge, {
-      onRefreshed: syncParticipantFlags
-    })
-    syncParticipantFlags()
+    openChallengeDetails(selectedChallenge, detailsDialogOpen, challenge)
   }
 
   async function handleDialogUpdate() {
@@ -62,8 +63,15 @@ export function useHomeChallengeDialog({ getUserId, updateChallengeInList, onRef
 
     selectedLeaveLoading.value = true
     try {
-      await challengeService.leaveChallenge(selectedChallenge.value._id, { userId })
-      await handleDialogUpdate()
+      const response = await challengeService.leaveChallenge(selectedChallenge.value._id, { userId })
+      if (response.data?.challenge) {
+        selectedChallenge.value = response.data.challenge
+        if (updateChallengeInList) {
+          updateChallengeInList(response.data.challenge)
+        }
+      } else {
+        await handleDialogUpdate()
+      }
     } catch (error) {
       console.error('Error leaving challenge:', error)
     } finally {
@@ -81,12 +89,10 @@ export function useHomeChallengeDialog({ getUserId, updateChallengeInList, onRef
       applyRewardResponse(response)
       if (response.data?.challenge) {
         selectedChallenge.value = response.data.challenge
-        syncParticipantFlags()
       }
 
       const { data } = await challengeService.getChallenge(selectedChallenge.value._id)
       selectedChallenge.value = data
-      syncParticipantFlags()
 
       if (updateChallengeInList) {
         updateChallengeInList(data)

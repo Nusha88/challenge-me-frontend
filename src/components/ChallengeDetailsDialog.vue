@@ -339,7 +339,7 @@
       </v-card-text>
 
       <v-card-actions class="modal-footer px-6 py-4">
-        <v-btn v-if="showLeaveButton" color="#ff5252" variant="text" @click="openLeaveConfirm">
+        <v-btn v-if="showLeaveButtonEffective" color="#ff5252" variant="text" @click="openLeaveConfirm">
           {{ t('challenges.giveUp') }}
         </v-btn>
 
@@ -1491,7 +1491,7 @@ const inviteCardData = computed(() => {
 
   const isQuest = challenge.challengeType === CHALLENGE_TYPES.RESULT
   const durationDays = isQuest ? 0 : totalDays.value
-  const isRitualMember = props.isOwner || props.isParticipant
+  const isRitualMember = props.isOwner || isCurrentUserParticipant.value
 
   const statusLine = isQuest
     ? t('challenges.inviteCard.questProgressLine', {
@@ -1816,7 +1816,15 @@ const isCurrentUserParticipant = computed(() => {
   })
 })
 
-const isJoined = computed(() => props.isParticipant || isCurrentUserParticipant.value)
+const isJoined = computed(() => isCurrentUserParticipant.value)
+
+const showLeaveButtonEffective = computed(() => {
+  if (!props.challenge || !currentUserId.value) return false
+  if (props.isOwner) return false
+  if (isFinished.value) return false
+  if (props.challenge.challengeType !== CHALLENGE_TYPES.HABIT) return false
+  return isCurrentUserParticipant.value
+})
 
 const canInviteFriends = computed(() => props.isOwner || isJoined.value)
 

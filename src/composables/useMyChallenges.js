@@ -179,7 +179,10 @@ export function useMyChallenges(currentUserId) {
     error.value = ''
 
     try {
-      await challengeService.leaveChallenge(challenge._id, { userId })
+      const response = await challengeService.leaveChallenge(challenge._id, { userId })
+      if (response.data?.challenge) {
+        replaceChallengeInList(response.data.challenge)
+      }
       await refreshChallengesAfterMembershipChange(challenge._id)
     } catch (err) {
       error.value = err.response?.data?.message || t('notifications.joinError')

@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue'
 import { challengeService } from '../services/api'
+import { refreshChallengeInBackground } from '../utils/openChallengeDetails'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 import {
   isChallengeOwner,
@@ -80,6 +81,22 @@ export function useGlobalChallengeDialog(currentUserId) {
     }
   }
 
+  async function handleDialogLeave() {
+    const userId = currentUserId.value
+    if (!selectedChallenge.value?._id || !userId) return
+
+    try {
+      await challengeService.leaveChallenge(selectedChallenge.value._id, { userId })
+      await refreshChallengeInBackground(
+        selectedChallenge,
+        selectedChallenge.value._id,
+        selectedChallenge.value
+      )
+    } catch (error) {
+      console.error('Error leaving challenge:', error)
+    }
+  }
+
   return {
     detailsDialogOpen,
     selectedChallenge,
@@ -91,6 +108,7 @@ export function useGlobalChallengeDialog(currentUserId) {
     showDialogJoinButton,
     showDialogLeaveButton,
     openFromNotification,
-    handleDialogClose
+    handleDialogClose,
+    handleDialogLeave
   }
 }

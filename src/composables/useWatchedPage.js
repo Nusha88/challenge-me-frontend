@@ -96,19 +96,24 @@ export function useWatchedPage(currentUserId) {
     errorMessage.value = ''
 
     try {
-      await challengeService.leaveChallenge(challenge._id, { userId })
-      await loadWatchedChallenges({ force: true, refreshFeed: false })
-
+      const response = await challengeService.leaveChallenge(challenge._id, { userId })
       if (selectedChallenge?.value?._id === challenge._id) {
-        try {
-          const { data } = await challengeService.getChallenge(challenge._id)
-          selectedChallenge.value = data
-          updateChallengeInList(data)
-        } catch {
-          selectedChallenge.value =
-            watchedStore.challenges.find((c) => c._id === challenge._id) || null
+        if (response.data?.challenge) {
+          selectedChallenge.value = response.data.challenge
+          updateChallengeInList(response.data.challenge)
+        } else {
+          try {
+            const { data } = await challengeService.getChallenge(challenge._id)
+            selectedChallenge.value = data
+            updateChallengeInList(data)
+          } catch {
+            selectedChallenge.value =
+              watchedStore.challenges.find((c) => c._id === challenge._id) || null
+          }
         }
       }
+
+      await loadWatchedChallenges({ force: true, refreshFeed: false })
     } catch (error) {
       errorMessage.value = error.response?.data?.message || t('notifications.joinError')
     } finally {

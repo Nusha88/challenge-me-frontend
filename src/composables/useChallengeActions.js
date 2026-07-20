@@ -110,6 +110,20 @@ export function useChallengeActions({
     try {
       const response = await serviceCall(challenge._id, { userId })
       applyRewardResponse(response)
+
+      const updatedChallenge = response.data?.challenge
+      if (updatedChallenge && challengeIdsMatch(getSelectedChallengeId(), challenge._id)) {
+        challenges.value = challenges.value.map((item) => {
+          if (!challengeIdsMatch(item._id, challenge._id)) return item
+          return { ...item, ...updatedChallenge }
+        })
+
+        const selected = unref(selectedChallengeRef)
+        if (selected && challengeIdsMatch(selected._id, challenge._id)) {
+          selectedChallengeRef.value = { ...selected, ...updatedChallenge }
+        }
+      }
+
       await refreshAfterMembershipChange(challenge._id, { refreshMainRitual })
     } catch (error) {
       errorMessage.value = error.response?.data?.message || errorFallback

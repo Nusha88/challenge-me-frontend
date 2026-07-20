@@ -89,7 +89,8 @@ const {
   showDialogJoinButton: globalShowDialogJoinButton,
   showDialogLeaveButton: globalShowDialogLeaveButton,
   openFromNotification,
-  handleDialogClose: handleGlobalDialogClose
+  handleDialogClose: handleGlobalDialogClose,
+  handleDialogLeave: handleGlobalDialogLeave
 } = useGlobalChallengeDialog(currentUserId)
 
 function handleOpenChallenge(event) {
@@ -346,6 +347,7 @@ async function maybeStartOnboarding() {
       :save-error="''"
       :delete-loading="false"
       @update:model-value="handleGlobalDialogClose"
+      @leave="handleGlobalDialogLeave"
     />
 
     <XpAwardToast />
