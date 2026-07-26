@@ -8,14 +8,16 @@ import { useUserStore } from '../stores/user'
 import { 
   getNotificationPermission, 
   requestAndSubscribeToPushNotifications,
+  unsubscribeFromPushNotifications,
   isSubscribedToPushNotifications 
 } from '../utils/pushNotifications'
 import { getLevelFromXp, getXpForLevel, getXpForNextLevel, getRank, getLevelInfo, getRankIcon } from '../utils/levelSystem'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 import { normalizeDateKey, toDateInputValue } from '../utils/dateUtils'
-import { isChallengeFinished } from '../utils/challengeStatus'
+import { isChallengeFinished, isChallengeUpcoming } from '../utils/challengeStatus'
 import { APP_EVENTS, dispatchAppEvent } from '../utils/appEvents'
 import ChallengeCard from './ChallengeCard.vue'
+import MissionSectionDivider from './MissionSectionDivider.vue'
 import InstallAppInstructionModal from './InstallAppInstructionModal.vue'
 
 const props = defineProps({
@@ -177,6 +179,20 @@ const activeUserMissions = computed(() => {
 const finishedUserMissions = computed(() => {
   if (isOwnProfile.value) return []
   return userMissions.value.filter(challenge => isChallengeFinished(challenge))
+})
+
+function getMissionSortRank(challenge) {
+  if (isChallengeFinished(challenge)) return 2
+  if (isChallengeUpcoming(challenge)) return 1
+  return 0
+}
+
+// Running missions first, then upcoming. Sort is stable, so each group keeps
+// the newest-first order the API returns. The archive is rendered separately.
+const liveUserMissions = computed(() => {
+  return [...activeUserMissions.value].sort(
+    (a, b) => getMissionSortRank(a) - getMissionSortRank(b)
+  )
 })
 
 function handleMissionClick(challenge) {
@@ -531,34 +547,70 @@ async function checkPushNotificationStatus() {
       } catch (error) {
         isPushSubscribed.value = false
       }
+    } else {
+      isPushSubscribed.value = false
     }
   } catch (error) {
     // Error checking push notification status
   }
 }
 
-async function enablePushNotifications() {
+const isPushToggleDisabled = computed(() => {
+  return (
+    subscribingToPush.value ||
+    pushNotificationStatus.value === 'denied' ||
+    pushNotificationStatus.value === 'unsupported'
+  )
+})
+
+async function handlePushNotificationsToggle(enabled) {
+  if (isPushToggleDisabled.value) return
+
+  const previousValue = isPushSubscribed.value
+  isPushSubscribed.value = !!enabled
   subscribingToPush.value = true
   pushNotificationError.value = ''
   pushNotificationSuccess.value = ''
-  
+
   try {
-    const result = await requestAndSubscribeToPushNotifications()
-    
-    if (result.success) {
-      pushNotificationSuccess.value = t('profile.pushNotificationsEnabledSuccess')
-      await checkPushNotificationStatus()
-    } else if (result.reason === 'permission-denied') {
-      pushNotificationError.value = t('profile.pushNotificationsPermissionDenied')
-      await checkPushNotificationStatus()
-    } else if (result.reason === 'error' && result.error) {
-      // Show the actual error so we can debug (timeouts, network errors, etc.)
-      pushNotificationError.value = result.error
+    if (enabled) {
+      const result = await requestAndSubscribeToPushNotifications()
+
+      if (result.success) {
+        pushNotificationSuccess.value = t('profile.pushNotificationsEnabledSuccess')
+      } else if (result.reason === 'permission-denied') {
+        isPushSubscribed.value = previousValue
+        pushNotificationError.value = t('profile.pushNotificationsPermissionDenied')
+      } else if (result.reason === 'error' && result.error) {
+        isPushSubscribed.value = previousValue
+        pushNotificationError.value = result.error
+      } else {
+        isPushSubscribed.value = previousValue
+        pushNotificationError.value = t('profile.pushNotificationsEnableError')
+      }
     } else {
-      pushNotificationError.value = t('profile.pushNotificationsEnableError')
+      const result = await unsubscribeFromPushNotifications()
+
+      if (result.success) {
+        pushNotificationSuccess.value = t('profile.pushNotificationsDisabledSuccess')
+      } else if (result.reason === 'error' && result.error) {
+        isPushSubscribed.value = previousValue
+        pushNotificationError.value = result.error
+      } else {
+        isPushSubscribed.value = previousValue
+        pushNotificationError.value = t('profile.pushNotificationsDisableError')
+      }
     }
+
+    await checkPushNotificationStatus()
   } catch (error) {
-    pushNotificationError.value = error?.message || t('profile.pushNotificationsEnableError')
+    isPushSubscribed.value = previousValue
+    pushNotificationError.value = error?.message || (
+      enabled
+        ? t('profile.pushNotificationsEnableError')
+        : t('profile.pushNotificationsDisableError')
+    )
+    await checkPushNotificationStatus()
   } finally {
     subscribingToPush.value = false
   }
@@ -933,16 +985,38 @@ onMounted(async () => {
             </div>
           </v-expansion-panel-title>
           <v-expansion-panel-text>
-            <div v-if="challenges.length" class="profile-missions-grid">
-              <ChallengeCard
-                v-for="challenge in challenges"
-                :key="challenge._id"
-                :challenge="challenge"
-                :current-user-id="currentUserId"
-                :show-join-button="false"
-                @click="handleMissionClick"
-              />
-            </div>
+            <template v-if="userMissions.length">
+              <div v-if="liveUserMissions.length" class="profile-missions-grid">
+                <ChallengeCard
+                  v-for="challenge in liveUserMissions"
+                  :key="challenge._id"
+                  :challenge="challenge"
+                  :current-user-id="currentUserId"
+                  :progress-user-id="targetUserId"
+                  :show-join-button="false"
+                  @click="handleMissionClick"
+                />
+              </div>
+
+              <template v-if="finishedUserMissions.length">
+                <MissionSectionDivider
+                  v-if="liveUserMissions.length"
+                  :label="t('challenges.archive')"
+                  :count="finishedUserMissions.length"
+                />
+                <div class="profile-missions-grid">
+                  <ChallengeCard
+                    v-for="challenge in finishedUserMissions"
+                    :key="challenge._id"
+                    :challenge="challenge"
+                    :current-user-id="currentUserId"
+                    :progress-user-id="targetUserId"
+                    :show-join-button="false"
+                    @click="handleMissionClick"
+                  />
+                </div>
+              </template>
+            </template>
             <div v-else class="profile-missions-empty">
               {{ t('profile.noMissions') }}
             </div>
@@ -989,58 +1063,28 @@ onMounted(async () => {
             </div>
 
             <div class="setting-row d-flex align-center py-2">
-              <div class="d-flex flex-column">
+              <div class="d-flex flex-column flex-grow-1">
                 <span class="text-white opacity-70">{{ t('profile.pushNotifications') }}</span>
-                <span v-if="pushNotificationStatus !== 'default'" class="text-caption text-white opacity-50 mt-1">
-                  <template v-if="pushNotificationStatus === 'granted' && isPushSubscribed">
-                    {{ t('profile.pushNotificationsEnabled') }}
-                  </template>
-                  <template v-else-if="pushNotificationStatus === 'granted' && !isPushSubscribed">
-                    {{ t('profile.pushNotificationsNotSubscribed') }}
-                  </template>
-                  <template v-else-if="pushNotificationStatus === 'denied'">
-                    {{ t('profile.pushNotificationsDenied') }}
+                <span class="text-caption text-white opacity-50 mt-1">
+                  <template v-if="pushNotificationStatus === 'denied'">
+                    {{ t('profile.pushNotificationsDeniedInstructions') }}
                   </template>
                   <template v-else-if="pushNotificationStatus === 'unsupported'">
                     {{ t('profile.pushNotificationsUnsupported') }}
                   </template>
                   <template v-else>
-                    {{ t('profile.pushNotificationsNotEnabled') }}
+                    {{ t('profile.pushNotificationsHint') }}
                   </template>
                 </span>
               </div>
-              <v-spacer></v-spacer>
-              
-              <v-btn
-                v-if="pushNotificationStatus === 'granted' && !isPushSubscribed"
-                @click="enablePushNotifications"
-                :loading="subscribingToPush"
-                variant="outlined"
+              <v-switch
+                :model-value="isPushSubscribed"
                 color="#7048E8"
-                size="small"
-                class="rounded-lg"
-              >
-                {{ t('profile.reSubscribePushNotifications') }}
-              </v-btn>
-              <v-btn
-                v-else-if="pushNotificationStatus !== 'granted' && pushNotificationStatus !== 'denied' && pushNotificationStatus !== 'unsupported'"
-                @click="enablePushNotifications"
+                hide-details
+                :disabled="isPushToggleDisabled"
                 :loading="subscribingToPush"
-                variant="outlined"
-                color="#7048E8"
-                size="small"
-                class="rounded-lg"
-              >
-                {{ t('profile.enablePushNotifications') }}
-              </v-btn>
-              <v-chip
-                v-else-if="pushNotificationStatus === 'granted' && isPushSubscribed"
-                color="#4CAF50"
-                size="small"
-                variant="flat"
-              >
-                {{ t('profile.pushNotificationsActive') }}
-              </v-chip>
+                @update:model-value="handlePushNotificationsToggle"
+              />
             </div>
 
             <div v-if="isIosDevice" class="setting-row d-flex align-center py-2">

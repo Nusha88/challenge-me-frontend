@@ -95,11 +95,15 @@
           </div>
 
           <!-- Finished Challenges -->
-          <div v-if="finishedChallenges.length > 0" :class="{ 'finished-section': activeChallenges.length > 0 }">
+          <div v-if="finishedChallenges.length > 0">
+            <MissionSectionDivider
+              v-if="hasLiveChallenges"
+              :label="t('challenges.archive')"
+              :count="finishedChallenges.length"
+            />
             <MyChallengeSection
               :challenges="finishedChallenges"
               grid-class="challenges-grid"
-              :class="activeChallenges.length > 0 ? 'mt-8' : undefined"
               :current-user-id="currentUserId"
               show-extend-button
               @challenge-click="handleChallengeClick"
@@ -135,6 +139,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { useI18n } from 'vue-i18n'
 import MyChallengeSection from './MyChallengeSection.vue'
+import MissionSectionDivider from './MissionSectionDivider.vue'
 import ChallengeSkeletonGrid from './ChallengeSkeletonGrid.vue'
 import ChallengeDetailsDialog from './ChallengeDetailsDialog.vue'
 import { useMyChallenges } from '../composables/useMyChallenges'
@@ -193,6 +198,11 @@ const {
 })
 
 configureDialogSync({ selectedChallenge, refreshSelectedChallenge })
+
+// Архив отделяется разделителем только если выше есть живые миссии
+const hasLiveChallenges = computed(() => {
+  return activeChallenges.value.length > 0 || upcomingChallenges.value.length > 0
+})
 
 const selectedJoinLoading = computed(() => {
   if (!selectedChallenge.value) return false
@@ -326,7 +336,7 @@ watch(() => route.query.challengeId, (newChallengeId) => {
 .section-title {
   font-size: 1.25rem;
   font-weight: 600;
-  color: rgba(0, 0, 0, 0.87);
+  color: rgba(255, 255, 255, 0.92);
   margin-bottom: 16px;
 }
 
@@ -334,12 +344,6 @@ watch(() => route.query.challengeId, (newChallengeId) => {
   .section-title {
     font-size: 1.5rem;
   }
-}
-
-.finished-section {
-  border-top: 2px solid rgba(0, 0, 0, 0.12);
-  padding-top: 24px;
-  margin-top: 24px;
 }
 
 .challenges-grid-skeleton {

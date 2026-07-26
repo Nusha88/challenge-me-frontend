@@ -8,6 +8,7 @@
       :show-join-button="showJoinButton"
       :show-extend-button="showExtendButton"
       :disabled="disabled"
+      show-habit-tracker
       @click="forwardChallengeClick"
       @update="$emit('update')"
       @extended="forwardExtended"

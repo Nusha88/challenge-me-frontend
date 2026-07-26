@@ -1,30 +1,30 @@
 <template>
   <v-card
     class="challenge-card"
-    :class="{ 
+    :class="[{ 
       'is-owner': isOwner,
-      'is-failed': isFinished && !isSuccessful,
+      'is-failed': isExtinguished,
       'is-finished': isFinished,
       'is-disabled': disabled,
-      'quest-mode': isQuestMode,
+      'has-cover': hasCoverImage,
       'habit-mode': isActiveHabit
-    }"
+    }, tierAccentClass]"
     @click="handleCardClick"
   >
     <div 
-      v-if="isQuestMode" 
+      v-if="hasCoverImage" 
       class="card-background" 
       :style="{ backgroundImage: `url(${challenge.imageUrl})` }"
     >
       <div class="overlay-mask"></div>
     </div>
 
-    <div v-if="isActiveHabit" class="habit-visual-wrapper">
+    <div v-if="isActiveHabit && !hasCoverImage" class="habit-visual-wrapper">
       <div class="habit-gradient-glow"></div>
       <div class="habit-grid-pattern"></div>
     </div>
 
-    <div v-if="isFinished && !isSuccessful" class="failed-overlay">
+    <div v-if="isExtinguished" class="failed-overlay">
       <div class="smoke-effect"></div>
     </div>
 
@@ -84,12 +84,12 @@
     </div>
   </div>
 
-  <div v-else-if="!isParticipant && !isFinished" class="guest-info-zone">
+  <div v-else-if="!isFinished" class="guest-info-zone">
     <div class="participant-stats">
       <v-icon size="14" color="rgba(255,255,255,0.5)">mdi-account-group</v-icon>
       <span class="ml-1">{{ participantCount }} {{ t('missions.heroesInLine') }}</span>
     </div>
-    <div v-if="showJoinButton" class="join-prompt">
+    <div v-if="showJoinButton && !isParticipant" class="join-prompt">
        {{ isHabitType ? t('missions.viewDetailsToJoin') : t('missions.viewDetails') }}
           </div>
         </div>
@@ -114,9 +114,10 @@
     </div>
 
     <div v-if="isFinished" class="finish-actions">
-      <div class="finish-tag" :class="{ 'failed': !isSuccessful }">
-        <v-icon size="14" class="mr-1">{{ isSuccessful ? 'mdi-check-decagram' : 'mdi-skull' }}</v-icon>
-        {{ isSuccessful ? t('missions.finished') : t('missions.failed') }}
+      <div class="finish-tag" :class="`finish-tag--${missionTier}`">
+        <v-icon size="14">{{ tierIcon }}</v-icon>
+        <span>{{ tierLabel }}</span>
+        <span class="finish-tag-rate">{{ tierRatePercent }}%</span>
       </div>
     </div>
 
@@ -224,7 +225,15 @@
 .overlay-mask {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(15, 15, 25, 0.2) 0%, rgba(15, 15, 25, 0.95) 80%);
+  /* Тёмная подложка сверху и снизу: тег типа и заголовок должны читаться
+     даже на светлом изображении миссии */
+  background: linear-gradient(
+    180deg,
+    rgba(10, 10, 20, 0.82) 0%,
+    rgba(12, 12, 22, 0.52) 32%,
+    rgba(15, 15, 25, 0.86) 76%,
+    rgba(15, 15, 25, 0.96) 100%
+  );
 }
 
 
@@ -458,21 +467,42 @@
 }
 
 .finish-tag {
-  background: rgba(76, 175, 80, 0.2);
-  color: #4CAF50;
   font-size: 10px;
   font-weight: 900;
-  padding: 4px 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 4px 10px;
   border-radius: 8px;
-  border: 1px solid rgba(76, 175, 80, 0.3);
   display: inline-flex;
   align-items: center;
+  gap: 6px;
+  background: rgba(148, 163, 184, 0.18);
+  color: #94A3B8;
+  border: 1px solid rgba(148, 163, 184, 0.32);
 }
 
-.finish-tag.failed {
-  background: rgba(244, 67, 54, 0.2);
-  color: #F44336;
-  border-color: rgba(244, 67, 54, 0.3);
+.finish-tag-rate {
+  font-weight: 800;
+  opacity: 0.7;
+}
+
+.finish-tag--perfect {
+  background: rgba(251, 191, 36, 0.18);
+  color: #FBBF24;
+  border-color: rgba(251, 191, 36, 0.4);
+  box-shadow: 0 0 14px rgba(251, 191, 36, 0.25);
+}
+
+.finish-tag--bright {
+  background: rgba(245, 158, 11, 0.16);
+  color: #F59E0B;
+  border-color: rgba(245, 158, 11, 0.34);
+}
+
+.finish-tag--sustained {
+  background: rgba(249, 115, 22, 0.14);
+  color: #FB923C;
+  border-color: rgba(249, 115, 22, 0.3);
 }
 
 .extend-btn-wrapper {
@@ -597,6 +627,11 @@
   overflow: hidden;
 }
 
+/* Поверх обложки затемнение слабее: изображение уже приглушено фильтром */
+.challenge-card.has-cover .failed-overlay {
+  background: rgba(10, 10, 15, 0.2);
+}
+
 .smoke-effect {
   position: absolute;
   width: 200%;
@@ -650,16 +685,46 @@
   border-color: rgba(255, 82, 82, 0.2) !important;
 }
 
+/* Прозрачность заголовка перемножается с opacity контента, поэтому она
+   заметно выше, чем выглядит: иначе название в архиве не прочитать */
 .challenge-card.is-failed .mission-title {
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.6);
   text-decoration: line-through rgba(255, 82, 82, 0.3);
 }
 .challenge-card.is-finished .card-content,
-.challenge-card.is-finished .card-background,
-.challenge-card.is-finished .habit-visual-wrapper,
-.challenge-card.is-finished .overlay-mask {
+.challenge-card.is-finished .habit-visual-wrapper {
   filter: grayscale(0.8);
-  opacity: 0.7;
+  opacity: 0.85;
+}
+
+/* Архивная обложка гаснет через яркость, а не прозрачность: иначе тёмная
+   подложка внутри неё ослабевает и текст перестаёт читаться.
+   Значение мягкое, потому что фильтр умножается на градиент внутри обложки */
+.challenge-card.is-finished .card-background {
+  filter: grayscale(0.85) brightness(0.72);
+}
+
+/* Тир завершённой миссии подсвечивает рамку карточки в архиве */
+.challenge-card.tier-perfect { --tier-rgb: 251, 191, 36; }
+.challenge-card.tier-bright { --tier-rgb: 245, 158, 11; }
+.challenge-card.tier-sustained { --tier-rgb: 249, 115, 22; }
+.challenge-card.tier-extinguished { --tier-rgb: 148, 163, 184; }
+
+.challenge-card.is-finished {
+  border-color: rgba(var(--tier-rgb, 148, 163, 184), 0.35) !important;
+  box-shadow: 0 6px 24px rgba(var(--tier-rgb, 148, 163, 184), 0.14) !important;
+}
+
+.challenge-card.is-finished.tier-perfect {
+  border-color: rgba(251, 191, 36, 0.45) !important;
+  box-shadow: 0 6px 28px rgba(251, 191, 36, 0.22) !important;
+}
+
+.challenge-card.is-finished:hover {
+  border-color: rgba(var(--tier-rgb, 148, 163, 184), 0.6) !important;
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.4),
+    0 0 26px rgba(var(--tier-rgb, 148, 163, 184), 0.24) !important;
 }
 
 @media (max-width: 600px) {
@@ -670,6 +735,11 @@
   .challenge-card:hover {
     transform: none;
     box-shadow: none !important;
+  }
+
+  .challenge-card.is-finished:hover {
+    transform: none;
+    box-shadow: 0 6px 24px rgba(var(--tier-rgb, 148, 163, 184), 0.14) !important;
   }
 
   .challenge-card:hover .card-background {
@@ -722,6 +792,14 @@ import { useChallengeCardProgress } from '../composables/useChallengeCardProgres
 import { useExtendChallenge, EXTEND_COST } from '../composables/useExtendChallenge'
 import { Flame } from 'lucide-vue-next'
 import { isChallengeFinished, isChallengeUpcoming } from '../utils/challengeStatus'
+import { MISSION_TIERS, calculateCompletionRate, resolveMissionTier } from '../utils/missionParticipation'
+
+const TIER_ICONS = {
+  [MISSION_TIERS.PERFECT]: 'mdi-fire',
+  [MISSION_TIERS.BRIGHT]: 'mdi-star-four-points',
+  [MISSION_TIERS.SUSTAINED]: 'mdi-candle',
+  [MISSION_TIERS.EXTINGUISHED]: 'mdi-smoke'
+}
 
 const props = defineProps({
   challenge: {
@@ -732,7 +810,17 @@ const props = defineProps({
     type: String,
     default: null
   },
+  // Whose progress the card should display. Defaults to the logged-in user.
+  progressUserId: {
+    type: String,
+    default: null
+  },
   showJoinButton: {
+    type: Boolean,
+    default: false
+  },
+  // The seven-day dots and ignite pill are exclusive to My Missions.
+  showHabitTracker: {
     type: Boolean,
     default: false
   },
@@ -780,6 +868,7 @@ const {
   isHabitType,
   isResultType,
   isParticipant,
+  targetParticipant,
   progressPercentage,
   efficiencyPercentage,
   streakDays,
@@ -808,24 +897,36 @@ const isActiveHabit = computed(() => isHabitType.value && !isFinished.value && !
 
 const progressBarColor = computed(() => (isHabitType.value ? '#7048E8' : '#4FD1C5'))
 
-const isQuestMode = computed(() => {
-  return isResultType.value && props.challenge.imageUrl && !isFinished.value
-})
+// Rituals and quests alike use their own image as the card backdrop,
+// including in the archive where it is dimmed and desaturated.
+const hasCoverImage = computed(() => Boolean(props.challenge.imageUrl))
 
 const isHabitParticipantMode = computed(() => {
-  return isParticipant.value && isActiveHabit.value
+  return props.showHabitTracker && isParticipant.value && isActiveHabit.value
 })
 
-const isSuccessful = computed(() => {
-  if (!isFinished.value) return false
-  if (isResultType.value) {
-    return efficiencyPercentage.value === 100
+// Habit tiers use the participant's personal completion rate (from their join date),
+// matching how rewards are granted on the backend.
+const completionRate = computed(() => {
+  if (isResultType.value) return efficiencyPercentage.value
+  if (targetParticipant.value) {
+    return calculateCompletionRate(props.challenge, targetParticipant.value)
   }
-  if (isHabitType.value) {
-    return progressPercentage.value === 100
-  }
-  return false
+  return progressPercentage.value
 })
+
+const missionTier = computed(() => resolveMissionTier(completionRate.value))
+
+const isExtinguished = computed(() => isFinished.value && missionTier.value === MISSION_TIERS.EXTINGUISHED)
+
+const tierLabel = computed(() => t(`challenges.missionTiers.${missionTier.value}`))
+
+const tierIcon = computed(() => TIER_ICONS[missionTier.value] || 'mdi-flag-checkered')
+
+const tierAccentClass = computed(() => (isFinished.value ? `tier-${missionTier.value}` : null))
+
+// Floored so the badge never displays a threshold the mission did not clear.
+const tierRatePercent = computed(() => Math.floor(completionRate.value))
 
 function handleCardClick() {
   if (props.disabled) return

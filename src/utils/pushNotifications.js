@@ -192,6 +192,10 @@ export async function subscribeToPushNotifications() {
  */
 export async function unsubscribeFromPushNotifications() {
   try {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      return { success: false, reason: 'unsupported' }
+    }
+
     if (!registration) {
       registration = await navigator.serviceWorker.ready
     }
@@ -199,10 +203,19 @@ export async function unsubscribeFromPushNotifications() {
     const subscription = await registration.pushManager.getSubscription()
     if (subscription) {
       await subscription.unsubscribe()
-      await pushService.unsubscribe()
     }
+
+    // Always clear server-side subscription so pushes stop even if browser had none
+    try {
+      await pushService.unsubscribe()
+    } catch (unsubError) {
+      // Ignore if subscription was already removed on server
+    }
+
+    return { success: true }
   } catch (error) {
     console.error('Error unsubscribing from push notifications:', error)
+    return { success: false, reason: 'error', error: error.message }
   }
 }
 

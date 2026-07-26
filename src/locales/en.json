@@ -307,6 +307,7 @@
     "apiKeyInvalid": "API key may only contain letters and numbers.",
     "apiKeySaveFailed": "Failed to store API key. Please check browser storage settings.",
     "pushNotifications": "Push Notifications",
+    "pushNotificationsHint": "Get alerts about challenges, comments, and reminders.",
     "pushNotificationsStatus": "Status",
     "pushNotificationsEnabled": "Enabled and subscribed",
     "pushNotificationsNotSubscribed": "Permission granted but not subscribed",
@@ -318,8 +319,10 @@
     "reSubscribePushNotifications": "Re-subscribe",
     "pushNotificationsActive": "Active",
     "pushNotificationsEnabledSuccess": "Push notifications enabled successfully!",
+    "pushNotificationsDisabledSuccess": "Push notifications turned off.",
     "pushNotificationsPermissionDenied": "Notification permission was denied. Please enable it in your browser settings.",
     "pushNotificationsEnableError": "Failed to enable push notifications. Please try again.",
+    "pushNotificationsDisableError": "Failed to turn off push notifications. Please try again.",
     "settings": "Settings",
     "dailyRecap": "Daily Recap",
     "dailyRecapEn": "Daily Recap",
@@ -527,6 +530,7 @@
     "unwatchError": "Failed to unfollow mission",
     "moreParticipants": "+{count} more",
     "upcoming": "Starting soon",
+    "archive": "Archive",
     "successful": "Successful",
     "failed": "Failed",
     "listTitle": "Explore",
@@ -642,7 +646,7 @@
     "missionTiers": {
       "perfect": "Perfect Flame",
       "bright": "Bright Flame",
-      "sustained": "Sustained Glow",
+      "sustained": "Smoldering Ember",
       "extinguished": "Extinguished",
       "badges": {
         "perfect_flame": "Perfect Flame badge"

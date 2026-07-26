@@ -41,7 +41,27 @@ export function useChallengeCardProgress(props, emit) {
 
   const isParticipant = computed(() => Boolean(currentUserParticipant.value))
 
+  const progressUserIdString = computed(() => props.progressUserId?.toString() || '')
+
+  // Set when a page asks for someone else's progress, e.g. another hero's profile.
+  const isSpectatorMode = computed(() => {
+    if (!progressUserIdString.value) return false
+    return progressUserIdString.value !== currentUserIdString.value
+  })
+
+  const progressUserParticipant = computed(() => {
+    if (!progressUserIdString.value || !Array.isArray(props.challenge.participants)) {
+      return null
+    }
+
+    return props.challenge.participants.find((participant) => {
+      const userId = getParticipantUserId(participant)
+      return userId && userId.toString() === progressUserIdString.value
+    }) || null
+  })
+
   const targetParticipant = computed(() => {
+    if (progressUserParticipant.value) return progressUserParticipant.value
     if (currentUserParticipant.value) return currentUserParticipant.value
     if (!Array.isArray(props.challenge.participants)) return null
 
@@ -200,7 +220,7 @@ export function useChallengeCardProgress(props, emit) {
   })
 
   async function completeToday() {
-    if (props.disabled) return
+    if (props.disabled || isSpectatorMode.value) return
     if (!isHabitType.value || !currentUserParticipant.value || isTodayCompleted.value || !isTodayScheduled.value) {
       return
     }
@@ -233,6 +253,7 @@ export function useChallengeCardProgress(props, emit) {
     isHabitType,
     isResultType,
     isParticipant,
+    isSpectatorMode,
     targetParticipant,
     progressDone,
     progressTotal,
