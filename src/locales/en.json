@@ -85,55 +85,174 @@
     }
   },
   "home": {
-    "welcome": "Welcome to Ignite",
-    "description": "Create, join, and conquer missions together.",
-    "systemOnline": "YOUR STORY BEGINS",
-   "title": "Reach Your Peak in Every Mission",
-  "subtitle": "Turn discipline into results. Launch ambitious missions and track your ascent to the top.",
-    "createFirstChallenge": "START FIRST MISSION",
-    "getStarted": "IGNITE NOW",
-    "joinHeroes": "JOIN 1,240+ HEROES",
-    "joinHeroesDynamic": "JOIN {count}+ HEROES",
-    "demoPreviewTitle": "Experience the interface of your growth",
-    "quoteTitle": "Turn intentions into results",
-    "quoteLine1": "Discipline is the bridge between a goal and accomplishment.",
-    "quoteLine2": "Your journey to mastery starts here.",
-    "benefitsTitle": "What makes Ignite special",
-    "readyToStart": "READY FOR YOUR MISSION?",
-    "allRightsReserved": "ALL RIGHTS RESERVED",
-    "benefits": {
-      "block1": {
-        "title": "Life Gamification",
-        "description": "Earn experience (XP) and level up by completing daily rituals and epic quests."
+    "landing": {
+      "badge": "Open beta · Free",
+      "title": "Turn your habits and goals into an RPG quest",
+      "subtitle": "Ignite turns self-improvement into a game. Habits become Daily Rituals, a big goal becomes an Epic Quest of small steps, and every step earns XP, ranks and Sparks. Public, with people who cheer you on, or completely private.",
+      "primaryCta": "Create my first mission",
+      "secondaryCta": "Look around first",
+      "stickyCta": "Start free",
+      "trustFree": "Free during beta",
+      "trustNoDownload": "Nothing to install",
+      "trustFast": "First mission in 2 minutes",
+      "heroImageAlt": "A glowing crystal artifact representing your progress in Ignite",
+      "proof": {
+        "pioneers": "Be one of the first heroes",
+        "heroesLabel": "heroes on board",
+        "missionsLabel": "missions running",
+        "betaLabel": "open beta"
       },
-      "block2": {
-        "title": "Teamwork",
-        "description": "Complete missions together with friends. Support and healthy competition are the best keys to success."
+      "why": {
+        "eyebrow": "Why good intentions die",
+        "title": "It was never about willpower",
+        "lead": "Ignite grew out of five things I kept noticing while studying motivation, goal-setting and discipline — and out of what actually helps.",
+        "problemLabel": "The pattern",
+        "solutionLabel": "In Ignite",
+        "motivation": {
+          "title": "Laziness is a myth",
+          "problem": "There are no lazy people, only a shortage of motivation.",
+          "solution": "XP, ranks and Sparks give every small action an immediate, visible payoff."
+        },
+        "social": {
+          "title": "Social capital works",
+          "problem": "A public promise pulls far harder than a quiet decision to start on Monday.",
+          "solution": "Make a mission public and your progress becomes visible — and your effort gets noticed."
+        },
+        "together": {
+          "title": "Company makes it lighter",
+          "problem": "Difficult habits are far easier to build among people doing the same thing than alone.",
+          "solution": "Join anyone's public ritual and share the wins, the slumps and the encouragement."
+        },
+        "privacy": {
+          "title": "Privacy is a strength too",
+          "problem": "For many people, feeling watched and fearing judgement only adds stress.",
+          "solution": "Any mission can be fully private. Nobody sees it. No feed, no comparison."
+        },
+        "scale": {
+          "title": "Scale is the scary part",
+          "problem": "Huge goals collapse because they were never broken into small, obvious steps.",
+          "solution": "An Epic Quest is a chain of small steps, and each one already counts as a win."
+        }
       },
-      "block3": {
-        "title": "Tactical Control",
-        "description": "Convenient calendar and tracking system will help you not miss any important step towards your goal."
+      "missions": {
+        "eyebrow": "Two kinds of mission",
+        "title": "Pick the shape of your goal",
+        "lead": "Either kind can be public or private. You decide who gets to see it.",
+        "examplesLabel": "For example",
+        "guideCta": "Create a mission",
+        "guideLoading": "Loading the walkthrough",
+        "ritual": {
+          "title": "Daily Ritual",
+          "tagline": "For habits you want to make automatic",
+          "description": "Choose how long it runs and show up every day — or every other day. Every check-in extends your streak.",
+          "example1": "Read for 15 minutes",
+          "example2": "Walk 10,000 steps",
+          "example3": "Do morning yoga",
+          "example4": "Start the day with a glass of water",
+          "social": "Anyone can join a public ritual, so you compare notes and keep each other going.",
+          "cta": "See how a ritual works",
+          "guideTitle": "How to create a Ritual"
+        },
+        "quest": {
+          "title": "Epic Quest",
+          "tagline": "For the one big goal you keep postponing",
+          "description": "Set the finish line, then split the road to it into as many small steps as you need. Each step closes the distance.",
+          "example1": "Read 50 books",
+          "example2": "Train for and run a marathon",
+          "example3": "Learn to cook 20 new dishes",
+          "social": "A quest is personal, so nobody joins it — but a public quest can be followed and cheered on.",
+          "reward": "Every quest has a day of triumph and a reward you promise yourself for finishing.",
+          "cta": "See how a quest works",
+          "guideTitle": "How to create a Quest"
+        },
+        "steps": {
+          "title": "Plus a place for the small stuff",
+          "description": "Things too small for a ritual and too one-off for a quest — book the dentist, pick up a parcel. Daily Steps for today and tomorrow, and they earn XP too."
+        }
       },
-      "block4": {
-        "title": "Visual Progress",
-        "description": "Watch your growth through detailed statistics and interactive achievement charts."
+      "rewards": {
+        "eyebrow": "The economy",
+        "title": "Every step pays out",
+        "lead": "Progress you can see is progress you keep.",
+        "xp": {
+          "title": "Experience",
+          "text": "Missions and daily steps award XP. XP is what moves your hero up."
+        },
+        "ranks": {
+          "title": "Ranks",
+          "text": "Collect enough experience and you climb to the next rank."
+        },
+        "sparks": {
+          "title": "Sparks",
+          "text": "The in-app currency you earn simply for not giving up."
+        },
+        "freeze": {
+          "title": "Streak freeze",
+          "text": "Spend Sparks to freeze a streak, keep a run unbroken, or extend a ritual you did not want to end."
+        }
+      },
+      "privacy": {
+        "eyebrow": "Your call",
+        "title": "Public when it helps. Private when it doesn't.",
+        "publicTitle": "Public mission",
+        "publicText": "Visible to others. People can join your rituals, follow your quests, comment and cheer you on. Accountability that actually bites.",
+        "publicChip": "Shared",
+        "privateTitle": "Private mission",
+        "privateText": "Yours alone. No audience, no comparison, no pressure — just you and the streak.",
+        "privateChip": "Invisible"
+      },
+      "screens": {
+        "eyebrow": "Inside",
+        "title": "What you will actually be looking at",
+        "lead": "Your day, your missions and your progress on a single screen.",
+        "alt": "The Ignite dashboard showing active missions and daily steps"
+      },
+      "pwa": {
+        "eyebrow": "No app store",
+        "title": "On your home screen in ten seconds",
+        "text": "Ignite is a PWA, so there is nothing to download and nothing to update. Add it from the browser and it behaves like a normal app on both Android and iOS. Notifications stay off until you switch them on yourself.",
+        "pointPlatforms": "Android and iOS",
+        "pointNotifications": "Notifications only if you enable them",
+        "alt": "Ignite running full screen on a phone"
+      },
+      "founder": {
+        "eyebrow": "From the author",
+        "title": "Why I built this",
+        "paragraph1": "For years I wanted to put my two backgrounds — psychology and programming — into a single project. I spent a long time watching how the people around me actually behave when they try to change something about themselves. Ignite is what came out of it.",
+        "paragraph2": "It is in open beta right now, and your feedback matters more to me than anything else. Try it, tell me what broke, what felt awkward, and what is missing.",
+        "cta": "Send feedback on Telegram"
+      },
+      "faq": {
+        "eyebrow": "Before you sign up",
+        "title": "Straight answers",
+        "freeQuestion": "Is it free?",
+        "freeAnswer": "Yes. Ignite is in open beta and free to use.",
+        "downloadQuestion": "Do I have to install anything?",
+        "downloadAnswer": "No. It is a web app — open it in your browser, and add it to your home screen if you want it one tap away.",
+        "privacyQuestion": "Will other people see my goals?",
+        "privacyAnswer": "Only if you want them to. Every mission is either public or private, and private means nobody but you can see it.",
+        "aloneQuestion": "Can I use it completely alone?",
+        "aloneAnswer": "Absolutely. Joining, commenting and following are all optional. Plenty of people run only private missions and never touch the social side.",
+        "failQuestion": "What if I miss a day?",
+        "failAnswer": "Nothing is lost. You can spend Sparks to freeze your streak, and a missed day never deletes your progress."
+      },
+      "finalCta": {
+        "title": "Your first mission is one tap away",
+        "text": "Pick the habit you keep abandoning. Give yourself a rank for it.",
+        "button": "Start my first mission",
+        "note": "Free · no card · no download"
+      },
+      "footer": {
+        "tagline": "Your journey to mastery",
+        "feedback": "Feedback",
+        "missions": "Browse missions",
+        "heroes": "Heroes",
+        "rights": "All rights reserved"
+      },
+      "a11y": {
+        "language": "Interface language"
       }
     },
-    "missionTypes": {
-      "title": "Choose Your Vector of Strength",
-      "createMission": "Create Mission",
-      "ritual": {
-        "title": "Daily Ritual",
-        "description": "A system of small wins to build an iron habit. Consistency is your greatest resource.",
-        "guideTitle": "How to Create a Ritual"
-      },
-      "quest": {
-        "title": "Epic Quest",
-        "description": "Focus your strength on your most important goal. Defeat yourself and earn a legendary reward.",
-        "guideTitle": "How to Create a Quest"
-      }
-    },
-    "copyright": "© {year} Ignite. All rights reserved.",
     "loggedIn": {
       "greeting": "Hello, {name}",
       "motivational": "You're already closer to your goal than yesterday",
@@ -212,8 +331,9 @@
     "backToMissionsCenter": "Return to Mission Center"
   },
   "auth": {
+    "back": "Back",
     "joinCommunity": "JOIN THE COMMUNITY",
-    "motivationText": "Thousands of heroes are already changing their lives. Start your path to discipline and mastery right now.",
+    "motivationText": "Open beta — you will be among the first heroes. Your first mission takes a couple of minutes, and it is free.",
     "registerPageTitle": "Create your account",
     "registerSubtitle": "Create your account to start your journey",
     "registerDescription": "Join Ignite and achieve goals together with friends",

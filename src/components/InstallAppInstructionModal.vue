@@ -82,8 +82,8 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import installStepShare from '../assets/IMG_8932.jpeg'
-import installStepAdd from '../assets/IMG_8933.jpeg'
+import installStepShare from '../assets/auth/install-share-640.webp'
+import installStepAdd from '../assets/auth/install-add-640.webp'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false }

@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
-    <title>Ignite ✦ Your Journey to Mastery</title>
+    <title>Ignite ✦ Привычки и цели как RPG-квест</title>
 
-    <meta name="description" content="Ignite: Твой путь к вершине мастерства. Запускай миссии, отслеживай прогресс в Дневнике Героя и достигай целей. Your journey to mastery begins here.">
-    <meta name="keywords" content="ignite, трекер привычек, достижение целей, продуктивность, личная эффективность, дневник героя, mastery, habit tracker, goal setting">
+    <meta name="description" content="Ignite — геймифицированный трекер привычек и целей. Ежедневные ритуалы и эпические квесты, опыт, ранги и Искры. Публично с единомышленниками или полностью приватно. Бесплатно, без скачивания.">
+    <meta name="keywords" content="ignite, трекер привычек, геймификация, достижение целей, продуктивность, дисциплина, дневник героя, habit tracker, gamified habits, goal setting">
     <meta name="author" content="Ignite Team">
 
     <!-- Crawling / indexing -->
@@ -18,8 +18,8 @@
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Ignite">
     <meta property="og:url" content="https://ignite-me.app/">
-    <meta property="og:title" content="Ignite ✦ Стань героем своей истории">
-    <meta property="og:description" content="Преврати свои цели в эпические миссии. Уникальная система прогресса и визуализация достижений.">
+    <meta property="og:title" content="Ignite ✦ Привычки и цели как RPG-квест">
+    <meta property="og:description" content="Ежедневные ритуалы и эпические квесты, опыт, ранги и Искры за каждый шаг. Публично с единомышленниками или полностью приватно. Бесплатно, без скачивания.">
     <meta property="og:image" content="https://ignite-me.app/og-image.jpg">
     <meta property="og:image:alt" content="Ignite — your journey to mastery">
     <meta property="og:image:width" content="1200">
@@ -30,8 +30,8 @@
     <!-- Twitter / X -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="https://ignite-me.app/">
-    <meta name="twitter:title" content="Ignite ✦ Ignite Your Potential">
-    <meta name="twitter:description" content="Преврати свои цели в эпические миссии. Уникальная система прогресса и визуализация достижений.">
+    <meta name="twitter:title" content="Ignite ✦ Привычки и цели как RPG-квест">
+    <meta name="twitter:description" content="Ежедневные ритуалы и эпические квесты, опыт, ранги и Искры за каждый шаг. Публично с единомышленниками или полностью приватно. Бесплатно, без скачивания.">
     <meta name="twitter:image" content="https://ignite-me.app/og-image.jpg">
     <meta name="twitter:image:alt" content="Ignite — your journey to mastery">
 
@@ -57,7 +57,22 @@
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!--
+      Landing hero (LCP). The app is client-rendered, so without this the browser
+      cannot discover the image until the JS bundle has parsed and mounted the
+      hero component. Kept in sync with LandingHero.vue and
+      scripts/optimize-landing-assets.sh.
+    -->
+    <link
+      rel="preload"
+      as="image"
+      href="/landing/hero-900.webp"
+      imagesrcset="/landing/hero-460.webp 460w, /landing/hero-900.webp 900w"
+      imagesizes="(max-width: 960px) 240px, 420px"
+      fetchpriority="high"
+    >
     
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#1a1e2e"> <meta name="mobile-web-app-capable" content="yes">

@@ -263,6 +263,8 @@ const handleSubmit = async () => {
 }
 
 const goBack = () => {
-  router.push('/login')
+  // Replace so login → forgot → login does not leave forgot-password on the stack
+  // for AuthBackLink to bounce back into.
+  router.replace('/login')
 }
 </script>

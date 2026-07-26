@@ -1,6 +1,6 @@
 <template>
   <v-app-bar class="app-bar-custom" elevation="0" :fixed="false">
-    <div class="header-content-wrapper">
+    <div class="header-content-wrapper" :class="{ 'header-content-wrapper--guest': !isLoggedIn }">
       <div class="header-section header-left">
         <v-app-bar-nav-icon
           v-if="isLoggedIn"
@@ -17,15 +17,19 @@
       </div>
 
       <div class="header-section header-center">
-        <div
-          v-if="isLoggedIn || route.path !== '/'"
-          class="brand-group"
-        >
+        <div class="brand-group">
           <router-link
             to="/"
             class="brand-link"
           >
-            <img :src="awaImage" alt="Awa" class="brand-logo" />
+            <img
+              :src="brandLogo"
+              alt="Ignite"
+              class="brand-logo"
+              width="40"
+              height="40"
+              decoding="async"
+            />
           </router-link>
           <button
             v-if="isLoggedIn"
@@ -40,46 +44,48 @@
             <span v-if="gainedDelta" class="sparks-gained-delta">{{ gainedDelta }}</span>
           </button>
         </div>
-        <div v-if="!isLoggedIn && route.path === '/' && mobile" class="d-flex align-center gap-2">
-          <v-btn
-            v-if="route.path !== '/register'"
-            to="/register"
-            variant="elevated"
-            class="sign-up-button"
-            style="color: white;"
-          >
-            {{ t('navigation.register') }}
-          </v-btn>
-          <v-btn
-            v-if="route.path !== '/login'"
-            to="/login"
-            variant="outlined"
-            class="login-button"
-            style="border-color: #3C60E8; color: #3C60E8; border-width: 2px;"
-          >
-            {{ t('navigation.login') }}
-          </v-btn>
-        </div>
       </div>
 
       <div class="header-section header-right">
+        <v-menu v-if="!isLoggedIn" location="bottom end">
+          <template #activator="{ props: menuProps }">
+            <v-btn
+              v-bind="menuProps"
+              variant="text"
+              size="small"
+              class="language-button"
+              :aria-label="t('navigation.language')"
+            >
+              <v-icon size="18">mdi-translate</v-icon>
+              <span class="language-code">{{ locale.toUpperCase() }}</span>
+            </v-btn>
+          </template>
+          <v-list density="compact" class="language-list">
+            <v-list-item
+              v-for="option in SUPPORTED_LOCALES"
+              :key="option.code"
+              :active="option.code === locale"
+              @click="setLocale(option.code)"
+            >
+              <v-list-item-title>{{ option.label }}</v-list-item-title>
+            </v-list-item>
+          </v-list>
+        </v-menu>
         <v-btn
-          v-if="!isLoggedIn && route.path !== '/register' && (!mobile || route.path !== '/')"
-          to="/register"
-          variant="elevated"
-          class="mr-2 sign-up-button"
-          style="color: white;"
-        >
-          {{ t('navigation.register') }}
-        </v-btn>
-        <v-btn
-          v-if="!isLoggedIn && route.path !== '/login' && (!mobile || route.path !== '/')"
+          v-if="!isLoggedIn && route.path !== '/login'"
           to="/login"
-          variant="outlined"
-          class="mr-2 login-button"
-          style="border-color: #3C60E8; color: #3C60E8; border-width: 2px;"
+          variant="text"
+          class="login-button"
         >
           {{ t('navigation.login') }}
+        </v-btn>
+        <v-btn
+          v-if="!isLoggedIn && route.path !== '/register'"
+          to="/register"
+          variant="flat"
+          class="sign-up-button"
+        >
+          {{ t('navigation.register') }}
         </v-btn>
         <v-btn
           v-if="isLoggedIn"
@@ -122,10 +128,10 @@
 import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { useDisplay } from 'vuetify'
 import { useUserStore } from '../../stores/user'
+import { setLocale, SUPPORTED_LOCALES } from '../../i18n'
 import { APP_EVENTS, addAppEventListener, removeAppEventListener } from '../../utils/appEvents'
-import awaImage from '../../assets/awa.png'
+import brandLogo from '../../assets/landing/brand-256.webp'
 import StreakBadge from './StreakBadge.vue'
 import SparksInfoDialog from './SparksInfoDialog.vue'
 
@@ -142,8 +148,7 @@ defineProps({
 defineEmits(['toggle-drawer', 'open-notifications'])
 
 const route = useRoute()
-const { t } = useI18n()
-const { mobile } = useDisplay()
+const { t, locale } = useI18n()
 const userStore = useUserStore()
 const userSparks = computed(() => userStore.userSparks)
 const sparksInfoOpen = ref(false)
@@ -237,6 +242,20 @@ onBeforeUnmount(() => {
   justify-content: flex-end;
   min-width: 120px;
   gap: 8px;
+}
+
+/*
+ * The left slot only ever holds the drawer toggle and the streak badge, so for a
+ * logged-out visitor it collapses to an empty 120px spacer and the "centred"
+ * brand ends up parked at an arbitrary point next to it. Drop the slot and align
+ * the brand to the start, which is where a landing visitor looks for a logo.
+ */
+.header-content-wrapper--guest .header-left {
+  display: none;
+}
+
+.header-content-wrapper--guest .header-center {
+  justify-content: flex-start;
 }
 
 .brand-group {
@@ -388,16 +407,58 @@ onBeforeUnmount(() => {
   color: white !important;
 }
 
+/*
+ * Register is the primary action for everyone who reaches the header logged out,
+ * so it carries the brand gradient while Log in stays a quiet text button.
+ */
+.sign-up-button {
+  background: linear-gradient(135deg, #4fd1c5 0%, #a62ee8 100%) !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 12px !important;
+  box-shadow: 0 0 16px rgba(79, 209, 197, 0.28) !important;
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.sign-up-button:hover {
+  box-shadow: 0 0 24px rgba(79, 209, 197, 0.45) !important;
+  transform: translateY(-1px);
+}
+
+.sign-up-button :deep(.v-btn__overlay) {
+  background: transparent !important;
+}
+
 .login-button {
-  border: 2px solid rgba(112, 72, 232, 0.5) !important;
-  color: white !important;
+  color: rgba(255, 255, 255, 0.78) !important;
   border-radius: 12px !important;
 }
 
-.sign-up-button {
-  background: rgba(255, 255, 255, 0.05) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+.login-button:hover {
+  color: #ffffff !important;
+}
+
+.language-button {
+  color: rgba(255, 255, 255, 0.7) !important;
   border-radius: 12px !important;
+  min-width: 0 !important;
+  gap: 6px;
+}
+
+.language-button:hover {
+  color: #ffffff !important;
+}
+
+.language-code {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.language-list {
+  background: #0d1119 !important;
+  color: #f1f5f9 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .sign-up-button :deep(.v-btn__content),
@@ -580,6 +641,21 @@ onBeforeUnmount(() => {
   .login-button {
     font-size: 0.7rem;
     padding: 4px 8px;
+    height: 28px;
+  }
+
+  /*
+   * At this width the auth buttons need every pixel, so the switcher drops to
+   * the icon alone. The translate glyph is what makes the control findable; the
+   * active language is still marked in the menu it opens.
+   */
+  .language-code {
+    display: none;
+  }
+
+  .language-button {
+    min-width: 32px !important;
+    padding: 0 6px !important;
     height: 28px;
   }
 }

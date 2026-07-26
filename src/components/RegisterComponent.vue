@@ -1,5 +1,7 @@
 <template>
   <v-container fluid class="pa-0 fill-height registration-wrapper overflow-hidden">
+    <AuthBackLink />
+
     <v-row no-gutters class="fill-height">
 
       <v-col cols="12" md="6" class="motivation-section d-none d-md-flex pa-6">
@@ -71,8 +73,10 @@
               prepend-inner-icon="mdi-lock-outline"
               variant="outlined"
               rounded="xl"
-              class="mb-4 custom-field"
+              class="mb-2 custom-field"
               :error-messages="errors.password"
+              :hint="t('auth.passwordLength')"
+              persistent-hint
               color="primary"
             >
               <template #append-inner>
@@ -85,32 +89,6 @@
                   :aria-label="showPassword ? t('auth.hidePassword') : t('auth.showPassword')"
                   class="password-toggle-btn"
                   @pointerdown.prevent.stop="toggleRegisterPassword"
-                />
-              </template>
-            </v-text-field>
-
-            <v-text-field
-              ref="confirmPasswordFieldRef"
-              v-model="formData.confirmPassword"
-              :label="t('auth.confirmPassword')"
-              :type="showConfirmPassword ? 'text' : 'password'"
-              prepend-inner-icon="mdi-lock-check-outline"
-              variant="outlined"
-              rounded="xl"
-              class="mb-2 custom-field"
-              :error-messages="errors.confirmPassword"
-              color="primary"
-            >
-              <template #append-inner>
-                <v-btn
-                  type="button"
-                  variant="text"
-                  density="compact"
-                  tabindex="-1"
-                  :icon="showConfirmPassword ? 'mdi-eye-off-outline' : 'mdi-eye-outline'"
-                  :aria-label="showConfirmPassword ? t('auth.hidePassword') : t('auth.showPassword')"
-                  class="password-toggle-btn"
-                  @pointerdown.prevent.stop="toggleRegisterConfirmPassword"
                 />
               </template>
             </v-text-field>
@@ -144,7 +122,7 @@
           <div class="text-center mt-5">
             <p class="text-slate-400">
               {{ t('auth.alreadyHaveAccount') }}
-              <v-btn variant="text" @click="router.push('/login')" class="signup-text-btn px-1">
+              <v-btn variant="text" @click="router.replace('/login')" class="signup-text-btn px-1">
                 {{ t('auth.loginCta') }}
               </v-btn>
             </p>
@@ -172,9 +150,11 @@ import { useUserStore } from '../stores/user'
 import { authService } from '../services/api'
 import { getAuthErrorMessage } from '../utils/authErrorMessage'
 import { togglePasswordVisibility } from '../composables/usePasswordFieldToggle'
+import { GOALS, reachGoal } from '../services/analytics'
 import SuccessDialog from './SuccessDialog.vue'
-import swardImage from '../assets/sward.png'
-import registerBgImage from '../assets/register.png'
+import AuthBackLink from './layout/AuthBackLink.vue'
+import swardImage from '../assets/auth/auth-mark-256.webp'
+import registerBgImage from '../assets/auth/auth-bg-1248.webp'
 
 const router = useRouter()
 const route = useRoute()
@@ -184,23 +164,20 @@ const error = ref('')
 const errors = ref({})
 const showSuccess = ref(false)
 const showPassword = ref(false)
-const showConfirmPassword = ref(false)
 const passwordFieldRef = ref(null)
-const confirmPasswordFieldRef = ref(null)
-const { t, locale } = useI18n()
+const { t } = useI18n()
 
 const formData = ref({
   name: '',
   email: '',
-  password: '',
-  confirmPassword: ''
+  password: ''
 })
 
 const nameTouched = ref(false)
 const emailTouched = ref(false)
 const passwordTouched = ref(false)
-const confirmTouched = ref(false)
 const referralCode = ref('')
+let signUpStarted = false
 
 const REFERRAL_STORAGE_KEY = 'referralCode'
 
@@ -269,21 +246,17 @@ const particles = Array.from({ length: particleCount }).map(() => ({
   }
 }));
 
-const getConfirmPasswordError = (value, includeRequired = false) => {
-  if (isEmpty(value)) {
-    return includeRequired ? t('auth.confirmPasswordRequired') : ''
-  }
-
-  if (value !== formData.value.password) {
-    return t('auth.passwordsDoNotMatch')
-  }
-
-  return ''
+/** Records that a visitor began filling the form, so drop-off is measurable. */
+function markSignUpStarted() {
+  if (signUpStarted) return
+  signUpStarted = true
+  reachGoal(GOALS.REGISTER_START)
 }
 
 watch(() => formData.value.name, (newValue) => {
   if (!nameTouched.value && !isEmpty(newValue)) {
     nameTouched.value = true
+    markSignUpStarted()
   }
 
   if (nameTouched.value) {
@@ -294,6 +267,7 @@ watch(() => formData.value.name, (newValue) => {
 watch(() => formData.value.email, (newValue) => {
   if (!emailTouched.value && !isEmpty(newValue)) {
     emailTouched.value = true
+    markSignUpStarted()
   }
 
   if (emailTouched.value) {
@@ -304,33 +278,16 @@ watch(() => formData.value.email, (newValue) => {
 watch(() => formData.value.password, (newValue) => {
   if (!passwordTouched.value && !isEmpty(newValue)) {
     passwordTouched.value = true
+    markSignUpStarted()
   }
 
   if (passwordTouched.value) {
     errors.value.password = getPasswordError(newValue, false)
   }
-
-  if (confirmTouched.value) {
-    errors.value.confirmPassword = getConfirmPasswordError(formData.value.confirmPassword, false)
-  }
-})
-
-watch(() => formData.value.confirmPassword, (newValue) => {
-  if (!confirmTouched.value && !isEmpty(newValue)) {
-    confirmTouched.value = true
-  }
-
-  if (confirmTouched.value) {
-    errors.value.confirmPassword = getConfirmPasswordError(newValue, false)
-  }
 })
 
 function toggleRegisterPassword() {
   return togglePasswordVisibility(showPassword, passwordFieldRef)
-}
-
-function toggleRegisterConfirmPassword() {
-  return togglePasswordVisibility(showConfirmPassword, confirmPasswordFieldRef)
 }
 
 const validateForm = () => {
@@ -365,17 +322,6 @@ const validateForm = () => {
     errors.value.password = ''
   }
 
-  confirmTouched.value = true
-  if (!formData.value.confirmPassword) {
-    errors.value.confirmPassword = t('auth.confirmPasswordRequired')
-    isValid = false
-  } else if (formData.value.password !== formData.value.confirmPassword) {
-    errors.value.confirmPassword = t('auth.passwordsDoNotMatch')
-    isValid = false
-  } else {
-    errors.value.confirmPassword = ''
-  }
-
   return isValid
 }
 
@@ -402,6 +348,7 @@ const handleSubmit = async () => {
     // Store user data and token in Pinia store
     userStore.setUser(response.data.user)
     userStore.setToken(response.data.token)
+    reachGoal(GOALS.REGISTER_SUCCESS)
     // Show success dialog - don't dispatch auth-changed yet to prevent sidebar from showing
     showSuccess.value = true
   } catch (err) {
@@ -578,6 +525,7 @@ function closeSuccessModal() {
 }
 /* Общий фон страницы */
 .registration-wrapper {
+  position: relative;
   background: transparent;
   min-height: 100vh;
 }
@@ -716,11 +664,20 @@ function closeSuccessModal() {
   cursor: pointer;
 }
 
-/* Если ты используешь стандартный error-messages у v-text-field */
+/*
+ * Vuetify renders hints and error messages through the same element, so the
+ * error styling has to be scoped to the error state -- otherwise the password
+ * hint reads as a validation failure on a form nobody has touched yet.
+ */
 .custom-field :deep(.v-messages__message) {
+  color: rgba(203, 213, 225, 0.75);
+  font-weight: 400;
+  padding-top: 4px;
+}
+
+.custom-field.v-input--error :deep(.v-messages__message) {
   color: #ff8a8a !important;
   font-weight: 500;
-  padding-top: 4px;
   text-shadow: 0 0 8px rgba(255, 50, 50, 0.3);
 }
 

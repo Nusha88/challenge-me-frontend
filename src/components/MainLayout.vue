@@ -445,8 +445,18 @@ async function maybeStartOnboarding() {
   gap: 1em;
 }
 
+.main-content.public-view {
+  /* Guest pages (landing) must not grow wider than the viewport when a section
+     uses an internal horizontal scroller. */
+  overflow-x: clip;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
 .main-content.public-view .main-content-wrapper {
   gap: 0;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .auth-layout {

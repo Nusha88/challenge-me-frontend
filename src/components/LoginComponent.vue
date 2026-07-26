@@ -1,17 +1,20 @@
 
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { authService } from '../services/api'
 import { useI18n } from 'vue-i18n'
 import { useUserStore } from '../stores/user'
 import { getAuthErrorMessage } from '../utils/authErrorMessage'
 import { togglePasswordVisibility } from '../composables/usePasswordFieldToggle'
+import { GOALS, reachGoal } from '../services/analytics'
 import SuccessDialog from './SuccessDialog.vue'
-import registerBgImage from '../assets/register.png'
-import swardImage from '../assets/sward.png'
+import AuthBackLink from './layout/AuthBackLink.vue'
+import registerBgImage from '../assets/auth/auth-bg-1248.webp'
+import swardImage from '../assets/auth/auth-mark-256.webp'
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
 const loading = ref(false)
 const error = ref('')
@@ -55,7 +58,13 @@ function toggleLoginPassword() {
 }
 
 const handleForgotPassword = () => {
-  router.push('/forgot-password')
+  // Replace keeps the pre-auth page (landing/missions) as history.back, so the
+  // Back control on login does not return into forgot-password.
+  router.replace('/forgot-password')
+}
+
+const goToRegister = () => {
+  router.replace({ path: '/register', query: route.query })
 }
 
 const handleLogin = async () => {
@@ -98,21 +107,40 @@ const clearError = () => {
   error.value = ''
 }
 
+/**
+ * The route guard redirects protected pages here with ?redirect=<path>, so send
+ * the user back where they were headed instead of always dropping them on /today.
+ * Only same-origin absolute paths are accepted, to keep the query parameter from
+ * being used as an open redirect.
+ */
+function resolvePostLoginTarget() {
+  const target = route.query.redirect
+
+  if (typeof target === 'string' && target.startsWith('/') && !target.startsWith('//')) {
+    return target
+  }
+
+  return '/today'
+}
+
 function closeSuccessModal() {
   showSuccess.value = false
   if (localStorage.getItem('onboarding_complete') !== 'true') {
     localStorage.setItem('onboarding_pending', 'true')
   }
+  reachGoal(GOALS.LOGIN_SUCCESS)
   // Dispatch auth-changed event to update layout (show sidebar)
   window.dispatchEvent(new Event('auth-changed'))
   // Use replace instead of push to remove login page from history
   // This ensures the user can't go back to the login page
-  router.replace('/today')
+  router.replace(resolvePostLoginTarget())
 }
 </script>
 
 <template>
   <v-container fluid class="pa-0 fill-height login-wrapper">
+    <AuthBackLink />
+
     <v-row no-gutters class="fill-height">
       
       <v-col cols="12" md="6" class="form-section d-flex align-center justify-center pa-6">
@@ -199,13 +227,17 @@ function closeSuccessModal() {
             </v-btn>
           </v-form>
 
-          <div class="text-center mt-8">
-            <p class="text-slate-400">
-              {{ t('auth.noAccountYet') }}
-              <v-btn variant="text" @click="router.push('/register')" class="signup-text-btn px-1">
-                {{ t('auth.signUp') }}
-              </v-btn>
-            </p>
+          <div class="signup-callout mt-8">
+            <p class="signup-callout-text">{{ t('auth.noAccountYet') }}</p>
+            <v-btn
+              variant="outlined"
+              block
+              height="48"
+              class="signup-outline-btn"
+              @click="goToRegister"
+            >
+              {{ t('auth.signUp') }}
+            </v-btn>
           </div>
         </div>
       </v-col>
@@ -251,6 +283,7 @@ function closeSuccessModal() {
 <style scoped>
 .login-wrapper {
   /* Фон берется из App.vue, тут оставляем прозрачность */
+  position: relative;
   background: transparent;
   min-height: 100vh;
 }
@@ -325,10 +358,31 @@ function closeSuccessModal() {
   color: #FFFFFF;
 }
 
-.signup-text-btn {
-  color: #4FD1C5 !important; /* Turquoise accent from gradient */
+.signup-callout {
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: center;
+}
+
+.signup-callout-text {
+  margin: 0 0 12px;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.signup-outline-btn {
+  border: 1px solid rgba(79, 209, 197, 0.45) !important;
+  border-radius: 16px !important;
+  color: #4FD1C5 !important;
   font-weight: 800 !important;
-  text-transform: none;
+  text-transform: none !important;
+  letter-spacing: 0.5px;
+  transition: background 0.25s ease, border-color 0.25s ease;
+}
+
+.signup-outline-btn:hover {
+  background: rgba(79, 209, 197, 0.08) !important;
+  border-color: rgba(79, 209, 197, 0.7) !important;
 }
 
 .motivation-section {
@@ -412,18 +466,6 @@ function closeSuccessModal() {
 .text-slate-400 {
   color: rgba(255, 255, 255, 0.6) !important; /* Мягкий белый вместо черного */
   font-weight: 400;
-}
-
-/* Цвет кнопки Sign Up, чтобы она не сливалась */
-.signup-text-btn {
-  color: #4FD1C5 !important; /* Turquoise accent from gradient */
-  font-weight: 800 !important;
-  text-transform: none !important;
-  letter-spacing: 0.5px;
-}
-
-.signup-text-btn:hover {
-  text-shadow: 0 0 10px rgba(79, 209, 197, 0.5);
 }
 
 /* Дополнительно убедимся, что основной заголовок белый */
@@ -524,11 +566,16 @@ h2.text-h3 {
   cursor: pointer;
 }
 
-/* Если ты используешь стандартный error-messages у v-text-field */
+/* Hints and errors share this element, so only the error state gets the red treatment. */
 .custom-field :deep(.v-messages__message) {
+  color: rgba(203, 213, 225, 0.75);
+  font-weight: 400;
+  padding-top: 4px;
+}
+
+.custom-field.v-input--error :deep(.v-messages__message) {
   color: #ff8a8a !important;
   font-weight: 500;
-  padding-top: 4px;
   text-shadow: 0 0 8px rgba(255, 50, 50, 0.3);
 }
 

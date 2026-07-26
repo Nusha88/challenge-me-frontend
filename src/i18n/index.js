@@ -27,6 +27,16 @@ export const SUPPORTED_LOCALES = [
   { code: 'ru', label: 'Русский' }
 ]
 
+/**
+ * index.html ships with a hard-coded lang="ru", which is wrong for every English
+ * visitor and misleads screen readers and translation prompts alike. Keep the
+ * attribute in step with the active locale instead.
+ */
+function syncDocumentLanguage(locale) {
+  if (typeof document === 'undefined') return
+  document.documentElement.setAttribute('lang', locale)
+}
+
 const i18n = createI18n({
   legacy: false,
   locale: getBestLocale(),
@@ -64,11 +74,14 @@ export function setLocale(locale) {
   }
 
   i18n.global.locale.value = locale
+  syncDocumentLanguage(locale)
 
   if (typeof window !== 'undefined') {
     window.localStorage.setItem(STORAGE_KEY, locale)
     window.dispatchEvent(new CustomEvent('language-changed', { detail: { locale } }))
   }
 }
+
+syncDocumentLanguage(i18n.global.locale.value)
 
 export default i18n
