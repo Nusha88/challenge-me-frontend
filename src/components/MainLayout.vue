@@ -404,6 +404,8 @@ async function maybeStartOnboarding() {
 
 .main-content-inner.content-column {
   grid-column: 3 / -1;
+  min-width: 0;
+  max-width: 100%;
 }
 
 @media (max-width: 959px) {

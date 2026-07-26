@@ -1,19 +1,17 @@
 <template>
-  <v-card class="todays-card todays-checklist-card checklist-card checklist-card-tomorrow">
+  <v-card class="todays-card todays-checklist-card home-glass-card checklist-card-tomorrow">
     <v-card-text>
       <div class="todays-checklist-section">
-        <h3 class="section-subtitle">{{ t('home.loggedIn.tomorrowSteps.title') }}</h3>
+        <h3 class="home-section-title">{{ t('home.loggedIn.tomorrowSteps.title') }}</h3>
 
         <div v-if="tomorrowSteps.length === 0" class="tomorrow-steps-empty">
-          <img :src="tomorrowImage" class="tomorrow-empty-icon" alt="Tomorrow">
-          <p class="tomorrow-empty-text">{{ t('home.loggedIn.tomorrowSteps.empty.text') }}</p>
-          <v-btn
-            v-if="!showTomorrowStepsInput"
-            class="plan-step-btn"
-            @click="$emit('plan-new-step')"
-          >
-            {{ t('home.loggedIn.tomorrowSteps.empty.button') }}
-          </v-btn>
+          <HomeEmptyState
+            :image-src="tomorrowImage"
+            :image-alt="t('home.loggedIn.tomorrowArtAlt')"
+            :text="t('home.loggedIn.tomorrowSteps.empty.text')"
+            :action-label="showTomorrowStepsInput ? '' : t('home.loggedIn.tomorrowSteps.empty.button')"
+            @action="$emit('plan-new-step')"
+          />
         </div>
 
         <div v-if="tomorrowSteps.length > 0 || showTomorrowStepsInput" class="tomorrow-steps-content">
@@ -40,13 +38,14 @@
               >
                 {{ step.title }}
               </span>
-              <div
+              <button
+                type="button"
                 class="delete-action"
-                :title="t('home.loggedIn.dailyChecklist.deleteStep')"
+                :aria-label="t('home.loggedIn.dailyChecklist.deleteStep')"
                 @click="$emit('remove-step', index)"
               >
                 <Trash2 :size="16" />
-              </div>
+              </button>
             </div>
           </div>
 
@@ -77,7 +76,8 @@
 <script setup>
 import { useI18n } from 'vue-i18n'
 import { Plus, Trash2 } from 'lucide-vue-next'
-import tomorrowImage from '../../assets/tomorrow.png'
+import HomeEmptyState from './HomeEmptyState.vue'
+import tomorrowImage from '../../assets/home/tomorrow-280.webp'
 
 defineProps({
   tomorrowSteps: { type: Array, default: () => [] },
@@ -103,81 +103,22 @@ const { t } = useI18n()
 
 <style scoped>
 .todays-checklist-card {
-  width: 35%;
-  flex: 0 0 35%;
-  max-width: 35%;
-  box-sizing: border-box;
-  overflow: visible !important;
+  width: 100%;
+  max-width: 100%;
   min-width: 0;
-}
-
-@media (max-width: 959px) {
-  .todays-checklist-card {
-    width: 100%;
-    flex: 0 0 100%;
-    max-width: 100%;
-  }
-}
-
-.checklist-card {
-  background: rgba(255, 255, 255, 0.03) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 24px !important;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02) !important;
-  width: 100% !important;
+  box-sizing: border-box;
 }
 
 .checklist-card-tomorrow {
-  border: 2px dashed rgba(112, 72, 232, 0.2) !important;
-}
-
-.section-subtitle {
-  color: #4FD1C5 !important;
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  font-weight: 800;
-  text-shadow: 0 0 10px rgba(79, 209, 197, 0.4);
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 1.1rem;
-  margin-bottom: 16px;
-  padding-left: 4px;
+  border: 2px dashed rgba(112, 72, 232, 0.28) !important;
 }
 
 .tomorrow-steps-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 30px 10px;
-  min-height: 200px;
+  min-height: 180px;
 }
 
-.tomorrow-empty-icon {
-  width: 140px;
-  margin-bottom: 20px;
-  filter: drop-shadow(0 10px 15px rgba(112, 72, 232, 0.1));
-}
-
-.tomorrow-empty-text {
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 0.9rem;
-  max-width: 300px;
-  line-height: 1.5;
-  margin: 16px 0;
-}
-
-.plan-step-btn {
-  background: rgba(112, 72, 232, 0.1) !important;
-  color: #4FD1C5 !important;
-  border: 1px solid rgba(112, 72, 232, 0.3) !important;
-  text-transform: none !important;
-  font-weight: 700 !important;
-  border-radius: 12px !important;
-}
-
-.plan-step-btn:hover {
-  background: rgba(112, 72, 232, 0.2) !important;
+.todays-checklist-section :deep(.home-section-title) {
+  margin-bottom: 8px;
 }
 
 .tomorrow-steps-content {
@@ -227,10 +168,12 @@ const { t } = useI18n()
 
 .tomorrow-steps-content .delete-action {
   margin-left: auto;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 4px;
+  border: none;
+  background: transparent;
   border-radius: 6px;
   cursor: pointer;
   color: rgba(255, 255, 255, 0.3);

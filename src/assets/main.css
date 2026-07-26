@@ -4,6 +4,7 @@
 @import './styles/difficulty-cards.css';
 @import './styles/auth-fields.css';
 @import './styles/landing.css';
+@import './styles/home.css';
 
 #app {
   max-width: 1280px;

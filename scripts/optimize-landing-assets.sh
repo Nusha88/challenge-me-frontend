@@ -80,7 +80,17 @@ echo "install instructions (from IMG_8932.jpeg / IMG_8933.jpeg):"
 webp "$SRC/IMG_8932.jpeg" install-share 640 "$AUTH_OUT"
 webp "$SRC/IMG_8933.jpeg" install-add 640 "$AUTH_OUT"
 
+# Logged-in home art: greeting crystal + empty-state illustrations.
+HOME_OUT="src/assets/home"
+mkdir -p "$HOME_OUT"
+
+echo "home art (from crystal.png / treasure.png / tomorrow.png):"
+webp "$SRC/crystal.png" crystal 320 "$HOME_OUT"
+webp "$SRC/treasure.png" treasure 280 "$HOME_OUT"
+webp "$SRC/tomorrow.png" tomorrow 280 "$HOME_OUT"
+
 echo
 echo "originals:  $(du -ch "$SRC/home_page.jpg" "$SRC/demo.png" "$SRC/today.jpeg" "$SRC/today_en.jpeg" \
-  "$SRC/register.png" "$SRC/sward.png" "$SRC/IMG_8932.jpeg" "$SRC/IMG_8933.jpeg" | tail -1 | cut -f1)"
-echo "optimized:  $(du -ch "$OUT" "$PUBLIC_OUT" "$AUTH_OUT" | tail -1 | cut -f1)"
+  "$SRC/register.png" "$SRC/sward.png" "$SRC/IMG_8932.jpeg" "$SRC/IMG_8933.jpeg" \
+  "$SRC/crystal.png" "$SRC/treasure.png" "$SRC/tomorrow.png" | tail -1 | cut -f1)"
+echo "optimized:  $(du -ch "$OUT" "$PUBLIC_OUT" "$AUTH_OUT" "$HOME_OUT" | tail -1 | cut -f1)"

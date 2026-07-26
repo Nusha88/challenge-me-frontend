@@ -5,9 +5,13 @@ import { userService } from '../services/api'
 import { useXpAwardFeedback } from './useXpAwardFeedback'
 import {
   buildVictoryImageDataUrl,
-  shareVictoryImage
+  shareVictoryImage,
+  downloadVictoryImage
 } from '../utils/imageGenerator'
-import { openImagePreview } from '../utils/shareImage'
+import { GOALS, reachGoal } from '../services/analytics'
+
+const APP_URL = 'https://ignite-me.app'
+const PREFETCH_DEBOUNCE_MS = 280
 
 function getDismissalKey() {
   const todayStr = new Date().toISOString().slice(0, 10)
@@ -43,10 +47,15 @@ function clearDismissalForToday() {
   }
 }
 
-function buildTaskKey(tasks = []) {
-  return tasks
+function buildTaskKey(tasks = [], format = 'story') {
+  const taskPart = tasks
     .map((task) => `${task.type}:${task.id}:${task.selected !== false ? '1' : '0'}`)
     .join('|')
+  return `${format}::${taskPart}`
+}
+
+function canUseNativeShare() {
+  return typeof navigator !== 'undefined' && typeof navigator.share === 'function'
 }
 
 export function useCompletionCelebration({
@@ -69,19 +78,46 @@ export function useCompletionCelebration({
   const hasShownCompletionDialog = ref(false)
   const generatingImage = ref(false)
   const preparingShare = ref(false)
+  const savingImage = ref(false)
+  const copyingCaption = ref(false)
   const shareError = ref('')
+  const statusMessage = ref('')
   const shareDialogPinned = ref(false)
-  const prefetchedDataUrl = ref(null)
+  const previewDataUrl = ref(null)
   const prefetchedTaskKey = ref(null)
+  const shareFormat = ref('story')
+  const selectedShareTasks = ref([])
+  const sparksClaimed = ref(false)
+  let prefetchTimer = null
+  let prefetchGeneration = 0
 
-  const shouldShowCompletionDialog = computed(() => {
-    return showCompletionDialog.value
-      && isAllCompleted.value
-      && completedItems.value === totalItems.value
-      && totalItems.value > 0
-  })
+  const shareCaption = computed(() => buildShareCaption(selectedShareTasks.value))
 
-  function buildImageOptions(tasksToUse) {
+  const canNativeShare = computed(() => canUseNativeShare())
+
+  function buildShareCaption(tasksToUse = []) {
+    const { userName, streakDays } = getCompletionImageData()
+    const name = userName || t('profile.ranks.explorer')
+    const selected = (tasksToUse || []).filter((task) => task.selected !== false)
+    const firstMission = selected.find((task) => task.type === 'challenge')
+    const missionTitle = firstMission?.title || firstMission?.payload?.title || ''
+    const missionSuffix = missionTitle ? ` · ${missionTitle}` : ''
+
+    const streak = Number(streakDays) || 0
+    const parts = [
+      t('home.loggedIn.completionDialog.captionLine', {
+        name,
+        streak,
+        mission: missionSuffix
+      }, streak).trim()
+    ].filter(Boolean)
+
+    parts.push(t('home.loggedIn.completionDialog.captionHashtags'))
+    parts.push(APP_URL)
+    return parts.join('\n')
+  }
+
+  function buildImageOptions(tasksToUse, format = shareFormat.value) {
     const selectedChallenges = tasksToUse.filter((task) => task.type === 'challenge')
     const selectedChecklistTasks = tasksToUse.filter((task) => task.type === 'checklist')
     const { userName, streakDays } = getCompletionImageData()
@@ -103,50 +139,99 @@ export function useCompletionCelebration({
       }]
       : doneSteps.map((step) => ({ title: step.title, done: true }))
 
+    const streak = Number(streakDays) || 0
+
     return {
       userName: userName || 'Hero',
       date: new Date(),
       challenges,
       checklistTasks,
       streakDays,
+      format,
       locale: locale.value,
       translations: {
-        reportSuccess: t('home.loggedIn.completionImage.reportSuccess'),
-        excellentWork: t('home.loggedIn.completionImage.excellentWork'),
-        activeMissions: t('home.loggedIn.completionImage.activeMissions'),
-        progress: t('home.loggedIn.completionImage.progress'),
-        operationalLog: t('home.loggedIn.completionImage.operationalLog'),
-        dailyGoalsCompleted: t('home.loggedIn.completionImage.dailyGoalsCompleted'),
-        systemStatus: t('home.loggedIn.completionImage.systemStatus'),
-        dayStreak: t('home.loggedIn.completionImage.dayStreak')
+        conqueredTitle: t('home.loggedIn.completionImage.conqueredTitle'),
+        missionsLabel: t('home.loggedIn.completionImage.missionsLabel'),
+        stepsLabel: t('home.loggedIn.completionImage.stepsLabel'),
+        stepsCompleted: t('home.loggedIn.completionImage.stepsCompleted'),
+        dayStreak: t('home.loggedIn.completionImage.dayStreak', streak),
+        tagline: t('home.loggedIn.completionImage.tagline')
       }
     }
   }
 
+  function syncSelectedTasksFromDefaults() {
+    const defaults = getDefaultShareTasks?.() || []
+    selectedShareTasks.value = defaults.map((task, index) => ({
+      id: task.id || `${task.type || 'task'}-${index}`,
+      title: task.title || '',
+      selected: task.selected !== false,
+      type: task.type,
+      payload: task.payload
+    }))
+  }
+
+  function setSelectedTasks(tasks) {
+    selectedShareTasks.value = Array.isArray(tasks) ? tasks : []
+    schedulePreviewPrefetch()
+  }
+
+  function setShareFormat(format) {
+    shareFormat.value = format === 'square' ? 'square' : 'story'
+    schedulePreviewPrefetch()
+  }
+
+  function schedulePreviewPrefetch() {
+    if (!showCompletionDialog.value) return
+    if (prefetchTimer) clearTimeout(prefetchTimer)
+    prefetchTimer = setTimeout(() => {
+      prefetchVictoryImage(selectedShareTasks.value.filter((task) => task.selected !== false))
+    }, PREFETCH_DEBOUNCE_MS)
+  }
+
   async function prefetchVictoryImage(tasksToUse) {
     if (!Array.isArray(tasksToUse) || tasksToUse.length === 0) {
-      prefetchedDataUrl.value = null
+      previewDataUrl.value = null
       prefetchedTaskKey.value = null
+      preparingShare.value = false
       return
     }
 
-    const taskKey = buildTaskKey(tasksToUse)
-    if (prefetchedTaskKey.value === taskKey && prefetchedDataUrl.value) {
+    const taskKey = buildTaskKey(tasksToUse, shareFormat.value)
+    if (prefetchedTaskKey.value === taskKey && previewDataUrl.value) {
+      preparingShare.value = false
       return
     }
 
+    const generation = ++prefetchGeneration
     preparingShare.value = true
     try {
-      const dataUrl = await buildVictoryImageDataUrl(buildImageOptions(tasksToUse))
-      prefetchedDataUrl.value = dataUrl
+      const dataUrl = await buildVictoryImageDataUrl(buildImageOptions(tasksToUse, shareFormat.value))
+      if (generation !== prefetchGeneration) return
+      previewDataUrl.value = dataUrl
       prefetchedTaskKey.value = taskKey
     } catch (error) {
       console.warn('Victory image prefetch failed:', error)
-      prefetchedDataUrl.value = null
+      if (generation !== prefetchGeneration) return
+      previewDataUrl.value = null
       prefetchedTaskKey.value = null
     } finally {
-      preparingShare.value = false
+      if (generation === prefetchGeneration) {
+        preparingShare.value = false
+      }
     }
+  }
+
+  async function ensurePreviewDataUrl(tasksToUse) {
+    const selected = tasksToUse.filter((task) => task.selected !== false)
+    const taskKey = buildTaskKey(selected, shareFormat.value)
+    if (previewDataUrl.value && prefetchedTaskKey.value === taskKey) {
+      return previewDataUrl.value
+    }
+    const dataUrl = await buildVictoryImageDataUrl(buildImageOptions(selected, shareFormat.value))
+    previewDataUrl.value = dataUrl
+    prefetchedTaskKey.value = taskKey
+    return dataUrl
   }
 
   async function tryAwardDailyBonusXp() {
@@ -173,9 +258,34 @@ export function useCompletionCelebration({
     }
   }
 
+  async function awardVictorySparks() {
+    try {
+      const response = await userService.awardManifestSparks({ type: 'victory' })
+      applyRewardResponse(response)
+      sparksClaimed.value = true
+      statusMessage.value = t('home.loggedIn.completionDialog.sparksClaimed')
+    } catch (manifestError) {
+      console.warn('Victory manifest sparks award failed', manifestError)
+    }
+  }
+
+  function finishSuccessAndClose(delayMs = 900) {
+    dismissDialogToday()
+    shareDialogPinned.value = false
+    hasShownCompletionDialog.value = true
+    setTimeout(() => {
+      showCompletionDialog.value = false
+      sparksClaimed.value = false
+      statusMessage.value = ''
+    }, delayMs)
+  }
+
   function closeCompletionDialog() {
+    reachGoal(GOALS.COMPLETION_DIALOG_DISMISS, { format: shareFormat.value })
     shareDialogPinned.value = false
     shareError.value = ''
+    statusMessage.value = ''
+    sparksClaimed.value = false
     dismissDialogToday()
     showCompletionDialog.value = false
     hasShownCompletionDialog.value = true
@@ -184,6 +294,8 @@ export function useCompletionCelebration({
   function openCompletionShare() {
     clearDismissalForToday()
     shareError.value = ''
+    statusMessage.value = ''
+    sparksClaimed.value = false
     shareDialogPinned.value = true
     showCompletionDialog.value = true
   }
@@ -226,86 +338,156 @@ export function useCompletionCelebration({
     }, delayMs)
   }
 
-  async function generateCompletionImage(selectedTasks = null) {
+  async function shareVictory(selectedTasks = null) {
     generatingImage.value = true
     shareError.value = ''
+    statusMessage.value = ''
+
+    const tasksToUse = Array.isArray(selectedTasks)
+      ? selectedTasks
+      : selectedShareTasks.value.filter((task) => task.selected !== false)
+
+    reachGoal(GOALS.COMPLETION_SHARE_CLICK, {
+      format: shareFormat.value,
+      method: 'share'
+    })
 
     try {
-      const tasksToUse = Array.isArray(selectedTasks)
-        ? selectedTasks
-        : (getDefaultShareTasks?.() || [])
-
       if (tasksToUse.length === 0) {
         shareError.value = t('home.loggedIn.completionDialog.shareUnavailable')
         return
       }
 
-      const taskKey = buildTaskKey(tasksToUse)
-      const imageOptions = buildImageOptions(tasksToUse)
-      const fileName = `ignite-victory-${new Date().toISOString().split('T')[0]}.png`
-      const shareMeta = {
+      const dataUrl = await ensurePreviewDataUrl(tasksToUse)
+      const fileName = `ignite-victory-${shareFormat.value}-${new Date().toISOString().split('T')[0]}.png`
+      const caption = buildShareCaption(tasksToUse)
+
+      const shareResult = await shareVictoryImage(dataUrl, fileName, {
         title: 'Ignite',
-        text: imageOptions.translations.reportSuccess
-      }
-
-      let dataUrl = prefetchedDataUrl.value
-      if (!dataUrl || prefetchedTaskKey.value !== taskKey) {
-        dataUrl = await buildVictoryImageDataUrl(imageOptions)
-        prefetchedDataUrl.value = dataUrl
-        prefetchedTaskKey.value = taskKey
-      }
-
-      const shareResult = await shareVictoryImage(dataUrl, fileName, shareMeta)
+        text: caption
+      })
 
       if (shareResult === 'cancelled') {
+        reachGoal(GOALS.COMPLETION_SHARE_CANCEL, { format: shareFormat.value })
         return
       }
 
-      if (shareResult === 'unsupported') {
-        const openedPreview = openImagePreview(dataUrl)
-        if (!openedPreview) {
-          shareError.value = t('home.loggedIn.completionDialog.shareUnavailable')
-          return
-        }
+      const method = shareResult === 'shared' ? 'native_share' : 'download'
+      reachGoal(GOALS.COMPLETION_SHARE_SUCCESS, {
+        format: shareFormat.value,
+        method
+      })
+
+      if (shareResult === 'downloaded') {
+        statusMessage.value = t('home.loggedIn.completionDialog.desktopCoach')
       }
 
-      try {
-        const response = await userService.awardManifestSparks({ type: 'victory' })
-        applyRewardResponse(response)
-      } catch (manifestError) {
-        console.warn('Victory manifest sparks award failed', manifestError)
-      }
-
-      dismissDialogToday()
-      shareDialogPinned.value = false
-      showCompletionDialog.value = false
-      hasShownCompletionDialog.value = true
+      await awardVictorySparks()
+      finishSuccessAndClose(shareResult === 'downloaded' ? 1400 : 900)
     } catch (error) {
-      console.error('Generation failed', error)
+      console.error('Share failed', error)
       shareError.value = t('home.loggedIn.completionDialog.shareUnavailable')
     } finally {
       generatingImage.value = false
     }
   }
 
+  async function saveImage(selectedTasks = null) {
+    savingImage.value = true
+    shareError.value = ''
+    statusMessage.value = ''
+
+    const tasksToUse = Array.isArray(selectedTasks)
+      ? selectedTasks
+      : selectedShareTasks.value.filter((task) => task.selected !== false)
+
+    reachGoal(GOALS.COMPLETION_SHARE_CLICK, {
+      format: shareFormat.value,
+      method: 'save'
+    })
+
+    try {
+      if (tasksToUse.length === 0) {
+        shareError.value = t('home.loggedIn.completionDialog.shareUnavailable')
+        return
+      }
+
+      const dataUrl = await ensurePreviewDataUrl(tasksToUse)
+      const fileName = `ignite-victory-${shareFormat.value}-${new Date().toISOString().split('T')[0]}.png`
+      await downloadVictoryImage(dataUrl, fileName)
+
+      reachGoal(GOALS.COMPLETION_SHARE_SUCCESS, {
+        format: shareFormat.value,
+        method: 'save'
+      })
+
+      statusMessage.value = t('home.loggedIn.completionDialog.desktopCoach')
+      await awardVictorySparks()
+      finishSuccessAndClose(1400)
+    } catch (error) {
+      console.error('Save failed', error)
+      shareError.value = t('home.loggedIn.completionDialog.shareUnavailable')
+    } finally {
+      savingImage.value = false
+    }
+  }
+
+  async function copyCaption(selectedTasks = null) {
+    copyingCaption.value = true
+    shareError.value = ''
+
+    const tasksToUse = Array.isArray(selectedTasks)
+      ? selectedTasks
+      : selectedShareTasks.value.filter((task) => task.selected !== false)
+
+    try {
+      const caption = buildShareCaption(tasksToUse)
+      if (!navigator?.clipboard?.writeText) {
+        throw new Error('Clipboard unavailable')
+      }
+      await navigator.clipboard.writeText(caption)
+      statusMessage.value = t('home.loggedIn.completionDialog.captionCopied')
+    } catch (error) {
+      console.warn('Copy caption failed', error)
+      shareError.value = t('home.loggedIn.completionDialog.copyFailed')
+    } finally {
+      copyingCaption.value = false
+    }
+  }
+
+  /** @deprecated Use shareVictory — kept for HomeLoggedIn event wiring during transition */
+  async function generateCompletionImage(selectedTasks = null) {
+    return shareVictory(selectedTasks)
+  }
+
   watch(showCompletionDialog, (open) => {
     if (open) {
       shareDialogPinned.value = true
       shareError.value = ''
-      prefetchVictoryImage(getDefaultShareTasks?.() || [])
+      statusMessage.value = ''
+      sparksClaimed.value = false
+      syncSelectedTasksFromDefaults()
+      reachGoal(GOALS.COMPLETION_DIALOG_OPEN, { format: shareFormat.value })
+      schedulePreviewPrefetch()
       return
     }
 
-    prefetchedDataUrl.value = null
+    if (prefetchTimer) {
+      clearTimeout(prefetchTimer)
+      prefetchTimer = null
+    }
+    prefetchGeneration += 1
+    previewDataUrl.value = null
     prefetchedTaskKey.value = null
     preparingShare.value = false
   })
 
   watch(
     () => getDefaultShareTasks?.() || [],
-    (tasks) => {
+    () => {
       if (!showCompletionDialog.value) return
-      prefetchVictoryImage(tasks)
+      syncSelectedTasksFromDefaults()
+      schedulePreviewPrefetch()
     },
     { deep: true }
   )
@@ -378,12 +560,25 @@ export function useCompletionCelebration({
     hasShownCompletionDialog,
     generatingImage,
     preparingShare,
+    savingImage,
+    copyingCaption,
     shareError,
-    shouldShowCompletionDialog,
+    statusMessage,
+    previewDataUrl,
+    shareCaption,
+    shareFormat,
+    selectedShareTasks,
+    sparksClaimed,
+    canNativeShare,
+    setSelectedTasks,
+    setShareFormat,
     closeCompletionDialog,
     openCompletionShare,
     checkAndShowCompletionDialog,
     scheduleCompletionDialogCheck,
+    shareVictory,
+    saveImage,
+    copyCaption,
     generateCompletionImage
   }
 }

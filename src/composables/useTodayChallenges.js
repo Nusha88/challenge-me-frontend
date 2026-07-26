@@ -236,7 +236,9 @@ export function useTodayChallenges({ onUpdated } = {}) {
     tomorrow.setDate(tomorrow.getDate() + 1)
     tomorrow.setHours(0, 0, 0, 0)
 
-    return challenges.value.filter((challenge) => {
+    // Must use the full habit list, not today-only `challenges` — every-other-day
+    // rituals valid tomorrow but not today would otherwise disappear from Loadout.
+    return participantHabitChallenges.value.filter((challenge) => {
       if (isChallengeFinished(challenge)) return false
       if (challenge.challengeType !== CHALLENGE_TYPES.HABIT) return false
 

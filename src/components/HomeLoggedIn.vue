@@ -2,62 +2,58 @@
   <div v-if="state.initialDataLoading" class="home-loading-container">
     <IgniteLoader :loading-text="t('home.loggedIn.loading.initial', 'Channelling Power...')" />
   </div>
+
   <div v-else class="home-logged-in-container">
-    <HomeGreeting
-      :user-name="state.userName"
-      :has-today-completed-tasks="state.hasTodayCompletedTasks"
-      :motivational-message="dailyMotivationalMessage"
-      :motivational-message-completed="dailyMotivationalMessageCompleted"
-      :show-inspiration-button="todaysChallenges.length === 0"
-      :display-streak-days="displayStreakDays"
-      :yesterday-streak-days="state.yesterdayStreakDays"
-      :streak-days-text="streakDaysText"
-      @inspiration="showInspiration"
+    <section class="home-hud">
+      <HomeGreeting
+        :user-name="state.userName"
+        :has-today-completed-tasks="state.hasTodayCompletedTasks"
+        :motivational-message="dailyMotivationalMessage"
+        :motivational-message-completed="dailyMotivationalMessageCompleted"
+        :display-streak-days="displayStreakDays"
+        :yesterday-streak-days="state.yesterdayStreakDays"
+        :streak-days-text="streakDaysText"
+      />
+
+      <TodayProgressCard
+        v-if="state.activeTab === 'today'"
+        :loading="isTodayProgressLoading"
+        :visible="totalItems > 0"
+        :completed-items="completedItems"
+        :total-items="totalItems"
+        :percentage="combinedProgressPercentage"
+        :can-share="isAllCompleted"
+        @share="openCompletionShare"
+      />
+    </section>
+
+    <HomeDayTabs
+      v-model="state.activeTab"
+      :freeze-config="freezeButtonConfig"
+      :freeze-cost="FREEZE_COST"
+      :has-enough-sparks="hasEnoughSparksForFreeze"
+      :freeze-loading="freezeLoading"
+      @freeze="handleFreezeDay"
     />
 
-    <div class="home-tabs-row">
-      <v-tabs v-model="state.activeTab" class="home-tabs" bg-color="transparent">
-        <v-tab value="today">{{ t('home.loggedIn.tabs.today') }}</v-tab>
-        <v-tab value="tomorrow">{{ t('home.loggedIn.tabs.tomorrow') }}</v-tab>
-      </v-tabs>
-      <v-btn
-        v-if="state.activeTab === 'today' && freezeButtonConfig"
-        class="freeze-btn"
-        variant="flat"
-        height="64"
-        elevation="0"
-        :disabled="!hasEnoughSparksForFreeze || freezeLoading"
-        :loading="freezeLoading"
-        :title="!hasEnoughSparksForFreeze ? t('sparks.rituals.insufficientSparks') : ''"
-        @click="handleFreezeDay"
-      >
-        <v-icon class="mr-3" size="24">{{ freezeButtonConfig.icon }}</v-icon>
-        <span class="text-subtitle-1">{{ t(freezeButtonConfig.labelKey) }}</span>
-        <span class="freeze-day-cost">
-          <span>|</span>
-          <span>{{ FREEZE_COST }}</span>
-          <span class="sparks-icon">✦</span>
-        </span>
-      </v-btn>
-    </div>
+    <v-alert
+      v-if="ritualError"
+      type="error"
+      variant="tonal"
+      density="compact"
+      class="ritual-error-alert"
+      closable
+      @click:close="clearRitualError"
+    >
+      {{ ritualError }}
+    </v-alert>
 
     <v-window v-model="state.activeTab">
       <v-window-item value="today">
-        <TodayProgressCard
-        v-if="totalItems > 0"
-          :loading="isTodayProgressLoading"
-          :completed-items="completedItems"
-          :total-items="totalItems"
-          :percentage="combinedProgressPercentage"
-          :can-share="isAllCompleted"
-          @share="openCompletionShare"
-        />
-
         <div class="todays-cards-wrapper">
           <TodayChallengesCard
             :challenges="todaysChallenges"
             variant="today"
-            :is-completed="isTodayCompleted"
             :get-day-status="getTodayDayStatus"
             :get-completed-days="getChallengeCompletedDays"
             :get-total-days="getChallengeTotalDays"
@@ -70,38 +66,19 @@
             @second-chance="handleSecondChance"
           />
 
-          <v-card
-            class="todays-card todays-checklist-card checklist-card"
-            :class="{ 'checklist-card-empty': checklistTotalSteps === 0 }"
-          >
-            <v-card-text>
-              <div class="todays-checklist-section">
-                <div class="d-flex align-center justify-space-between mb-2">
-                  <h3 class="section-subtitle mb-0">{{ t('home.loggedIn.dailyChecklist.title') }}</h3>
-                  <v-btn
-                    v-if="unfinishedStepsCount > 0"
-                    size="small"
-                    variant="text"
-                    class="copy-to-tomorrow-btn"
-                    @click="copyUnfinishedStepsToTomorrow"
-                  >
-                    {{ t('home.loggedIn.dailyChecklist.copyToTomorrow') }} | {{ unfinishedStepsCount }}
-                  </v-btn>
-                </div>
-                <DailyChecklist ref="checklistRef" />
-              </div>
-            </v-card-text>
-          </v-card>
+          <TodayChecklistPanel
+            ref="checklistPanelRef"
+            :unfinished-steps-count="unfinishedStepsCount"
+            :is-empty="checklistTotalSteps === 0"
+            @copy-to-tomorrow="copyUnfinishedStepsToTomorrow"
+          />
         </div>
       </v-window-item>
 
       <v-window-item value="tomorrow">
-        <TodayProgressCard
-          :visible="tomorrowTotalItems > 0"
-          :completed-items="tomorrowCompletedItems"
-          :total-items="tomorrowTotalItems"
-          :percentage="tomorrowProgressPercentage"
-          :show-progress-glow="false"
+        <TomorrowLoadoutCard
+          :mission-count="tomorrowsChallenges.length"
+          :step-count="tomorrowSteps.length"
         />
 
         <div class="todays-cards-wrapper">
@@ -129,16 +106,20 @@
 
     <CompletionCelebrationDialog
       v-model="showCompletionDialog"
-      :generating-image="generatingImage"
       :preparing-share="preparingShare"
+      :sharing="generatingImage"
+      :saving="savingImage"
       :share-error="shareError"
+      :status-message="statusMessage"
+      :sparks-claimed="sparksClaimed"
+      :preview-data-url="previewDataUrl"
       :user-name="state.userName"
-      :tasks="completionShareTasks"
-      :completed="completedItems"
-      :total="totalItems"
-      :percentage="combinedProgressPercentage"
+      :streak-days="displayStreakDays"
+      :tasks="selectedShareTasks"
       @close="closeCompletionDialog"
-      @generate-image="generateCompletionImage"
+      @share="shareVictory"
+      @save="saveImage"
+      @update:selected-tasks="setSelectedTasks"
     />
 
     <ChallengeDetailsDialog
@@ -163,22 +144,20 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onActivated, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter, useRoute } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user'
-import DailyChecklist from './DailyChecklist.vue'
 import IgniteLoader from './IgniteLoader.vue'
 import ChallengeDetailsDialog from './ChallengeDetailsDialog.vue'
 import HomeGreeting from './home/HomeGreeting.vue'
+import HomeDayTabs from './home/HomeDayTabs.vue'
 import TodayProgressCard from './home/TodayProgressCard.vue'
 import TodayChallengesCard from './home/TodayChallengesCard.vue'
+import TodayChecklistPanel from './home/TodayChecklistPanel.vue'
 import TomorrowStepsCard from './home/TomorrowStepsCard.vue'
+import TomorrowLoadoutCard from './home/TomorrowLoadoutCard.vue'
 import CompletionCelebrationDialog from './home/CompletionCelebrationDialog.vue'
 import { userService, challengeService } from '../services/api'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
-import motivationalMessagesEn from '../data/motivationalMessages.en.json'
-import motivationalMessagesRu from '../data/motivationalMessages.ru.json'
-import motivationalMessagesCompletedEn from '../data/motivationalMessagesCompleted.en.json'
-import motivationalMessagesCompletedRu from '../data/motivationalMessagesCompleted.ru.json'
 import { toDateInputValue } from '../utils/dateUtils'
 import { buildCompletedDateSet, calculateStreakFromDate } from '../utils/streakUtils'
 import { useHomeWindowEvents } from '../composables/useHomeWindowEvents'
@@ -186,6 +165,7 @@ import { useTodayChallenges } from '../composables/useTodayChallenges'
 import { useTomorrowChecklist } from '../composables/useTomorrowChecklist'
 import { useCompletionCelebration } from '../composables/useCompletionCelebration'
 import { useHomeChallengeDialog } from '../composables/useHomeChallengeDialog'
+import { useHomeMotivationalMessage } from '../composables/useHomeMotivationalMessage'
 import {
   useSparksRitualActions,
   FREEZE_COST,
@@ -194,7 +174,6 @@ import {
 import { useRitualTimeWindows } from '../composables/useRitualTimeWindows'
 
 const { t, locale } = useI18n()
-const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 
@@ -208,10 +187,12 @@ const state = reactive({
   activeTab: 'today'
 })
 
-const checklistRef = ref(null)
+const checklistPanelRef = ref(null)
 const hasLoadedTodayStepsOnce = ref(false)
 const completedDates = ref(new Set())
 const refreshHomeDataRef = { current: async () => {} }
+
+const { dailyMotivationalMessage, dailyMotivationalMessageCompleted } = useHomeMotivationalMessage()
 
 const {
   ritualTimePhase,
@@ -227,7 +208,6 @@ const {
   loadTodaysChallenges,
   resetChallenges,
   updateChallengeInList,
-  isTodayCompleted,
   getTodayDayStatus,
   incompleteTodayRitualsCount,
   incompleteYesterdayRitualsCount,
@@ -243,6 +223,7 @@ const {
 const {
   freezeLoading,
   secondChanceLoadingId,
+  ritualError,
   hasEnoughSparksForFreeze,
   hasEnoughSparksForSecondChance,
   useSecondChance,
@@ -291,7 +272,7 @@ async function handleFreezeDay() {
   try {
     await freezeDay({ target: freezeButtonConfig.value.target })
   } catch {
-    // ritualError is set in composable
+    // ritualError is surfaced via the alert bound to the composable ref
   }
 }
 
@@ -300,8 +281,16 @@ async function handleSecondChance(challenge) {
   try {
     await useSecondChance(challenge)
   } catch {
-    // ritualError is set in composable
+    // ritualError is surfaced via the alert bound to the composable ref
   }
+}
+
+function clearRitualError() {
+  ritualError.value = ''
+}
+
+function getChecklistApi() {
+  return checklistPanelRef.value
 }
 
 const {
@@ -319,7 +308,7 @@ const {
   cancelTomorrowStepEdit,
   copyUnfinishedStepsToTomorrow
 } = useTomorrowChecklist({
-  getTodaySteps: () => checklistRef.value?.todaySteps,
+  getTodaySteps: () => getChecklistApi()?.todaySteps,
   onSwitchToTomorrowTab: () => {
     state.activeTab = 'tomorrow'
   }
@@ -346,16 +335,10 @@ const isTodayProgressLoading = computed(
   () => !hasLoadedTodayMissionsOnce.value || !hasLoadedTodayStepsOnce.value
 )
 
-function getCurrentUserId() {
-  return userStore.userId
-}
-
 let profileFetchInFlight = null
 
 async function updateUser() {
-  if (profileFetchInFlight) {
-    return profileFetchInFlight
-  }
+  if (profileFetchInFlight) return profileFetchInFlight
 
   profileFetchInFlight = (async () => {
     try {
@@ -400,9 +383,9 @@ function resetStreakState() {
 }
 
 async function fetchHomeData() {
-  const userId = getCurrentUserId()
+  const userId = userStore.userId
   const isLoggedIn = !!localStorage.getItem('token')
-  
+
   if (!userId || !isLoggedIn) {
     resetStreakState()
     resetChallenges()
@@ -433,11 +416,6 @@ async function fetchHomeData() {
   }
 }
 
-function showInspiration() {
-  // Navigate to explore page to see all challenges
-  router.push('/missions')
-}
-
 function resolveExposedArray(value) {
   if (Array.isArray(value)) return value
   if (Array.isArray(value?.value)) return value.value
@@ -450,45 +428,28 @@ function resolveExposedNumber(value, fallback = 0) {
   return fallback
 }
 
-// Calculate combined progress (challenges + checklist)
 const completedChallenges = computed(() => {
-  return todaysChallenges.value.filter(challenge => isTodayCompleted(challenge)).length
+  return todaysChallenges.value.filter((challenge) => {
+    const status = getTodayDayStatus(challenge)
+    return status === 'completed' || status === 'protected'
+  }).length
 })
 
 const checklistCompletedSteps = computed(() => {
-  return resolveExposedNumber(checklistRef.value?.completedSteps, 0)
+  return resolveExposedNumber(getChecklistApi()?.completedSteps, 0)
 })
 
 const checklistTotalSteps = computed(() => {
-  return resolveExposedNumber(checklistRef.value?.totalSteps, 0)
+  return resolveExposedNumber(getChecklistApi()?.totalSteps, 0)
 })
 
-const completedItems = computed(() => {
-  return completedChallenges.value + checklistCompletedSteps.value
-})
+const completedItems = computed(() => completedChallenges.value + checklistCompletedSteps.value)
 
-const totalItems = computed(() => {
-  return todaysChallenges.value.length + checklistTotalSteps.value
-})
+const totalItems = computed(() => todaysChallenges.value.length + checklistTotalSteps.value)
 
 const combinedProgressPercentage = computed(() => {
   if (totalItems.value === 0) return 0
   return Math.round((completedItems.value / totalItems.value) * 100)
-})
-
-// Tomorrow's progress (challenges + steps)
-const tomorrowTotalItems = computed(() => {
-  return tomorrowsChallenges.value.length + tomorrowSteps.value.length
-})
-
-const tomorrowCompletedItems = computed(() => {
-  // Tomorrow's items can't be completed yet, so always 0
-  return 0
-})
-
-const tomorrowProgressPercentage = computed(() => {
-  if (tomorrowTotalItems.value === 0) return 0
-  return Math.round((tomorrowCompletedItems.value / tomorrowTotalItems.value) * 100)
 })
 
 const isAllCompleted = computed(() => {
@@ -498,7 +459,10 @@ const isAllCompleted = computed(() => {
 
 const completionShareTasks = computed(() => {
   const challengeTasks = todaysChallenges.value
-    .filter((challenge) => isTodayCompleted(challenge))
+    .filter((challenge) => {
+      const status = getTodayDayStatus(challenge)
+      return status === 'completed' || status === 'protected'
+    })
     .map((challenge) => ({
       id: `challenge-${challenge._id}`,
       type: 'challenge',
@@ -507,7 +471,7 @@ const completionShareTasks = computed(() => {
       payload: challenge
     }))
 
-  const checklistTasks = resolveExposedArray(checklistRef.value?.todaySteps)
+  const checklistTasks = resolveExposedArray(getChecklistApi()?.todaySteps)
     .filter((step) => step.done)
     .map((step, index) => ({
       id: `checklist-${step._id || index}`,
@@ -524,11 +488,18 @@ const {
   showCompletionDialog,
   generatingImage,
   preparingShare,
+  savingImage,
   shareError,
+  statusMessage,
+  previewDataUrl,
+  selectedShareTasks,
+  sparksClaimed,
+  setSelectedTasks,
   closeCompletionDialog,
   openCompletionShare,
   scheduleCompletionDialogCheck,
-  generateCompletionImage
+  shareVictory,
+  saveImage
 } = useCompletionCelebration({
   isAllCompleted,
   completedItems,
@@ -542,86 +513,47 @@ const {
     userName: state.userName,
     streakDays: state.streakDays
   }),
-  watchChecklistCompletedSteps: () => checklistRef.value?.completedSteps
+  watchChecklistCompletedSteps: () => getChecklistApi()?.completedSteps
 })
 
-// Count unfinished steps (not missions)
 const unfinishedStepsCount = computed(() => {
-  if (!checklistRef.value || !checklistRef.value.todaySteps) return 0
-  return checklistRef.value.todaySteps.filter(step => !step.done).length
+  const steps = resolveExposedArray(getChecklistApi()?.todaySteps)
+  return steps.filter((step) => !step.done).length
 })
 
-// Display streak: show yesterday's streak in grey if today isn't completed, otherwise show today's streak
 const displayStreakDays = computed(() => {
-  if (state.hasTodayCompletedTasks) {
-    return state.streakDays
-  } else if (state.yesterdayStreakDays > 0) {
-    return state.yesterdayStreakDays
-  }
+  if (state.hasTodayCompletedTasks) return state.streakDays
+  if (state.yesterdayStreakDays > 0) return state.yesterdayStreakDays
   return state.streakDays
 })
 
-// Get daily motivational message based on date (when no tasks completed)
-const dailyMotivationalMessage = computed(() => {
-  const today = new Date()
-  const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24)
-  const messages = locale.value === 'ru' ? motivationalMessagesRu : motivationalMessagesEn
-  const messageIndex = dayOfYear % messages.length
-  return messages[messageIndex]
-})
-
-// Get daily motivational message when first task is completed
-const dailyMotivationalMessageCompleted = computed(() => {
-  const today = new Date()
-  const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24)
-  const messages = locale.value === 'ru' ? motivationalMessagesCompletedRu : motivationalMessagesCompletedEn
-  const messageIndex = dayOfYear % messages.length
-  return messages[messageIndex]
-})
-
-// Helper function for Russian pluralization of "день"
 function getRussianDayWord(days) {
-  if (locale.value !== 'ru') {
-    return t('navigation.streakDays')
-  }
-  
+  if (locale.value !== 'ru') return t('navigation.streakDays')
+
   const num = Math.abs(days)
   const lastDigit = num % 10
   const lastTwoDigits = num % 100
-  
-  // Special cases: 11, 12, 13, 14 use "дней"
-  if (lastTwoDigits >= 11 && lastTwoDigits <= 14) {
-    return 'дней подряд'
-  }
-  
-  // 1, 21, 31, etc. (ends in 1, but not 11) → "день"
-  if (lastDigit === 1) {
-    return 'день подряд'
-  }
-  
-  // 2, 3, 4, 22, 23, 24, etc. (ends in 2, 3, 4, but not 12, 13, 14) → "дня"
-  if (lastDigit >= 2 && lastDigit <= 4) {
-    return 'дня подряд'
-  }
-  
-  // Everything else (5-9, 0, 10, 15-20, 25-30, etc.) → "дней"
+
+  if (lastTwoDigits >= 11 && lastTwoDigits <= 14) return 'дней подряд'
+  if (lastDigit === 1) return 'день подряд'
+  if (lastDigit >= 2 && lastDigit <= 4) return 'дня подряд'
   return 'дней подряд'
 }
 
 const streakDaysText = computed(() => {
-  const days = (!state.hasTodayCompletedTasks && state.yesterdayStreakDays > 0) 
-    ? state.yesterdayStreakDays 
-    : displayStreakDays.value
+  const days =
+    !state.hasTodayCompletedTasks && state.yesterdayStreakDays > 0
+      ? state.yesterdayStreakDays
+      : displayStreakDays.value
   return getRussianDayWord(days)
 })
 
-// Watch for checklist loading state
 const updateChecklistLoading = () => {
-  if (checklistRef.value) {
-    state.checklistLoading = checklistRef.value.loading || false
-    if (!state.checklistLoading) {
-      hasLoadedTodayStepsOnce.value = true
-    }
+  const api = getChecklistApi()
+  if (!api) return
+  state.checklistLoading = !!api.loading
+  if (!state.checklistLoading) {
+    hasLoadedTodayStepsOnce.value = true
   }
 }
 
@@ -634,16 +566,14 @@ async function refreshHomeData({
 } = {}) {
   await fetchHomeData()
 
-  if (reloadTomorrowSteps) {
-    loadTomorrowSteps()
-  }
+  if (reloadTomorrowSteps) loadTomorrowSteps()
 
   if (waitForChecklist) {
     let attempts = 0
     while ((state.checklistLoading || state.initialDataLoading) && attempts < maxWaitAttempts) {
       await new Promise((resolve) => setTimeout(resolve, 100))
       updateChecklistLoading()
-      attempts++
+      attempts += 1
     }
     await nextTick()
   }
@@ -659,8 +589,9 @@ async function handleChecklistUpdated() {
   await refreshHomeData()
   await nextTick()
 
-  if (checklistRef.value && typeof checklistRef.value.loadTodaySteps === 'function') {
-    await checklistRef.value.loadTodaySteps()
+  const api = getChecklistApi()
+  if (api && typeof api.loadTodaySteps === 'function') {
+    await api.loadTodaySteps()
   }
 
   updateChecklistLoading()
@@ -675,26 +606,24 @@ useHomeWindowEvents({
   onParticipantCompletedDaysUpdated: refreshHomeData
 })
 
-// Watch checklist ref to update loading state
-watch(checklistRef, () => {
-  nextTick(() => {
-    updateChecklistLoading()
-  })
+watch(checklistPanelRef, () => {
+  nextTick(() => updateChecklistLoading())
 }, { immediate: true })
 
-// Watch for checklist updates
-watch(() => checklistRef.value?.completedSteps, () => {
-  updateChecklistLoading()
-})
+watch(
+  () => getChecklistApi()?.completedSteps,
+  () => updateChecklistLoading()
+)
 
-watch(() => checklistRef.value?.loading, (newVal) => {
-  if (newVal !== undefined) {
-    state.checklistLoading = newVal
-    if (newVal === false) {
-      hasLoadedTodayStepsOnce.value = true
+watch(
+  () => getChecklistApi()?.loading,
+  (newVal) => {
+    if (newVal !== undefined) {
+      state.checklistLoading = newVal
+      if (newVal === false) hasLoadedTodayStepsOnce.value = true
     }
   }
-})
+)
 
 onMounted(async () => {
   await updateUser()
@@ -721,24 +650,26 @@ onActivated(async () => {
   })
 })
 
-watch(() => route.path, async (newPath) => {
-  if (newPath === '/' || newPath === '/today') {
-    await refreshHomeData({
-      reloadTomorrowSteps: true,
-      waitForChecklist: true,
-      checkCompletionDialog: true,
-      completionDialogDelayMs: 1000
-    })
+watch(
+  () => route.path,
+  async (newPath) => {
+    if (newPath === '/' || newPath === '/today') {
+      await refreshHomeData({
+        reloadTomorrowSteps: true,
+        waitForChecklist: true,
+        checkCompletionDialog: true,
+        completionDialogDelayMs: 1000
+      })
+    }
   }
-})
+)
 
-// Watch activeTab to load tomorrow's steps when switching to tomorrow tab
-watch(() => state.activeTab, (newTab) => {
-  if (newTab === 'tomorrow') {
-    loadTomorrowSteps()
+watch(
+  () => state.activeTab,
+  (newTab) => {
+    if (newTab === 'tomorrow') loadTomorrowSteps()
   }
-})
-
+)
 </script>
 
 <style scoped>
@@ -753,222 +684,73 @@ watch(() => state.activeTab, (newTab) => {
 .home-logged-in-container {
   width: 100%;
   max-width: 100%;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-start;
-  padding: 1.5em 1em;
-  gap: 2em;
+  align-items: stretch;
+  gap: 1.25rem;
+  padding: 1.25rem 1rem 2rem;
   box-sizing: border-box;
-  overflow: visible !important;
-}
-
-@media (min-width: 400px) {
-  .home-logged-in-container { padding: 2em 1em; }
+  overflow-x: clip;
 }
 
 @media (min-width: 600px) {
-  .home-logged-in-container { padding: 2.5em 1.5em; gap: 2.5em; }
+  .home-logged-in-container {
+    padding: 1.75rem 1.5rem 2.5rem;
+    gap: 1.5rem;
+  }
 }
 
 @media (min-width: 960px) {
-  .home-logged-in-container { padding: 3em 24px; gap: 3em; }
+  .home-logged-in-container {
+    padding: 2rem 24px 3rem;
+    gap: 1.75rem;
+  }
 }
 
+.home-hud {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.ritual-error-alert {
+  width: 100%;
+  border-radius: 14px !important;
+}
+
+/*
+ * Grid instead of 60%/40% flex: fixed percentages ignore the gap and push the
+ * Daily Steps card past the right edge of the content column.
+ */
 .todays-cards-wrapper {
   width: 100%;
   max-width: 100%;
-  margin: 0;
-  display: flex;
-  flex-direction: row;
-  gap: 1em;
-  flex-wrap: nowrap;
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 1rem;
   box-sizing: border-box;
-  overflow: visible !important;
-}
-
-.todays-cards-wrapper :deep(*) {
-  overflow: visible !important;
 }
 
 @media (max-width: 959px) {
   .todays-cards-wrapper {
-    flex-direction: column;
+    grid-template-columns: 1fr;
   }
-}
-
-.todays-checklist-card {
-  width: 35%;
-  flex: 0 0 35%;
-  max-width: 35%;
-  box-sizing: border-box;
-  overflow: visible !important;
-  min-width: 0;
-}
-
-@media (max-width: 959px) {
-  .todays-checklist-card {
-    width: 100%;
-    flex: 0 0 100%;
-    max-width: 100%;
-  }
-}
-
-.checklist-card {
-  background: rgba(255, 255, 255, 0.03) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 24px !important;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02) !important;
-  width: 100% !important;
-}
-
-.checklist-card-empty {
-  background: rgba(112, 72, 232, 0.02) !important;
-  border: 2px dashed rgba(112, 72, 232, 0.2) !important;
-  border-radius: 24px !important;
-  box-shadow: none !important;
-}
-
-.checklist-card-empty:hover {
-  border-color: rgba(112, 72, 232, 0.4) !important;
-  background: rgba(112, 72, 232, 0.01) !important;
-}
-
-.section-subtitle {
-  color: #4FD1C5 !important;
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  font-weight: 800;
-  text-shadow: 0 0 10px rgba(79, 209, 197, 0.4);
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 1.1rem;
-  margin-bottom: 16px;
-  padding-left: 4px;
-}
-
-.copy-to-tomorrow-btn {
-  font-size: 0.75rem !important;
-  font-weight: 600 !important;
-  color: #4FD1C5 !important;
-  text-transform: none !important;
-  padding: 4px 12px !important;
-  min-width: auto !important;
-}
-
-.copy-to-tomorrow-btn:hover {
-  background: rgba(112, 72, 232, 0.08) !important;
-}
-
-.todays-checklist-section {
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-  overflow: visible;
-}
-
-.todays-checklist-section :deep(*) {
-  max-width: 100%;
-  box-sizing: border-box;
-}
-
-.home-tabs-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  width: 100%;
-  margin-bottom: 4px;
-}
-
-@media (max-width: 959px) {
-  .home-tabs-row {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-  }
-
-  .home-tabs {
-    width: 100%;
-    flex: none;
-  }
-
-  .freeze-btn {
-    width: 100%;
-    align-self: flex-start;
-    max-width: 100%;
-  }
-}
-
-.freeze-btn {
-  background: linear-gradient(135deg, #6c47ff 0%, #a259ff 50%, #6c47ff 100%) !important;
-  color: #ffffff !important;
-  font-weight: 600;
-  text-transform: none;
-  letter-spacing: 0.5px;
-  border-radius: 16px !important;
-  box-shadow: 0 0 20px 2px rgba(162, 89, 255, 0.4) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
-  transition: all 0.4s ease;
-  flex-shrink: 0;
-}
-
-.freeze-btn:hover:not(:disabled) {
-  box-shadow: 0 0 30px 5px rgba(162, 89, 255, 0.6) !important;
-  transform: translateY(-2px);
-}
-
-.freeze-btn:disabled {
-  opacity: 0.45;
-}
-
-.freeze-day-cost {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin-left: 6px;
-  color: #ffc107;
-  font-weight: 800;
-}
-
-.freeze-day-cost .sparks-icon {
-  color: #ffc107;
-  font-size: 0.7rem;
-  filter: drop-shadow(0 0 4px rgba(255, 193, 7, 0.45));
-}
-
-.home-tabs {
-  width: auto;
-  flex: 1;
-  align-self: flex-start;
-}
-
-.home-tabs :deep(.v-tabs) {
-  justify-content: flex-start;
-}
-
-.home-tabs :deep(.v-tab) {
-  text-align: left;
-  color: #7048E8 !important;
-  border-radius: 12px !important;
 }
 
 .home-logged-in-container :deep(.v-window),
+.home-logged-in-container :deep(.v-window__container),
 .home-logged-in-container :deep(.v-window-item),
-.home-logged-in-container :deep(.v-window-item__wrapper),
-.home-logged-in-container :deep(.v-card),
 .home-logged-in-container :deep(.v-card-text) {
   width: 100%;
   max-width: 100%;
-  overflow: visible !important;
+  min-width: 0;
   box-sizing: border-box;
 }
 
 .home-logged-in-container :deep(.v-card-text) {
   padding: 16px !important;
-}
-
-.home-logged-in-container :deep(.v-card-text),
-.home-logged-in-container :deep(.step-text) {
-  color: rgba(255, 255, 255, 0.9) !important;
+  color: rgba(255, 255, 255, 0.92) !important;
 }
 </style>

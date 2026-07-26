@@ -73,7 +73,14 @@ export async function shareImageFile(dataUrl, fileName, { title = 'Ignite', text
  * @returns {'shared' | 'cancelled' | 'downloaded'}
  */
 export async function shareOrDownloadImage(dataUrl, fileName, options = {}) {
-  const shareResult = await shareImageFile(dataUrl, fileName, options)
+  const { downloadOnly = false, ...shareOptions } = options
+
+  if (downloadOnly) {
+    downloadImage(dataUrl, fileName)
+    return 'downloaded'
+  }
+
+  const shareResult = await shareImageFile(dataUrl, fileName, shareOptions)
   if (shareResult === 'shared' || shareResult === 'cancelled') {
     return shareResult
   }

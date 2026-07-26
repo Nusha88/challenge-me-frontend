@@ -16,7 +16,12 @@ export const GOALS = {
   FAQ_OPEN: 'faq_open',
   REGISTER_START: 'register_start',
   REGISTER_SUCCESS: 'register_success',
-  LOGIN_SUCCESS: 'login_success'
+  LOGIN_SUCCESS: 'login_success',
+  COMPLETION_DIALOG_OPEN: 'completion_dialog_open',
+  COMPLETION_SHARE_CLICK: 'completion_share_click',
+  COMPLETION_SHARE_SUCCESS: 'completion_share_success',
+  COMPLETION_SHARE_CANCEL: 'completion_share_cancel',
+  COMPLETION_DIALOG_DISMISS: 'completion_dialog_dismiss'
 }
 
 export function reachGoal(goal, params) {

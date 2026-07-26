@@ -1,0 +1,110 @@
+/*
+ * Logged-in home (/today) design tokens.
+ *
+ * Namespaced under .home-logged-in-container so nothing leaks into the landing
+ * page or the rest of the app shell. Palette matches landing.css deliberately.
+ */
+
+.home-logged-in-container {
+  --home-bg: #0b0d12;
+  --home-surface: rgba(22, 27, 40, 0.55);
+  --home-surface-hi: rgba(30, 38, 56, 0.78);
+  --home-surface-soft: rgba(255, 255, 255, 0.03);
+
+  --home-teal: #4fd1c5;
+  --home-purple: #7048e8;
+  --home-magenta: #a62ee8;
+  --home-gold: #fbbf24;
+
+  --home-text: #f1f5f9;
+  --home-text-dim: #94a3b8;
+  --home-text-faint: #64748b;
+
+  --home-border: rgba(255, 255, 255, 0.08);
+  --home-border-hi: rgba(79, 209, 197, 0.38);
+
+  --home-radius: 22px;
+  --home-radius-sm: 14px;
+  --home-radius-pill: 999px;
+
+  --home-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --home-glow-teal: 0 0 18px rgba(79, 209, 197, 0.28);
+  --home-glow-purple: 0 0 20px rgba(112, 72, 232, 0.35);
+}
+
+.home-glass-card {
+  background: var(--home-surface) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--home-border) !important;
+  border-radius: var(--home-radius) !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28) !important;
+  color: var(--home-text);
+}
+
+.home-glass-card--empty {
+  background: rgba(112, 72, 232, 0.04) !important;
+  border: 2px dashed rgba(112, 72, 232, 0.28) !important;
+  box-shadow: none !important;
+}
+
+.home-section-title {
+  color: var(--home-teal) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 800;
+  text-shadow: 0 0 10px rgba(79, 209, 197, 0.35);
+  font-family: 'Plus Jakarta Sans', 'Montserrat', sans-serif;
+  font-size: 0.95rem;
+  margin: 0 0 14px;
+  padding-left: 2px;
+}
+
+.home-quest-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: var(--home-radius-sm);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--home-border);
+  transition:
+    border-color 0.25s var(--home-ease),
+    background 0.25s var(--home-ease),
+    box-shadow 0.25s var(--home-ease);
+}
+
+.home-quest-row:hover {
+  border-color: rgba(79, 209, 197, 0.28);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.home-quest-row.is-completed {
+  border-color: rgba(112, 72, 232, 0.35);
+  box-shadow: inset 0 0 0 1px rgba(112, 72, 232, 0.12);
+}
+
+.home-cost-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--home-gold);
+  font-weight: 800;
+}
+
+.home-cost-badge .sparks-icon {
+  color: var(--home-gold);
+  font-size: 0.7rem;
+  filter: drop-shadow(0 0 4px rgba(255, 193, 7, 0.45));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-logged-in-container *,
+  .home-logged-in-container *::before,
+  .home-logged-in-container *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
