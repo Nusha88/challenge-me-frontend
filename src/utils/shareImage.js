@@ -47,9 +47,20 @@ export function openImagePreview(dataUrl) {
 }
 
 /**
+ * Build share text that always carries a deep link when provided.
+ * (Many browsers reject `files` + `url` together, so the URL goes in `text`.)
+ */
+export function buildShareText({ text = '', url = '' } = {}) {
+  const body = String(text || '').trim()
+  const link = String(url || '').trim()
+  if (body && link) return `${body}\n${link}`
+  return body || link
+}
+
+/**
  * @returns {'shared' | 'cancelled' | 'unsupported'}
  */
-export async function shareImageFile(dataUrl, fileName, { title = 'Ignite', text = '' } = {}) {
+export async function shareImageFile(dataUrl, fileName, { title = 'Ignite', text = '', url = '' } = {}) {
   try {
     if (typeof navigator === 'undefined' || !navigator.canShare) return 'unsupported'
 
@@ -59,7 +70,7 @@ export async function shareImageFile(dataUrl, fileName, { title = 'Ignite', text
     await navigator.share({
       files: [file],
       title,
-      text
+      text: buildShareText({ text, url })
     })
     return 'shared'
   } catch (error) {

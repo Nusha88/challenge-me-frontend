@@ -10,6 +10,16 @@
       </v-chip>
     </div>
 
+    <button
+      v-if="previousRunId"
+      type="button"
+      class="previous-run-link mb-6"
+      @click="emit('open-previous-run', previousRunId)"
+    >
+      <v-icon size="16" class="mr-1">mdi-history</v-icon>
+      {{ t('challenges.community.viewPreviousRun') }}
+    </button>
+
     <div v-if="canComment" class="add-comment-container mb-8">
       <CommentComposer
         ref="composerRef"
@@ -372,7 +382,7 @@
 
 /* --- INPUT FIELD (Tactical Glass) --- */
 .tactical-input-wrapper {
-  background: rgba(30, 41, 59, 0.6);
+  background: var(--home-surface, rgba(22, 27, 40, 0.55));
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   overflow: hidden;
@@ -391,7 +401,7 @@
 }
 
 .input-footer {
-  background: rgba(15, 23, 42, 0.4);
+  background: var(--home-bg, #0b0d12);
   border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
@@ -450,7 +460,7 @@
 
 .comment-avatar {
   border: 1px solid rgba(79, 209, 197, 0.45);
-  background: rgba(15, 23, 42, 0.9);
+  background: var(--home-surface-hi, rgba(30, 38, 56, 0.9));
   color: #FFFFFF;
   font-weight: 700;
   font-size: 12px;
@@ -534,9 +544,28 @@
 }
 
 .join-mission-card {
-  background: rgba(30, 41, 59, 0.4);
+  background: var(--home-surface, rgba(22, 27, 40, 0.45));
   border: 2px dashed rgba(255, 255, 255, 0.05);
   border-radius: 20px;
+}
+
+.previous-run-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--home-teal, #4FD1C5);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+}
+
+.previous-run-link:hover {
+  opacity: 0.85;
+  text-decoration: underline;
 }
 
 .border-accent {
@@ -548,7 +577,7 @@
 }
 
 .reply-input-container .tactical-input-wrapper {
-  background: rgba(30, 41, 59, 0.4);
+  background: var(--home-surface, rgba(22, 27, 40, 0.45));
   border: 1px solid rgba(79, 209, 197, 0.2);
 }
 
@@ -618,13 +647,17 @@ const props = defineProps({
     type: Array,
     default: () => []
   },
+  previousRunId: {
+    type: String,
+    default: null
+  },
   scrollTarget: {
     type: Object,
     default: null
   }
 })
 
-const emit = defineEmits(['comment-added', 'comment-deleted', 'user-navigated', 'join'])
+const emit = defineEmits(['comment-added', 'comment-deleted', 'user-navigated', 'join', 'open-previous-run'])
 
 const { t, locale } = useI18n()
 
@@ -1041,7 +1074,7 @@ const isCurrentUserParticipant = computed(() => {
   
   // Check if user is the owner
   if (props.challengeOwner) {
-    const ownerId = props.challengeOwner._id || props.challengeOwner
+    const ownerId = props.challengeOwner._id || props.challengeOwner.id || props.challengeOwner
     if (ownerId && ownerId.toString() === currentUserIdStr) {
       return true
     }
@@ -1049,7 +1082,12 @@ const isCurrentUserParticipant = computed(() => {
   
   // Check if user is in participants list
   return props.challengeParticipants.some(participant => {
-    const userId = participant.userId?._id || participant.userId || participant._id || participant
+    const userId = participant.userId?._id
+      || participant.userId?.id
+      || participant.userId
+      || participant._id
+      || participant.id
+      || participant
     return userId && userId.toString() === currentUserIdStr
   })
 })
@@ -1117,7 +1155,9 @@ function isCommentAuthorOwnerOrParticipant(comment) {
   return false
 }
 
-// Calculate day number from challenge start date to comment date
+// Calculate day number from challenge start date to comment date.
+// Returns null when the comment is outside the current cycle (e.g. left over
+// from before an extend, when startDate was reset and day would be ≤ 0).
 function calculateDayNumber(commentDate) {
   if (!props.challengeStartDate || !commentDate) return null
   
@@ -1133,7 +1173,9 @@ function calculateDayNumber(commentDate) {
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
     
     // Day 0 is the start date, so add 1 to get day number
-    return diffDays + 1
+    const dayNumber = diffDays + 1
+    if (dayNumber < 1) return null
+    return dayNumber
   } catch (error) {
     return null
   }

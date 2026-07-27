@@ -68,7 +68,7 @@ export function fireConfetti(options = {}) {
   const particleCount = typeof options.particleCount === 'number' ? options.particleCount : 3
   const colors = Array.isArray(options.colors) && options.colors.length
     ? options.colors
-    : ['#7048E8', '#F4A782', '#FFFFFF']
+    : ['#4FD1C5', '#FBBF24', '#FFFFFF']
 
   const leftOrigin = options.leftOrigin || { x: 0, y: 0.6 }
   const rightOrigin = options.rightOrigin || { x: 1, y: 0.6 }
@@ -97,5 +97,35 @@ export function fireConfetti(options = {}) {
       requestAnimationFrame(frame)
     }
   }())
+}
+
+/**
+ * Fire confetti originating from an element's bounding box (dialog surface / CTA).
+ * @param {Element|{ $el?: Element }|null|undefined} el
+ * @param {object} [options]
+ */
+export function fireConfettiFromElement(el, options = {}) {
+  if (typeof window === 'undefined') return
+
+  const node = el?.$el instanceof Element ? el.$el : el
+  if (!(node instanceof Element)) {
+    fireConfetti(options)
+    return
+  }
+
+  const rect = node.getBoundingClientRect()
+  const vw = window.innerWidth || 1
+  const vh = window.innerHeight || 1
+  const cx = (rect.left + rect.width / 2) / vw
+  const cy = (rect.top + rect.height * 0.55) / vh
+  const clamp = (n) => Math.min(0.95, Math.max(0.05, n))
+
+  fireConfetti({
+    ...options,
+    leftOrigin: { x: clamp(cx - 0.12), y: clamp(cy) },
+    rightOrigin: { x: clamp(cx + 0.12), y: clamp(cy) },
+    duration: options.duration ?? 2200,
+    colors: options.colors || ['#4FD1C5', '#FBBF24', '#FFFFFF']
+  })
 }
 

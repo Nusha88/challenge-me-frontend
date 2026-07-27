@@ -202,15 +202,15 @@
 }
 
 @media (max-width: 600px) {
-  .main-ritual-hero { height: 420px !important; }
-  .ritual-title { font-size: 2rem !important; letter-spacing: -1px !important; }
+  .main-ritual-hero { height: 300px !important; }
+  .ritual-title { font-size: 1.75rem !important; letter-spacing: -1px !important; }
   .social-panel {
-    padding: 16px !important;
+    padding: 12px !important;
     flex-direction: column;
     width: 100%;
   }
   .v-divider { display: none; }
-  .ml-4 { text-align: center !important; margin: 12px 0 !important; }
+  .ml-4 { text-align: center !important; margin: 8px 0 !important; }
   .join-btn, .joined-btn { width: 100%; }
 }
 </style>

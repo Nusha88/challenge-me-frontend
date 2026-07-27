@@ -26,23 +26,25 @@ function formatDate(dateString) {
 
 <template>
   <div
-    :class="['notification-card', { unread: !notification.read }]"
+    :class="['notification-row', { unread: !notification.read }]"
+    role="button"
+    tabindex="0"
     @click="$emit('click', notification)"
+    @keydown.enter.prevent="$emit('click', notification)"
+    @keydown.space.prevent="$emit('click', notification)"
   >
-    <div class="card-glow"></div>
-
-    <div class="card-avatar">
+    <div class="row-avatar">
       <div
         v-if="notification.type === 'daily_recap'"
         class="avatar-placeholder recap-avatar"
       >
-        <v-icon size="22" color="white">mdi-weather-sunset-up</v-icon>
+        <v-icon size="20" color="#0b0d12">mdi-weather-sunset-up</v-icon>
       </div>
       <div
         v-else-if="notification.type === 'referral_completed'"
         class="avatar-placeholder referral-avatar"
       >
-        <v-icon size="22" color="white">mdi-gift</v-icon>
+        <v-icon size="20" color="#0b0d12">mdi-gift</v-icon>
       </div>
       <template v-else>
         <img
@@ -55,14 +57,14 @@ function formatDate(dateString) {
           {{ getNotificationInitial(notification.fromUserId?.name) }}
         </div>
       </template>
-      <div class="type-icon-small" :class="notification.type">
-        <v-icon size="10">{{ getNotificationIcon(notification.type) }}</v-icon>
+      <div class="type-badge">
+        <v-icon size="10" color="#4FD1C5">{{ getNotificationIcon(notification.type) }}</v-icon>
       </div>
     </div>
 
-    <div class="card-info">
-      <div class="info-top">
-        <span class="user-name">{{ getNotificationSenderName(notification, t) }}</span>
+    <div class="row-body">
+      <div class="row-top">
+        <span class="sender-name">{{ getNotificationSenderName(notification, t) }}</span>
         <span class="time-stamp">{{ formatDate(notification.createdAt) }}</span>
       </div>
       <p class="message-text">{{ getNotificationText(notification, t) }}</p>
@@ -73,114 +75,124 @@ function formatDate(dateString) {
       size="x-small"
       variant="text"
       class="delete-btn"
+      :aria-label="t('notifications.delete')"
       @click.stop="$emit('delete', notification)"
     />
   </div>
 </template>
 
 <style scoped>
-.notification-card {
+.notification-row {
   position: relative;
   display: flex;
-  padding: 14px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 16px;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--home-border, rgba(255, 255, 255, 0.06));
   cursor: pointer;
-  transition: all 0.3s ease;
-  overflow: hidden;
+  transition: background 0.2s ease;
 }
 
-.notification-card:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(112, 72, 232, 0.3);
-  transform: translateX(-4px);
+.notification-row:hover,
+.notification-row:focus-visible {
+  background: rgba(255, 255, 255, 0.04);
+  outline: none;
 }
 
-.notification-card.unread {
-  background: rgba(112, 72, 232, 0.08);
-  border-left: 3px solid #7048E8;
+.notification-row.unread {
+  background: rgba(79, 209, 197, 0.06);
+  box-shadow: inset 3px 0 0 #4fd1c5;
 }
 
-.notification-card.unread .card-glow {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: radial-gradient(circle at 10% 50%, rgba(112, 72, 232, 0.15), transparent 70%);
+.notification-row.unread:hover,
+.notification-row.unread:focus-visible {
+  background: rgba(79, 209, 197, 0.1);
 }
 
-.card-avatar {
+.row-avatar {
   position: relative;
-  margin-right: 14px;
+  flex-shrink: 0;
 }
 
 .avatar-img,
 .avatar-placeholder {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
   object-fit: cover;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--home-border, rgba(255, 255, 255, 0.1));
 }
 
 .avatar-placeholder {
-  background: linear-gradient(135deg, #7048e8 0%, #be4bdb 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 800;
+  font-size: 0.95rem;
+  color: #4fd1c5;
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
 }
 
 .recap-avatar {
-  background: linear-gradient(135deg, #3c60e8 0%, #7048e8 100%);
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: #0b0d12;
+  border-color: rgba(251, 191, 36, 0.35);
 }
 
 .referral-avatar {
-  background: linear-gradient(135deg, #4fd1c5 0%, #38b2ac 100%);
+  background: linear-gradient(135deg, #4fd1c5, #2dd4bf);
+  color: #0b0d12;
+  border-color: rgba(79, 209, 197, 0.35);
 }
 
-.type-icon-small {
+.type-badge {
   position: absolute;
-  bottom: -4px;
-  right: -4px;
+  bottom: -2px;
+  right: -2px;
   width: 18px;
   height: 18px;
-  border-radius: 6px;
-  background: #1a1a2e;
+  border-radius: 50%;
+  background: #0f131c;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--home-border, rgba(255, 255, 255, 0.12));
 }
 
-.card-info {
+.row-body {
   flex: 1;
   min-width: 0;
 }
 
-.info-top {
+.row-top {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 4px;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 3px;
 }
 
-.user-name {
+.sender-name {
   font-weight: 700;
-  font-size: 0.9rem;
-  color: #fff;
+  font-size: 0.88rem;
+  color: var(--home-text, #f1f5f9);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .time-stamp {
-  font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.4);
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--home-text-faint, #64748b);
 }
 
 .message-text {
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--home-text-dim, #94a3b8);
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -189,12 +201,25 @@ function formatDate(dateString) {
 }
 
 .delete-btn {
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  color: rgba(255, 255, 255, 0.3) !important;
+  flex-shrink: 0;
+  margin-top: 2px;
+  opacity: 0.45;
+  color: var(--home-text-dim, #94a3b8) !important;
+  transition: opacity 0.15s ease, color 0.15s ease;
 }
 
-.notification-card:hover .delete-btn {
+.notification-row:hover .delete-btn,
+.notification-row:focus-within .delete-btn {
   opacity: 1;
+}
+
+.delete-btn:hover {
+  color: #f87171 !important;
+}
+
+@media (hover: none) {
+  .delete-btn {
+    opacity: 0.7;
+  }
 }
 </style>

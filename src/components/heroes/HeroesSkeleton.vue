@@ -1,13 +1,8 @@
 <template>
   <div class="heroes-skeleton-wrapper">
-    <v-skeleton-loader
-      type="heading"
-      class="search-bar-skeleton mb-10 rounded-pill"
-    />
-
-    <v-row class="mb-10">
+    <v-row class="mb-6">
       <v-col v-for="n in 3" :key="'top-' + n" cols="12" md="4">
-        <v-card class="skeleton-card-dark rounded-xl pt-6">
+        <v-card class="skeleton-card rounded-xl pt-6" variant="flat">
           <div class="d-flex flex-column align-center">
             <v-skeleton-loader type="avatar" class="mb-4" theme="dark" />
             <v-skeleton-loader type="text, subtitle" class="w-75 mb-4" theme="dark" />
@@ -19,7 +14,7 @@
 
     <v-row>
       <v-col v-for="n in 6" :key="'list-' + n" cols="12" md="4">
-        <v-card class="skeleton-card-dark rounded-lg pa-2">
+        <v-card class="skeleton-card skeleton-card--list rounded-lg pa-2" variant="flat">
           <v-skeleton-loader type="list-item-avatar" theme="dark" />
         </v-card>
       </v-col>
@@ -29,28 +24,25 @@
 
 <style scoped>
 .heroes-skeleton-wrapper {
-  opacity: 0.8;
+  opacity: 0.85;
 }
 
-.search-bar-skeleton {
-  background: rgba(255, 255, 255, 0.03) !important;
-  border: 1px solid rgba(79, 209, 197, 0.1);
-  max-width: 100%;
-  height: 56px;
-}
-
-.skeleton-card-dark {
-  background: rgba(15, 23, 42, 0.6) !important;
-  border: 1px solid rgba(79, 209, 197, 0.1) !important;
-  min-height: 320px;
+.skeleton-card {
+  background: var(--home-surface, rgba(22, 27, 40, 0.55)) !important;
+  border: 1px solid var(--home-border, rgba(255, 255, 255, 0.08)) !important;
+  min-height: 280px;
   display: flex;
   flex-direction: column;
   justify-content: center;
 }
 
+.skeleton-card--list {
+  min-height: 72px;
+}
+
 :deep(.v-skeleton-loader__avatar) {
-  width: 120px !important;
-  height: 120px !important;
+  width: 96px !important;
+  height: 96px !important;
   margin: 0 auto;
 }
 

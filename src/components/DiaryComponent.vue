@@ -94,7 +94,7 @@
 }
 
 .tactical-input-wrapper {
-  background: rgba(30, 41, 59, 0.6);
+  background: var(--home-surface, rgba(22, 27, 40, 0.55));
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   overflow: hidden;
@@ -113,7 +113,7 @@
 }
 
 .input-footer {
-  background: rgba(15, 23, 42, 0.4);
+  background: var(--home-bg, #0b0d12);
   border-top: 1px solid rgba(255, 255, 255, 0.05);
   display: flex;
   flex-wrap: wrap;
@@ -223,7 +223,7 @@
 
 .author-avatar {
   border: 1px solid rgba(79, 209, 197, 0.45);
-  background: rgba(15, 23, 42, 0.9);
+  background: var(--home-surface-hi, rgba(30, 38, 56, 0.9));
   color: #FFFFFF;
   font-weight: 700;
   font-size: 12px;
@@ -263,7 +263,7 @@
 }
 
 .empty-diary {
-  background: rgba(30, 41, 59, 0.3);
+  background: var(--home-surface, rgba(22, 27, 40, 0.4));
   border: 2px dashed rgba(255, 255, 255, 0.05);
   border-radius: 20px;
 }

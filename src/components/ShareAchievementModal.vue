@@ -9,28 +9,13 @@
     <v-card class="share-modal-card" :class="{ 'share-modal-card--final': isFinal }">
       <div class="sm-header">
         <h3 class="sm-title">{{ modalTitle }}</h3>
-        <v-btn icon="mdi-close" variant="text" size="small" class="sm-close" @click="close"></v-btn>
+        <v-btn icon="mdi-close" variant="text" size="small" class="sm-close" @click="close" />
       </div>
 
       <v-card-text class="sm-body">
         <ShareAchievementCard
-          :quest-title="questTitle"
-          :step-name="stepName"
-          :user-text="userText"
-          :user-image="userImage"
-          :user-image-data-url="userImageDataUrl"
-          :user-level="userLevel"
-          :user-rank-title="userRankTitle"
-          :is-final="isFinal"
-          :xp-earned="xpEarned"
-          :sparks-earned="sparksEarned"
-          :completed-steps="completedSteps"
-          :total-steps="totalSteps"
-          :mission-dates="missionDates"
-          :mission-type="missionType"
-          :completed-days="completedDays"
-          :total-days="totalDays"
-          :completion-tier="completionTier"
+          :payload="normalizedPayload"
+          @invite-mission="$emit('invite-mission')"
         />
       </v-card-text>
     </v-card>
@@ -41,34 +26,29 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ShareAchievementCard from './ShareAchievementCard.vue'
+import { createEmptyTriumphSharePayload } from '../utils/triumphSharePayload'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
-  questTitle: { type: String, default: '' },
-  stepName: { type: String, default: '' },
-  userText: { type: String, default: '' },
-  userImage: { type: String, default: '' },
-  userImageDataUrl: { type: String, default: '' },
-  userLevel: { type: [Number, String], default: 1 },
-  userRankTitle: { type: String, default: '' },
-  isFinal: { type: Boolean, default: false },
-  xpEarned: { type: [Number, String], default: 0 },
-  sparksEarned: { type: [Number, String], default: 0 },
-  completedSteps: { type: [Number, String], default: 0 },
-  totalSteps: { type: [Number, String], default: 0 },
-  missionDates: { type: String, default: '' },
-  missionType: { type: String, default: 'quest' },
-  completedDays: { type: Number, default: 0 },
-  totalDays: { type: Number, default: 0 },
-  completionTier: { type: String, default: '' }
+  payload: {
+    type: Object,
+    default: () => createEmptyTriumphSharePayload()
+  }
 })
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'invite-mission'])
 
 const { t } = useI18n()
 
+const normalizedPayload = computed(() => ({
+  ...createEmptyTriumphSharePayload(),
+  ...(props.payload || {})
+}))
+
+const isFinal = computed(() => Boolean(normalizedPayload.value.isFinal))
+
 const modalTitle = computed(() =>
-  props.isFinal
+  isFinal.value
     ? t('challenges.shareCard.finalModalTitle')
     : t('challenges.shareCard.modalTitle')
 )
@@ -80,10 +60,10 @@ function close() {
 
 <style scoped>
 .share-modal-card {
-  background: #16213E !important;
-  border: 1px solid rgba(79, 209, 197, 0.15);
+  background: var(--home-surface-hi, #16213e) !important;
+  border: 1px solid var(--home-border, rgba(79, 209, 197, 0.15));
   border-radius: 20px !important;
-  color: #fff;
+  color: var(--home-text, #fff);
 }
 
 .share-modal-card--final {

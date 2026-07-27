@@ -146,22 +146,6 @@
         </template>
       </template>
     </div>
-
-    <ChallengeDetailsDialog
-      v-model="detailsDialogOpen"
-      :challenge="selectedChallenge"
-      :is-owner="selectedIsOwner"
-      :is-participant="selectedIsParticipant"
-      :show-join-button="false"
-      :show-leave-button="showDialogLeaveButton"
-      :join-loading="false"
-      :leave-loading="selectedLeaveLoading"
-      :save-loading="false"
-      :save-error="''"
-      :delete-loading="false"
-      @update="handleDialogUpdate"
-      @leave="handleDialogLeave"
-    />
   </div>
 </template>
 
@@ -172,12 +156,13 @@ import { useUserStore } from '../stores/user'
 import { useI18n } from 'vue-i18n'
 import MyChallengeSection from './MyChallengeSection.vue'
 import ChallengeSkeletonGrid from './ChallengeSkeletonGrid.vue'
-import ChallengeDetailsDialog from './ChallengeDetailsDialog.vue'
 import MyMissionsHeader from './my-missions/MyMissionsHeader.vue'
 import MyMissionsStatusTabs from './my-missions/MyMissionsStatusTabs.vue'
 import MyMissionsEmptyState from './my-missions/MyMissionsEmptyState.vue'
 import { useMyChallenges } from '../composables/useMyChallenges'
-import { useChallengeDialog } from '../composables/useChallengeDialog'
+import { openMissionDetails } from '../utils/openMissionDetails'
+import { useChallengeUpdatedListener } from '../composables/useChallengeUpdatedListener'
+import { useChallengeDetailsProvider } from '../composables/useChallengeDetailsProvider'
 
 const router = useRouter()
 const route = useRoute()
@@ -193,7 +178,6 @@ const {
   loading,
   listError,
   actionError,
-  leavingId,
   activeQuests,
   activeRituals,
   upcomingChallenges,
@@ -204,33 +188,21 @@ const {
   clearListError,
   clearActionError,
   fetchChallenges,
-  leaveChallenge,
   replaceChallengeInList,
-  configureDialogSync
+  promoteChallengeToFront
 } = useMyChallenges(currentUserId)
 
-const {
-  detailsDialogOpen,
-  selectedChallenge,
-  selectedIsOwner,
-  selectedIsParticipant,
-  showDialogLeaveButton,
-  selectedLeaveLoading,
-  handleChallengeClick,
-  handleDialogUpdate,
-  handleDialogLeave,
-  refreshSelectedChallenge,
-  consumeChallengeIdFromRoute
-} = useChallengeDialog({
-  challenges,
-  currentUserId,
-  error: actionError,
-  fetchChallenges,
-  leaveChallenge,
-  leavingId
-})
+const { detailsDialogOpen } = useChallengeDetailsProvider()
 
-configureDialogSync({ selectedChallenge, refreshSelectedChallenge })
+function handleChallengeClick(challenge) {
+  clearActionError()
+  openMissionDetails({ challenge })
+}
+
+useChallengeUpdatedListener(({ challenge }) => {
+  if (challenge) replaceChallengeInList(challenge)
+  else fetchChallenges()
+})
 
 function pickDefaultTab() {
   if (activeChallenges.value.length > 0) return 'active'
@@ -252,15 +224,38 @@ async function retryFetch() {
   syncDefaultTab()
 }
 
+function handleDialogUpdate() {
+  // Card-level progress updates already patch via listeners; keep a safe refetch fallback.
+  fetchChallenges()
+}
+
 function handleChallengeExtended(updatedChallenge) {
   if (!updatedChallenge?._id) return
-  replaceChallengeInList(updatedChallenge)
+
+  // Extend creates a new mission id — refresh the full list so the archived
+  // source stays put and the renewed copy lands at the top via createdAt.
+  fetchChallenges().then(() => {
+    promoteChallengeToFront(updatedChallenge)
+    statusTab.value = 'active'
+  })
 }
 
 onMounted(async () => {
   await fetchChallenges()
   syncDefaultTab()
-  await consumeChallengeIdFromRoute(router, route, route.query.challengeId)
+  const challengeId = route.query.challengeId
+  if (challengeId) {
+    openMissionDetails({ challengeId: String(challengeId) })
+    router.replace({ path: '/missions/my', query: { ...route.query, challengeId: undefined } })
+  }
+})
+
+watch(detailsDialogOpen, (open) => {
+  if (!open && route.query.challengeId) {
+    const query = { ...route.query }
+    delete query.challengeId
+    router.replace({ path: '/missions/my', query })
+  }
 })
 
 watch(

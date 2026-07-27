@@ -1,14 +1,14 @@
 <template>
-  <div>
+  <div class="main-ritual-section">
     <v-progress-linear
       v-if="loading"
       indeterminate
-      color="teal-accent-4"
+      color="#4FD1C5"
       height="4"
-      class="mb-6 shadow-neon-line"
+      class="mb-4"
     />
 
-    <div v-if="loading" class="main-ritual-loading-wrapper mb-8">
+    <div v-if="loading" class="main-ritual-loading-wrapper">
       <ChallengeSkeletonCard
         variant="main-ritual"
         type="image, list-item-two-line, actions"
@@ -53,12 +53,21 @@ defineEmits(['join', 'open'])
 </script>
 
 <style scoped>
+.main-ritual-section {
+  margin-bottom: clamp(16px, 2.5vw, 28px);
+}
+
 .main-ritual-loading-wrapper {
   position: relative;
-  background: rgba(15, 23, 42, 0.5);
-  border-radius: 24px;
-  border: 1px solid rgba(79, 209, 197, 0.1);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  background: var(--home-surface, rgba(15, 23, 42, 0.5));
+  border-radius: var(--home-radius, 22px);
+  border: 1px solid var(--home-border, rgba(79, 209, 197, 0.1));
+}
+
+@media (max-width: 600px) {
+  .main-ritual-section {
+    margin-bottom: 14px;
+  }
 }
 </style>
 

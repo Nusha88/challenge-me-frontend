@@ -1,17 +1,14 @@
 <template>
   <v-dialog
     v-model="dialogModel"
-    max-width="980"
+    max-width="480"
     scrollable
   >
     <v-card class="invite-dialog-card">
       <v-card-title class="invite-dialog-title">
-        <div>
-          <div class="text-h6 font-weight-bold">
-            {{ cardData?.dialogTitle }}
-          </div>
+        <div class="text-h6 font-weight-bold">
+          {{ cardData?.dialogTitle }}
         </div>
-
         <v-btn
           icon="mdi-close"
           variant="text"
@@ -19,154 +16,94 @@
         />
       </v-card-title>
 
-      <v-card-text>
-        <v-row>
-          <v-col cols="12" md="4">
-            <div class="invite-options-panel">
-              <h3 class="section-title mb-4">
-                {{ t('challenges.inviteCard.whatToShow') }}
-              </h3>
-
-              <v-checkbox
-                v-if="!cardData?.isQuest"
-                v-model="options.showParticipants"
-                color="#4FD1C5"
-                hide-details
-                :label="t('challenges.inviteCard.showParticipants')"
+      <v-card-text class="invite-dialog-body">
+        <div class="preview-shell">
+          <div ref="inviteCardRef" class="invite-card-preview">
+            <div class="invite-card-hero">
+              <img
+                v-if="cardData?.imageUrl"
+                :src="heroImageSrc || cardData.imageUrl"
+                alt=""
+                class="invite-card-hero-image"
               />
-
-              <v-checkbox
-                v-model="options.showDifficulty"
-                color="#4FD1C5"
-                hide-details
-                :label="t('challenges.inviteCard.showDifficulty')"
-              />
-
-              <v-checkbox
-                v-if="cardData?.showProgressOption"
-                v-model="options.showProgress"
-                color="#4FD1C5"
-                hide-details
-                :label="t('challenges.inviteCard.showProgress')"
-              />
-
-              <v-checkbox
-                v-model="options.showAuthor"
-                color="#4FD1C5"
-                hide-details
-                :label="t('challenges.inviteCard.showAuthor')"
-              />
-
-              <v-checkbox
-                v-model="options.showDescription"
-                color="#4FD1C5"
-                hide-details
-                :label="t('challenges.inviteCard.showDescription')"
-              />
-            </div>
-          </v-col>
-
-          <v-col cols="12" md="8">
-            <div class="preview-shell">
-              <div ref="inviteCardRef" class="invite-card-preview">
-                <div class="invite-card-hero">
-                  <img
-                    v-if="cardData?.imageUrl"
-                    :src="heroImageSrc || cardData.imageUrl"
-                    alt=""
-                    class="invite-card-hero-image"
-                  />
-                  <div
-                    v-else
-                    class="invite-card-hero-fallback"
-                  ></div>
-                  <div class="invite-card-hero-overlay"></div>
-                  <div class="invite-card-hero-content">
-                    <div class="invite-card-topline">
-                      IGNITE / {{ cardData?.badgeLabel }}
-                    </div>
-                    <h2 class="invite-card-title">
-                      {{ t('challenges.inviteCard.challengeMyself') }}
-                      <span>{{ cardData?.title }}</span>
-                    </h2>
-                  </div>
+              <div
+                v-else
+                class="invite-card-hero-fallback"
+              ></div>
+              <div class="invite-card-hero-overlay"></div>
+              <div class="invite-card-hero-content">
+                <div class="invite-card-topline">
+                  {{ cardData?.badgeLabel }}
                 </div>
+                <p class="invite-card-hook">{{ cardData?.joinHook }}</p>
+                <h2 class="invite-card-title">{{ cardData?.title }}</h2>
+              </div>
+            </div>
 
-                <div class="invite-card-bg-glow"></div>
-
-                <div class="invite-card-content">
-                  <p
-                    v-if="options.showDescription && cardData?.hasDescription"
-                    class="invite-card-description"
+            <div class="invite-card-content">
+              <div v-if="cardData?.hasInviter" class="invite-person-row">
+                <div class="invite-avatar">
+                  <img
+                    v-if="cardData.inviterAvatarUrl"
+                    :src="cardData.inviterAvatarUrl"
+                    alt=""
+                    class="invite-avatar-img"
+                  />
+                  <span v-else>{{ cardData.inviterInitial }}</span>
+                </div>
+                <div class="invite-person-meta">
+                  <div class="invite-person-name">{{ cardData.inviterName }}</div>
+                  <div
+                    v-if="showStatusLine"
+                    class="invite-person-status"
                   >
-                    {{ cardData.description }}
-                  </p>
-
-                  <div class="invite-card-status">
-                    <div class="status-line">
-                      {{ cardData?.statusLine }}
-                    </div>
-                    <div
-                      v-if="!cardData?.isQuest && options.showParticipants"
-                      class="status-line accent"
-                    >
-                      {{ cardData?.participantsLine }}
-                    </div>
-                  </div>
-
-                  <div class="invite-card-meta">
-                    <div
-                      v-if="options.showDifficulty && cardData?.hasDifficulty"
-                      class="meta-pill"
-                    >
-                      <Zap :size="14" :stroke-width="2.5" class="meta-pill-icon" />
-                      {{ cardData.difficultyLabel }}
-                    </div>
-
-                    <div
-                      v-if="options.showAuthor && cardData?.hasAuthor"
-                      class="meta-pill"
-                    >
-                      <User :size="14" :stroke-width="2.5" class="meta-pill-icon" />
-                      {{ cardData.authorLabel }}
-                    </div>
-
-                    <div
-                      v-if="cardData?.showProgressOption && options.showProgress"
-                      class="meta-pill"
-                    >
-                      <ChartLine :size="14" :stroke-width="2.5" class="meta-pill-icon" />
-                      {{ cardData?.progressLabel }}
-                    </div>
-                  </div>
-
-                  <div class="invite-card-footer">
-                    <div>
-                      <div class="cta-label">
-                        {{ cardData?.ctaLabel }}
-                      </div>
-                      <div class="ignite-brand">
-                        Ignite-me.app
-                      </div>
-                    </div>
+                    {{ cardData.statusLine }}
                   </div>
                 </div>
               </div>
+
+              <div
+                v-else-if="showStatusLine"
+                class="invite-status-solo"
+              >
+                {{ cardData.statusLine }}
+              </div>
+
+              <div
+                v-if="cardData?.participantsLine"
+                class="invite-participants-pill"
+              >
+                {{ cardData.participantsLine }}
+              </div>
+
+              <div class="invite-card-footer">
+                <div class="cta-label">{{ cardData?.ctaLabel }}</div>
+                <div class="ignite-brand">Ignite-me.app</div>
+              </div>
             </div>
-          </v-col>
-        </v-row>
+          </div>
+        </div>
+
+        <div
+          v-if="cardData?.showProgressOption"
+          class="invite-quick-toggle"
+        >
+          <v-switch
+            v-model="showProgress"
+            color="#4FD1C5"
+            density="compact"
+            hide-details
+            inset
+            :label="t('challenges.inviteCard.showProgress')"
+          />
+        </div>
       </v-card-text>
 
       <v-card-actions class="invite-dialog-actions">
-        <v-spacer />
-        <v-btn
-          variant="text"
-          @click="dialogModel = false"
-        >
-          {{ t('common.cancel') }}
-        </v-btn>
         <v-btn
           class="generate-invite-btn"
+          block
+          size="large"
           :disabled="heroImageLoading && Boolean(cardData?.imageUrl)"
           :loading="generating"
           @click="generateInviteCard"
@@ -179,9 +116,8 @@
 </template>
 
 <script setup>
-import { computed, nextTick, reactive, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ChartLine, User, Zap } from 'lucide-vue-next'
 import { userService } from '../services/api'
 import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
 import {
@@ -211,14 +147,7 @@ const emit = defineEmits(['update:modelValue'])
 const { t } = useI18n()
 const { applyRewardResponse } = useXpAwardFeedback()
 
-const options = reactive({
-  showParticipants: true,
-  showDifficulty: true,
-  showProgress: false,
-  showAuthor: true,
-  showDescription: true
-})
-
+const showProgress = ref(true)
 const inviteCardRef = ref(null)
 const generating = ref(false)
 const heroImageSrc = ref('')
@@ -227,6 +156,12 @@ const heroImageLoading = ref(false)
 const dialogModel = computed({
   get: () => props.modelValue,
   set: (value) => emit('update:modelValue', value)
+})
+
+const showStatusLine = computed(() => {
+  if (!props.cardData?.statusLine) return false
+  if (props.cardData.showProgressOption && !showProgress.value) return false
+  return true
 })
 
 watch(
@@ -246,6 +181,13 @@ watch(
     }
   },
   { immediate: true }
+)
+
+watch(
+  () => props.modelValue,
+  (open) => {
+    if (open) showProgress.value = true
+  }
 )
 
 async function generateInviteCard() {
@@ -297,8 +239,9 @@ async function generateInviteCard() {
 
     const fileName = `ignite-invite-${props.cardData?.challengeId || 'mission'}.png`
     const outcome = await shareOrDownloadImage(dataUrl, fileName, {
-      title: 'Ignite',
-      text: props.cardData?.title || ''
+      title: props.cardData?.title || 'Ignite',
+      text: props.cardData?.shareText || props.cardData?.title || '',
+      url: props.inviteUrl || ''
     })
 
     if (outcome === 'cancelled') return
@@ -325,10 +268,10 @@ async function generateInviteCard() {
 
 <style scoped>
 .invite-dialog-card {
-  background: #0f172a !important;
-  color: #ffffff !important;
+  background: var(--home-bg, #0f172a) !important;
+  color: var(--home-text, #ffffff) !important;
   border-radius: 24px !important;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--home-border, rgba(255, 255, 255, 0.08));
 }
 
 .invite-dialog-title {
@@ -338,20 +281,8 @@ async function generateInviteCard() {
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.invite-kicker,
-.section-title {
-  color: #4FD1C5;
-  font-size: 0.75rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 1.4px;
-}
-
-.invite-options-panel {
-  background: rgba(30, 41, 59, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 18px;
-  padding: 18px;
+.invite-dialog-body {
+  padding-top: 20px !important;
 }
 
 .preview-shell {
@@ -361,8 +292,9 @@ async function generateInviteCard() {
 }
 
 .invite-card-preview {
-  width: 420px;
-  min-height: 620px;
+  width: 100%;
+  max-width: 380px;
+  min-height: 560px;
   position: relative;
   overflow: hidden;
   border-radius: 32px;
@@ -378,10 +310,8 @@ async function generateInviteCard() {
 .invite-card-hero {
   position: relative;
   flex-shrink: 0;
-  height: 210px;
+  height: 320px;
   overflow: hidden;
-  border-top-left-radius: 32px;
-  border-top-right-radius: 32px;
 }
 
 .invite-card-hero-image {
@@ -404,9 +334,12 @@ async function generateInviteCard() {
 .invite-card-hero-overlay {
   position: absolute;
   inset: 0;
-  background:
-    linear-gradient(to bottom, rgba(15, 23, 42, 0.25) 0%, rgba(15, 23, 42, 0.85) 100%),
-    rgba(30, 15, 50, 0.4);
+  background: linear-gradient(
+    to bottom,
+    rgba(11, 13, 18, 0.15) 0%,
+    rgba(11, 13, 18, 0.55) 55%,
+    rgba(11, 13, 18, 0.96) 100%
+  );
   z-index: 1;
 }
 
@@ -417,17 +350,36 @@ async function generateInviteCard() {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  padding: 24px 34px;
+  padding: 28px 28px 24px;
 }
 
-.invite-card-bg-glow {
-  position: absolute;
-  inset: auto -80px -120px auto;
-  width: 260px;
-  height: 260px;
-  background: rgba(79, 209, 197, 0.25);
-  filter: blur(50px);
+.invite-card-topline {
+  width: fit-content;
+  padding: 6px 10px;
   border-radius: 999px;
+  background: rgba(79, 209, 197, 0.14);
+  border: 1px solid rgba(79, 209, 197, 0.4);
+  color: #4FD1C5;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+}
+
+.invite-card-hook {
+  margin: 14px 0 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.invite-card-title {
+  margin: 4px 0 0;
+  font-size: 1.85rem;
+  line-height: 1.1;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  color: #ffffff;
 }
 
 .invite-card-content {
@@ -435,109 +387,111 @@ async function generateInviteCard() {
   z-index: 1;
   flex: 1;
   min-height: 0;
-  padding: 24px 34px 34px;
+  padding: 4px 28px 20px;
   display: flex;
   flex-direction: column;
+  gap: 12px;
 }
 
-.invite-card-topline {
-  width: fit-content;
-  padding: 8px 12px;
-  border-radius: 999px;
-  background: rgba(79, 209, 197, 0.12);
-  border: 1px solid rgba(79, 209, 197, 0.35);
-  color: #4FD1C5;
-  font-size: 0.7rem;
-  font-weight: 900;
-  letter-spacing: 1.5px;
-}
-
-.invite-card-title {
-  margin-top: 12px;
-  font-size: 1.65rem;
-  line-height: 1.08;
-  font-weight: 900;
-  letter-spacing: -0.04em;
-  color: #ffffff;
-}
-
-.invite-card-title span {
-  display: block;
-  margin-top: 6px;
-  color: #ffffff;
-}
-
-.invite-card-description {
-  margin-top: 0;
-  color: rgba(255, 255, 255, 0.72);
-  line-height: 1.5;
-  font-size: 0.95rem;
-}
-
-.invite-card-status {
-  margin-top: 30px;
-  display: grid;
-  gap: 10px;
-}
-
-.status-line {
-  padding: 14px 16px;
-  border-radius: 18px;
-  background: rgba(15, 23, 42, 0.58);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.84);
-  font-weight: 700;
-}
-
-.status-line.accent {
-  border-color: rgba(79, 209, 197, 0.28);
-  box-shadow: 0 0 24px rgba(79, 209, 197, 0.08);
-}
-
-.invite-card-meta {
+.invite-person-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 18px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.meta-pill {
-  display: inline-flex;
+.invite-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 10px;
+  justify-content: center;
+  background: rgba(79, 209, 197, 0.18);
+  border: 2px solid rgba(79, 209, 197, 0.45);
+  color: #4FD1C5;
+  font-weight: 800;
+  font-size: 1rem;
+}
+
+.invite-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.invite-person-meta {
+  min-width: 0;
+}
+
+.invite-person-name {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.2;
+}
+
+.invite-person-status,
+.invite-status-solo {
+  margin-top: 2px;
+  font-size: 0.82rem;
+  font-weight: 650;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.invite-status-solo {
+  margin-top: 0;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.invite-participants-pill {
+  align-self: flex-start;
+  padding: 7px 12px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.07);
-  color: rgba(255, 255, 255, 0.82);
+  background: rgba(79, 209, 197, 0.1);
+  border: 1px solid rgba(79, 209, 197, 0.28);
+  color: rgba(79, 209, 197, 0.95);
   font-size: 0.78rem;
   font-weight: 700;
 }
 
-.meta-pill-icon {
-  flex-shrink: 0;
-  color: rgba(255, 255, 255, 0.82);
-}
-
 .invite-card-footer {
   margin-top: auto;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 18px;
+  padding-top: 4px;
 }
 
 .cta-label {
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 0.9rem;
-  font-weight: 700;
+  color: #4FD1C5;
+  font-size: 1rem;
+  font-weight: 800;
 }
 
 .ignite-brand {
   margin-top: 4px;
-  font-size: 1.3rem;
-  font-weight: 950;
-  letter-spacing: -0.04em;
-  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.invite-quick-toggle {
+  margin-top: 16px;
+  display: flex;
+  justify-content: center;
+}
+
+.invite-quick-toggle :deep(.v-label) {
+  color: rgba(255, 255, 255, 0.7) !important;
+  font-size: 0.85rem;
 }
 
 .generate-invite-btn {
@@ -546,34 +500,32 @@ async function generateInviteCard() {
   font-weight: 900 !important;
   text-transform: none !important;
   border-radius: 14px !important;
+  letter-spacing: 0.01em;
 }
 
 .invite-dialog-actions {
   border-top: 1px solid rgba(255, 255, 255, 0.06);
-  padding: 16px 24px;
+  padding: 16px 24px 20px;
 }
 
 @media (max-width: 600px) {
   .invite-card-preview {
-    width: 100%;
-    min-height: 560px;
+    min-height: 520px;
     border-radius: 24px;
   }
 
   .invite-card-hero {
-    height: 180px;
+    height: 260px;
   }
 
-  .invite-card-hero-content {
-    padding: 20px 26px;
-  }
-
+  .invite-card-hero-content,
   .invite-card-content {
-    padding: 20px 26px 26px;
+    padding-left: 22px;
+    padding-right: 22px;
   }
 
   .invite-card-title {
-    font-size: 1.45rem;
+    font-size: 1.55rem;
   }
 }
 </style>

@@ -13,6 +13,11 @@ import { findParticipantForUser } from '../utils/participantDays'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 import { getLevelFromXp, getLevelInfo } from '../utils/levelSystem'
 import { APP_EVENTS, dispatchAppEvent } from '../utils/appEvents'
+import {
+  createEmptyTriumphSharePayload,
+  assignTriumphSharePayload,
+  buildFinalTriumphPayload
+} from '../utils/triumphSharePayload'
 
 const missionAccomplishedOpen = ref(false)
 const shareCardOpen = ref(false)
@@ -33,25 +38,7 @@ const missionAccomplishedData = reactive({
   needsSoloContinuation: false
 })
 
-const shareCardData = reactive({
-  questTitle: '',
-  stepName: '',
-  userText: '',
-  userImage: '',
-  userImageDataUrl: '',
-  userLevel: 1,
-  userRankTitle: '',
-  isFinal: true,
-  xpEarned: 0,
-  sparksEarned: 0,
-  completedSteps: 0,
-  totalSteps: 0,
-  missionDates: '',
-  missionType: 'quest',
-  completedDays: 0,
-  totalDays: 0,
-  completionTier: ''
-})
+const shareCardData = reactive(createEmptyTriumphSharePayload())
 
 watch(missionAccomplishedOpen, (open, wasOpen) => {
   if (wasOpen && !open && missionAccomplishedData.needsSoloContinuation) {
@@ -228,33 +215,34 @@ export function useMissionCompletionFlow() {
       }
     }
 
-    shareCardData.questTitle = challenge.title || ''
-    shareCardData.stepName = ''
-    shareCardData.userText = reflection
-    shareCardData.userImage = ''
-    shareCardData.userImageDataUrl = ''
-    shareCardData.userLevel = userLevel.value
-    shareCardData.userRankTitle = userRankTitle.value
-    shareCardData.isFinal = true
-    shareCardData.xpEarned = missionAccomplishedData.xpGained
-    shareCardData.sparksEarned = missionAccomplishedData.sparksGained
-    shareCardData.completedSteps = isHabitMission
-      ? (missionAccomplishedData.personalDone ?? 0)
-      : totalSteps
-    shareCardData.totalSteps = isHabitMission
-      ? (missionAccomplishedData.personalTotal ?? totalSteps)
-      : totalSteps
-    shareCardData.missionDates = formatMissionDateRange(challenge, locale.value)
-    shareCardData.missionType = isHabitMission ? 'ritual' : 'quest'
-    shareCardData.completedDays = isHabitMission
-      ? (missionAccomplishedData.personalDone ?? 0)
-      : 0
-    shareCardData.totalDays = isHabitMission
-      ? (missionAccomplishedData.personalTotal ?? 0)
-      : 0
-    shareCardData.completionTier = isHabitMission
-      ? (missionAccomplishedData.tier || '')
-      : ''
+    assignTriumphSharePayload(
+      shareCardData,
+      buildFinalTriumphPayload({
+        challenge,
+        reflection,
+        userLevel: userLevel.value,
+        userRankTitle: userRankTitle.value,
+        xpEarned: missionAccomplishedData.xpGained,
+        sparksEarned: missionAccomplishedData.sparksGained,
+        completedSteps: isHabitMission
+          ? (missionAccomplishedData.personalDone ?? 0)
+          : totalSteps,
+        totalSteps: isHabitMission
+          ? (missionAccomplishedData.personalTotal ?? totalSteps)
+          : totalSteps,
+        missionDates: formatMissionDateRange(challenge, locale.value),
+        missionType: isHabitMission ? 'ritual' : 'quest',
+        completedDays: isHabitMission
+          ? (missionAccomplishedData.personalDone ?? 0)
+          : 0,
+        totalDays: isHabitMission
+          ? (missionAccomplishedData.personalTotal ?? 0)
+          : 0,
+        completionTier: isHabitMission
+          ? (missionAccomplishedData.tier || '')
+          : ''
+      })
+    )
 
     missionAccomplishedOpen.value = false
     await nextTick()
@@ -290,6 +278,7 @@ export function useMissionCompletionFlow() {
     habitMissionCompleteLoading,
     missionAccomplishedData,
     shareCardData,
+    activeChallenge,
     soloSuggestedEndDate,
     soloRemainingDays,
     soloMinCustomDate,

@@ -193,25 +193,32 @@ const coverMediaTitle = computed(() => {
   text-transform: none !important;
   font-weight: 600 !important;
   white-space: nowrap;
-  border: 2px solid #e2e8f0 !important;
-  color: #64748b !important;
-  transition: all 0.3s ease !important;
+  border: 1px solid var(--home-border, rgba(255, 255, 255, 0.12)) !important;
+  color: var(--home-text-dim, #94a3b8) !important;
+  background: var(--home-surface-soft, rgba(255, 255, 255, 0.03)) !important;
+  transition: all 0.3s var(--home-ease, ease) !important;
 }
 
 .cover-photo-toggle-btn:hover {
-  border-color: #7e46c4 !important;
-  color: #7e46c4 !important;
-  background: rgba(126, 70, 196, 0.05) !important;
+  border-color: var(--home-purple, #7048e8) !important;
+  color: var(--home-purple, #7048e8) !important;
+  background: rgba(112, 72, 232, 0.08) !important;
 }
 
 .cover-photo-toggle-btn.active {
-  border-color: #7e46c4 !important;
-  background: linear-gradient(135deg, #7e46c4 0%, #8a4af3 100%) !important;
+  border-color: var(--home-purple, #7048e8) !important;
+  background: linear-gradient(135deg, var(--home-teal, #4fd1c5) 0%, var(--home-purple, #7048e8) 100%) !important;
   color: #ffffff !important;
 }
 
 .mobile-upload-section {
   display: block;
+}
+
+@media (min-width: 960px) {
+  .mobile-upload-section {
+    display: none;
+  }
 }
 
 .challenge-base-fields--compact .title-display-box {

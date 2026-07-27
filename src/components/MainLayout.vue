@@ -19,7 +19,7 @@ import { useUserStreak } from '../composables/useUserStreak'
 import { usePushNotifications } from '../composables/usePushNotifications'
 import { useOnboarding } from '../composables/useOnboarding'
 import { useAppEventListeners } from '../composables/useAppEvents'
-import { useGlobalChallengeDialog } from '../composables/useGlobalChallengeDialog'
+import { useChallengeDetailsProvider } from '../composables/useChallengeDetailsProvider'
 import { useI18n } from 'vue-i18n'
 import { APP_EVENTS, dispatchAppEvent } from '../utils/appEvents'
 import { clearAppBadge } from '../utils/appBadge'
@@ -84,19 +84,35 @@ const {
   selectedChallenge: globalSelectedChallenge,
   scrollTarget: globalScrollTarget,
   initialTab: globalInitialTab,
+  joinLoading: globalJoinLoading,
+  leaveLoading: globalLeaveLoading,
   selectedIsOwner: globalSelectedIsOwner,
   selectedIsParticipant: globalSelectedIsParticipant,
   showDialogJoinButton: globalShowDialogJoinButton,
   showDialogLeaveButton: globalShowDialogLeaveButton,
-  openFromNotification,
+  openFromEvent,
   handleDialogClose: handleGlobalDialogClose,
-  handleDialogLeave: handleGlobalDialogLeave
-} = useGlobalChallengeDialog(currentUserId)
+  handleDialogLeave: handleGlobalDialogLeave,
+  handleDialogJoin: handleGlobalDialogJoin,
+  handleDialogUpdate: handleGlobalDialogUpdate
+} = useChallengeDetailsProvider()
 
 function handleOpenChallenge(event) {
   const detail = event?.detail
-  if (!detail?.challengeId) return
-  openFromNotification(detail)
+  if (!detail?.challengeId && !detail?.challenge) return
+  openFromEvent(detail)
+}
+
+function handleServiceWorkerMessage(event) {
+  const data = event?.data
+  if (!data || data.type !== 'OPEN_CHALLENGE') return
+  if (!data.challengeId) return
+  openFromEvent({
+    challengeId: data.challengeId,
+    commentId: data.commentId || null,
+    replyId: data.replyId || null,
+    initialTab: data.initialTab || null
+  })
 }
 
 function startNotificationPolling() {
@@ -235,10 +251,16 @@ onMounted(() => {
   if (isLoggedIn.value) {
     startLoggedInSession()
   }
+  if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage)
+  }
 })
 
 onBeforeUnmount(() => {
   stopNotificationPolling()
+  if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+    navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage)
+  }
 })
 
 watch(
@@ -346,13 +368,15 @@ async function maybeStartOnboarding() {
       :show-leave-button="globalShowDialogLeaveButton"
       :initial-tab="globalInitialTab"
       :scroll-target="globalScrollTarget"
-      :join-loading="false"
-      :leave-loading="false"
+      :join-loading="globalJoinLoading"
+      :leave-loading="globalLeaveLoading"
       :save-loading="false"
       :save-error="''"
       :delete-loading="false"
       @update:model-value="handleGlobalDialogClose"
+      @join="handleGlobalDialogJoin"
       @leave="handleGlobalDialogLeave"
+      @update="handleGlobalDialogUpdate"
     />
 
     <XpAwardToast />
@@ -423,6 +447,11 @@ async function maybeStartOnboarding() {
 @media (max-width: 959px) {
   .main-content {
     border-radius: 0;
+  }
+
+  .main-content-wrapper,
+  .main-content.with-sidebar .main-content-wrapper {
+    padding: 8px 10px 16px;
   }
 }
 

@@ -3,19 +3,29 @@ import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 import { isChallengeEnded } from './challengeStatus'
 
 export function getParticipantUserId(participant) {
-  return participant?.userId?._id || participant?.userId || participant?._id || participant
+  return participant?.userId?._id
+    || participant?.userId?.id
+    || participant?.userId
+    || participant?._id
+    || participant?.id
+    || participant
 }
 
 export function isChallengeOwner(owner, currentUserId) {
   const userId = unref(currentUserId)
   if (!owner || !userId) return false
-  const ownerId = owner._id || owner
+  const ownerId = owner._id || owner.id || owner
   return ownerId.toString() === userId.toString()
 }
 
 export function isChallengeParticipant(challenge, currentUserId) {
   const userId = unref(currentUserId)
-  if (!userId || !challenge?.participants) return false
+  if (!userId || !challenge) return false
+
+  // Owners are always treated as members for CTA / community access.
+  if (isChallengeOwner(challenge.owner, userId)) return true
+
+  if (!Array.isArray(challenge.participants)) return false
 
   return challenge.participants.some((participant) => {
     const participantId = getParticipantUserId(participant)

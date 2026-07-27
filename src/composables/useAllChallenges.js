@@ -33,6 +33,10 @@ export function useAllChallenges(filters, currentUserId) {
     }
   }
 
+  function clearErrorMessage() {
+    errorMessage.value = ''
+  }
+
   async function fetchChallenges(page = 1, append = false) {
     const fetchId = ++latestFetchId
 
@@ -67,6 +71,9 @@ export function useAllChallenges(filters, currentUserId) {
     } catch (error) {
       if (fetchId === latestFetchId) {
         errorMessage.value = error.response?.data?.message || t('notifications.apiError')
+        if (!append) {
+          hasMore.value = false
+        }
       }
     } finally {
       if (fetchId === latestFetchId) {
@@ -83,6 +90,7 @@ export function useAllChallenges(filters, currentUserId) {
     errorMessage,
     currentPage,
     hasMore,
-    fetchChallenges
+    fetchChallenges,
+    clearErrorMessage
   }
 }

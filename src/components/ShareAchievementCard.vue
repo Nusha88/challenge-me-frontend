@@ -28,111 +28,39 @@
           'sc-content--image-text': !isFinal && hasImage && hasText
         }"
       >
-        <!-- Legendary mission accomplished — Daily Ritual -->
-        <template v-if="isFinal && isRitual">
-          <div class="sc-final-content sc-final-content--ritual">
-            <div class="sc-loot-row">
-              <div class="sc-loot-badge sc-loot-badge--xp">
-                ✨ +{{ xpEarned }} {{ t('challenges.shareCard.lootXp') }}
-              </div>
-              <div class="sc-loot-badge sc-loot-badge--sparks">
-                ⚡ +{{ sparksEarned }} {{ t('challenges.shareCard.lootSparks') }}
-              </div>
-            </div>
+        <TriumphFinalRitualContent
+          v-if="isFinal && isRitual"
+          :xp-earned="xpEarned"
+          :sparks-earned="sparksEarned"
+          :accuracy="accuracy"
+          :discipline-display="disciplineDisplay"
+          :mission-dates="missionDates"
+          :reflection-text="fittedFinalReflection"
+          :tier-icon="tierIcon"
+          :tier-icon-class="tierIconClass"
+          :tier-status-label="tierStatusLabel"
+          @bind-refs="onFinalReflectionRefs"
+        />
 
-            <div class="sc-ritual-hero">
-              <div class="sc-ritual-icon" :class="tierIconClass">{{ tierIcon }}</div>
-              <p class="sc-ritual-tier">{{ tierStatusLabel }}</p>
-              <div class="sc-accuracy-badge">
-                🎯 {{ t('challenges.shareCard.accuracy') }}: {{ accuracy }}%
-              </div>
-            </div>
+        <TriumphFinalQuestContent
+          v-else-if="isFinal"
+          :xp-earned="xpEarned"
+          :sparks-earned="sparksEarned"
+          :steps-display="stepsDisplay"
+          :mission-dates="missionDates"
+          :reflection-text="fittedFinalReflection"
+          @bind-refs="onFinalReflectionRefs"
+        />
 
-            <div ref="finalReflectionCardRef" class="sc-text-card sc-text-card--ritual-reflection">
-              <p ref="finalReflectionRef" class="sc-handwritten sc-handwritten--ritual">{{ fittedFinalReflection }}</p>
-            </div>
-
-            <div class="sc-stats-grid">
-              <p class="sc-stat">
-                🔥 {{ t('challenges.shareCard.statsDiscipline') }}: {{ disciplineDisplay }}
-              </p>
-              <p class="sc-stat">
-                📅 {{ t('challenges.shareCard.statsPeriod') }}: {{ missionDates }}
-              </p>
-            </div>
-          </div>
-        </template>
-
-        <!-- Legendary mission accomplished — Quest -->
-        <template v-else-if="isFinal">
-          <div class="sc-final-content">
-            <div class="sc-loot-row">
-              <div class="sc-loot-badge sc-loot-badge--xp">
-                ✨ +{{ xpEarned }} {{ t('challenges.shareCard.lootXp') }}
-              </div>
-              <div class="sc-loot-badge sc-loot-badge--sparks">
-                ⚡ +{{ sparksEarned }} {{ t('challenges.shareCard.lootSparks') }}
-              </div>
-            </div>
-
-            <div ref="finalReflectionCardRef" class="sc-text-card sc-text-card--final-reflection">
-              <p ref="finalReflectionRef" class="sc-handwritten sc-handwritten--final">{{ fittedFinalReflection }}</p>
-            </div>
-
-            <div class="sc-stats-grid">
-              <p class="sc-stat">
-                🎯 {{ t('challenges.shareCard.statsSteps') }}: {{ stepsDisplay }}
-              </p>
-              <p class="sc-stat">
-                📅 {{ t('challenges.shareCard.statsPeriod') }}: {{ missionDates }}
-              </p>
-            </div>
-          </div>
-        </template>
-
-        <!-- Both image and text -->
-        <template v-else-if="hasImage && hasText">
-          <div class="sc-photo-frame">
-            <img
-              :src="displayUserImage"
-              alt=""
-              class="sc-photo"
-              :crossorigin="displayUserImage.startsWith('data:') ? undefined : 'anonymous'"
-            />
-          </div>
-          <div ref="textCardRef" class="sc-text-card">
-            <p ref="compactTextRef" class="sc-handwritten sc-handwritten--with-image">{{ fittedImageText }}</p>
-          </div>
-        </template>
-
-        <!-- Image only -->
-        <template v-else-if="hasImage">
-          <div class="sc-photo-frame sc-photo-frame--large">
-            <img
-              :src="displayUserImage"
-              alt=""
-              class="sc-photo"
-              :crossorigin="displayUserImage.startsWith('data:') ? undefined : 'anonymous'"
-            />
-          </div>
-        </template>
-
-        <!-- Text only -->
-        <template v-else-if="hasText">
-          <div class="sc-text-only">
-            <Quote :size="40" :stroke-width="1.5" class="sc-text-only-icon" />
-            <div ref="largeTextCardRef" class="sc-text-card">
-              <p ref="largeTextRef" class="sc-handwritten sc-handwritten--large">{{ fittedLargeText }}</p>
-            </div>
-          </div>
-        </template>
-
-        <!-- Fallback (no content) -->
-        <template v-else>
-          <div class="sc-text-only">
-            <Trophy :size="72" :stroke-width="1.5" class="sc-text-only-icon" />
-          </div>
-        </template>
+        <TriumphStepContent
+          v-else
+          :has-image="hasImage"
+          :has-text="hasText"
+          :display-user-image="displayUserImage"
+          :fitted-image-text="fittedImageText"
+          :fitted-large-text="fittedLargeText"
+          @bind-refs="onStepContentRefs"
+        />
       </section>
 
       <footer class="sc-footer">
@@ -142,9 +70,6 @@
             <span class="sc-level-sep">|</span>
             <span class="sc-level-rank">{{ displayRankTitle }}</span>
           </p>
-          <div class="sc-progress">
-            <div class="sc-progress-fill"></div>
-          </div>
         </div>
       </footer>
     </div>
@@ -156,8 +81,18 @@
       :loading="sharing"
       @click="shareCard"
     >
-      <UserPlus :size="18" :stroke-width="2.5" class="sc-share-btn-icon" />
+      <Share2 :size="18" :stroke-width="2.5" class="sc-share-btn-icon" />
       {{ t('challenges.shareCard.shareButton') }}
+    </v-btn>
+
+    <v-btn
+      v-if="showInviteSecondary"
+      class="sc-invite-secondary mt-2"
+      block
+      variant="text"
+      @click="$emit('invite-mission')"
+    >
+      {{ t('challenges.inviteCard.inviteFriendsSecondary') }}
     </v-btn>
   </div>
 </template>
@@ -165,12 +100,25 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Zap, Quote, Trophy, UserPlus } from 'lucide-vue-next'
-import { toPng } from 'html-to-image'
-import html2canvas from 'html2canvas'
+import { Zap, Share2 } from 'lucide-vue-next'
 import { getLevelInfo } from '../utils/levelSystem'
+import { createEmptyTriumphSharePayload } from '../utils/triumphSharePayload'
+import {
+  captureElementToPng,
+  resolveImageDataUrl,
+  shareOrDownloadImage,
+  waitForPaint
+} from '../utils/shareImage'
+import TriumphFinalRitualContent from './triumph-share/TriumphFinalRitualContent.vue'
+import TriumphFinalQuestContent from './triumph-share/TriumphFinalQuestContent.vue'
+import TriumphStepContent from './triumph-share/TriumphStepContent.vue'
 
 const props = defineProps({
+  payload: {
+    type: Object,
+    default: () => createEmptyTriumphSharePayload()
+  },
+  // Legacy flat props kept for any lingering callers; payload wins when set.
   questTitle: { type: String, default: '' },
   stepName: { type: String, default: '' },
   userText: { type: String, default: '' },
@@ -190,6 +138,60 @@ const props = defineProps({
   completionTier: { type: String, default: '' }
 })
 
+defineEmits(['invite-mission'])
+
+const data = computed(() => {
+  const p = props.payload || {}
+  const payloadActive = Boolean(
+    p.questTitle || p.stepName || p.userText || p.userImage || p.userImageDataUrl || p.isFinal || p.challengeId
+  )
+  if (payloadActive) {
+    return { ...createEmptyTriumphSharePayload(), ...p }
+  }
+  return {
+    ...createEmptyTriumphSharePayload(),
+    questTitle: props.questTitle,
+    stepName: props.stepName,
+    userText: props.userText,
+    userImage: props.userImage,
+    userImageDataUrl: props.userImageDataUrl,
+    userLevel: props.userLevel,
+    userRankTitle: props.userRankTitle,
+    isFinal: props.isFinal,
+    xpEarned: props.xpEarned,
+    sparksEarned: props.sparksEarned,
+    completedSteps: props.completedSteps,
+    totalSteps: props.totalSteps,
+    missionDates: props.missionDates,
+    missionType: props.missionType,
+    completedDays: props.completedDays,
+    totalDays: props.totalDays,
+    completionTier: props.completionTier
+  }
+})
+
+const questTitle = computed(() => data.value.questTitle)
+const stepName = computed(() => data.value.stepName)
+const userText = computed(() => data.value.userText)
+const userImage = computed(() => data.value.userImage)
+const userImageDataUrl = computed(() => data.value.userImageDataUrl)
+const userLevel = computed(() => data.value.userLevel)
+const userRankTitle = computed(() => data.value.userRankTitle)
+const isFinal = computed(() => data.value.isFinal)
+const xpEarned = computed(() => data.value.xpEarned)
+const sparksEarned = computed(() => data.value.sparksEarned)
+const completedSteps = computed(() => data.value.completedSteps)
+const totalSteps = computed(() => data.value.totalSteps)
+const missionDates = computed(() => data.value.missionDates)
+const missionType = computed(() => data.value.missionType)
+const completedDays = computed(() => data.value.completedDays)
+const totalDays = computed(() => data.value.totalDays)
+const completionTier = computed(() => data.value.completionTier)
+
+const showInviteSecondary = computed(
+  () => Boolean(isFinal.value && data.value.challengeId)
+)
+
 const { t } = useI18n()
 
 const cardRef = ref(null)
@@ -205,10 +207,22 @@ const fittedLargeText = ref('')
 const fittedFinalReflection = ref('')
 const exportImageDataUrl = ref('')
 
-const hasImage = computed(() => !!(props.userImageDataUrl || props.userImage))
-const hasText = computed(() => !!(props.userText && props.userText.trim()))
+function onFinalReflectionRefs({ card, text }) {
+  finalReflectionCardRef.value = card || null
+  finalReflectionRef.value = text || null
+}
 
-const displayUserImage = computed(() => props.userImageDataUrl || props.userImage)
+function onStepContentRefs({ textCard, compactText, largeTextCard, largeText }) {
+  textCardRef.value = textCard || null
+  compactTextRef.value = compactText || null
+  largeTextCardRef.value = largeTextCard || null
+  largeTextRef.value = largeText || null
+}
+
+const hasImage = computed(() => !!(userImageDataUrl.value || userImage.value))
+const hasText = computed(() => !!(userText.value && userText.value.trim()))
+
+const displayUserImage = computed(() => userImageDataUrl.value || userImage.value)
 
 function truncateWithEllipsis(text, maxLines, charsPerLine) {
   const normalized = String(text || '').trim()
@@ -227,30 +241,30 @@ function truncateWithEllipsis(text, maxLines, charsPerLine) {
 }
 
 const headlineText = computed(() =>
-  props.isFinal
+  isFinal.value
     ? t('challenges.shareCard.finalHeader')
     : t('challenges.shareCard.header')
 )
 
-const textLineLimit = computed(() => (props.isFinal ? 7 : 10))
-const textCharsPerLine = computed(() => (props.isFinal ? 30 : 34))
-const largeTextLineLimit = computed(() => (props.isFinal ? 6 : 8))
-const largeTextCharsPerLine = computed(() => (props.isFinal ? 32 : 36))
+const textLineLimit = computed(() => (isFinal.value ? 7 : 10))
+const textCharsPerLine = computed(() => (isFinal.value ? 30 : 34))
+const largeTextLineLimit = computed(() => (isFinal.value ? 6 : 8))
+const largeTextCharsPerLine = computed(() => (isFinal.value ? 32 : 36))
 
 const compactUserText = computed(() =>
   hasText.value
-    ? truncateWithEllipsis(props.userText, textLineLimit.value, textCharsPerLine.value)
+    ? truncateWithEllipsis(userText.value, textLineLimit.value, textCharsPerLine.value)
     : ''
 )
 
 const largeTextFallback = computed(() =>
   hasText.value
-    ? truncateWithEllipsis(props.userText, largeTextLineLimit.value, largeTextCharsPerLine.value)
+    ? truncateWithEllipsis(userText.value, largeTextLineLimit.value, largeTextCharsPerLine.value)
     : ''
 )
 
 const reflectionSource = computed(() => {
-  const custom = String(props.userText || '').trim()
+  const custom = String(userText.value || '').trim()
   if (custom) return custom
   return t('challenges.shareCard.defaultTriumphQuote')
 })
@@ -264,33 +278,30 @@ const finalReflectionFallback = computed(() =>
 )
 
 const stepsDisplay = computed(() => {
-  const raw = String(props.completedSteps ?? '')
+  const raw = String(completedSteps.value ?? '')
   if (raw.includes('/')) return raw
-  const completed = props.completedSteps || props.totalSteps || 0
-  const total = props.totalSteps || completed || 0
+  const completed = completedSteps.value || totalSteps.value || 0
+  const total = totalSteps.value || completed || 0
   return `${completed}/${total}`
 })
 
-const xpEarned = computed(() => props.xpEarned ?? 0)
-const sparksEarned = computed(() => props.sparksEarned ?? 0)
-
-const isRitual = computed(() => props.missionType === 'ritual')
+const isRitual = computed(() => missionType.value === 'ritual')
 
 const accuracy = computed(() => {
-  const total = Number(props.totalDays) || 0
+  const total = Number(totalDays.value) || 0
   if (total <= 0) return 0
-  return Math.round((Number(props.completedDays) / total) * 100)
+  return Math.round((Number(completedDays.value) / total) * 100)
 })
 
 const disciplineDisplay = computed(() =>
   t('challenges.shareCard.disciplineDays', {
-    completed: props.completedDays,
-    total: props.totalDays
+    completed: completedDays.value,
+    total: totalDays.value
   })
 )
 
 const tierIcon = computed(() => {
-  switch (props.completionTier) {
+  switch (completionTier.value) {
     case 'perfect': return '🏆'
     case 'bright': return '🔥'
     case 'sustained': return '🕯️'
@@ -300,15 +311,15 @@ const tierIcon = computed(() => {
 })
 
 const tierIconClass = computed(() =>
-  props.completionTier ? `sc-ritual-icon--${props.completionTier}` : 'sc-ritual-icon--bright'
+  completionTier.value ? `sc-ritual-icon--${completionTier.value}` : 'sc-ritual-icon--bright'
 )
 
 const tierStatusLabel = computed(() => {
-  if (!props.completionTier) {
+  if (!completionTier.value) {
     return t('challenges.shareCard.tierStatusFallback')
   }
   return t('challenges.shareCard.tierStatus', {
-    tier: t(`challenges.missionTiers.${props.completionTier}`)
+    tier: t(`challenges.missionTiers.${completionTier.value}`)
   })
 })
 
@@ -360,12 +371,12 @@ function fitTextToContainer(full, container, paragraph, fallbackText) {
 }
 
 function fitImageTextContent() {
-  if (props.isFinal || !hasImage.value || !hasText.value) {
+  if (isFinal.value || !hasImage.value || !hasText.value) {
     fittedImageText.value = ''
     return
   }
 
-  const full = String(props.userText || '').trim()
+  const full = String(userText.value || '').trim()
   fittedImageText.value = compactUserText.value
 
   if (!textCardRef.value || !compactTextRef.value) return
@@ -379,12 +390,12 @@ function fitImageTextContent() {
 }
 
 function fitLargeTextContent() {
-  if (props.isFinal || hasImage.value || !hasText.value) {
+  if (isFinal.value || hasImage.value || !hasText.value) {
     fittedLargeText.value = ''
     return
   }
 
-  const full = String(props.userText || '').trim()
+  const full = String(userText.value || '').trim()
   fittedLargeText.value = largeTextFallback.value
 
   if (!largeTextCardRef.value || !largeTextRef.value) return
@@ -398,7 +409,7 @@ function fitLargeTextContent() {
 }
 
 function fitFinalReflectionContent() {
-  if (!props.isFinal) {
+  if (!isFinal.value) {
     fittedFinalReflection.value = ''
     return
   }
@@ -417,7 +428,7 @@ function fitFinalReflectionContent() {
 }
 
 function fitAllTextContent() {
-  if (props.isFinal) {
+  if (isFinal.value) {
     fitFinalReflectionContent()
     return
   }
@@ -426,7 +437,7 @@ function fitAllTextContent() {
 }
 
 watch(
-  () => [props.userImageDataUrl, props.userImage],
+  () => [userImageDataUrl.value, userImage.value],
   async ([dataUrl, remoteUrl]) => {
     const src = dataUrl || remoteUrl
     if (!src) {
@@ -451,21 +462,21 @@ watch(
 
 watch(
   () => [
-    props.userText,
-    props.userImage,
-    props.userImageDataUrl,
-    props.questTitle,
-    props.stepName,
-    props.isFinal,
-    props.xpEarned,
-    props.sparksEarned,
-    props.completedSteps,
-    props.totalSteps,
+    userText.value,
+    userImage.value,
+    userImageDataUrl.value,
+    questTitle.value,
+    stepName.value,
+    isFinal.value,
+    xpEarned.value,
+    sparksEarned.value,
+    completedSteps.value,
+    totalSteps.value,
     props.missionDates,
-    props.missionType,
-    props.completedDays,
-    props.totalDays,
-    props.completionTier
+    missionType.value,
+    completedDays.value,
+    totalDays.value,
+    completionTier.value
   ],
   () => nextTick(fitAllTextContent),
   { immediate: true }
@@ -495,11 +506,11 @@ onUnmounted(() => {
 })
 
 const displayLevel = computed(() =>
-  Math.max(1, Math.floor(Number(props.userLevel) || 1))
+  Math.max(1, Math.floor(Number(userLevel.value) || 1))
 )
 
 const displayRankTitle = computed(() => {
-  const fromProp = (props.userRankTitle || '').trim()
+  const fromProp = (userRankTitle.value || '').trim()
   if (fromProp) return fromProp
 
   const { rankKey } = getLevelInfo(displayLevel.value)
@@ -508,43 +519,6 @@ const displayRankTitle = computed(() => {
 
 function getImgSrc(img) {
   return img.currentSrc || img.src || img.getAttribute('src') || ''
-}
-
-function blobToDataUrl(blob) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result)
-    reader.onerror = reject
-    reader.readAsDataURL(blob)
-  })
-}
-
-async function resolveImageDataUrl(src) {
-  if (!src || src.startsWith('data:')) return src
-
-  try {
-    const response = await fetch(src, { mode: 'cors', cache: 'no-cache' })
-    if (!response.ok) throw new Error('fetch failed')
-    return await blobToDataUrl(await response.blob())
-  } catch {
-    return new Promise((resolve, reject) => {
-      const loader = new Image()
-      loader.crossOrigin = 'anonymous'
-      loader.onload = () => {
-        try {
-          const canvas = document.createElement('canvas')
-          canvas.width = loader.naturalWidth
-          canvas.height = loader.naturalHeight
-          canvas.getContext('2d').drawImage(loader, 0, 0)
-          resolve(canvas.toDataURL('image/png'))
-        } catch (err) {
-          reject(err)
-        }
-      }
-      loader.onerror = () => reject(new Error('Image load failed'))
-      loader.src = src.includes('?') ? `${src}&_=${Date.now()}` : `${src}?_=${Date.now()}`
-    })
-  }
 }
 
 async function loadImageFromSrc(src) {
@@ -587,12 +561,6 @@ function getPhotoFrameSize(frame) {
     width: Math.max(Math.round(rect.width), 280),
     height: Math.max(Math.round(rect.height), 220)
   }
-}
-
-function waitForPaint() {
-  return new Promise((resolve) => {
-    requestAnimationFrame(() => requestAnimationFrame(resolve))
-  })
 }
 
 /**
@@ -653,130 +621,15 @@ async function preparePhotoFramesForExport(root, fallbackSrc = '', pixelRatio = 
 }
 
 const SHARE_CARD_RADIUS_PX = 20
-// Transparent export background so the clipped corners stay see-through and the
-// card reads as genuinely rounded on any Instagram Story backdrop.
 const SHARE_CARD_EXPORT_BG = null
-const SHARE_CARD_EXPORT_BG_FINAL = null
-
-function roundedRectPath(ctx, x, y, width, height, radius) {
-  const r = Math.min(radius, width / 2, height / 2)
-  ctx.beginPath()
-  ctx.moveTo(x + r, y)
-  ctx.lineTo(x + width - r, y)
-  ctx.quadraticCurveTo(x + width, y, x + width, y + r)
-  ctx.lineTo(x + width, y + height - r)
-  ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height)
-  ctx.lineTo(x + r, y + height)
-  ctx.quadraticCurveTo(x, y + height, x, y + height - r)
-  ctx.lineTo(x, y + r)
-  ctx.quadraticCurveTo(x, y, x + r, y)
-  ctx.closePath()
-}
-
-// Clips the rendered card to a rounded rectangle, leaving the four corners
-// transparent (no fill) so Instagram shows real rounded borders.
-function clipCanvasToRoundedRect(sourceCanvas, borderRadiusCssPx, scale) {
-  const width = sourceCanvas.width
-  const height = sourceCanvas.height
-  const radius = borderRadiusCssPx * scale
-
-  const output = document.createElement('canvas')
-  output.width = width
-  output.height = height
-  const ctx = output.getContext('2d')
-  if (!ctx) return sourceCanvas
-
-  ctx.save()
-  roundedRectPath(ctx, 0, 0, width, height, radius)
-  ctx.clip()
-  ctx.drawImage(sourceCanvas, 0, 0)
-  ctx.restore()
-
-  return output
-}
-
-function canvasToRoundedPng(sourceCanvas, borderRadiusCssPx, scale) {
-  const clipped = clipCanvasToRoundedRect(sourceCanvas, borderRadiusCssPx, scale)
-  return clipped.toDataURL('image/png')
-}
-
-function dataUrlToCanvas(dataUrl) {
-  return new Promise((resolve, reject) => {
-    const image = new Image()
-    image.onload = () => {
-      const canvas = document.createElement('canvas')
-      canvas.width = image.naturalWidth
-      canvas.height = image.naturalHeight
-      canvas.getContext('2d').drawImage(image, 0, 0)
-      resolve(canvas)
-    }
-    image.onerror = () => reject(new Error('Failed to decode export image'))
-    image.src = dataUrl
-  })
-}
 
 async function captureShareCard(element) {
-  await waitForPaint()
-  const scale = 2
-  const backgroundColor = props.isFinal ? SHARE_CARD_EXPORT_BG_FINAL : SHARE_CARD_EXPORT_BG
-
-  if (hasImage.value) {
-    const canvas = await html2canvas(element, {
-      backgroundColor,
-      scale,
-      useCORS: true,
-      allowTaint: false,
-      logging: false
-    })
-    return canvasToRoundedPng(canvas, SHARE_CARD_RADIUS_PX, scale)
-  }
-
-  const dataUrl = await toPng(element, {
-    pixelRatio: scale,
-    cacheBust: true,
-    backgroundColor: 'transparent'
+  return captureElementToPng(element, {
+    backgroundColor: SHARE_CARD_EXPORT_BG,
+    scale: 2,
+    useHtml2Canvas: hasImage.value,
+    borderRadius: SHARE_CARD_RADIUS_PX
   })
-  const canvas = await dataUrlToCanvas(dataUrl)
-  return canvasToRoundedPng(canvas, SHARE_CARD_RADIUS_PX, scale)
-}
-
-function dataUrlToFile(dataUrl, fileName) {
-  const [head, body] = dataUrl.split(',')
-  const mime = head.match(/:(.*?);/)?.[1] || 'image/png'
-  const binary = atob(body)
-  const bytes = new Uint8Array(binary.length)
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i)
-  }
-  return new File([bytes], fileName, { type: mime })
-}
-
-// Returns true if the image was handed to the OS share sheet (or the user
-// cancelled it), false if native file-sharing isn't available.
-async function shareImageFile(dataUrl, fileName) {
-  try {
-    if (typeof navigator === 'undefined' || !navigator.canShare) return false
-    const file = dataUrlToFile(dataUrl, fileName)
-    if (!navigator.canShare({ files: [file] })) return false
-    await navigator.share({
-      files: [file],
-      title: 'Ignite',
-      text: props.questTitle || headlineText.value
-    })
-    return true
-  } catch (error) {
-    // User dismissed the share sheet — nothing more to do, don't fall back.
-    if (error?.name === 'AbortError') return true
-    console.warn('Native share unavailable, falling back to download:', error)
-    return false
-  }
-}
-
-function downloadImage(dataUrl, fileName) {
-  const link = document.createElement('a')
-  link.download = fileName
-  link.href = dataUrl
-  link.click()
 }
 
 async function shareCard() {
@@ -784,10 +637,10 @@ async function shareCard() {
 
   sharing.value = true
   cardRef.value.classList.add('share-card--export')
-  if (props.isFinal) {
+  if (isFinal.value) {
     cardRef.value.classList.add('share-card--export-final')
   }
-  if (hasImage.value && hasText.value && !props.isFinal) {
+  if (hasImage.value && hasText.value && !isFinal.value) {
     cardRef.value.classList.add('share-card--export-image-text')
   }
 
@@ -815,17 +668,14 @@ async function shareCard() {
       2
     )
 
+    await waitForPaint()
     const dataUrl = await captureShareCard(cardRef.value)
-    const fileName = props.isFinal ? 'ignite-mission-accomplished.png' : 'ignite-achievement.png'
+    const fileName = isFinal.value ? 'ignite-mission-accomplished.png' : 'ignite-achievement.png'
 
-    // Prefer the native share sheet on mobile; fall back to a download on
-    // desktop / browsers without file-share support. A synthetic <a download>
-    // click does nothing on iOS Safari, which is why mobile "share" appeared
-    // to do nothing.
-    const shared = await shareImageFile(dataUrl, fileName)
-    if (!shared) {
-      downloadImage(dataUrl, fileName)
-    }
+    await shareOrDownloadImage(dataUrl, fileName, {
+      title: 'Ignite',
+      text: questTitle.value || headlineText.value
+    })
   } catch (error) {
     console.error('Share failed:', error)
   } finally {
@@ -840,7 +690,8 @@ async function shareCard() {
 defineExpose({ shareCard })
 </script>
 
-<style scoped>
+<style>
+/* Unscoped: child variant components reuse these sc-* poster classes. */
 .share-card-root {
   width: 100%;
   max-width: 360px;
@@ -1034,6 +885,13 @@ defineExpose({ shareCard })
   flex-shrink: 0;
 }
 
+.sc-invite-secondary {
+  color: rgba(79, 209, 197, 0.95) !important;
+  font-weight: 700 !important;
+  text-transform: none !important;
+  letter-spacing: 0.02em;
+}
+
 .sc-footer {
   position: relative;
   text-align: center;
@@ -1078,20 +936,7 @@ defineExpose({ shareCard })
   color: #fff;
 }
 
-.sc-progress {
-  flex: 1;
-  height: 6px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.1);
-  overflow: hidden;
-}
 
-.sc-progress-fill {
-  width: 72%;
-  height: 100%;
-  border-radius: 6px;
-  background: linear-gradient(90deg, #4FD1C5, #8B5CF6);
-}
 
 /* html-to-image / html2canvas: solid fill + rounded corners applied in canvas export */
 .share-card--export {
@@ -1455,9 +1300,6 @@ defineExpose({ shareCard })
   background: rgba(0, 0, 0, 0.32);
 }
 
-.share-card--final .sc-progress-fill {
-  background: linear-gradient(90deg, #f59e0b, #fbbf24);
-}
 
 .share-card--export-final .sc-headline--final {
   background: none !important;

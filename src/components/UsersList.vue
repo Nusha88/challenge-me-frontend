@@ -1,5 +1,5 @@
 <template>
-  <div class="users-container pb-10">
+  <div class="users-container">
     <HeroesPageHeader :total-users="totalUsers" />
 
     <v-alert
@@ -8,60 +8,94 @@
       variant="tonal"
       class="mb-4"
       closable
-      @click:close="error = ''"
+      @click:close="clearError"
     >
-      {{ error }}
+      <div class="heroes-error-row">
+        <span>{{ error }}</span>
+        <v-btn
+          size="small"
+          variant="text"
+          color="error"
+          class="text-none"
+          @click="retryFetch"
+        >
+          {{ t('users.retry') }}
+        </v-btn>
+      </div>
     </v-alert>
 
-    <HeroesSkeleton v-if="loading" />
+    <HeroesSearchBar
+      v-model="searchQuery"
+      :sort-by="sortBy"
+      @update:sort-by="setSort"
+      @search="handleSearch"
+      @clear="clearSearch"
+    />
 
-    <template v-else>
-      <HeroesSearchBar v-model="searchQuery" @search="handleSearch" />
+    <HeroesSkeleton v-if="loading && !hasLoadedOnce" />
 
-      <div v-if="users.length === 0" class="text-center py-10">
-        <v-icon size="84" color="grey-darken-3">mdi-account-off-outline</v-icon>
-        <p class="empty-text mt-4 text-h6">
-          {{ searchQuery ? t('users.noUsersFound') : t('users.noUsers') }}
-        </p>
-      </div>
+    <template v-else-if="!loading || users.length > 0">
+      <HeroesEmptyState
+        v-if="showEmpty"
+        :text="emptyText"
+        :has-search="Boolean(searchQuery.trim())"
+        @clear-search="clearSearch"
+      />
 
-      <div v-else class="hall-of-fame">
-        <v-row v-if="topThreeUsers.length > 0" class="mb-12">
-          <v-col
-            v-for="(user, index) in topThreeUsers"
-            :key="user._id || user.id"
-            cols="12"
-            md="4"
-            class="reveal-animation"
-            :style="{ '--i': index }"
-          >
-            <HeroPodiumCard
-              :user="user"
-              :rank="index + 1"
-              @click="handleUserClick"
-            />
-          </v-col>
-        </v-row>
+      <div v-else-if="users.length > 0" class="hall-of-fame">
+        <template v-if="topThreeUsers.length > 0">
+          <MissionSectionDivider
+            :label="t('users.sections.leaders')"
+            icon="mdi-crown-outline"
+            :count="topThreeUsers.length"
+            flush-top
+          />
+          <v-row class="mb-6">
+            <v-col
+              v-for="(user, index) in topThreeUsers"
+              :key="user._id || user.id"
+              cols="12"
+              md="4"
+              class="reveal-animation"
+              :style="{ '--i': index }"
+            >
+              <HeroPodiumCard
+                :user="user"
+                :rank="index + 1"
+                @click="handleUserClick"
+              />
+            </v-col>
+          </v-row>
+        </template>
 
-        <v-row class="remaining-heroes-grid">
-          <v-col
-            v-for="(user, index) in remainingUsers"
-            :key="user._id || user.id"
-            cols="12"
-            sm="6"
-            lg="4"
-            class="reveal-animation"
-            :style="{ '--i': index + 3 }"
-          >
-            <HeroListCard :user="user" @click="handleUserClick" />
-          </v-col>
-        </v-row>
+        <template v-if="remainingUsers.length > 0">
+          <MissionSectionDivider
+            :label="t('users.sections.all')"
+            icon="mdi-account-group-outline"
+            :count="Math.max(0, totalUsers - topThreeUsers.length)"
+            :flush-top="topThreeUsers.length === 0"
+          />
+          <v-row class="remaining-heroes-grid">
+            <v-col
+              v-for="(user, index) in remainingUsers"
+              :key="user._id || user.id"
+              cols="12"
+              sm="6"
+              lg="4"
+              class="reveal-animation"
+              :style="{ '--i': index + 3 }"
+            >
+              <HeroListCard :user="user" @click="handleUserClick" />
+            </v-col>
+          </v-row>
+        </template>
 
         <v-progress-linear
-          v-if="loadingMore"
+          v-if="loadingMore || (loading && hasLoadedOnce)"
           indeterminate
-          color="teal-accent-4"
-          class="mt-6 rounded-pill shadow-neon"
+          color="#4FD1C5"
+          height="4"
+          class="mt-6"
         />
 
         <div
@@ -72,16 +106,26 @@
         />
       </div>
     </template>
+
+    <v-progress-linear
+      v-else-if="loading"
+      indeterminate
+      color="#4FD1C5"
+      height="4"
+      class="mt-2"
+    />
   </div>
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import MissionSectionDivider from './MissionSectionDivider.vue'
 import HeroesPageHeader from './heroes/HeroesPageHeader.vue'
 import HeroesSearchBar from './heroes/HeroesSearchBar.vue'
 import HeroesSkeleton from './heroes/HeroesSkeleton.vue'
+import HeroesEmptyState from './heroes/HeroesEmptyState.vue'
 import HeroPodiumCard from './heroes/HeroPodiumCard.vue'
 import HeroListCard from './heroes/HeroListCard.vue'
 import { useHeroesList } from '../composables/useHeroesList'
@@ -97,12 +141,17 @@ const {
   loadingMore,
   error,
   searchQuery,
+  sortBy,
   hasMore,
+  hasLoadedOnce,
   topThreeUsers,
   remainingUsers,
   fetchUsers,
   loadMoreUsers,
-  handleSearch
+  handleSearch,
+  setSort,
+  clearSearch,
+  clearError
 } = useHeroesList()
 
 const { loadMoreTrigger } = useInfiniteScroll({
@@ -112,11 +161,25 @@ const { loadMoreTrigger } = useInfiniteScroll({
   onLoadMore: loadMoreUsers
 })
 
+const showEmpty = computed(
+  () => !loading.value && !error.value && users.value.length === 0
+)
+
+const emptyText = computed(() =>
+  searchQuery.value.trim()
+    ? t('users.noUsersFound')
+    : t('users.noUsers')
+)
+
 function handleUserClick(user) {
   const userId = user._id || user.id
   if (userId) {
     router.push(`/heroes/${userId}`)
   }
+}
+
+async function retryFetch() {
+  await fetchUsers(1, false)
 }
 
 onMounted(() => {
@@ -126,15 +189,26 @@ onMounted(() => {
 
 <style scoped>
 .users-container {
-  max-width: 1300px;
+  width: 100%;
+  max-width: 1400px;
   margin: 0 auto;
+  padding: 0;
+  color: var(--home-text, #f1f5f9);
+}
+
+.heroes-error-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .reveal-animation {
   opacity: 0;
-  transform: translateY(20px);
-  animation: revealHero 0.5s ease forwards;
-  animation-delay: calc(var(--i) * 0.08s);
+  transform: translateY(16px);
+  animation: revealHero 0.45s var(--home-ease, ease) forwards;
+  animation-delay: calc(var(--i) * 0.06s);
 }
 
 @keyframes revealHero {
@@ -144,24 +218,10 @@ onMounted(() => {
   }
 }
 
-.empty-text {
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.shadow-neon {
-  box-shadow: 0 0 15px rgba(79, 209, 197, 0.2) !important;
-}
-
 .load-more-trigger {
   width: 100%;
   height: 1px;
   pointer-events: none;
   visibility: hidden;
-}
-
-@media (max-width: 480px) {
-  .users-container {
-    padding: 8px !important;
-  }
 }
 </style>

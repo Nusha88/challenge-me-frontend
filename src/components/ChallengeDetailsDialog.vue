@@ -1,7 +1,7 @@
 <template>
   <v-dialog 
     v-model="dialogModel"
-    max-width="800"
+    max-width="900"
     scrollable
     transition="dialog-bottom-transition"
     @update:model-value="handleVisibility"
@@ -12,94 +12,54 @@
       </v-card-text>
     </v-card>
 
-    <v-card v-else class="challenge-details-card rounded-xl overflow-hidden">
-      <v-img
-        :src="challenge.imageUrl"
-        height="280"
-        cover
-        class="align-end text-white header-image"
-      >
-        <div class="header-actions">
-          <v-btn
-            v-if="isOwner && !isFinished"
-            icon="mdi-pencil"
-            variant="text"
-            size="small"
-            @click.stop="router.push(`/missions/edit/${challenge._id}`)"
-            class="action-btn"
-          ></v-btn>
-          
-          <v-menu v-if="!isFinished" location="bottom end">
-            <template #activator="{ props: menuProps }">
-              <v-btn
-                variant="text"
-                size="small"
-                v-bind="menuProps"
-                class="action-btn"
-                icon="mdi-share-variant"
-              ></v-btn>
-            </template>
-            <v-list class="dark-menu-list">
-              <v-list-item @click="copyLink">
-                <template #prepend><v-icon size="18">mdi-link</v-icon></template>
-                <v-list-item-title>{{ t('challenges.share.copyLink') }}</v-list-item-title>
-              </v-list-item>
-              <v-list-item v-if="canInviteFriends" @click="openInviteCardDialog">
-                <template #prepend><v-icon size="18">mdi-account-multiple-plus</v-icon></template>
-                <v-list-item-title>{{ t('challenges.share.inviteFriends') }}</v-list-item-title>
-              </v-list-item>
-            </v-list>
-          </v-menu>
+    <v-card
+      v-else
+      ref="dialogSurfaceRef"
+      class="challenge-details-card rounded-xl overflow-hidden"
+    >
+      <ChallengeDetailsHeader
+        :challenge="challenge"
+        :is-owner="isOwner"
+        :is-finished="isFinished"
+        :can-invite-friends="canInviteFriends"
+        :type-label="getChallengeTypeLabel(challenge.challengeType)"
+        :start-label="formatDisplayDate(challenge.startDate)"
+        :end-label="formatDisplayDate(challenge.endDate)"
+        @edit="openEditPage"
+        @copy-link="copyLink"
+        @invite="openInviteCardDialog"
+        @close="handleVisibility(false)"
+      />
 
-          <v-btn
-            icon="mdi-close"
-            variant="text"
-            size="small"
-            @click.stop="handleVisibility(false)"
-            class="action-btn"
-          ></v-btn>
-        </div>
-
-        <div class="header-overlay">
-          <div class="header-content px-6 py-6">
-            <div class="d-flex align-center gap-2 mb-3">
-              <v-chip
-                size="x-small"
-                :class="challenge.challengeType === CHALLENGE_TYPES.HABIT ? 'chip-habit' : 'chip-result'"
-                class="font-weight-black text-uppercase px-3"
-              >
-                {{ getChallengeTypeLabel(challenge.challengeType) }}
-              </v-chip>
-              <v-icon v-if="challenge.privacy === 'private'" color="rgba(255,255,255,0.5)" size="14">mdi-lock</v-icon>
-            </div>
-            
-            <h2 class="text-h4 font-weight-bold mb-2 challenge-title">
-              {{ challenge.title }}
-            </h2>
-
-            <div class="d-flex align-center date-info">
-              <v-icon size="16" color="#4FD1C5" class="mr-2">mdi-calendar-clock</v-icon>
-              <span class="text-caption opacity-80">
-                {{ formatDisplayDate(challenge.startDate) }} — {{ formatDisplayDate(challenge.endDate) }}
-              </span>
-            </div>
-          </div>
-        </div>
-      </v-img>
-
-      <v-tabs v-model="tab" grow class="custom-tabs">
+      <v-tabs v-model="tab" grow class="custom-tabs" density="default" height="48">
         <v-tab value="progress">{{ t('challenges.progress') }}</v-tab>
         <v-tab value="details">{{ t('challenges.about') }}</v-tab>
         <v-tab v-if="challenge.allowComments" value="community">{{ t('challenges.community.title') }}</v-tab>
         <v-tab v-if="isOwner" value="diary">{{ t('challenges.diary.tabTitle') }}</v-tab>
       </v-tabs>
 
+      <v-alert
+        v-if="feedbackMessage"
+        :type="feedbackType"
+        variant="tonal"
+        density="compact"
+        class="ma-4 mb-0 details-feedback"
+        closable
+        @click:close="clearFeedback"
+      >
+        {{ feedbackMessage }}
+      </v-alert>
+
       <v-card-text class="pa-0 modal-body-bg">
-        <v-window v-model="tab" class="pa-6">
+        <v-window
+          v-model="tab"
+          class="pa-6 details-window"
+        >
           
-          <v-window-item value="progress">
+          <v-window-item value="progress" eager :transition="false" :reverse-transition="false">
             <div class="tab-content-wrapper">
               <template v-if="challenge.challengeType === CHALLENGE_TYPES.HABIT">
+                <p v-if="isCurrentUserParticipant" class="progress-lead">{{ t('challenges.progressRitualLead') }}</p>
                 <div class="progress-header mb-6">
                   <div v-if="!isFinished" class="progress-header-row d-flex justify-space-between align-center flex-wrap gap-2">
                     <div v-if="showPersonalPace" class="personal-pace-row">
@@ -179,6 +139,7 @@
               </template>
 
               <template v-else>
+                <p v-if="isCurrentUserParticipant" class="progress-lead">{{ t('challenges.progressQuestLead') }}</p>
                 <div class="d-flex justify-space-between mb-2">
                   <span class="section-title">{{ progressPercentage }}% {{ t('challenges.completed') }}</span>
                 </div>
@@ -204,7 +165,7 @@
             </div>
           </v-window-item>
 
-          <v-window-item value="details">
+          <v-window-item value="details" eager :transition="false" :reverse-transition="false">
             <v-row dense class="mb-8">
               <v-col cols="6" md="4" v-for="(item, statIdx) in missionStats" :key="`${statIdx}-${item.type || 'default'}-${item.label}`">
                 <div class="stat-card">
@@ -298,36 +259,43 @@
             </div>
           </v-window-item>
 
-          <v-window-item value="community">
+          <v-window-item value="community" eager :transition="false" :reverse-transition="false">
             <div class="diary-container">
-              <CommentsComponent
-                v-if="!isFinished"
-                :key="communityRefreshKey"
-                :challenge-id="challenge._id"
-                :allow-comments="challenge.allowComments"
-                :current-user-id="currentUserId"
-                :is-owner="isOwner"
-                :challenge-type="challenge.challengeType"
-                :challenge-start-date="challenge.startDate"
-                :challenge-end-date="challenge.endDate"
-                :challenge-owner="challenge.owner"
-                :challenge-participants="challenge.participants || []"
-                :scroll-target="scrollTarget"
-                @join="emitJoin"
-              />
-              <v-alert v-else type="info" variant="tonal" class="info-message">
+              <v-alert
+                v-if="isFinished"
+                type="info"
+                variant="tonal"
+                class="info-message mb-4"
+              >
                 <template #prepend>
                   <v-icon class="info-message-icon">mdi-information</v-icon>
                 </template>
                 {{ t('challenges.finishedChallengeComments') }}
               </v-alert>
+              <CommentsComponent
+                :key="communityRefreshKey"
+                :challenge-id="String(challenge._id)"
+                :allow-comments="challenge.allowComments !== false"
+                :current-user-id="currentUserId"
+                :is-owner="isOwner"
+                :is-finished="isFinished"
+                :challenge-type="challenge.challengeType"
+                :challenge-start-date="challenge.startDate"
+                :challenge-end-date="challenge.endDate"
+                :challenge-owner="challenge.owner"
+                :challenge-participants="challenge.participants || []"
+                :previous-run-id="previousRunId"
+                :scroll-target="scrollTarget"
+                @join="emitJoin"
+                @open-previous-run="openPreviousRun"
+              />
             </div>
           </v-window-item>
 
-          <v-window-item v-if="isOwner" value="diary">
+          <v-window-item v-if="isOwner" value="diary" eager :transition="false" :reverse-transition="false">
             <div class="diary-container">
               <DiaryComponent
-                :challenge-id="challenge._id"
+                :challenge-id="String(challenge._id)"
                 :current-user-id="currentUserId"
                 :is-owner="isOwner"
                 :is-finished="isFinished"
@@ -338,7 +306,7 @@
         </v-window>
       </v-card-text>
 
-      <v-card-actions class="modal-footer px-6 py-4">
+      <v-card-actions ref="footerActionsRef" class="modal-footer px-6 py-4">
         <v-btn v-if="showLeaveButtonEffective" color="#ff5252" variant="text" @click="openLeaveConfirm">
           {{ t('challenges.giveUp') }}
         </v-btn>
@@ -415,9 +383,9 @@
         </v-card>
       </v-dialog>
 
-      <ChallengeInviteCardDialog
-        v-model="inviteCardDialog"
-        :invite-url="getShareUrl()"
+      <MissionInviteModal
+        v-model="inviteDialogOpen"
+        :invite-url="inviteUrl"
         :card-data="inviteCardData"
       />
     </v-card>
@@ -432,35 +400,32 @@
 
   <ShareAchievementModal
     v-model="questShareCardOpen"
-    :quest-title="questShareCardData.questTitle"
-    :step-name="questShareCardData.stepName"
-    :user-text="questShareCardData.userText"
-    :user-image="questShareCardData.userImage"
-    :user-image-data-url="questShareCardData.userImageDataUrl"
-    :user-level="questShareCardData.userLevel"
-    :user-rank-title="questShareCardData.userRankTitle"
-    :is-final="questShareCardData.isFinal"
-    :xp-earned="questShareCardData.xpEarned"
-    :sparks-earned="questShareCardData.sparksEarned"
-    :completed-steps="questShareCardData.completedSteps"
-    :total-steps="questShareCardData.totalSteps"
-    :mission-dates="questShareCardData.missionDates"
-    :mission-type="questShareCardData.missionType"
-    :completed-days="questShareCardData.completedDays"
-    :total-days="questShareCardData.totalDays"
-    :completion-tier="questShareCardData.completionTier"
+    :payload="questShareCardData"
+    @invite-mission="openInviteFromTriumph"
   />
 </template>
 
 <style scoped>
 
 .challenge-details-card {
-  background: #0f172a !important; 
-  color: #ffffff !important;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--home-bg, #0b0d12) !important; 
+  color: var(--home-text, #f1f5f9) !important;
+  border: 1px solid var(--home-border, rgba(255, 255, 255, 0.08));
+  /* Keep chrome (header/tabs/footer) from being crushed by scrollable dialog flex. */
+  max-height: calc(100vh - 48px);
 }
 
-.modal-body-bg { background: #0f172a !important; }
+.challenge-details-card :deep(.header-image) {
+  flex-shrink: 0;
+}
+
+.modal-body-bg {
+  background: var(--home-bg, #0b0d12) !important;
+}
+
+.details-feedback {
+  flex-shrink: 0;
+}
 
 
 .header-overlay {
@@ -481,22 +446,44 @@
 .action-btn { color: white !important; opacity: 0.8; }
 .action-btn:hover { opacity: 1; background: rgba(255,255,255,0.1); }
 
-.chip-habit { background-color: #7048E8 !important; box-shadow: 0 0 10px rgba(112, 72, 232, 0.4); }
-.chip-result { background-color: #4FD1C5 !important; box-shadow: 0 0 10px rgba(79, 209, 197, 0.4); }
-
+.chip-habit {
+  background-color: #4FD1C5 !important;
+  color: #0b0d12 !important;
+  box-shadow: none;
+}
+.chip-result {
+  background-color: rgba(251, 191, 36, 0.9) !important;
+  color: #0b0d12 !important;
+  box-shadow: none;
+}
 
 .custom-tabs {
-  background: #1e293b !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  --v-tabs-height: 48px;
+  flex-shrink: 0;
+  height: 48px;
+  min-height: 48px;
+  background: var(--home-surface, rgba(22, 27, 40, 0.85)) !important;
+  border-bottom: 1px solid var(--home-border, rgba(255, 255, 255, 0.08));
 }
 .custom-tabs :deep(.v-tab) {
   text-transform: uppercase;
   font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 1px;
+  letter-spacing: 0.06em;
+  line-height: 1.25;
+  height: 48px !important;
+  min-height: 48px !important;
   color: rgba(255, 255, 255, 0.5) !important;
 }
+.custom-tabs :deep(.v-btn__content) {
+  line-height: 1.25;
+  overflow: visible;
+  white-space: nowrap;
+}
 .custom-tabs :deep(.v-tab--selected) { color: #4FD1C5 !important; }
+.custom-tabs :deep(.v-tab__slider) {
+  background: #4FD1C5 !important;
+}
 
 
 .calendar-grid {
@@ -661,12 +648,13 @@
 
 
 .modal-footer {
+  flex-shrink: 0;
   background: #0f172a !important;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 .main-action-btn {
-  background: linear-gradient(135deg, #7048E8 0%, #4FD1C5 100%) !important;
-  color: white !important;
+  background: linear-gradient(135deg, #4FD1C5 0%, #2dd4bf 100%) !important;
+  color: #0b0d12 !important;
   font-weight: 800 !important;
   text-transform: uppercase;
   border-radius: 12px !important;
@@ -678,7 +666,37 @@
   align-items: center;
 }
 .v-card-text.pa-0.modal-body-bg {
-  height: 400px;
+  flex: 1 1 auto;
+  min-height: 200px;
+  max-height: min(60vh, 520px);
+  overflow-y: auto;
+}
+
+.details-window {
+  min-height: 180px;
+  overflow: visible;
+}
+
+.diary-container,
+.tab-content-wrapper {
+  min-height: 140px;
+}
+
+.progress-lead {
+  margin: 0 0 14px;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--home-text-dim, #94a3b8);
+  max-width: 52ch;
+}
+
+.share-menu-list {
+  background: #161b28 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.share-menu-title {
+  color: #f1f5f9 !important;
 }
 
 .action-outline-btn { text-transform: none; border-color: rgba(255, 255, 255, 0.1) !important; }
@@ -858,7 +876,10 @@
   }
 
   .custom-tabs :deep(.v-tab) {
-    font-size: 0.55em;
+    font-size: 0.68rem;
+    letter-spacing: 0.04em;
+    min-width: 0;
+    padding-inline: 8px;
   }
 
   .progress-header-row {
@@ -928,7 +949,8 @@ import {useChallengeType} from '../composables/useChallengeType'
 import {useUserStore} from '../stores/user'
 import { useWatchedChallengesStore } from '../stores/watchedChallenges'
 import ChallengeActions from './ChallengeActions.vue'
-import ChallengeInviteCardDialog from './ChallengeInviteCardDialog.vue'
+import MissionInviteModal from './mission-invite/MissionInviteModal.vue'
+import ChallengeDetailsHeader from './challenge-details/ChallengeDetailsHeader.vue'
 import CommentsComponent from './CommentsComponent.vue'
 import DiaryComponent from './DiaryComponent.vue'
 import QuestSuccessModal from './QuestSuccessModal.vue'
@@ -936,8 +958,11 @@ import ShareAchievementModal from './ShareAchievementModal.vue'
 import {challengeService} from '../services/api'
 import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
 import { useMissionCompletionFlow } from '../composables/useMissionCompletionFlow'
+import { useMissionInvite } from '../composables/useMissionInvite'
+import { createEmptyTriumphSharePayload, assignTriumphSharePayload, buildQuestStepPayload } from '../utils/triumphSharePayload'
 import { getMissionShareUrl } from '../utils/appUrl'
-import { fireConfetti } from '../utils/confetti'
+import { openMissionDetails } from '../utils/openMissionDetails'
+import { fireConfettiFromElement } from '../utils/confetti'
 import { getPaceStatus } from '../utils/challengePace'
 import { isChallengeEnded, areActionsCompleted } from '../utils/challengeStatus'
 import { getScheduledDaysCount, normalizeDateKey, toDateInputValue } from '../utils/dateUtils'
@@ -954,6 +979,9 @@ import {
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 import { getLevelFromXp, getLevelInfo } from '../utils/levelSystem'
 import { Trophy } from 'lucide-vue-next'
+import { useChallengeDetailsMembership } from '../composables/useChallengeDetailsMembership'
+import { buildDayClass, isDayProtected as isDayProtectedUtil } from '../composables/useChallengeDetailsCalendar'
+import { createPendingQuestAction } from '../composables/useChallengeQuestPanel'
 
 const props = defineProps({
   modelValue: {
@@ -1010,16 +1038,27 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:modelValue', 'save', 'join', 'leave', 'delete', 'update'])
+const emit = defineEmits(['update:modelValue', 'join', 'leave', 'update'])
 
-const deleteConfirmDialog = ref(false)
 const leaveConfirmDialog = ref(false)
-const inviteCardDialog = ref(false)
 const isInitializing = ref(true)
 const participantSaveLoading = ref(false)
 const ownerActionsSaveLoading = ref(false)
 const endMissionLoading = ref(false)
 const mainActionBtnRef = ref(null)
+const dialogSurfaceRef = ref(null)
+const footerActionsRef = ref(null)
+const feedbackMessage = ref('')
+const feedbackType = ref('error')
+
+function showFeedback(message, type = 'error') {
+  feedbackMessage.value = message || ''
+  feedbackType.value = type
+}
+
+function clearFeedback() {
+  feedbackMessage.value = ''
+}
 
 const isMainActionLoading = computed(
   () =>
@@ -1029,8 +1068,6 @@ const isMainActionLoading = computed(
     endMissionLoading.value ||
     props.saveLoading
 )
-const snackbar = ref(false)
-const snackbarText = ref('')
 const tab = ref('progress')
 const heavyContentReady = ref(false)
 const communityRefreshKey = ref(0)
@@ -1050,11 +1087,10 @@ const watchedStore = useWatchedChallengesStore()
 const { applyXpAwardResponse } = useXpAwardFeedback()
 const { completeHabitMission, completeQuestMission } = useMissionCompletionFlow()
 
-function getCurrentUserId() {
-  return userStore.userId
-}
-
-const currentUserId = ref(getCurrentUserId())
+const currentUserId = computed(() => {
+  const id = userStore.userId
+  return id != null ? String(id) : null
+})
 
 function ensureWatchedStoreLoaded() {
   const userId = currentUserId.value
@@ -1089,9 +1125,6 @@ watch(
     }
   }
 )
-
-const watchingId = ref(null)
-
 
 const localCurrentUserCompletedDays = ref([])
 
@@ -1138,7 +1171,17 @@ function navigateAfterDialogClose() {
   router.replace('/')
 }
 
-// Confetti is provided by a shared helper (fireConfetti)
+// Confetti anchored to dialog surface / footer CTA
+
+function getToastAnchor() {
+  return mainActionBtnRef.value || footerActionsRef.value || dialogSurfaceRef.value
+}
+
+function celebrateReward() {
+  setTimeout(() => {
+    fireConfettiFromElement(dialogSurfaceRef.value || footerActionsRef.value)
+  }, 300)
+}
 
 const actionsViewModel = computed({
   get() {
@@ -1213,6 +1256,21 @@ const isFinished = computed(() => {
 
   return false
 })
+
+const previousRunId = computed(() => {
+  const raw = props.challenge?.extendedFrom
+  if (!raw) return null
+  const id = raw._id || raw.id || raw
+  return id ? String(id) : null
+})
+
+function openPreviousRun(runId = previousRunId.value) {
+  if (!runId) return
+  openMissionDetails({
+    challengeId: String(runId),
+    initialTab: 'community'
+  })
+}
 
 const allQuestActionsComplete = computed(() => {
   if (props.challenge?.challengeType !== CHALLENGE_TYPES.RESULT) {
@@ -1508,82 +1566,6 @@ const totalParticipantsCount = computed(() => {
   return props.challenge.participants.length
 })
 
-const inviteCardData = computed(() => {
-  const challenge = props.challenge
-  if (!challenge) return null
-
-  const progressPercent = challenge.challengeType === CHALLENGE_TYPES.HABIT
-    ? overallCompletionPercent.value
-    : progressPercentage.value
-
-  const isQuest = challenge.challengeType === CHALLENGE_TYPES.RESULT
-  const totalDuration = isQuest ? 0 : totalDays.value
-  const daysWalked = isQuest ? 0 : daysOnPath.value
-  const isRitualMember = props.isOwner || isCurrentUserParticipant.value
-
-  let statusLine
-  if (isQuest) {
-    statusLine = t('challenges.inviteCard.questProgressLine', {
-      done: progressDone.value,
-      total: progressTotal.value
-    })
-  } else if (isRitualMember) {
-    // Member: show how many days they've personally been walking the path.
-    statusLine = daysWalked > 0
-      ? t('challenges.inviteCard.durationLine', { count: daysWalked }, daysWalked)
-      : t('challenges.inviteCard.pathWithoutDuration')
-  } else {
-    // Non-member: show the overall mission duration instead.
-    statusLine = totalDuration > 0
-      ? t('challenges.inviteCard.ritualDurationLine', { count: totalDuration }, totalDuration)
-      : t('challenges.inviteCard.pathWithoutDuration')
-  }
-
-  const participantsCount = totalParticipantsCount.value
-  const participantsLine = participantsCount <= 1
-    ? t('challenges.inviteCard.firstPioneers')
-    : t('challenges.inviteCard.participantsLine', { count: participantsCount })
-
-  const ctaLabel = isQuest
-    ? t('challenges.inviteCard.questCta')
-    : t('challenges.inviteCard.cta')
-
-  const dialogTitle = isQuest
-    ? t('challenges.inviteCard.questDialogTitle')
-    : t('challenges.inviteCard.ritualDialogTitle')
-
-  const description = challenge.description || ''
-  const shortDescription = description.length <= 140
-    ? description
-    : `${description.slice(0, 137)}...`
-
-  const authorName = challenge.owner?.name || userStore.user?.name || ''
-
-  return {
-    challengeId: challenge._id,
-    isQuest,
-    badgeLabel: isQuest
-      ? t('challenges.inviteCard.badgeQuest')
-      : t('challenges.inviteCard.badgeRitual'),
-    title: challenge.title || '',
-    description: shortDescription,
-    hasDescription: Boolean(description),
-    statusLine,
-    participantsLine,
-    ctaLabel,
-    dialogTitle,
-    difficultyLabel: t('challenges.inviteCard.difficulty', {
-      level: getDifficultyLabel(challenge.difficulty || 'medium')
-    }),
-    hasDifficulty: Boolean(challenge.difficulty),
-    authorLabel: t('challenges.inviteCard.author', { name: authorName }),
-    hasAuthor: Boolean(authorName),
-    progressLabel: t('challenges.inviteCard.progress', { percent: progressPercent }),
-    showProgressOption: !isQuest && isRitualMember,
-    imageUrl: challenge.imageUrl || ''
-  }
-})
-
 const missionStats = computed(() => {
   if (!props.challenge) return []
   
@@ -1690,7 +1672,7 @@ function getCellColor(active, total) {
 }
 
 function isDayProtected(day) {
-  return !day.isUserNormalCompleted && (day.isUserFrozen || day.isUserSecondChance)
+  return isDayProtectedUtil(day)
 }
 
 function getDayCellStyle(day) {
@@ -1717,21 +1699,10 @@ function getDayCellTooltip(day) {
 }
 
 function getDayClass(day) {
-  return {
-    'is-completed': day.isUserNormalCompleted,
-    'protected-day': isDayProtected(day),
-    'is-missed': day.isMissed,
-    'is-today': day.isToday,
-    'is-locked': day.isLocked,
-    'is-pre-join': day.isBeforeJoin,
-    'is-join-marker': day.isJoinMarker,
-    'is-disabled':
-      day.isBeforeJoin ||
-      isFinished.value ||
-      !day.isToday ||
-      !isCurrentUserParticipant.value ||
-      day.isScheduled === false
-  }
+  return buildDayClass(day, {
+    isFinished: isFinished.value,
+    isCurrentUserParticipant: isCurrentUserParticipant.value
+  })
 }
 
 function getCompletedParticipantsCountForDay(dateStr) {
@@ -1842,16 +1813,73 @@ const currentUserCompletedDays = computed(() => {
 
 
 const isCurrentUserParticipant = computed(() => {
-  if (!props.challenge || !props.challenge.participants || !currentUserId.value) return false
+  if (!props.challenge || !currentUserId.value) return false
+
+  // Keep parity with CommentsComponent / membership helpers: owners are members.
+  if (props.isOwner) return true
+
+  if (!Array.isArray(props.challenge.participants)) return false
 
   return props.challenge.participants.some((participant) => {
     const userId =
-      participant.userId?._id || participant.userId || participant._id || participant
+      participant.userId?._id
+      || participant.userId?.id
+      || participant.userId
+      || participant._id
+      || participant.id
+      || participant
     return userId && userId.toString() === currentUserId.value.toString()
   })
 })
 
-const isJoined = computed(() => isCurrentUserParticipant.value)
+const inviteProgressStats = computed(() => ({
+  overallCompletionPercent: overallCompletionPercent.value,
+  progressPercentage: progressPercentage.value,
+  totalDays: totalDays.value,
+  daysOnPath: daysOnPath.value,
+  completedDays: userCompletedCount.value,
+  progressDone: progressDone.value,
+  progressTotal: progressTotal.value
+}))
+
+const {
+  inviteDialogOpen,
+  inviteUrl,
+  inviteCardData,
+  openInviteCardDialog
+} = useMissionInvite({
+  challenge: computed(() => props.challenge),
+  isOwner: computed(() => props.isOwner),
+  isParticipant: isCurrentUserParticipant,
+  progressStats: inviteProgressStats
+})
+
+function openInviteFromTriumph() {
+  questShareCardOpen.value = false
+  openInviteCardDialog()
+}
+
+const {
+  watchingId,
+  canInviteFriends,
+  showJoinActionButton,
+  showWatchActionButton,
+  isWatched,
+  handleWatch,
+  handleUnwatch
+} = useChallengeDetailsMembership({
+  challenge: computed(() => props.challenge),
+  isOwner: computed(() => props.isOwner),
+  showJoinButton: computed(() => props.showJoinButton),
+  currentUserId,
+  isFinished,
+  isCurrentUserParticipant,
+  watchedStore,
+  t,
+  onClose: () => emit('update:modelValue', false),
+  onUpdate: () => emit('update'),
+  onError: (msg) => showFeedback(msg)
+})
 
 const showLeaveButtonEffective = computed(() => {
   if (!props.challenge || !currentUserId.value) return false
@@ -1861,32 +1889,10 @@ const showLeaveButtonEffective = computed(() => {
   return isCurrentUserParticipant.value
 })
 
-const canInviteFriends = computed(() => props.isOwner || isJoined.value)
-
-const canJoinPublicHabit = computed(() => {
-  if (!props.challenge || !currentUserId.value) return false
-  if (isFinished.value) return false
-  if (props.challenge.challengeType !== CHALLENGE_TYPES.HABIT) return false
-  if (props.challenge.privacy === 'private') return false
-  if (props.isOwner) return false
-  if (isJoined.value) return false
-  return true
-})
-
-const showJoinActionButton = computed(() => {
-  if (isJoined.value || props.isOwner || isFinished.value || !currentUserId.value) return false
-  if (props.showJoinButton) return true
-  return canJoinPublicHabit.value
-})
-
 const showMainActionButton = computed(() => {
   return showJoinActionButton.value ||
-    (isJoined.value && props.challenge.challengeType === CHALLENGE_TYPES.HABIT && !isFinished.value) ||
+    (isCurrentUserParticipant.value && props.challenge.challengeType === CHALLENGE_TYPES.HABIT && !isFinished.value) ||
     (props.isOwner && props.challenge.challengeType === CHALLENGE_TYPES.RESULT && tab.value === 'progress')
-})
-
-const showWatchActionButton = computed(() => {
-  return !props.isOwner && !isFinished.value && currentUserId.value && !isJoined.value
 })
 
 const mainActionButtonText = computed(() => {
@@ -1981,8 +1987,8 @@ const populateEditForm = (value) => {
 
   editForm.title = value.title || ''
   editForm.description = value.description || ''
-  editForm.startDate = value.startDate ? value.startDate.slice(0, 10) : ''
-  editForm.endDate = value.endDate ? value.endDate.slice(0, 10) : ''
+  editForm.startDate = normalizeDateKey(value.startDate) || ''
+  editForm.endDate = normalizeDateKey(value.endDate) || ''
   editForm.imageUrl = value.imageUrl || ''
   editForm.frequency = value.frequency || ''
   editForm.privacy = value.privacy || 'public'
@@ -2052,9 +2058,9 @@ const initializeOwnerHabitDays = (value) => {
 const handleModelValueChange = (value) => {
   if (!value) {
     resetForm()
-    deleteConfirmDialog.value = false
     isInitializing.value = true
     localCurrentUserCompletedDays.value = []
+    clearFeedback()
   } else {
     isInitializing.value = true
     if (props.challenge?.challengeType === CHALLENGE_TYPES.HABIT && props.challenge?.completedDays) {
@@ -2134,15 +2140,6 @@ watch(
   }
 )
 
-watch(
-  () => props.deleteLoading,
-  (newValue, oldValue) => {
-    if (oldValue === true && newValue === false) {
-      deleteConfirmDialog.value = false
-    }
-  }
-)
-
 function resetForm() {
   editForm.title = ''
   editForm.description = ''
@@ -2169,6 +2166,15 @@ function clearErrors() {
 function handleVisibility(value) {
   if (!value) closeCalendarTooltip()
   emit('update:modelValue', value)
+}
+
+function openEditPage() {
+  const challengeId = props.challenge?._id
+  if (!challengeId) return
+  // Navigate first so /missions deep-link cleanup does not race and cancel edit.
+  router.push(`/missions/edit/${challengeId}`).finally(() => {
+    handleVisibility(false)
+  })
 }
 
 function emitJoin() {
@@ -2204,27 +2210,9 @@ function handleMainActionClick() {
 const challengeActionsRef = ref(null)
 const questSuccessOpen = ref(false)
 const questSuccessLoading = ref(false)
-const pendingAction = reactive({ index: null, id: null, text: '' })
 const questShareCardOpen = ref(false)
-const questShareCardData = reactive({
-  questTitle: '',
-  stepName: '',
-  userText: '',
-  userImage: '',
-  userImageDataUrl: '',
-  userLevel: 1,
-  userRankTitle: '',
-  isFinal: false,
-  xpEarned: 0,
-  sparksEarned: 0,
-  completedSteps: 0,
-  totalSteps: 0,
-  missionDates: '',
-  missionType: 'quest',
-  completedDays: 0,
-  totalDays: 0,
-  completionTier: ''
-})
+const questShareCardData = reactive(createEmptyTriumphSharePayload())
+const pendingAction = reactive(createPendingQuestAction())
 
 const canConfirmQuestActions = computed(() =>
   props.isOwner &&
@@ -2264,11 +2252,11 @@ async function confirmQuestSuccess(result) {
     challengeActionsRef.value?.markActionChecked(pendingAction.index)
 
     const xpGained = applyXpAwardResponse(response, {
-      toastAnchor: mainActionBtnRef.value
+      toastAnchor: getToastAnchor()
     })
     window.dispatchEvent(new Event('checklist-updated'))
     if (xpGained > 0) {
-      setTimeout(fireConfetti, 300)
+      celebrateReward()
     }
 
     emit('update')
@@ -2276,33 +2264,29 @@ async function confirmQuestSuccess(result) {
     questSuccessOpen.value = false
 
     if (result.mode === 'report') {
-      questShareCardData.questTitle = c.title || ''
-      questShareCardData.stepName = pendingAction.text
-      questShareCardData.userText = result.text || ''
-      questShareCardData.userImage = result.imageUrl || ''
-      questShareCardData.userImageDataUrl = result.imageDataUrl || ''
-      questShareCardData.userLevel = userLevel.value
-      questShareCardData.userRankTitle = heroRank.value.title
-      questShareCardData.isFinal = false
-      questShareCardData.xpEarned = 0
-      questShareCardData.sparksEarned = 0
-      questShareCardData.completedSteps = 0
-      questShareCardData.totalSteps = 0
-      questShareCardData.missionDates = ''
-      questShareCardData.missionType = 'quest'
-      questShareCardData.completedDays = 0
-      questShareCardData.totalDays = 0
-      questShareCardData.completionTier = ''
+      assignTriumphSharePayload(
+        questShareCardData,
+        buildQuestStepPayload({
+          challenge: c,
+          stepName: pendingAction.text,
+          userText: result.text || '',
+          userImage: result.imageUrl || '',
+          userImageDataUrl: result.imageDataUrl || '',
+          userLevel: userLevel.value,
+          userRankTitle: heroRank.value.title
+        })
+      )
       handleVisibility(false)
       await nextTick()
       questShareCardOpen.value = true
     }
   } catch (error) {
-    snackbarText.value = error.response?.data?.message
+    showFeedback(
+      error.response?.data?.message
       || error.response?.data?.error
       || error.message
-      || 'Failed to complete action'
-    snackbar.value = true
+      || t('challenges.questActionError')
+    )
   } finally {
     questSuccessLoading.value = false
   }
@@ -2321,17 +2305,18 @@ async function handleOwnerActionsSave() {
   try {
     const response = await challengeService.updateChallengeActions(c._id, actionsToSave)
     const xpGained = applyXpAwardResponse(response, {
-      toastAnchor: mainActionBtnRef.value
+      toastAnchor: getToastAnchor()
     })
     window.dispatchEvent(new Event('checklist-updated'))
 
     if (xpGained > 0) {
-      setTimeout(fireConfetti, 300)
+      celebrateReward()
     }
 
     emit('update')
     handleVisibility(false)
   } catch (error) {
+    showFeedback(error.response?.data?.message || t('challenges.updateError'))
   } finally {
     ownerActionsSaveLoading.value = false
   }
@@ -2347,8 +2332,7 @@ async function handleEndMission() {
       closeDialog: () => handleVisibility(false)
     })
   } catch (error) {
-    snackbarText.value = error.response?.data?.message || t('challenges.endMissionError')
-    snackbar.value = true
+    showFeedback(error.response?.data?.message || t('challenges.endMissionError'))
   } finally {
     endMissionLoading.value = false
   }
@@ -2405,12 +2389,18 @@ function getParticipantInitial(name) {
 function navigateToOwner() {
   if (!props.challenge?.owner?._id && !props.challenge?.owner) return
   const ownerId = props.challenge.owner._id || props.challenge.owner
-  router.push(`/heroes/${ownerId}`)
+  // Navigate first so /missions deep-link cleanup does not race and cancel profile.
+  router.push(`/heroes/${ownerId}`).finally(() => {
+    handleVisibility(false)
+  })
 }
 
 function navigateToParticipant(participantId) {
   if (!participantId) return
-  router.push(`/heroes/${participantId}`)
+  // Navigate first so /missions deep-link cleanup does not race and cancel profile.
+  router.push(`/heroes/${participantId}`).finally(() => {
+    handleVisibility(false)
+  })
 }
 
 
@@ -2444,43 +2434,31 @@ async function handleParticipantSave() {
     )
 
     const xpGained = applyXpAwardResponse(response, {
-      toastAnchor: mainActionBtnRef.value
+      toastAnchor: getToastAnchor()
     })
 
     if (xpGained > 0) {
-      setTimeout(fireConfetti, 300)
+      celebrateReward()
     }
 
     emit('update')
     emit('update:modelValue', false)
     navigateAfterDialogClose()
   } catch (error) {
-    snackbarText.value = error.response?.data?.message || t('challenges.endMissionError')
-    snackbar.value = true
+    showFeedback(error.response?.data?.message || t('challenges.endMissionError'))
   } finally {
     participantSaveLoading.value = false
   }
 }
 
 
-const isWatched = computed(() => {
-  if (!props.challenge || !currentUserId.value) return false
-  return watchedStore.isWatched(props.challenge)
-})
-
-
 const getShareUrl = () => getMissionShareUrl(props.challenge?._id)
-
-function openInviteCardDialog() {
-  inviteCardDialog.value = true
-}
 
 const copyLink = async () => {
   const url = getShareUrl()
   try {
     await navigator.clipboard.writeText(url)
-    snackbarText.value = t('challenges.share.linkCopied')
-    snackbar.value = true
+    showFeedback(t('challenges.share.linkCopied'), 'success')
   } catch (err) {
     const textArea = document.createElement('textarea')
     textArea.value = url
@@ -2488,50 +2466,11 @@ const copyLink = async () => {
     textArea.select()
     try {
       document.execCommand('copy')
-      snackbarText.value = t('challenges.share.linkCopied')
-      snackbar.value = true
+      showFeedback(t('challenges.share.linkCopied'), 'success')
     } catch (e) {
+      showFeedback(t('challenges.share.copyFailed'))
     }
     document.body.removeChild(textArea)
-  }
-}
-
-
-async function handleWatch() {
-  if (!currentUserId.value || !props.challenge) return
-
-  const challengeId = props.challenge._id
-  watchingId.value = challengeId
-
-  try {
-    await watchedStore.watch(challengeId, currentUserId.value, props.challenge)
-    emit('update:modelValue', false)
-    emit('update')
-  } catch (error) {
-    watchedStore.removeId(challengeId)
-    alert(error.response?.data?.message || t('challenges.watchError'))
-  } finally {
-    watchingId.value = null
-  }
-}
-
-
-async function handleUnwatch() {
-  if (!currentUserId.value || !props.challenge) return
-
-  const challengeId = props.challenge._id
-  watchingId.value = challengeId
-  watchedStore.removeId(challengeId)
-
-  try {
-    await watchedStore.unwatch(challengeId, currentUserId.value)
-    emit('update:modelValue', false)
-    emit('update')
-  } catch (error) {
-    watchedStore.addId(challengeId)
-    alert(error.response?.data?.message || t('challenges.unwatchError'))
-  } finally {
-    watchingId.value = null
   }
 }
 </script>

@@ -135,10 +135,19 @@ self.addEventListener('notificationclick', (event) => {
       type: 'window',
       includeUncontrolled: true
     }).then((clientList) => {
-      // If app is already open, focus it
+      // If app is already open, focus it and open the in-app dialog when possible
       for (let i = 0; i < clientList.length; i++) {
         const client = clientList[i];
         if (client.url.includes(self.location.origin) && 'focus' in client) {
+          if (challengeId && !isDailyRecap && typeof client.postMessage === 'function') {
+            client.postMessage({
+              type: 'OPEN_CHALLENGE',
+              challengeId: String(challengeId),
+              commentId: notificationData.commentId || null,
+              replyId: notificationData.replyId || null
+            });
+            return client.focus();
+          }
           if (targetUrl !== '/') {
             return client.navigate(targetUrl).then(() => client.focus());
           }

@@ -87,7 +87,7 @@
 
         <v-list-item
           to="/missions"
-          :active="currentRoute === 'challenges'"
+          :active="currentRoute === 'challenges' || currentRoute === 'view-challenge'"
           color="primary"
           @click="handleNavClick"
         >
@@ -107,7 +107,7 @@
           <template #prepend>
             <Eye :size="20" class="sidebar-lucide-icon mr-2" />
           </template>
-          <v-list-item-title>{{ t('navigation.interested') }}</v-list-item-title>
+          <v-list-item-title>{{ t('navigation.watchedChallenges') }}</v-list-item-title>
         </v-list-item>
 
         <v-list-item
@@ -143,6 +143,9 @@
         v-model="referralDialogOpen"
         :referral-link="referralLink"
         :copy-feedback="referralCopyFeedback"
+        :invited-count="referralInvitedCount"
+        :max-invites="referralMaxInvites"
+        :can-invite-more="canInviteMore"
         @copy-link="copyReferralLink"
         @share-telegram="openTelegramShare"
         @share-whatsapp="openWhatsAppShare"

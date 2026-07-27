@@ -197,10 +197,11 @@ watch(customDays, (newVal) => {
   }
 
   .duration-chips-row .preset-chips-group {
-    flex: 0 1 auto;
-    flex-wrap: nowrap !important;
+    flex: 1 1 auto;
+    flex-wrap: wrap !important;
     width: auto !important;
     max-width: none !important;
+    min-width: 0;
   }
 
   .duration-chips-row .custom-duration-row {
@@ -229,12 +230,17 @@ watch(customDays, (newVal) => {
   .duration-toggle-wrapper {
     width: 100% !important;
     overflow: visible;
+    margin-bottom: 4px;
+  }
+
+  .duration-chips-row {
+    gap: 6px;
   }
 
   .duration-chips-row .preset-chips-group {
     display: grid !important;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
+    gap: 6px;
     width: 100% !important;
     max-width: none !important;
     height: auto !important;
@@ -244,9 +250,22 @@ watch(customDays, (newVal) => {
   .duration-chips-row .preset-chips-group :deep(.v-btn) {
     width: 100% !important;
     min-width: 0 !important;
+    max-width: none !important;
     flex: none !important;
+    flex-shrink: 1 !important;
     border-radius: 10px !important;
     border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    padding: 0 6px !important;
+    white-space: nowrap !important;
+    font-size: 0.78rem !important;
+    letter-spacing: 0 !important;
+  }
+
+  .duration-chips-row .preset-chips-group :deep(.v-btn__content) {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
   }
 
   .custom-duration-row {
@@ -254,9 +273,9 @@ watch(customDays, (newVal) => {
   }
 
   .custom-duration-row .custom-choice {
-    flex: 0 0 48px;
-    width: 48px !important;
-    max-width: 48px !important;
+    flex: 0 0 44px;
+    width: 44px !important;
+    max-width: 44px !important;
   }
 }
 
@@ -280,6 +299,8 @@ watch(customDays, (newVal) => {
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
   padding: 0 20px !important;
   box-shadow: none !important;
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
 }
 
 .custom-chips-group .chip-btn:hover:not(.v-btn--active),
@@ -321,9 +342,10 @@ watch(customDays, (newVal) => {
   }
 
   .custom-chips-group .chip-btn {
-    padding: 0 12px !important;
-    font-size: 0.85rem !important;
+    padding: 0 8px !important;
+    font-size: 0.8rem !important;
     border-radius: 10px !important;
+    flex-shrink: 1 !important;
   }
 
   .custom-duration-row .custom-choice {
@@ -333,7 +355,7 @@ watch(customDays, (newVal) => {
   }
 
   .custom-chips-group {
-    gap: 8px !important;
+    gap: 6px !important;
   }
 }
 

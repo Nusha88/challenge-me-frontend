@@ -122,21 +122,6 @@
       @update:selected-tasks="setSelectedTasks"
     />
 
-    <ChallengeDetailsDialog
-      v-model="detailsDialogOpen"
-      :challenge="selectedChallenge"
-      :is-owner="selectedIsOwner"
-      :is-participant="selectedIsParticipant"
-      :show-join-button="false"
-      :show-leave-button="selectedIsParticipant"
-      :join-loading="selectedJoinLoading"
-      :leave-loading="selectedLeaveLoading"
-      :save-loading="false"
-      :save-error="''"
-      :delete-loading="false"
-      @update="handleDialogUpdate"
-      @join="handleDialogJoin"
-      @leave="handleDialogLeave"
     />
   </div>
 </template>
@@ -147,7 +132,6 @@ import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import IgniteLoader from './IgniteLoader.vue'
-import ChallengeDetailsDialog from './ChallengeDetailsDialog.vue'
 import HomeGreeting from './home/HomeGreeting.vue'
 import HomeDayTabs from './home/HomeDayTabs.vue'
 import TodayProgressCard from './home/TodayProgressCard.vue'
@@ -164,7 +148,8 @@ import { useHomeWindowEvents } from '../composables/useHomeWindowEvents'
 import { useTodayChallenges } from '../composables/useTodayChallenges'
 import { useTomorrowChecklist } from '../composables/useTomorrowChecklist'
 import { useCompletionCelebration } from '../composables/useCompletionCelebration'
-import { useHomeChallengeDialog } from '../composables/useHomeChallengeDialog'
+import { openMissionDetails } from '../utils/openMissionDetails'
+import { useChallengeUpdatedListener } from '../composables/useChallengeUpdatedListener'
 import { useHomeMotivationalMessage } from '../composables/useHomeMotivationalMessage'
 import {
   useSparksRitualActions,
@@ -314,21 +299,12 @@ const {
   }
 })
 
-const {
-  detailsDialogOpen,
-  selectedChallenge,
-  selectedIsOwner,
-  selectedIsParticipant,
-  selectedLeaveLoading,
-  selectedJoinLoading,
-  navigateToChallenge,
-  handleDialogUpdate,
-  handleDialogJoin,
-  handleDialogLeave
-} = useHomeChallengeDialog({
-  getUserId: () => userStore.userId,
-  updateChallengeInList,
-  onRefresh: () => refreshHomeDataRef.current()
+function navigateToChallenge(challenge) {
+  openMissionDetails({ challenge })
+}
+
+useChallengeUpdatedListener(() => {
+  refreshHomeDataRef.current?.()
 })
 
 const isTodayProgressLoading = computed(

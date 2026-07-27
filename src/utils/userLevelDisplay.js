@@ -20,7 +20,8 @@ export function getDaysOnSite(dateString) {
     registrationDate.setHours(0, 0, 0, 0)
 
     const diffDays = Math.floor((today - registrationDate) / (1000 * 60 * 60 * 24))
-    return Math.max(0, diffDays)
+    // Inclusive day count (signup day = day 1), shared by Profile + Heroes chips.
+    return Math.max(1, diffDays + 1)
   } catch {
     return 0
   }
@@ -31,10 +32,6 @@ export function getUserTotalXp(user) {
 }
 
 export function getUserLevel(user) {
-  const explicitLevel = Number(user?.level)
-  if (Number.isFinite(explicitLevel) && explicitLevel > 0) {
-    return Math.floor(explicitLevel)
-  }
   return getLevelFromXp(getUserTotalXp(user))
 }
 

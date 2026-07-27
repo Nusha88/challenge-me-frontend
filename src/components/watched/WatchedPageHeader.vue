@@ -1,12 +1,16 @@
 <template>
-  <div class="header-section text-left mb-10 reveal-animation">
-    <div class="d-flex align-center mb-1">
-      <v-icon color="teal-accent-4" size="40" class="mr-3">mdi-radar</v-icon>
-      <h1 class="page-title-dark">{{ t('watched.title') }}</h1>
+  <header class="watched-header">
+    <div class="watched-header-copy">
+      <div class="watched-header-title-row">
+        <v-icon color="#4FD1C5" size="36" class="watched-header-icon">mdi-radar</v-icon>
+        <div>
+          <h1 class="watched-title">{{ t('watched.title') }}</h1>
+          <p class="watched-subtitle">{{ t('watched.subtitle') }}</p>
+        </div>
+      </div>
+      <p class="watched-lead">{{ t('watched.description') }}</p>
     </div>
-    <div class="text-overline text-teal-accent-4 tracking-widest ml-13">{{ t('watched.subtitle') }}</div>
-    <p class="journal-subtitle-dark mt-2">{{ t('watched.description') }}</p>
-  </div>
+  </header>
 </template>
 
 <script setup>
@@ -16,44 +20,62 @@ const { t } = useI18n()
 </script>
 
 <style scoped>
-.page-title-dark {
-  font-size: 2rem;
-  font-weight: 900;
-  color: #ffffff;
-  letter-spacing: -0.02em;
+.watched-header {
+  margin-bottom: clamp(20px, 3vw, 32px);
 }
 
-.journal-subtitle-dark {
-  color: rgba(255, 255, 255, 0.6);
-  max-width: 600px;
+.watched-header-copy {
+  min-width: 0;
 }
 
-:deep(.mdi-radar) {
+.watched-header-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.watched-header-icon {
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 12px rgba(79, 209, 197, 0.35));
   animation: radar-pulse 4s infinite linear;
 }
 
+.watched-title {
+  margin: 0;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: var(--home-text, #f1f5f9);
+  line-height: 1.15;
+}
+
+.watched-subtitle {
+  margin: 4px 0 0;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--home-teal, #4fd1c5);
+}
+
+.watched-lead {
+  margin: 0;
+  max-width: 54ch;
+  color: var(--home-text-dim, #94a3b8);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
 @keyframes radar-pulse {
-  0% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.7;
-    transform: scale(1.1);
-  }
+  0%,
   100% {
     opacity: 1;
     transform: scale(1);
   }
-}
-
-@media (max-width: 480px) {
-  .page-title-dark {
-    font-size: 1.5rem !important;
-  }
-
-  .ml-13 {
-    margin-left: 42px !important;
+  50% {
+    opacity: 0.75;
+    transform: scale(1.08);
   }
 }
 </style>

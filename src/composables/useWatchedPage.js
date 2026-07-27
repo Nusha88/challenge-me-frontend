@@ -15,10 +15,14 @@ export function useWatchedPage(currentUserId) {
   const errorMessage = ref('')
   const joiningId = ref(null)
   const leavingId = ref(null)
-  const watchingId = ref(null)
+  const unwatchingId = ref(null)
 
   const challenges = computed(() => watchedStore.challenges)
   const loading = computed(() => watchedStore.loading)
+
+  function clearError() {
+    errorMessage.value = ''
+  }
 
   async function loadWatchedChallenges({ force = false, refreshFeed = true } = {}) {
     const userId = currentUserId.value
@@ -49,6 +53,25 @@ export function useWatchedPage(currentUserId) {
     }
   }
 
+  async function refreshSelectedChallenge(challengeId, selectedChallenge, fallbackChallenge) {
+    if (!selectedChallenge?.value || !challengeIdsMatch(selectedChallenge.value._id, challengeId)) {
+      return false
+    }
+
+    try {
+      const { data } = await challengeService.getChallenge(challengeId)
+      selectedChallenge.value = data
+      updateChallengeInList(data)
+      return true
+    } catch {
+      if (fallbackChallenge) {
+        selectedChallenge.value = fallbackChallenge
+        updateChallengeInList(fallbackChallenge)
+      }
+      return false
+    }
+  }
+
   async function joinChallenge(challenge, { selectedChallenge, onAfterJoin } = {}) {
     const userId = currentUserId.value
     if (!userId || !challenge?._id) return
@@ -59,21 +82,16 @@ export function useWatchedPage(currentUserId) {
     try {
       const response = await challengeService.joinChallenge(challenge._id, { userId })
       applyRewardResponse(response)
-      await loadWatchedChallenges({ force: true, refreshFeed: false })
+
+      const updated = response.data?.challenge
+      if (updated) {
+        updateChallengeInList(updated)
+      } else {
+        await loadWatchedChallenges({ force: true, refreshFeed: false })
+      }
 
       if (selectedChallenge?.value && challengeIdsMatch(selectedChallenge.value._id, challenge._id)) {
-        try {
-          const { data } = await challengeService.getChallenge(challenge._id)
-          selectedChallenge.value = data
-          updateChallengeInList(data)
-        } catch {
-          if (response.data?.challenge) {
-            selectedChallenge.value = response.data.challenge
-            updateChallengeInList(response.data.challenge)
-          }
-        }
-      } else if (response.data?.challenge) {
-        updateChallengeInList(response.data.challenge)
+        await refreshSelectedChallenge(challenge._id, selectedChallenge, updated)
       }
 
       await onAfterJoin?.()
@@ -97,45 +115,45 @@ export function useWatchedPage(currentUserId) {
 
     try {
       const response = await challengeService.leaveChallenge(challenge._id, { userId })
+      const updated = response.data?.challenge
+
+      if (updated) {
+        updateChallengeInList(updated)
+      }
+
       if (selectedChallenge?.value?._id === challenge._id) {
-        if (response.data?.challenge) {
-          selectedChallenge.value = response.data.challenge
-          updateChallengeInList(response.data.challenge)
+        if (updated) {
+          selectedChallenge.value = updated
         } else {
-          try {
-            const { data } = await challengeService.getChallenge(challenge._id)
-            selectedChallenge.value = data
-            updateChallengeInList(data)
-          } catch {
-            selectedChallenge.value =
-              watchedStore.challenges.find((c) => c._id === challenge._id) || null
-          }
+          await refreshSelectedChallenge(challenge._id, selectedChallenge)
         }
       }
 
-      await loadWatchedChallenges({ force: true, refreshFeed: false })
+      if (!updated) {
+        await loadWatchedChallenges({ force: true, refreshFeed: false })
+      }
     } catch (error) {
-      errorMessage.value = error.response?.data?.message || t('notifications.joinError')
+      errorMessage.value = error.response?.data?.message || t('challenges.leaveError')
     } finally {
       leavingId.value = null
     }
   }
 
-  async function unwatchChallenge(challenge, { onUnwatchFromDialog } = {}) {
+  async function unwatchChallenge(challenge, { onUnwatched } = {}) {
     const userId = currentUserId.value
     if (!userId || !challenge?._id) return
 
-    watchingId.value = challenge._id
+    unwatchingId.value = challenge._id
 
     try {
       await watchedStore.unwatch(challenge._id, userId)
       await loadFeedActivities(userId)
-      onUnwatchFromDialog?.(challenge)
+      onUnwatched?.(challenge)
     } catch (error) {
       console.error('Error unwatching challenge:', error)
       errorMessage.value = error.response?.data?.message || t('challenges.unwatchError')
     } finally {
-      watchingId.value = null
+      unwatchingId.value = null
     }
   }
 
@@ -145,9 +163,10 @@ export function useWatchedPage(currentUserId) {
     errorMessage,
     joiningId,
     leavingId,
-    watchingId,
+    unwatchingId,
     feedActivities,
     loadWatchedChallenges,
+    clearError,
     updateChallengeInList,
     joinChallenge,
     leaveChallenge,

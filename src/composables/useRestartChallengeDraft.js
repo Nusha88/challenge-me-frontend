@@ -53,14 +53,39 @@ function resolveDurationFromDraft(data) {
   }
 }
 
-function mapActionsToMilestones(actions) {
-  const milestones = actions
-    .map((action) => ({
-      title: action.text || action.title || ''
-    }))
-    .filter((milestone) => milestone.title.trim() !== '')
+function normalizeActionTree(actions) {
+  if (!Array.isArray(actions) || actions.length === 0) {
+    return [{ text: '', checked: false, children: [] }]
+  }
 
-  return milestones.length > 0 ? milestones : [{ title: '' }]
+  return actions.map((action) => ({
+    ...(action._id ? { _id: action._id } : {}),
+    text: action.text || action.title || '',
+    checked: Boolean(action.checked),
+    children: Array.isArray(action.children)
+      ? action.children.map((child) => ({
+          ...(child._id ? { _id: child._id } : {}),
+          text: child.text || '',
+          checked: Boolean(child.checked)
+        }))
+      : []
+  }))
+}
+
+function migrateMilestonesToActions(milestones) {
+  if (!Array.isArray(milestones)) {
+    return [{ text: '', checked: false, children: [] }]
+  }
+
+  const mapped = milestones
+    .map((item) => ({
+      text: (item.title || item.text || '').trim(),
+      checked: false,
+      children: []
+    }))
+    .filter((item) => item.text)
+
+  return mapped.length > 0 ? mapped : [{ text: '', checked: false, children: [] }]
 }
 
 function normalizeRestartDraft(data) {
@@ -89,8 +114,14 @@ function normalizeRestartDraft(data) {
     draft.endDate = toDateInputValue(data.endDate)
   }
 
-  if (challengeType === CHALLENGE_TYPES.RESULT && Array.isArray(data.actions) && data.actions.length > 0) {
-    draft.milestones = mapActionsToMilestones(data.actions)
+  if (challengeType === CHALLENGE_TYPES.RESULT) {
+    if (Array.isArray(data.actions) && data.actions.length > 0) {
+      draft.actions = normalizeActionTree(data.actions)
+    } else if (Array.isArray(data.milestones) && data.milestones.length > 0) {
+      draft.actions = migrateMilestonesToActions(data.milestones)
+    } else {
+      draft.actions = [{ text: '', checked: false, children: [] }]
+    }
   }
 
   if (challengeType === CHALLENGE_TYPES.HABIT && (draft.privacy === 'private' || draft.privacy === 'public')) {

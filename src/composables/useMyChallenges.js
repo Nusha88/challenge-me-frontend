@@ -123,6 +123,30 @@ export function useMyChallenges(currentUserId) {
     }
   }
 
+  /** Move an updated mission to the front of the list (e.g. after extend). */
+  function promoteChallengeToFront(updatedChallenge) {
+    if (!updatedChallenge?._id) return
+
+    const rest = challenges.value.filter(
+      (item) => !challengeIdsMatch(item._id, updatedChallenge._id)
+    )
+    const previous = challenges.value.find((item) =>
+      challengeIdsMatch(item._id, updatedChallenge._id)
+    )
+    const merged = {
+      ...(previous || {}),
+      ...updatedChallenge,
+      // Ensure list order treats extend like a brand-new mission immediately.
+      createdAt: updatedChallenge.createdAt || new Date().toISOString()
+    }
+    challenges.value = [merged, ...rest]
+
+    const selected = unref(selectedChallengeRef)
+    if (selected && challengeIdsMatch(selected._id, updatedChallenge._id)) {
+      selectedChallengeRef.value = { ...selected, ...merged }
+    }
+  }
+
   async function fetchChallenges() {
     const userId = unref(currentUserId)
     if (!userId) {
@@ -310,6 +334,7 @@ export function useMyChallenges(currentUserId) {
     watchChallenge,
     unwatchChallenge,
     replaceChallengeInList,
+    promoteChallengeToFront,
     configureDialogSync
   }
 }

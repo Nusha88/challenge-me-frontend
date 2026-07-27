@@ -1,5 +1,5 @@
 <template>
-  <div class="watched-challenges-page pa-4">
+  <div class="watched-challenges-page">
     <WatchedPageHeader />
 
     <v-alert
@@ -8,72 +8,80 @@
       variant="tonal"
       class="mb-4"
       closable
-      @click:close="errorMessage = ''"
+      @click:close="clearError"
     >
-      {{ errorMessage }}
+      <div class="watched-error-row">
+        <span>{{ errorMessage }}</span>
+        <v-btn
+          size="small"
+          variant="text"
+          color="error"
+          class="text-none"
+          @click="retryFetch"
+        >
+          {{ t('watched.retry') }}
+        </v-btn>
+      </div>
     </v-alert>
 
     <v-progress-linear
       v-if="loading"
       indeterminate
-      color="teal-accent-4"
-      class="mb-4 shadow-neon"
+      color="#4FD1C5"
+      height="4"
+      class="mb-4"
     />
 
     <ChallengeSkeletonGrid
       v-if="loading"
       :count="3"
-      grid-class="main-feed-skeleton"
+      grid-class="watched-skeleton"
       type="heading, subtitle, text, actions"
       variant="card"
-      card-class="skeleton-card-dark rounded-xl mb-6"
+      card-class="watched-skeleton-card rounded-xl mb-4"
     />
 
-    <v-row v-if="challenges.length && !loading" class="watched-layout">
-      <v-col cols="12" md="8">
+    <div v-else-if="challenges.length" class="watched-layout">
+      <div class="watched-main">
+        <MissionSectionDivider
+          :label="t('watched.sections.following')"
+          icon="mdi-eye-outline"
+          :count="challenges.length"
+          flush-top
+        />
         <WatchedMissionCard
           v-for="challenge in challenges"
           :key="challenge._id"
           :challenge="challenge"
           :current-user-id="currentUserId"
           :join-loading="joiningId === challenge._id"
-          :unwatch-loading="watchingId === challenge._id"
+          :unwatch-loading="unwatchingId === challenge._id"
           @open="openDetails"
           @join="joinFromCard"
           @unwatch="unwatchFromCard"
           @navigate-user="navigateToUser"
         />
-      </v-col>
+      </div>
 
-      <v-col cols="12" md="4">
+      <aside class="watched-rail">
         <WatchedTopPerformers :performers="topPerformers" />
-        <WatchedActivityFeed :activities="feedActivities" />
-      </v-col>
-    </v-row>
+        <WatchedActivityFeed
+          :activities="feedActivities"
+          :flush-top="topPerformers.length === 0"
+        />
+      </aside>
+    </div>
 
-    <WatchedEmptyState v-if="!challenges.length && !loading" />
-
-    <ChallengeDetailsDialog
-      v-model="detailsDialogOpen"
-      :challenge="selectedChallenge"
-      :is-owner="selectedIsOwner"
-      :is-participant="selectedIsParticipant"
-      :show-join-button="showDialogJoinButton"
-      :show-leave-button="showDialogLeaveButton"
-      :join-loading="selectedJoinLoading"
-      :leave-loading="selectedLeaveLoading"
-      @join="handleDialogJoin"
-      @leave="handleDialogLeave"
-      @update="handleDialogUpdate"
-    />
+    <WatchedEmptyState v-else-if="!errorMessage" />
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import ChallengeDetailsDialog from './ChallengeDetailsDialog.vue'
+import { useI18n } from 'vue-i18n'
 import ChallengeSkeletonGrid from './ChallengeSkeletonGrid.vue'
+import MissionSectionDivider from './MissionSectionDivider.vue'
 import WatchedPageHeader from './watched/WatchedPageHeader.vue'
 import WatchedMissionCard from './watched/WatchedMissionCard.vue'
 import WatchedTopPerformers from './watched/WatchedTopPerformers.vue'
@@ -82,9 +90,11 @@ import WatchedEmptyState from './watched/WatchedEmptyState.vue'
 import { useUserStore } from '../stores/user'
 import { buildTopPerformers } from '../utils/challengeProgress'
 import { useWatchedPage } from '../composables/useWatchedPage'
-import { useWatchedChallengeDialog } from '../composables/useWatchedChallengeDialog'
+import { openMissionDetails } from '../utils/openMissionDetails'
+import { useChallengeUpdatedListener } from '../composables/useChallengeUpdatedListener'
 
 const router = useRouter()
+const { t } = useI18n()
 const userStore = useUserStore()
 
 const currentUserId = computed(() => userStore.userId)
@@ -95,9 +105,10 @@ const {
   errorMessage,
   joiningId,
   leavingId,
-  watchingId,
+  unwatchingId,
   feedActivities,
   loadWatchedChallenges,
+  clearError,
   updateChallengeInList,
   joinChallenge,
   leaveChallenge,
@@ -106,40 +117,21 @@ const {
 
 const topPerformers = computed(() => buildTopPerformers(challenges.value))
 
-const {
-  detailsDialogOpen,
-  selectedChallenge,
-  selectedIsOwner,
-  selectedIsParticipant,
-  selectedJoinLoading,
-  selectedLeaveLoading,
-  showDialogJoinButton,
-  showDialogLeaveButton,
-  openDetails,
-  handleDialogUpdate,
-  handleDialogJoin,
-  handleDialogLeave
-} = useWatchedChallengeDialog({
-  currentUserId,
-  joiningId,
-  leavingId,
-  joinChallenge,
-  leaveChallenge,
-  onChallengeUpdated: updateChallengeInList
+function openDetails(challenge) {
+  openMissionDetails({ challenge })
+}
+
+useChallengeUpdatedListener(({ challenge }) => {
+  if (challenge) updateChallengeInList(challenge)
+  else loadWatchedChallenges({ force: true })
 })
 
 function joinFromCard(challenge) {
-  return joinChallenge(challenge, { selectedChallenge })
+  return joinChallenge(challenge)
 }
 
 function unwatchFromCard(challenge) {
-  return unwatchChallenge(challenge, {
-    onUnwatchFromDialog: (unwatched) => {
-      if (detailsDialogOpen.value && selectedChallenge.value?._id === unwatched._id) {
-        detailsDialogOpen.value = false
-      }
-    }
-  })
+  return unwatchChallenge(challenge)
 }
 
 function navigateToUser(user) {
@@ -149,6 +141,10 @@ function navigateToUser(user) {
   router.push(`/heroes/${userId}`)
 }
 
+async function retryFetch() {
+  await loadWatchedChallenges({ force: true })
+}
+
 onMounted(() => {
   loadWatchedChallenges()
 })
@@ -156,31 +152,56 @@ onMounted(() => {
 
 <style scoped>
 .watched-challenges-page {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0;
   background: transparent;
-  color: #fff;
+  color: var(--home-text, #f1f5f9);
 }
 
-.main-feed-skeleton {
+.watched-error-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.watched-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 360px);
+  gap: 24px;
+  align-items: start;
+}
+
+.watched-main,
+.watched-rail {
+  min-width: 0;
+}
+
+.watched-skeleton {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 24px;
+  gap: 16px;
 }
 
-.skeleton-card-dark {
-  background: rgba(15, 23, 42, 0.6) !important;
-  border: 1px solid rgba(79, 209, 197, 0.1) !important;
+.watched-skeleton-card {
+  background: var(--home-surface, rgba(22, 27, 40, 0.55)) !important;
+  border: 1px solid var(--home-border, rgba(255, 255, 255, 0.08)) !important;
 }
 
 :deep(.v-skeleton-loader__text) {
   height: 12px !important;
-  background: rgba(79, 209, 197, 0.15) !important;
-  margin-top: 20px;
+  background: rgba(79, 209, 197, 0.12) !important;
+  margin-top: 16px;
   border-radius: 6px;
 }
 
-@media (max-width: 480px) {
-  .watched-challenges-page {
-    padding: 8px !important;
+@media (max-width: 959px) {
+  .watched-layout {
+    grid-template-columns: 1fr;
+    gap: 8px;
   }
 }
 </style>

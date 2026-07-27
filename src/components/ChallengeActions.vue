@@ -1,10 +1,17 @@
 <template>
   <div class="actions-tactical-section mb-6">
-    <div class="d-flex align-center justify-space-between mb-4">
+    <div v-if="!hideHeader" class="d-flex align-center justify-space-between mb-4">
       <h3 class="section-title">
         <v-icon start size="18" color="#4FD1C5">mdi-target-variant</v-icon>
         {{ t('challenges.actions') }}
       </h3>
+      <div v-if="!hideProgressChecks" class="tactical-counter">
+        <span class="count-done">{{ actionsDoneCount }}</span>
+        <span class="count-separator">/</span>
+        <span class="count-total">{{ totalActionsCount }}</span>
+      </div>
+    </div>
+    <div v-else-if="!hideProgressChecks" class="d-flex justify-end mb-2">
       <div class="tactical-counter">
         <span class="count-done">{{ actionsDoneCount }}</span>
         <span class="count-separator">/</span>
@@ -25,7 +32,7 @@
           <div class="status-sidebar"></div>
           <div class="action-main-content pa-3">
             <div class="d-flex align-center">
-              <div class="action-check-wrapper mr-3">
+              <div v-if="!hideProgressChecks" class="action-check-wrapper mr-3">
                 <template v-if="!simplifiedView">
                   <v-checkbox-btn
                     v-if="!readonly"
@@ -44,7 +51,7 @@
                 <div
                   v-if="readonly || !editingActions[index]"
                   class="text-display"
-                  :class="{ 'strikethrough': action.checked, 'non-clickable-text': readonly || simplifiedView }"
+                  :class="{ 'strikethrough': action.checked && !hideProgressChecks, 'non-clickable-text': readonly || simplifiedView }"
                   @click="!readonly && !simplifiedView && startEditingAction(index)"
                 >
                   {{ action.text || t('challenges.actionPlaceholder') }}
@@ -77,7 +84,7 @@
             class="child-item d-flex align-center"
             :class="{ 'is-completed': child.checked }"
           >
-            <div class="child-check-wrapper mr-2">
+            <div v-if="!hideProgressChecks" class="child-check-wrapper mr-2">
               <v-checkbox-btn
                 v-if="!readonly"
                 :model-value="child.checked"
@@ -94,7 +101,7 @@
               class="child-text flex-grow-1"
               @click="!readonly && startEditingChildAction(index, childIndex)"
             >
-              <span v-if="!editingChildActions[`${index}-${childIndex}`]" :class="{ 'strikethrough': child.checked }">
+              <span v-if="!editingChildActions[`${index}-${childIndex}`]" :class="{ 'strikethrough': child.checked && !hideProgressChecks }">
                 {{ child.text || '...' }}
               </span>
               <v-text-field
@@ -312,6 +319,8 @@ const props = defineProps({
   hideAddButton: { type: Boolean, default: false },
   simplifiedView: { type: Boolean, default: false },
   hideItemControls: { type: Boolean, default: false },
+  hideProgressChecks: { type: Boolean, default: false },
+  hideHeader: { type: Boolean, default: false },
   confirmTopLevelCheck: { type: Boolean, default: false }
 })
 

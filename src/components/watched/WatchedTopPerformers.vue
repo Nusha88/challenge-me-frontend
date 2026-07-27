@@ -1,38 +1,41 @@
 <template>
-  <v-card v-if="performers.length > 0" class="sidebar-widget mb-6" variant="flat">
-    <div class="widget-header pa-4 d-flex align-center">
-      <v-icon color="amber" class="mr-2">mdi-trophy-variant</v-icon>
-      <span class="text-overline font-weight-black">{{ t('watched.elitePerformers') }}</span>
-    </div>
-    <v-card-text class="pa-4 pt-0">
+  <section v-if="performers.length > 0" class="watched-rail-block">
+    <MissionSectionDivider
+      :label="t('watched.sections.topPerformers')"
+      icon="mdi-trophy-variant"
+      :count="performers.length"
+      flush-top
+    />
+    <div class="watched-rail-panel">
       <div
         v-for="(participant, index) in performers"
         :key="getParticipantUserId(participant) || index"
-        class="performer-row d-flex align-center mb-4"
+        class="performer-row"
       >
         <div class="rank-badge">{{ index + 1 }}</div>
-        <v-avatar size="36" class="mx-3 border-neon">
+        <v-avatar size="36" class="performer-avatar">
           <v-img v-if="getParticipantAvatar(participant)" :src="getParticipantAvatar(participant)" />
           <span v-else class="text-caption">{{ getParticipantInitial(participant, t('common.unknown')) }}</span>
         </v-avatar>
-        <div class="flex-grow-1 min-width-0">
-          <div class="text-body-2 performer-name text-truncate">
+        <div class="performer-meta">
+          <div class="performer-name text-truncate">
             {{ getParticipantDisplayName(participant, t('common.unknown')) }}
           </div>
           <v-progress-linear
             :model-value="getParticipantProgressPercentage(participant, participant._cachedChallenge)"
             height="3"
-            color="teal-accent-4"
+            color="#4FD1C5"
             rounded
           />
         </div>
       </div>
-    </v-card-text>
-  </v-card>
+    </div>
+  </section>
 </template>
 
 <script setup>
 import { useI18n } from 'vue-i18n'
+import MissionSectionDivider from '../MissionSectionDivider.vue'
 import { getParticipantUserId } from '../../utils/challengeMembership'
 import {
   getParticipantAvatar,
@@ -49,32 +52,34 @@ const { t } = useI18n()
 </script>
 
 <style scoped>
-.sidebar-widget {
-  background: rgba(255, 255, 255, 0.03) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 20px !important;
+.watched-rail-block {
+  margin-bottom: 8px;
 }
 
-.widget-header {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+.watched-rail-panel {
+  padding: 14px;
+  border-radius: var(--home-radius, 22px);
+  background: var(--home-surface, rgba(22, 27, 40, 0.55));
+  border: 1px solid var(--home-border, rgba(255, 255, 255, 0.08));
 }
 
-.widget-header .text-overline {
-  color: #ffffff !important;
-  letter-spacing: 2px;
+.performer-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
 }
 
-.performer-name {
-  color: #ffffff;
-  font-weight: 700;
+.performer-row:last-child {
+  margin-bottom: 0;
 }
 
 .rank-badge {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: rgba(255, 193, 7, 0.15);
-  color: #ffc107;
+  background: rgba(255, 193, 7, 0.12);
+  color: var(--home-gold, #ffc107);
   font-weight: 900;
   font-size: 0.75rem;
   display: flex;
@@ -83,22 +88,20 @@ const { t } = useI18n()
   flex-shrink: 0;
 }
 
-.border-neon {
-  border: 1px solid rgba(79, 209, 197, 0.3) !important;
+.performer-avatar {
+  border: 1px solid rgba(79, 209, 197, 0.28) !important;
+  flex-shrink: 0;
 }
 
-@media (max-width: 960px) {
-  .sidebar-widget {
-    border-radius: 16px !important;
-    margin-bottom: 12px !important;
-  }
+.performer-meta {
+  flex: 1;
+  min-width: 0;
+}
 
-  .widget-header {
-    padding: 10px 12px !important;
-  }
-
-  .performer-row {
-    margin-bottom: 8px !important;
-  }
+.performer-name {
+  color: var(--home-text, #f1f5f9);
+  font-weight: 700;
+  font-size: 0.85rem;
+  margin-bottom: 6px;
 }
 </style>

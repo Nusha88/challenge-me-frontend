@@ -1,58 +1,68 @@
 <template>
   <div>
-    <div class="milestones-manager mt-6" data-validation-field="milestones">
-      <p class="field-label field-label--required mb-1">{{ t('challenges.milestonesTitle') }}</p>
-      <p v-if="milestonesError" class="field-error-text mb-3">{{ milestonesError }}</p>
-
-      <div class="milestones-timeline mb-4">
-        <div
-          v-for="(step, index) in milestones"
-          :key="index"
-          class="milestone-item d-flex align-center pa-3 mb-2"
+    <div
+      v-if="mode === 'edit'"
+      class="mission-dates-grid mt-6 mb-6"
+    >
+      <div class="date-info-box date-info-box--editable">
+        <span class="label mb-3">{{ t('challenges.startDate') }}</span>
+        <v-btn
+          variant="outlined"
+          class="mission-date-btn"
+          :disabled="disabled"
+          @click="$emit('pick-start')"
         >
-          <div class="step-number">{{ index + 1 }}</div>
-          <v-text-field
-            v-model="step.title"
-            :placeholder="t('challenges.milestonePlaceholder')"
-            variant="plain"
-            hide-details
-            class="ml-3"
-          />
-          <v-btn
-            icon="mdi-close"
-            variant="text"
-            size="small"
-            color="grey"
-            @click="removeStep(index)"
-          />
-        </div>
+          <v-icon size="18" class="mr-2">mdi-calendar-month-outline</v-icon>
+          <span>{{ formattedStartDate }}</span>
+        </v-btn>
       </div>
-
-      <v-btn
-        variant="dashed"
-        block
-        prepend-icon="mdi-flag-plus-outline"
-        class="add-step-btn"
-        @click="addStep"
-      >
-        {{ t('challenges.addMilestone') }}
-      </v-btn>
+      <div class="date-divider">
+        <v-icon color="rgba(255,255,255,0.1)">mdi-arrow-right-thin</v-icon>
+      </div>
+      <MissionDeadlinePicker
+        v-model:end-date="endDate"
+        variant="tactical"
+        class="date-info-box date-info-box--editable flex-grow-1"
+        :min="startDate || undefined"
+        :disabled="disabled"
+        label-required
+        :error-message="endDateError"
+      />
     </div>
 
-    <div class="mt-8" data-validation-field="endDate">
+    <div class="actions-plan-section mt-6" data-validation-field="actions">
+      <p class="field-label field-label--required mb-1">{{ t('challenges.actionsPlan') }}</p>
+      <p v-if="actionsError" class="field-error-text mb-3">{{ actionsError }}</p>
+      <div class="actions-glass-wrapper pa-2">
+        <ChallengeActions
+          v-model="actions"
+          :readonly="disabled"
+          :hide-progress-checks="mode !== 'edit'"
+          hide-header
+        />
+      </div>
+    </div>
+
+    <div v-if="mode !== 'edit'" class="mt-8" data-validation-field="endDate">
       <MissionDeadlinePicker
         v-model:end-date="endDate"
         :error-message="endDateError"
+        :disabled="disabled"
         label-required
       />
     </div>
 
     <div class="mt-8">
-      <DifficultySelector v-model:difficulty="difficulty" />
+      <DifficultySelector v-model:difficulty="difficulty" :disabled="disabled" />
     </div>
 
     <div class="mt-8">
-      <PrivacySelector v-model:privacy="privacy" />
+      <PrivacySelector
+        v-model:privacy="privacy"
+        v-model:allow-comments="allowComments"
+        show-comments-toggle
+        :disabled="disabled"
+      />
     </div>
 
     <div class="reward-block mt-8">
@@ -62,11 +72,10 @@
         <v-text-field
           v-model="reward"
           :placeholder="t('challenges.rewardPlaceholder')"
-          variant="solo"
-          flat
-          bg-color="white"
+          variant="outlined"
           class="reward-input"
           hide-details
+          :disabled="disabled"
         >
           <template #prepend-inner>
             <div class="reward-icon-box">
@@ -76,7 +85,7 @@
         </v-text-field>
       </div>
 
-      <p class="text-caption text-grey-darken-1 mt-2 ml-2">
+      <p class="reward-hint mt-2 ml-2">
         {{ t('challenges.rewardHint') }}
       </p>
     </div>
@@ -84,151 +93,74 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import ChallengeActions from '../ChallengeActions.vue'
 import MissionDeadlinePicker from './MissionDeadlinePicker.vue'
 import DifficultySelector from './DifficultySelector.vue'
 import PrivacySelector from './PrivacySelector.vue'
+import { formatDateForLocale } from '../../utils/dateUtils'
 
-const milestones = defineModel('milestones', {
-  type: Array,
-  default: () => [{ title: '' }]
+defineProps({
+  mode: { type: String, default: 'create' },
+  endDateError: { type: String, default: '' },
+  actionsError: { type: String, default: '' },
+  disabled: { type: Boolean, default: false }
 })
+
+defineEmits(['pick-start'])
+
+const actions = defineModel('actions', {
+  type: Array,
+  default: () => [{ text: '', checked: false, children: [] }]
+})
+const startDate = defineModel('startDate', { type: String, default: '' })
 const endDate = defineModel('endDate', { type: String, default: '' })
 const difficulty = defineModel('difficulty', { type: String, default: 'medium' })
 const privacy = defineModel('privacy', { type: String, default: 'private' })
 const reward = defineModel('reward', { type: String, default: '' })
+const allowComments = defineModel('allowComments', { type: Boolean, default: true })
 
-defineProps({
-  endDateError: { type: String, default: '' },
-  milestonesError: { type: String, default: '' }
-})
+const { t, locale } = useI18n()
 
-const { t } = useI18n()
-
-function addStep() {
-  if (!milestones.value) {
-    milestones.value = []
-  }
-  milestones.value.push({ title: '' })
-}
-
-function removeStep(index) {
-  if (!milestones.value) return
-  milestones.value.splice(index, 1)
-  if (milestones.value.length === 0) {
-    milestones.value.push({ title: '' })
-  }
-}
+const formattedStartDate = computed(() => formatDateForLocale(startDate.value, locale.value))
 </script>
 
 <style scoped>
-.milestones-manager .milestone-item {
-  background: rgba(255, 255, 255, 0.02) !important;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 10px;
-  transition: 0.2s;
-}
-
-.milestones-manager .milestone-item :deep(.v-input) {
-  margin: 0 !important;
-  align-self: center;
-}
-
-.milestones-manager .milestone-item :deep(.v-field) {
-  align-items: center !important;
-}
-
-.milestones-manager .milestone-item :deep(.v-field__input) {
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-  min-height: 32px;
-  display: flex;
-  align-items: center;
-}
-
-.milestones-manager .milestone-item:hover {
-  border-color: #7e46c4;
-}
-
-.milestones-manager .milestone-item .step-number {
-  background: #7048E8;
-  color: white;
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  font-size: 0.75rem;
-  flex: 0 0 auto;
-  margin-right: 12px;
-}
-
-.milestones-manager .add-step-btn {
-  border: 2px dashed #cbd5e1 !important;
-  color: #64748b !important;
-  text-transform: none !important;
-  height: 48px !important;
-  border-radius: 12px !important;
-}
-
-.milestones-manager .add-step-btn:hover {
-  border-color: #7e46c4 !important;
-  color: #7e46c4 !important;
-  background: rgba(126, 70, 196, 0.02);
+.actions-glass-wrapper {
+  background: var(--home-surface-soft, rgba(255, 255, 255, 0.02));
+  border-radius: 16px;
+  border: 1px solid var(--home-border, rgba(255, 255, 255, 0.06));
 }
 
 .loot-container {
-  background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 170, 0, 0.05) 100%) !important;
-  border-radius: 20px;
-  border: 2px solid #FFD700 !important;
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.15), inset 0 0 10px rgba(255, 215, 0, 0.05) !important;
+  background: var(--home-surface, rgba(22, 27, 40, 0.55)) !important;
+  border-radius: var(--home-radius, 16px);
+  border: 1px solid rgba(255, 215, 0, 0.28) !important;
   padding: 4px;
-  position: relative;
-  overflow: hidden;
-}
-
-.loot-container::after {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.05), transparent);
-  transform: rotate(45deg);
-  pointer-events: none;
 }
 
 .loot-container .reward-input :deep(.v-field) {
-  font-weight: 700 !important;
-  color: #FFD700 !important;
-  letter-spacing: 0.5px;
+  background: transparent !important;
+  font-weight: 600 !important;
+  color: var(--home-text, #f1f5f9) !important;
 }
 
 .reward-icon-box {
-  background: rgba(255, 215, 0, 0.15);
+  background: rgba(255, 215, 0, 0.12);
   width: 40px;
   height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 12px;
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   margin-right: 8px;
-  border: 1px solid rgba(255, 215, 0, 0.3);
+  border: 1px solid rgba(255, 215, 0, 0.28);
 }
 
-.reward-input :deep(input) {
-  font-weight: 400;
-  font-style: italic;
-  color: rgba(255, 215, 0, 0.4) !important;
-  opacity: 1;
-}
-
-.reward-input :deep(.v-field__shadow) {
-  display: none !important;
+.reward-hint {
+  color: var(--home-text-dim, #94a3b8);
+  font-size: 0.75rem;
 }
 
 .field-label--required::after {

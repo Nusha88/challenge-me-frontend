@@ -1,6 +1,11 @@
 <template>
-  <div class="upcoming-section mt-8">
-    <h2 class="section-title mb-4">{{ t('challenges.upcoming') }}</h2>
+  <div class="upcoming-section">
+    <MissionSectionDivider
+      :label="t('allChallenges.sections.upcoming')"
+      icon="mdi-clock-outline"
+      :count="challenges.length"
+      flush-top
+    />
     <div class="challenges-grid">
       <div
         v-for="challenge in challenges"
@@ -24,6 +29,7 @@
 <script setup>
 import { useI18n } from 'vue-i18n'
 import ChallengeCard from '../ChallengeCard.vue'
+import MissionSectionDivider from '../MissionSectionDivider.vue'
 import { isChallengeOwner } from '../../utils/challengeStatus'
 
 const props = defineProps({
@@ -52,11 +58,15 @@ function handleOpen(challenge) {
 </script>
 
 <style scoped>
+.upcoming-section {
+  margin-bottom: 8px;
+}
+
 .challenges-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 20px;
-  padding: 20px 4px;
+  padding: 4px;
 }
 
 .upcoming-card-cell {
@@ -80,12 +90,6 @@ function handleOpen(challenge) {
   background: rgba(13, 17, 28, 0.38);
   backdrop-filter: blur(3px);
   pointer-events: none;
-}
-
-.section-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.87);
 }
 
 @media (max-width: 600px) {

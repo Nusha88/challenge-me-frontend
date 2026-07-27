@@ -34,7 +34,7 @@ defineEmits(['open', 'update'])
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 20px;
-  padding: 20px 4px;
+  padding: 4px;
 }
 
 .staggered-fade-enter-active,

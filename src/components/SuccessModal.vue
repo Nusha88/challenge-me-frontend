@@ -54,7 +54,7 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { getPublicAppOrigin } from '../utils/appUrl'
+import { getMissionShareUrl } from '../utils/appUrl'
 
 const props = defineProps({
   modelValue: {
@@ -74,19 +74,13 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'addAnother'])
 const router = useRouter()
 const { t } = useI18n()
-const SHARE_BASE_URL = getPublicAppOrigin()
 
 const showModal = computed({
   get: () => props.modelValue,
   set: (value) => emit('update:modelValue', value)
 })
 
-const shareLink = computed(() => {
-  if (props.challengeId) {
-    return `${SHARE_BASE_URL}/missions/edit/${props.challengeId}`
-  }
-  return `${SHARE_BASE_URL}/missions/edit/...`
-})
+const shareLink = computed(() => getMissionShareUrl(props.challengeId) || getMissionShareUrl('…'))
 
 const successMessage = computed(() => {
   const message = t('challenges.successModal.message')
