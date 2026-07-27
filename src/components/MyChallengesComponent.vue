@@ -1,119 +1,152 @@
 <template>
-  <div class="my-challenges">
-    <div class="header-section text-left mb-10 reveal-animation">
-  <div class="d-flex align-center mb-1">
-    <v-icon color="teal-accent-4" size="40" class="mr-3">mdi-shield-account</v-icon>
-    <h1 class="page-title-dark">{{ t('myChallenges.title') }}</h1>
-  </div>
-  <div class="text-overline text-teal-accent-4 tracking-widest ml-13">{{ t('myChallenges.subtitle') }}</div>
-  <p class="journal-subtitle-dark mt-2">{{ t('myChallenges.description') }}</p>
-</div>
-<v-progress-linear
+  <div class="my-missions">
+    <MyMissionsHeader />
+
+    <MyMissionsStatusTabs
+      v-if="!loading && !listError && challenges.length > 0"
+      v-model="statusTab"
+      :active-count="activeChallenges.length"
+      :upcoming-count="upcomingChallenges.length"
+      :archive-count="finishedChallenges.length"
+    />
+
+    <v-progress-linear
       v-if="loading"
       indeterminate
-      color="teal-accent-4"
+      color="#4FD1C5"
       height="4"
-      class="mb-6 shadow-neon-line"
-    ></v-progress-linear>
-    <div class="content-section">
+      class="my-missions-progress"
+    />
+
+    <div class="my-missions-content">
       <ChallengeSkeletonGrid
         v-if="loading"
         :count="6"
-        grid-class="challenges-grid-skeleton"
-        card-class="mb-6"
+        grid-class="my-missions-skeleton-grid"
       />
 
-      <v-alert v-else-if="error" type="error" class="mb-4">
-        {{ error }}
+      <template v-else-if="listError">
+        <v-alert
+          type="error"
+          variant="tonal"
+          closable
+          class="mb-4"
+          @click:close="clearListError"
+        >
+          <div class="my-missions-error-row">
+            <span>{{ listError }}</span>
+            <v-btn
+              size="small"
+              variant="text"
+              color="error"
+              class="text-none"
+              @click="retryFetch"
+            >
+              {{ t('myChallenges.retry') }}
+            </v-btn>
+          </div>
+        </v-alert>
+      </template>
+
+      <template v-else>
+        <v-alert
+          v-if="actionError"
+          type="error"
+          variant="tonal"
+          closable
+          class="mb-4"
+          @click:close="clearActionError"
+        >
+          {{ actionError }}
         </v-alert>
 
-      <v-alert
-        v-else-if="challenges.length === 0"
-        type="info"
-        variant="tonal"
-        class="info-message"
-      >
-        <template #prepend>
-          <v-icon class="info-message-icon">mdi-information</v-icon>
-        </template>
-        <div>
-          <div class="mb-3">
-            {{ t('challenges.noMyChallenges') }}
-          </div>
-          <v-btn
-            color="teal-accent-4"
-            variant="outlined"
-            rounded="pill"
-            class="mt-1 action-btn-ignite"
-            to="/missions/add"
-            elevation="4"
-          >
-            {{ t('home.loggedIn.emptyMissions.launchFirstMission') }}
-          </v-btn>
-        </div>
-      </v-alert>
+        <MyMissionsEmptyState
+          v-if="challenges.length === 0"
+          :text="t('myChallenges.empty.all')"
+        />
 
-      <div v-else>
-          <!-- Active Challenges -->
-          <div v-if="activeChallenges.length > 0">
-            <MyChallengeSection
-              v-if="activeQuests.length"
-              :challenges="activeQuests"
-              grid-class="quests-grid mb-6"
-              :current-user-id="currentUserId"
-              @challenge-click="handleChallengeClick"
-              @update="handleDialogUpdate"
+        <template v-else>
+          <template v-if="statusTab === 'active'">
+            <MyMissionsEmptyState
+              v-if="activeChallenges.length === 0"
+              :text="t('myChallenges.empty.active')"
+              :show-actions="false"
             />
+            <template v-else>
+              <MyChallengeSection
+                :challenges="activeQuests"
+                layout="quests"
+                :title="t('myChallenges.sections.quests')"
+                icon="mdi-flag-checkered"
+                flush-top
+                :current-user-id="currentUserId"
+                @challenge-click="handleChallengeClick"
+                @update="handleDialogUpdate"
+              />
+              <MyChallengeSection
+                :challenges="activeRituals"
+                layout="rituals"
+                :title="t('myChallenges.sections.rituals')"
+                icon="mdi-fire"
+                :flush-top="activeQuests.length === 0"
+                :current-user-id="currentUserId"
+                @challenge-click="handleChallengeClick"
+                @update="handleDialogUpdate"
+              />
+            </template>
+          </template>
 
-            <MyChallengeSection
-              v-if="activeRituals.length"
-              :challenges="activeRituals"
-              grid-class="rituals-grid"
-              :current-user-id="currentUserId"
-              @challenge-click="handleChallengeClick"
-              @update="handleDialogUpdate"
+          <template v-else-if="statusTab === 'upcoming'">
+            <MyMissionsEmptyState
+              v-if="upcomingChallenges.length === 0"
+              :text="t('myChallenges.empty.upcoming')"
+              :show-actions="false"
             />
-          </div>
+            <template v-else>
+              <MyChallengeSection
+                :challenges="upcomingQuests"
+                layout="quests"
+                :title="t('myChallenges.sections.quests')"
+                icon="mdi-flag-checkered"
+                flush-top
+                :current-user-id="currentUserId"
+                @challenge-click="handleChallengeClick"
+              />
+              <MyChallengeSection
+                :challenges="upcomingRituals"
+                layout="rituals"
+                :title="t('myChallenges.sections.rituals')"
+                icon="mdi-fire"
+                :flush-top="upcomingQuests.length === 0"
+                :current-user-id="currentUserId"
+                @challenge-click="handleChallengeClick"
+              />
+            </template>
+          </template>
 
-          <!-- Upcoming Challenges -->
-          <div v-if="upcomingChallenges.length > 0" :class="{ 'upcoming-section': activeChallenges.length > 0 }">
-            <h2 class="section-title mb-4" :class="{ 'mt-8': activeChallenges.length > 0 }">{{ t('challenges.upcoming') }}</h2>
-            <MyChallengeSection
-              v-if="upcomingQuests.length"
-              :challenges="upcomingQuests"
-              grid-class="quests-grid mb-6"
-              :current-user-id="currentUserId"
-              @challenge-click="handleChallengeClick"
+          <template v-else>
+            <MyMissionsEmptyState
+              v-if="finishedChallenges.length === 0"
+              :text="t('myChallenges.empty.archive')"
+              :show-actions="false"
             />
             <MyChallengeSection
-              v-if="upcomingRituals.length"
-              :challenges="upcomingRituals"
-              grid-class="rituals-grid"
-              :current-user-id="currentUserId"
-              @challenge-click="handleChallengeClick"
-            />
-          </div>
-
-          <!-- Finished Challenges -->
-          <div v-if="finishedChallenges.length > 0">
-            <MissionSectionDivider
-              v-if="hasLiveChallenges"
-              :label="t('challenges.archive')"
-              :count="finishedChallenges.length"
-            />
-            <MyChallengeSection
+              v-else
               :challenges="finishedChallenges"
-              grid-class="challenges-grid"
+              layout="archive"
+              :title="t('myChallenges.sections.archive')"
+              icon="mdi-archive-outline"
+              flush-top
               :current-user-id="currentUserId"
               show-extend-button
               @challenge-click="handleChallengeClick"
               @extended="handleChallengeExtended"
             />
-          </div>
-        </div>
+          </template>
+        </template>
+      </template>
     </div>
 
-    <!-- Challenge Details Dialog -->
     <ChallengeDetailsDialog
       v-model="detailsDialogOpen"
       :challenge="selectedChallenge"
@@ -121,27 +154,28 @@
       :is-participant="selectedIsParticipant"
       :show-join-button="false"
       :show-leave-button="showDialogLeaveButton"
-      :join-loading="selectedJoinLoading"
+      :join-loading="false"
       :leave-loading="selectedLeaveLoading"
       :save-loading="false"
       :save-error="''"
       :delete-loading="false"
       @update="handleDialogUpdate"
-      @join="handleDialogJoin"
       @leave="handleDialogLeave"
     />
   </div>
 </template>
 
 <script setup>
-import { onMounted, computed, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { useI18n } from 'vue-i18n'
 import MyChallengeSection from './MyChallengeSection.vue'
-import MissionSectionDivider from './MissionSectionDivider.vue'
 import ChallengeSkeletonGrid from './ChallengeSkeletonGrid.vue'
 import ChallengeDetailsDialog from './ChallengeDetailsDialog.vue'
+import MyMissionsHeader from './my-missions/MyMissionsHeader.vue'
+import MyMissionsStatusTabs from './my-missions/MyMissionsStatusTabs.vue'
+import MyMissionsEmptyState from './my-missions/MyMissionsEmptyState.vue'
 import { useMyChallenges } from '../composables/useMyChallenges'
 import { useChallengeDialog } from '../composables/useChallengeDialog'
 
@@ -151,14 +185,15 @@ const userStore = useUserStore()
 const { t } = useI18n()
 
 const currentUserId = computed(() => userStore.userId)
+const statusTab = ref('active')
+const hasInitializedTab = ref(false)
 
 const {
   challenges,
   loading,
-  error,
-  joiningId,
+  listError,
+  actionError,
   leavingId,
-  watchingId,
   activeQuests,
   activeRituals,
   upcomingChallenges,
@@ -166,11 +201,10 @@ const {
   upcomingRituals,
   finishedChallenges,
   activeChallenges,
+  clearListError,
+  clearActionError,
   fetchChallenges,
-  joinChallenge,
   leaveChallenge,
-  watchChallenge,
-  unwatchChallenge,
   replaceChallengeInList,
   configureDialogSync
 } = useMyChallenges(currentUserId)
@@ -185,13 +219,12 @@ const {
   handleChallengeClick,
   handleDialogUpdate,
   handleDialogLeave,
-  handleOwnerNavigated,
   refreshSelectedChallenge,
   consumeChallengeIdFromRoute
 } = useChallengeDialog({
   challenges,
   currentUserId,
-  error,
+  error: actionError,
   fetchChallenges,
   leaveChallenge,
   leavingId
@@ -199,19 +232,24 @@ const {
 
 configureDialogSync({ selectedChallenge, refreshSelectedChallenge })
 
-// Архив отделяется разделителем только если выше есть живые миссии
-const hasLiveChallenges = computed(() => {
-  return activeChallenges.value.length > 0 || upcomingChallenges.value.length > 0
-})
+function pickDefaultTab() {
+  if (activeChallenges.value.length > 0) return 'active'
+  if (upcomingChallenges.value.length > 0) return 'upcoming'
+  if (finishedChallenges.value.length > 0) return 'archive'
+  return 'active'
+}
 
-const selectedJoinLoading = computed(() => {
-  if (!selectedChallenge.value) return false
-  return joiningId.value === selectedChallenge.value._id
-})
+function syncDefaultTab() {
+  if (loading.value || listError.value || hasInitializedTab.value) return
+  statusTab.value = pickDefaultTab()
+  hasInitializedTab.value = true
+}
 
-async function handleDialogJoin() {
-  if (!selectedChallenge.value) return
-  await joinChallenge(selectedChallenge.value)
+async function retryFetch() {
+  clearListError()
+  await fetchChallenges()
+  hasInitializedTab.value = false
+  syncDefaultTab()
 }
 
 function handleChallengeExtended(updatedChallenge) {
@@ -221,8 +259,16 @@ function handleChallengeExtended(updatedChallenge) {
 
 onMounted(async () => {
   await fetchChallenges()
+  syncDefaultTab()
   await consumeChallengeIdFromRoute(router, route, route.query.challengeId)
 })
+
+watch(
+  [loading, activeChallenges, upcomingChallenges, finishedChallenges],
+  () => {
+    if (!loading.value) syncDefaultTab()
+  }
+)
 
 watch(() => route.query.challengeId, (newChallengeId) => {
   consumeChallengeIdFromRoute(router, route, newChallengeId)
@@ -230,147 +276,50 @@ watch(() => route.query.challengeId, (newChallengeId) => {
 </script>
 
 <style scoped>
-.my-challenges {
+.my-missions {
   width: 100%;
-  max-width: 1400px; /* Ограничиваем ширину для больших мониторов */
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 16px;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-.content-section {
+.my-missions-progress {
+  margin-bottom: 20px;
+  border-radius: 999px;
+}
+
+.my-missions-content {
   position: relative;
-  min-height: 400px;
+  min-height: 280px;
 }
 
-.challenges-grid {
+.my-missions-error-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.my-missions-skeleton-grid {
   display: grid;
   grid-template-columns: 1fr;
   gap: 16px;
-  padding: 8px 0;
-  width: 100%;
-}
-
-:deep(.challenges-grid) {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-  padding: 8px 0;
   width: 100%;
 }
 
 @media (min-width: 600px) {
-  .challenges-grid,
-  :deep(.challenges-grid) {
-    grid-template-columns: repeat(2, 1fr);
+  .my-missions-skeleton-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 24px;
-    padding: 16px 0;
   }
 }
 
 @media (min-width: 960px) {
-  .challenges-grid,
-  :deep(.challenges-grid) {
-    grid-template-columns: repeat(3, 1fr);
+  .my-missions-skeleton-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-}
-
-/* Quests grid - 2 per row */
-.quests-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-  padding: 8px 0;
-  width: 100%;
-}
-
-:deep(.quests-grid) {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-  padding: 8px 0;
-  width: 100%;
-}
-
-@media (min-width: 600px) {
-  .quests-grid,
-  :deep(.quests-grid) {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 24px;
-    padding: 16px 0;
-  }
-}
-
-/* Rituals grid - 3 per row */
-.rituals-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-  padding: 8px 0;
-  width: 100%;
-}
-
-:deep(.rituals-grid) {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-  padding: 8px 0;
-  width: 100%;
-}
-
-@media (min-width: 600px) {
-  .rituals-grid,
-  :deep(.rituals-grid) {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 24px;
-    padding: 16px 0;
-  }
-}
-
-@media (min-width: 960px) {
-  .rituals-grid,
-  :deep(.rituals-grid) {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-.section-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.92);
-  margin-bottom: 16px;
-}
-
-@media (min-width: 600px) {
-  .section-title {
-    font-size: 1.5rem;
-  }
-}
-
-.challenges-grid-skeleton {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 24px;
-}
-
-@media (max-width: 480px) {
-  .challenges-grid-skeleton {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-}
-
-.info-message {
-  background-color: #1a1e2e !important;
-  border: 1px solid transparent;
-  border-image: linear-gradient(to right, #a78bfa, #2dd4bf) 1 !important;
-  color: #e2e8f0 !important;
-  padding: 16px 20px !important;
-  box-shadow: 0 0 15px rgba(45, 212, 191, 0.2) !important;
-}
-
-.info-message-icon {
-  color: #2dd4bf !important;
-  filter: drop-shadow(0 0 5px rgba(45, 212, 191, 0.5));
 }
 
 </style>

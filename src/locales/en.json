@@ -11,7 +11,7 @@
     "logoutConfirmMessage": "Are you sure you want to log out of your account?",
     "logoutConfirmAction": "Log out",
     "profile": "Profile",
-    "addChallenge": "Start Mission",
+    "addChallenge": "Launch mission",
     "allUsers": "Heroes",
     "myChallenges": "My Missions",
     "allChallenges": "Explore",
@@ -966,9 +966,30 @@
     "completed": "Completed"
   },
 "myChallenges": {
-    "title": "Mission Center",
-    "subtitle": "Personal Progress Hub",
-    "description": "Manage your active missions, build discipline, and stay on the path to mastery."
+    "title": "My Missions",
+    "subtitle": "Mission HQ",
+    "description": "Track active quests and rituals, prepare upcoming launches, and revisit your archive.",
+    "launchMission": "Launch mission",
+    "retry": "Retry",
+    "tabsLabel": "Mission status",
+    "tabs": {
+      "active": "Active",
+      "upcoming": "Upcoming",
+      "archive": "Archive"
+    },
+    "sections": {
+      "quests": "Epic Quests",
+      "rituals": "Daily Rituals",
+      "archive": "Archive"
+    },
+    "empty": {
+      "all": "Your path is not yet defined. Launch your first mission or explore the world for one to join.",
+      "active": "No active missions right now. Check Upcoming, or launch a new one.",
+      "upcoming": "Nothing scheduled yet. Launch a mission with a future start date.",
+      "archive": "No finished missions yet. Complete a quest or ritual to fill your archive.",
+      "launch": "Launch First Mission",
+      "explore": "Explore missions"
+    }
   },
   "watched": {
     "title": "Achievement Radar",

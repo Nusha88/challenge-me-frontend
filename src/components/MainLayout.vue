@@ -281,7 +281,7 @@ async function maybeStartOnboarding() {
 </script>
 
 <template>
-  <v-app>
+  <v-app :class="{ 'app-chrome': showAppChrome }">
     <AppHeader
       v-if="!isAuthPage"
       :is-logged-in="isLoggedIn"
@@ -295,6 +295,19 @@ async function maybeStartOnboarding() {
       @open-notifications="openNotifications"
     />
 
+    <AppSidebar
+      v-if="showAppChrome"
+      :drawer-open="drawerOpen"
+      :display-streak-days="displayStreakDays"
+      :yesterday-streak-days="yesterdayStreakDays"
+      :has-today-completed-tasks="hasTodayCompletedTasks"
+      :streak-days-text="streakDaysText"
+      :show-streak="showStreak"
+      @update:drawer-open="drawerOpen = $event"
+      @profile="router.push('/profile')"
+      @logout="logout"
+    />
+
     <MobileFab :show="showMobileFab" />
 
     <v-main
@@ -305,14 +318,6 @@ async function maybeStartOnboarding() {
       }]"
     >
       <div class="main-content-wrapper">
-        <AppSidebar
-          v-if="showAppChrome"
-          :drawer-open="drawerOpen"
-          @update:drawer-open="drawerOpen = $event"
-          @profile="router.push('/profile')"
-          @logout="logout"
-        />
-
         <div
           :class="['main-content-inner', {
             'content-column': showAppChrome,
@@ -391,40 +396,33 @@ async function maybeStartOnboarding() {
 
 <style scoped>
 .main-content-wrapper {
-  display: grid;
-  grid-template-columns: repeat(12, 1fr);
+  display: block;
   width: 100%;
   height: 100%;
-  gap: 1em;
+  box-sizing: border-box;
+  padding: 16px;
 }
 
-.main-content-inner.full-column {
-  grid-column: 1 / -1;
-}
-
+.main-content-inner.full-column,
 .main-content-inner.content-column {
-  grid-column: 3 / -1;
+  width: 100%;
   min-width: 0;
   max-width: 100%;
 }
 
+.main-content.with-sidebar .main-content-wrapper {
+  padding: 16px 20px 24px;
+}
+
+@media (min-width: 960px) {
+  .main-content.with-sidebar .main-content-wrapper {
+    padding: 20px 24px 28px;
+  }
+}
+
 @media (max-width: 959px) {
-  .main-content-wrapper {
-    grid-template-columns: 1fr;
-    gap: 0;
-  }
-
-  .main-content-inner.content-column {
-    grid-column: 1 / -1;
-  }
-
-  .main-content.with-sidebar {
-    margin-left: 0 !important;
-  }
-
   .main-content {
     border-radius: 0;
-    padding-top: 1em;
   }
 }
 
@@ -432,19 +430,15 @@ async function maybeStartOnboarding() {
   background-color: transparent !important;
 }
 
+/*
+ * Do not set padding/margin on v-main itself — Vuetify writes layout offsets
+ * (header + permanent drawer) there. Content inset lives on the wrapper above.
+ */
 .main-content {
-  padding: 1em;
   min-height: auto;
   width: 100%;
-  margin: 0;
   background-color: transparent;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-radius: 0 0 12px 12px;
-}
-
-.main-content.with-sidebar .main-content-wrapper {
-  gap: 1em;
+  border-radius: 0;
 }
 
 .main-content.public-view {

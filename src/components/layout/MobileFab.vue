@@ -2,8 +2,7 @@
   <v-btn
     v-if="show"
     to="/missions/add"
-    class="fab-button d-md-none start-mission-btn"
-    color="primary"
+    class="fab-button d-md-none app-cta-primary start-mission-btn"
     icon="mdi-plus"
     size="large"
     location="bottom end"
@@ -19,19 +18,25 @@ defineProps({
 
 <style scoped>
 .fab-button {
-  background: linear-gradient(135deg, #7E46C4, #6A11CB) !important;
-  box-shadow: 0 4px 15px rgba(126, 70, 196, 0.4),
-              0 0 20px rgba(126, 70, 196, 0.2) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
   position: fixed !important;
   bottom: 24px !important;
   right: 24px !important;
   z-index: 1000;
-  transition: transform 0.1s ease !important;
+  width: 56px !important;
+  height: 56px !important;
+  min-width: 56px !important;
+  border-radius: 50% !important;
+  transition: transform 0.1s var(--home-ease, ease) !important;
 }
 
 .fab-button:active {
   transform: scale(0.92) !important;
-  filter: brightness(1.2) !important;
+  filter: brightness(1.1) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fab-button:active {
+    transform: none !important;
+  }
 }
 </style>

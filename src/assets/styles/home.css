@@ -1,10 +1,13 @@
 /*
- * Logged-in home (/today) design tokens.
+ * Product design tokens for logged-in surfaces.
  *
- * Namespaced under .home-logged-in-container so nothing leaks into the landing
- * page or the rest of the app shell. Palette matches landing.css deliberately.
+ * Applied on `.app-chrome` (MainLayout when shell is visible) so header,
+ * sidebar, FAB, Home, and Mission HQ all inherit the same palette.
+ * `.home-logged-in-container` keeps the same variables for pages that render
+ * outside chrome wrappers during tests / partial mounts.
  */
 
+.app-chrome,
 .home-logged-in-container {
   --home-bg: #0b0d12;
   --home-surface: rgba(22, 27, 40, 0.55);
@@ -30,6 +33,56 @@
   --home-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --home-glow-teal: 0 0 18px rgba(79, 209, 197, 0.28);
   --home-glow-purple: 0 0 20px rgba(112, 72, 232, 0.35);
+}
+
+/* Shared primary create-mission CTA (header + FAB) */
+.app-cta-primary {
+  background: linear-gradient(135deg, var(--home-teal), var(--home-purple)) !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  border: none !important;
+  border-radius: 12px !important;
+  box-shadow: var(--home-glow-teal) !important;
+  text-transform: none !important;
+  letter-spacing: 0.02em;
+  transition:
+    transform 0.25s var(--home-ease),
+    box-shadow 0.25s var(--home-ease),
+    filter 0.25s var(--home-ease) !important;
+}
+
+.app-cta-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--home-glow-purple) !important;
+  filter: brightness(1.05);
+}
+
+.app-cta-primary:active {
+  transform: translateY(0);
+}
+
+.app-cta-primary .v-btn__overlay {
+  background: transparent !important;
+}
+
+/* Secondary / outline CTA (sidebar invite) */
+.app-cta-secondary {
+  background: transparent !important;
+  color: var(--home-text) !important;
+  border: 1px solid var(--home-border-hi) !important;
+  border-radius: 12px !important;
+  font-weight: 800 !important;
+  box-shadow: none !important;
+  transition:
+    transform 0.25s var(--home-ease),
+    border-color 0.25s var(--home-ease),
+    background 0.25s var(--home-ease);
+}
+
+.app-cta-secondary:hover {
+  transform: translateY(-1px);
+  background: rgba(79, 209, 197, 0.08) !important;
+  border-color: rgba(79, 209, 197, 0.55) !important;
 }
 
 .home-glass-card {
@@ -100,11 +153,19 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .app-chrome *,
+  .app-chrome *::before,
+  .app-chrome *::after,
   .home-logged-in-container *,
   .home-logged-in-container *::before,
   .home-logged-in-container *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
+  }
+
+  .app-cta-primary:hover,
+  .app-cta-secondary:hover {
+    transform: none;
   }
 }

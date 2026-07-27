@@ -18,11 +18,20 @@
           </div>
         </div>
 
+        <div
+          v-if="mobile && showStreak && sidebarStreakDays > 0"
+          class="sidebar-streak-chip"
+          :class="{ 'is-yesterday': isYesterdayStreak }"
+        >
+          <v-icon size="16">mdi-fire</v-icon>
+          <span>{{ sidebarStreakDays }} {{ streakDaysText }}</span>
+        </div>
+
         <div class="pa-2">
           <div class="xp-sidebar-card" data-xp-sidebar-target>
             <div class="d-flex justify-space-between text-caption font-weight-bold mb-1">
-              <span class="text-grey-darken-1">{{ xpDisplayCurrent }} / {{ xpDisplayNeeded }} XP</span>
-              <span class="text-grey-darken-1">{{ Math.round(levelProgressPercentage) }}%</span>
+              <span class="xp-meta">{{ xpDisplayCurrent }} / {{ xpDisplayNeeded }} XP</span>
+              <span class="xp-meta">{{ Math.round(levelProgressPercentage) }}%</span>
             </div>
 
             <v-progress-linear
@@ -116,7 +125,7 @@
         <div v-if="canInviteMore" class="sidebar-referral-block">
           <button
             type="button"
-            class="sidebar-referral-btn"
+            class="sidebar-referral-btn app-cta-secondary"
             @click="openReferralDialog"
           >
             <v-icon size="16" class="sidebar-referral-icon">mdi-gift</v-icon>
@@ -175,12 +184,25 @@ const props = defineProps({
   xpDisplayCurrent: { type: Number, default: 0 },
   xpDisplayNeeded: { type: Number, default: 0 },
   currentRoute: { type: [String, Symbol], default: undefined },
-  mobile: { type: Boolean, default: false }
+  mobile: { type: Boolean, default: false },
+  displayStreakDays: { type: Number, default: 0 },
+  yesterdayStreakDays: { type: Number, default: 0 },
+  hasTodayCompletedTasks: { type: Boolean, default: false },
+  streakDaysText: { type: String, default: '' },
+  showStreak: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['profile', 'logout', 'navigate'])
 
 const { t } = useI18n()
+
+const isYesterdayStreak = computed(() => {
+  return !props.hasTodayCompletedTasks && props.yesterdayStreakDays > 0
+})
+
+const sidebarStreakDays = computed(() => {
+  return isYesterdayStreak.value ? props.yesterdayStreakDays : props.displayStreakDays
+})
 
 const {
   stats: referralStats,
@@ -242,12 +264,39 @@ function handleNavClick() {
 }
 
 .sidebar-user-section {
-  background: rgba(112, 72, 232, 0.04);
-  border-radius: 16px;
-  margin: 12px;
-  border: 1px solid rgba(112, 72, 232, 0.08);
-  transition: background 0.3s ease;
-  padding: 20px 16px !important;
+  background: var(--home-surface, rgba(22, 27, 40, 0.55));
+  border-radius: var(--home-radius-sm, 14px);
+  margin: 8px 10px 10px;
+  border: 1px solid var(--home-border, rgba(255, 255, 255, 0.08));
+  transition: background 0.3s var(--home-ease, ease);
+  padding: 14px 12px !important;
+}
+
+.sidebar-streak-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 8px 10px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  color: var(--home-gold, #fbbf24);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.sidebar-streak-chip.is-yesterday {
+  filter: grayscale(0.75);
+  opacity: 0.75;
+}
+
+.sidebar-streak-chip .v-icon {
+  color: inherit !important;
+}
+
+.xp-meta {
+  color: var(--home-text-faint, #64748b) !important;
 }
 
 .sidebar-user-clickable {
@@ -316,10 +365,10 @@ function handleNavClick() {
 
 .xp-sidebar-card {
   background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  padding: 12px;
-  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--home-border, rgba(255, 255, 255, 0.08));
+  border-radius: 12px;
+  padding: 10px;
+  box-shadow: none;
 }
 
 :deep(.v-progress-linear) {
@@ -372,10 +421,10 @@ function handleNavClick() {
   letter-spacing: 1.2px !important;
   font-size: 11px !important;
   font-weight: 800 !important;
-  color: #94A3B8 !important;
-  margin-top: 24px !important;
-  margin-bottom: 8px !important;
-  padding-left: 20px !important;
+  color: var(--home-text-faint, #64748b) !important;
+  margin-top: 10px !important;
+  margin-bottom: 4px !important;
+  padding-left: 16px !important;
   min-height: auto !important;
   height: auto !important;
 }
@@ -492,26 +541,26 @@ function handleNavClick() {
 }
 
 .sidebar-menu-card {
-  background: rgba(255, 255, 255, 0.03) !important;
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
-  border-radius: 20px !important;
-  margin: 0 12px 16px 12px !important;
-  padding: 8px 0 !important;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important;
-  transition: all 0.3s ease;
+  background: var(--home-surface-soft, rgba(255, 255, 255, 0.03)) !important;
+  border: 1px solid var(--home-border, rgba(255, 255, 255, 0.08)) !important;
+  border-radius: var(--home-radius-sm, 14px) !important;
+  margin: 0 10px 10px 10px !important;
+  padding: 6px 0 !important;
+  box-shadow: none !important;
+  transition: border-color 0.25s var(--home-ease, ease);
 }
 
 .is-mobile .sidebar-menu-card {
-  margin: 0 16px 16px 16px !important;
+  margin: 0 12px 10px 12px !important;
 }
 
 .sidebar-referral-block {
-  margin: 8px 12px 4px;
+  margin: 6px 10px 2px;
   padding: 0 4px;
 }
 
 .is-mobile .sidebar-referral-block {
-  margin: 8px 16px 4px;
+  margin: 6px 12px 2px;
 }
 
 .sidebar-referral-btn {
@@ -522,29 +571,17 @@ function handleNavClick() {
   gap: 4px;
   width: 100%;
   padding: 10px 8px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
-  background: linear-gradient(135deg, #4FD1C5 0%, #38B2AC 100%);
-  color: #0F172A;
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 0.68rem;
-  font-weight: 800;
   letter-spacing: 0.2px;
   text-transform: uppercase;
   white-space: nowrap;
   cursor: pointer;
-  box-shadow: 0 0 12px rgba(79, 209, 197, 0.35);
-  transition: all 0.25s ease;
-}
-
-.sidebar-referral-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 0 18px rgba(79, 209, 197, 0.55);
-  filter: brightness(1.05);
 }
 
 .sidebar-referral-icon {
   flex-shrink: 0;
+  color: var(--home-teal, #4fd1c5) !important;
 }
 
 .sidebar-referral-label,
@@ -554,8 +591,13 @@ function handleNavClick() {
   line-height: 1;
 }
 
+.sidebar-referral-reward {
+  color: var(--home-gold, #fbbf24);
+}
+
 .sidebar-referral-spark {
   font-size: 0.7rem;
+  color: var(--home-text-dim, #94a3b8);
 }
 
 .sidebar-referral-status {
@@ -563,7 +605,7 @@ function handleNavClick() {
   text-align: center;
   font-size: 0.72rem;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--home-text-faint, rgba(255, 255, 255, 0.45));
   letter-spacing: 0.3px;
 }
 </style>

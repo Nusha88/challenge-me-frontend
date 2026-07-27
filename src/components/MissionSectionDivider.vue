@@ -1,5 +1,5 @@
 <template>
-  <div class="mission-section-divider">
+  <div class="mission-section-divider" :class="{ 'is-flush-top': flushTop }">
     <span class="mission-section-divider-label">
       <v-icon :icon="icon" size="14" />
       {{ label }}
@@ -22,6 +22,10 @@ defineProps({
   count: {
     type: Number,
     default: 0
+  },
+  flushTop: {
+    type: Boolean,
+    default: false
   }
 })
 </script>
@@ -32,6 +36,10 @@ defineProps({
   align-items: center;
   gap: 12px;
   margin: 32px 0 16px;
+}
+
+.mission-section-divider.is-flush-top {
+  margin-top: 0;
 }
 
 .mission-section-divider-label {
@@ -70,6 +78,10 @@ defineProps({
 @media (max-width: 600px) {
   .mission-section-divider {
     margin: 24px 0 12px;
+  }
+
+  .mission-section-divider.is-flush-top {
+    margin-top: 0;
   }
 }
 </style>

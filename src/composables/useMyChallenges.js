@@ -13,10 +13,14 @@ export function useMyChallenges(currentUserId) {
 
   const challenges = ref([])
   const loading = ref(false)
-  const error = ref('')
+  const listError = ref('')
+  const actionError = ref('')
   const joiningId = ref(null)
   const leavingId = ref(null)
   const watchingId = ref(null)
+
+  /** @deprecated Prefer listError / actionError — kept for dialog clear-on-open */
+  const error = actionError
 
   let getSelectedChallengeId = () => null
   let refreshSelectedChallenge = async () => {}
@@ -26,6 +30,19 @@ export function useMyChallenges(currentUserId) {
     selectedChallengeRef = selectedChallenge
     getSelectedChallengeId = () => unref(selectedChallenge)?._id
     refreshSelectedChallenge = refreshSelected
+  }
+
+  function clearListError() {
+    listError.value = ''
+  }
+
+  function clearActionError() {
+    actionError.value = ''
+  }
+
+  function clearErrors() {
+    clearListError()
+    clearActionError()
   }
 
   function challengeIdsMatch(a, b) {
@@ -109,12 +126,12 @@ export function useMyChallenges(currentUserId) {
   async function fetchChallenges() {
     const userId = unref(currentUserId)
     if (!userId) {
-      error.value = t('users.userNotFound')
+      listError.value = t('users.userNotFound')
       return
     }
 
     loading.value = true
-    error.value = ''
+    listError.value = ''
 
     try {
       const { data } = await challengeService.getChallengesByUser(userId, {
@@ -123,7 +140,7 @@ export function useMyChallenges(currentUserId) {
       challenges.value = data?.challenges || []
       watchedStore.syncIdsFromChallengeList(challenges.value, userId)
     } catch (err) {
-      error.value = err.response?.data?.message || t('notifications.apiError')
+      listError.value = err.response?.data?.message || t('notifications.apiError')
     } finally {
       loading.value = false
     }
@@ -140,24 +157,24 @@ export function useMyChallenges(currentUserId) {
   async function joinChallenge(challenge) {
     const userId = unref(currentUserId)
     if (!userId) {
-      error.value = t('notifications.mustLogin')
+      actionError.value = t('notifications.mustLogin')
       return
     }
 
     if (!challenge?._id) {
-      error.value = t('notifications.joinError')
+      actionError.value = t('notifications.joinError')
       return
     }
 
     joiningId.value = challenge._id
-    error.value = ''
+    actionError.value = ''
 
     try {
       const response = await challengeService.joinChallenge(challenge._id, { userId })
       applyRewardResponse(response)
       await refreshChallengesAfterMembershipChange(challenge._id)
     } catch (err) {
-      error.value = err.response?.data?.message || t('notifications.joinError')
+      actionError.value = err.response?.data?.message || t('notifications.joinError')
     } finally {
       joiningId.value = null
     }
@@ -166,17 +183,17 @@ export function useMyChallenges(currentUserId) {
   async function leaveChallenge(challenge) {
     const userId = unref(currentUserId)
     if (!userId) {
-      error.value = t('notifications.mustLogin')
+      actionError.value = t('notifications.mustLogin')
       return
     }
 
     if (!challenge?._id) {
-      error.value = t('notifications.joinError')
+      actionError.value = t('notifications.joinError')
       return
     }
 
     leavingId.value = challenge._id
-    error.value = ''
+    actionError.value = ''
 
     try {
       const response = await challengeService.leaveChallenge(challenge._id, { userId })
@@ -185,7 +202,7 @@ export function useMyChallenges(currentUserId) {
       }
       await refreshChallengesAfterMembershipChange(challenge._id)
     } catch (err) {
-      error.value = err.response?.data?.message || t('notifications.joinError')
+      actionError.value = err.response?.data?.message || t('notifications.joinError')
     } finally {
       leavingId.value = null
     }
@@ -218,12 +235,12 @@ export function useMyChallenges(currentUserId) {
   async function watchChallenge(challenge) {
     const userId = unref(currentUserId)
     if (!userId) {
-      error.value = t('notifications.mustLogin')
+      actionError.value = t('notifications.mustLogin')
       return
     }
 
     watchingId.value = challenge._id
-    error.value = ''
+    actionError.value = ''
 
     const challengeId = challenge._id.toString()
     setChallengeWatched(challenge._id, true)
@@ -236,7 +253,7 @@ export function useMyChallenges(currentUserId) {
       setChallengeWatched(challenge._id, false)
       watchedStore.removeId(challengeId)
       updateChallengeWatchersCount(challenge._id, -1)
-      error.value = err.response?.data?.message || t('challenges.watchError')
+      actionError.value = err.response?.data?.message || t('challenges.watchError')
     } finally {
       watchingId.value = null
     }
@@ -247,7 +264,7 @@ export function useMyChallenges(currentUserId) {
     if (!userId) return
 
     watchingId.value = challenge._id
-    error.value = ''
+    actionError.value = ''
 
     const challengeId = challenge._id.toString()
     setChallengeWatched(challenge._id, false)
@@ -260,7 +277,7 @@ export function useMyChallenges(currentUserId) {
       setChallengeWatched(challenge._id, true)
       watchedStore.addId(challengeId)
       updateChallengeWatchersCount(challenge._id, 1)
-      error.value = err.response?.data?.message || t('challenges.watchError')
+      actionError.value = err.response?.data?.message || t('challenges.watchError')
     } finally {
       watchingId.value = null
     }
@@ -269,6 +286,8 @@ export function useMyChallenges(currentUserId) {
   return {
     challenges,
     loading,
+    listError,
+    actionError,
     error,
     joiningId,
     leavingId,
@@ -282,6 +301,9 @@ export function useMyChallenges(currentUserId) {
     finishedChallenges,
     activeChallenges,
     isWatched,
+    clearListError,
+    clearActionError,
+    clearErrors,
     fetchChallenges,
     joinChallenge,
     leaveChallenge,

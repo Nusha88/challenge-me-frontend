@@ -1,5 +1,5 @@
 <template>
-  <v-app-bar class="app-bar-custom" elevation="0" :fixed="false">
+  <v-app-bar class="app-bar-custom" elevation="0" :fixed="isMobileHeader">
     <div class="header-content-wrapper" :class="{ 'header-content-wrapper--guest': !isLoggedIn }">
       <div class="header-section header-left">
         <v-app-bar-nav-icon
@@ -92,10 +92,10 @@
           to="/missions/add"
           variant="elevated"
           size="large"
-          class="mr-2 cta-button-cyber d-none d-md-inline-flex start-mission-btn"
+          class="mr-2 app-cta-primary d-none d-md-inline-flex start-mission-btn"
         >
           <template #prepend>
-            <v-icon class="icon-pulse">mdi-flare</v-icon>
+            <v-icon>mdi-rocket-launch-outline</v-icon>
           </template>
           {{ t('navigation.addChallenge') }}
         </v-btn>
@@ -128,6 +128,7 @@
 import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { useDisplay } from 'vuetify'
 import { useUserStore } from '../../stores/user'
 import { setLocale, SUPPORTED_LOCALES } from '../../i18n'
 import { APP_EVENTS, addAppEventListener, removeAppEventListener } from '../../utils/appEvents'
@@ -149,6 +150,7 @@ defineEmits(['toggle-drawer', 'open-notifications'])
 
 const route = useRoute()
 const { t, locale } = useI18n()
+const { mdAndUp } = useDisplay()
 const userStore = useUserStore()
 const userSparks = computed(() => userStore.userSparks)
 const sparksInfoOpen = ref(false)
@@ -157,6 +159,8 @@ const sparksGainedAnimating = ref(false)
 const spentDelta = ref('')
 const gainedDelta = ref('')
 
+/** Below md: fixed bar so Vuetify reserves top space on v-main. */
+const isMobileHeader = computed(() => !mdAndUp.value)
 const sparksCountClass = computed(() => ({
   'sparks-count--spent': sparksSpentAnimating.value,
   'sparks-count--gained': sparksGainedAnimating.value
@@ -205,10 +209,11 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .app-bar-custom {
-  background: rgba(13, 13, 23, 0.7) !important;
-  backdrop-filter: blur(15px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
-  color: white !important;
+  background: rgba(11, 13, 18, 0.82) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--home-border, rgba(255, 255, 255, 0.08)) !important;
+  color: var(--home-text, #f1f5f9) !important;
 }
 
 .header-content-wrapper {
@@ -306,8 +311,8 @@ onBeforeUnmount(() => {
   gap: 6px;
   padding: 4px 10px;
   border-radius: 12px;
-  background: rgba(255, 193, 7, 0.08);
-  border: 1px solid rgba(255, 193, 7, 0.22);
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.28);
   flex-shrink: 0;
   transition: background 0.2s ease, border-color 0.2s ease;
   cursor: pointer;
@@ -318,20 +323,20 @@ onBeforeUnmount(() => {
 }
 
 .sparks-container:hover {
-  background: rgba(255, 193, 7, 0.14);
-  border-color: rgba(255, 193, 7, 0.38);
+  background: rgba(251, 191, 36, 0.16);
+  border-color: rgba(251, 191, 36, 0.42);
 }
 
 .sparks-container:focus-visible {
-  outline: 2px solid rgba(255, 193, 7, 0.55);
+  outline: 2px solid rgba(251, 191, 36, 0.55);
   outline-offset: 2px;
 }
 
 .sparks-icon {
-  color: #FFC107;
+  color: var(--home-gold, #fbbf24);
   font-size: 0.85rem;
   line-height: 1;
-  filter: drop-shadow(0 0 6px rgba(255, 193, 7, 0.45));
+  filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.45));
 }
 
 .sparks-count {
@@ -412,16 +417,16 @@ onBeforeUnmount(() => {
  * so it carries the brand gradient while Log in stays a quiet text button.
  */
 .sign-up-button {
-  background: linear-gradient(135deg, #4fd1c5 0%, #a62ee8 100%) !important;
+  background: linear-gradient(135deg, var(--home-teal, #4fd1c5) 0%, var(--home-magenta, #a62ee8) 100%) !important;
   color: #ffffff !important;
   border: none !important;
   border-radius: 12px !important;
-  box-shadow: 0 0 16px rgba(79, 209, 197, 0.28) !important;
+  box-shadow: var(--home-glow-teal, 0 0 16px rgba(79, 209, 197, 0.28)) !important;
   transition: box-shadow 0.3s ease, transform 0.3s ease;
 }
 
 .sign-up-button:hover {
-  box-shadow: 0 0 24px rgba(79, 209, 197, 0.45) !important;
+  box-shadow: var(--home-glow-purple, 0 0 24px rgba(112, 72, 232, 0.35)) !important;
   transform: translateY(-1px);
 }
 
@@ -468,37 +473,6 @@ onBeforeUnmount(() => {
   justify-content: center;
 }
 
-.cta-button-cyber {
-  background: linear-gradient(135deg, #4FD1C5 0%, #38B2AC 100%) !important;
-  color: #0F172A !important;
-  font-weight: 800 !important;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  border-radius: 12px !important;
-  box-shadow: 0 0 15px rgba(79, 209, 197, 0.4) !important;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
-}
-
-.cta-button-cyber:hover {
-  box-shadow: 0 0 25px rgba(79, 209, 197, 0.8) !important;
-  transform: translateY(-2px);
-  filter: brightness(1.1);
-}
-
-.cta-button-cyber:active {
-  transform: translateY(0);
-}
-
-.icon-pulse {
-  animation: star-pulse 2s infinite ease-in-out;
-}
-
-@keyframes star-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.7; transform: scale(1.2); }
-}
-
 :deep(.v-badge__badge) {
   background-color: #ff5252 !important;
   box-shadow: 0 0 10px rgba(255, 82, 82, 0.5);
@@ -523,14 +497,7 @@ onBeforeUnmount(() => {
 
 @media (max-width: 959px) {
   .app-bar-custom {
-    position: fixed !important;
-    top: 0;
-    left: 0;
-    right: 0;
-    margin: 0;
     border-radius: 0;
-    z-index: 1000;
-    width: 100%;
   }
 
   .app-bar-custom :deep(.v-toolbar__content) {

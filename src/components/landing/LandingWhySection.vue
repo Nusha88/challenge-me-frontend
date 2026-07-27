@@ -1,7 +1,7 @@
 <template>
   <section class="lp-section why-section">
     <div class="lp-shell why-shell">
-      <header class="lp-section-head reveal">
+      <header class="lp-section-head lp-section-head--center reveal">
         <p class="lp-eyebrow">{{ t('home.landing.why.eyebrow') }}</p>
         <h2 class="lp-h2">{{ t('home.landing.why.title') }}</h2>
         <p class="lp-lead">{{ t('home.landing.why.lead') }}</p>

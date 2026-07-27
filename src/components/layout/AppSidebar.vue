@@ -1,164 +1,113 @@
 <template>
   <v-navigation-drawer
-    permanent
-    class="d-none d-md-block desktop-sidebar sidebar-column"
+    v-model="isOpen"
+    :permanent="mdAndUp"
+    :temporary="!mdAndUp"
+    location="left"
+    :width="drawerWidth"
+    :scrim="!mdAndUp"
+    class="app-sidebar app-chrome"
+    :class="mdAndUp ? 'app-sidebar--desktop' : 'app-sidebar--mobile'"
   >
     <AppSidebarContent
       v-bind="sidebarContentProps"
+      :mobile="!mdAndUp"
+      :display-streak-days="displayStreakDays"
+      :yesterday-streak-days="yesterdayStreakDays"
+      :has-today-completed-tasks="hasTodayCompletedTasks"
+      :streak-days-text="streakDaysText"
+      :show-streak="showStreak"
       @profile="$emit('profile')"
       @logout="$emit('logout')"
+      @navigate="closeMobileDrawer"
     />
   </v-navigation-drawer>
-
-  <Teleport to="body">
-    <v-navigation-drawer
-      :model-value="drawerOpen"
-      temporary
-      location="start"
-      class="d-md-none mobile-drawer"
-      @update:model-value="$emit('update:drawerOpen', $event)"
-    >
-      <AppSidebarContent
-        mobile
-        v-bind="sidebarContentProps"
-        @profile="$emit('profile')"
-        @logout="$emit('logout')"
-        @navigate="$emit('update:drawerOpen', false)"
-      />
-    </v-navigation-drawer>
-  </Teleport>
 </template>
 
 <script setup>
+import { computed, watch } from 'vue'
+import { useDisplay } from 'vuetify'
 import AppSidebarContent from './AppSidebarContent.vue'
 import { useSidebarUser } from '../../composables/useSidebarUser'
 
-defineProps({
-  drawerOpen: { type: Boolean, default: false }
+const props = defineProps({
+  drawerOpen: { type: Boolean, default: false },
+  displayStreakDays: { type: Number, default: 0 },
+  yesterdayStreakDays: { type: Number, default: 0 },
+  hasTodayCompletedTasks: { type: Boolean, default: false },
+  streakDaysText: { type: String, default: '' },
+  showStreak: { type: Boolean, default: false }
 })
 
-defineEmits(['update:drawerOpen', 'profile', 'logout'])
+const emit = defineEmits(['update:drawerOpen', 'profile', 'logout'])
 
+const { mdAndUp, lgAndUp } = useDisplay()
 const { sidebarContentProps } = useSidebarUser()
+
+const drawerWidth = computed(() => {
+  if (!mdAndUp.value) return 300
+  return lgAndUp.value ? 256 : 220
+})
+
+/**
+ * One drawer for both breakpoints. Desktop stays permanently open;
+ * mobile is closed until the header menu toggles `drawerOpen`.
+ */
+const isOpen = computed({
+  get() {
+    return mdAndUp.value ? true : props.drawerOpen
+  },
+  set(value) {
+    if (!mdAndUp.value) {
+      emit('update:drawerOpen', value)
+    }
+  }
+})
+
+function closeMobileDrawer() {
+  if (!mdAndUp.value) {
+    emit('update:drawerOpen', false)
+  }
+}
+
+watch(mdAndUp, (isDesktop) => {
+  if (!isDesktop) {
+    emit('update:drawerOpen', false)
+  }
+}, { immediate: true })
 </script>
 
 <style scoped>
-.sidebar-column {
-  grid-column: 1 / 3;
-}
-
-.desktop-sidebar {
-  position: relative;
-  flex-shrink: 0;
-  height: 100vh;
-  z-index: 1;
-  margin-top: 0;
-  padding-top: 0;
-  top: 0 !important;
-  width: auto;
-  background: rgba(15, 15, 26, 0.7) !important;
-  backdrop-filter: blur(20px);
+.app-sidebar {
   border: none !important;
-  border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
-  color: #ffffff;
+  color: var(--home-text, #f1f5f9);
 }
 
-.desktop-sidebar :deep(.v-navigation-drawer) {
-  top: 0 !important;
+.app-sidebar--desktop {
+  background: rgba(11, 13, 18, 0.78) !important;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-right: 1px solid var(--home-border, rgba(255, 255, 255, 0.08)) !important;
 }
 
-.desktop-sidebar :deep(.v-list) {
-  padding-top: 0;
+.app-sidebar--mobile {
+  background: var(--home-bg, #0b0d12) !important;
+  z-index: 2005 !important;
 }
 
-.desktop-sidebar :deep(.v-navigation-drawer__content) {
-  padding-top: 0;
-  background-color: transparent;
-  color: #ffffff;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-.desktop-sidebar :deep(.v-navigation-drawer__border) {
+.app-sidebar :deep(.v-navigation-drawer__border) {
   display: none !important;
 }
 
-.desktop-sidebar :deep(.v-list-item-title) {
-  font-size: 0.95rem;
-}
-
-.mobile-drawer {
-  z-index: 2000;
-  background-color: #131323;
-}
-
-.mobile-drawer :deep(.v-navigation-drawer__content) {
+.app-sidebar :deep(.v-navigation-drawer__content) {
   display: flex;
   flex-direction: column;
   height: 100%;
+  background: transparent;
+  color: var(--home-text, #ffffff);
 }
 
-.mobile-drawer :deep(.v-list-item-title) {
+.app-sidebar--desktop :deep(.v-list-item-title) {
   font-size: 0.95rem;
-}
-
-@media (min-width: 960px) and (max-width: 1279px) {
-  .desktop-sidebar {
-    width: 220px !important;
-  }
-
-  .desktop-sidebar :deep(.v-list-item-title) {
-    font-size: 0.9rem;
-  }
-
-  .desktop-sidebar :deep(.v-icon) {
-    font-size: 20px;
-  }
-}
-
-@media (min-width: 1280px) {
-  .desktop-sidebar {
-    width: 256px !important;
-  }
-}
-
-@media (max-width: 600px) {
-  .mobile-drawer {
-    width: 280px !important;
-  }
-
-  .mobile-drawer :deep(.v-list-item-title) {
-    font-size: 0.9rem;
-  }
-
-  .mobile-drawer :deep(.v-icon) {
-    font-size: 20px;
-  }
-
-  .mobile-drawer :deep(.v-avatar) {
-    width: 28px !important;
-    height: 28px !important;
-  }
-
-  .mobile-drawer :deep(.sidebar-avatar-initials) {
-    font-size: 12px;
-  }
-}
-
-@media (max-width: 959px) {
-  .desktop-sidebar {
-    display: none !important;
-    visibility: hidden !important;
-  }
-
-  .mobile-drawer:not(.v-navigation-drawer--active) {
-    left: -280px !important;
-    transform: translateX(0) !important;
-  }
-
-  .mobile-drawer.v-navigation-drawer--active {
-    left: 0 !important;
-  }
 }
 </style>

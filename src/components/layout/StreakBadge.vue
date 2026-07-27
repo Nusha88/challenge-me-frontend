@@ -31,21 +31,21 @@ const displayDays = computed(() => {
 
 <style scoped>
 .streak-button {
-  background: rgba(255, 165, 0, 0.1) !important;
-  border: 1px solid rgba(255, 165, 0, 0.3) !important;
+  background: rgba(251, 191, 36, 0.1) !important;
+  border: 1px solid rgba(251, 191, 36, 0.32) !important;
   border-radius: 12px;
   padding: 6px 14px;
-  color: #FFA500 !important;
+  color: var(--home-gold, #fbbf24) !important;
   font-weight: 800;
   display: flex;
   align-items: center;
   gap: 8px;
-  box-shadow: 0 0 15px rgba(255, 165, 0, 0.1);
+  box-shadow: 0 0 14px rgba(251, 191, 36, 0.12);
 }
 
 .streak-button i {
   font-size: 20px;
-  filter: drop-shadow(0 0 5px #FFA500);
+  filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.55));
 }
 
 .streak-yesterday {
