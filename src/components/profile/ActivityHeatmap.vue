@@ -22,8 +22,14 @@
     <div class="heatmap-scroll" :class="{ 'is-empty': !hasAnyScheduled }">
       <div v-if="!hasAnyScheduled" class="empty-overlay">
         <p class="empty-text">
-          {{ t('profile.emptyActivityTextStart') }}
-          <span>{{ t('profile.emptyActivityTextHighlight') }}</span>{{ t('profile.emptyActivityTextEnd') }}
+          <template v-if="isOwnProfile">
+            {{ t('profile.emptyActivityTextStart') }}
+            <span>{{ t('profile.emptyActivityTextHighlight') }}</span>{{ t('profile.emptyActivityTextEnd') }}
+          </template>
+          <template v-else>
+            {{ t('profile.emptyActivityOtherStart') }}
+            <span>{{ t('profile.emptyActivityOtherHighlight') }}</span>{{ t('profile.emptyActivityOtherEnd') }}
+          </template>
         </p>
       </div>
 
@@ -91,7 +97,8 @@ import { buildActivityHeatmap, ACTIVITY_LEVEL } from '../../utils/activityHeatma
 const props = defineProps({
   habitChallenges: { type: Array, default: () => [] },
   checklistHistory: { type: Array, default: () => [] },
-  userId: { type: [String, Number], default: null }
+  userId: { type: [String, Number], default: null },
+  isOwnProfile: { type: Boolean, default: true }
 })
 
 const { t, locale } = useI18n()

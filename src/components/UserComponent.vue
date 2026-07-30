@@ -72,6 +72,7 @@ function bindFileInput(el) {
         :habit-challenges="habitChallenges"
         :checklist-history="checklistHistory"
         :user-id="targetUserId"
+        :is-own-profile="isOwnProfile"
       />
 
       <ProfileSettingsPanel v-if="isOwnProfile" />
