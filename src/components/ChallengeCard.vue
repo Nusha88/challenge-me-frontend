@@ -87,7 +87,7 @@
   <div v-else-if="!isFinished" class="guest-info-zone">
     <div class="participant-stats">
       <v-icon size="14" color="rgba(255,255,255,0.5)">mdi-account-group</v-icon>
-      <span class="ml-1">{{ participantCount }} {{ t('missions.heroesInLine') }}</span>
+      <span class="ml-1">{{ participantCount }} {{ t('missions.heroesInLine', participantCount) }}</span>
     </div>
     <div v-if="showJoinButton && !isParticipant" class="join-prompt">
        {{ isHabitType ? t('missions.viewDetailsToJoin') : t('missions.viewDetails') }}

@@ -307,48 +307,121 @@
       </v-card-text>
 
       <v-card-actions ref="footerActionsRef" class="modal-footer px-6 py-4">
-        <v-btn v-if="showLeaveButtonEffective" color="#ff5252" variant="text" @click="openLeaveConfirm">
-          {{ t('challenges.giveUp') }}
-        </v-btn>
+        <div class="footer-left d-flex align-center ga-2">
+          <v-btn v-if="showLeaveButtonEffective" color="#ff5252" variant="text" @click="openLeaveConfirm">
+            {{ t('challenges.giveUp') }}
+          </v-btn>
+
+          <div
+            v-if="showReactionControls"
+            class="reaction-controls d-flex align-center ga-3"
+            role="group"
+            :aria-label="t('challenges.reactions')"
+          >
+            <v-btn
+              class="reaction-btn"
+              variant="text"
+              size="small"
+              :color="userReaction === 'like' ? '#4FD1C5' : 'rgba(255,255,255,0.55)'"
+              :disabled="isOwner || reactionLoading"
+              :aria-label="`${t('challenges.like')}${likesCount ? `, ${likesCount}` : ''}`"
+              :aria-pressed="userReaction === 'like'"
+              @click="handleLike"
+            >
+              <v-icon size="18">{{ userReaction === 'like' ? 'mdi-thumb-up' : 'mdi-thumb-up-outline' }}</v-icon>
+              <span v-if="likesCount > 0" class="reaction-count">{{ likesCount }}</span>
+            </v-btn>
+            <v-btn
+              class="reaction-btn"
+              variant="text"
+              size="small"
+              :color="userReaction === 'dislike' ? '#4FD1C5' : 'rgba(255,255,255,0.55)'"
+              :disabled="isOwner || reactionLoading"
+              :aria-label="`${t('challenges.dislike')}${dislikesCount ? `, ${dislikesCount}` : ''}`"
+              :aria-pressed="userReaction === 'dislike'"
+              @click="handleDislike"
+            >
+              <v-icon size="18">{{ userReaction === 'dislike' ? 'mdi-thumb-down' : 'mdi-thumb-down-outline' }}</v-icon>
+              <span v-if="dislikesCount > 0" class="reaction-count">{{ dislikesCount }}</span>
+            </v-btn>
+          </div>
+        </div>
 
         <v-spacer></v-spacer>
 
-        <div v-if="showProgressFooterActions" class="footer-actions-wrapper d-flex gap-3">
-          <v-btn
-            v-if="showWatchActionButton"
-            variant="outlined"
-            :color="isWatched ? '#4FD1C5' : 'rgba(255,255,255,0.3)'"
-            class="rounded-lg action-outline-btn"
-            :loading="watchingId === challenge._id"
-            :disabled="watchingId === challenge._id"
-            @click="isWatched ? handleUnwatch() : handleWatch()"
-          >
-            <v-icon start size="18">{{ isWatched ? 'mdi-eye-off' : 'mdi-eye' }}</v-icon>
-            {{ isWatched ? t('challenges.unwatch') : t('challenges.watch') }}
-          </v-btn>
+        <div class="footer-actions-wrapper d-flex align-center gap-3">
+          <template v-if="showProgressFooterActions">
+            <v-btn
+              v-if="showWatchActionButton"
+              variant="outlined"
+              :color="isWatched ? '#4FD1C5' : 'rgba(255,255,255,0.3)'"
+              class="rounded-lg action-outline-btn watch-action-btn"
+              :loading="watchingId === challenge._id"
+              :disabled="watchingId === challenge._id"
+              :aria-label="`${isWatched ? t('challenges.unwatch') : t('challenges.watch')}. ${t('challenges.watchersCountLabel', { count: watchersCount })}`"
+              @click="isWatched ? handleUnwatch() : handleWatch()"
+            >
+              <span class="watch-action-btn__count">{{ watchersCount }}</span>
+              <span class="watch-action-btn__sep" aria-hidden="true">·</span>
+              <v-icon size="18">{{ isWatched ? 'mdi-eye-off' : 'mdi-eye' }}</v-icon>
+              <span class="watch-action-btn__label">{{ isWatched ? t('challenges.unwatch') : t('challenges.watch') }}</span>
+            </v-btn>
 
-          <v-btn
-            v-if="showEndMissionButton"
-            variant="outlined"
-            color="#4FD1C5"
-            class="rounded-lg action-outline-btn end-mission-btn"
-            :loading="endMissionLoading"
-            :disabled="endMissionLoading || isMainActionLoading"
-            @click="handleEndMission"
-          >
-            {{ t('challenges.endMission') }}
-          </v-btn>
+            <div
+              v-else
+              class="watchers-count d-flex align-center"
+              :title="t('challenges.watchersCount')"
+              :aria-label="t('challenges.watchersCountLabel', { count: watchersCount })"
+            >
+              <v-icon
+                v-if="isCurrentUserParticipant"
+                size="18"
+                color="rgba(255,255,255,0.45)"
+              >
+                mdi-eye
+              </v-icon>
+              <span class="watchers-count__value">{{ watchersCount }}</span>
+            </div>
 
-          <v-btn
-            v-if="showMainActionButton"
-            ref="mainActionBtnRef"
-            class="main-action-btn ml-2"
-            :loading="isMainActionLoading"
-            :disabled="isMainActionLoading"
-            @click="handleMainActionClick"
+            <v-btn
+              v-if="showEndMissionButton"
+              variant="outlined"
+              color="#4FD1C5"
+              class="rounded-lg action-outline-btn end-mission-btn"
+              :loading="endMissionLoading"
+              :disabled="endMissionLoading || isMainActionLoading"
+              @click="handleEndMission"
+            >
+              {{ t('challenges.endMission') }}
+            </v-btn>
+
+            <v-btn
+              v-if="showMainActionButton"
+              ref="mainActionBtnRef"
+              class="main-action-btn ml-2"
+              :loading="isMainActionLoading"
+              :disabled="isMainActionLoading"
+              @click="handleMainActionClick"
+            >
+              {{ mainActionButtonText }}
+            </v-btn>
+          </template>
+
+          <div
+            v-else
+            class="watchers-count d-flex align-center"
+            :title="t('challenges.watchersCount')"
+            :aria-label="t('challenges.watchersCountLabel', { count: watchersCount })"
           >
-            {{ mainActionButtonText }}
-          </v-btn>
+            <v-icon
+              v-if="isCurrentUserParticipant"
+              size="18"
+              color="rgba(255,255,255,0.45)"
+            >
+              mdi-eye
+            </v-icon>
+            <span class="watchers-count__value">{{ watchersCount }}</span>
+          </div>
         </div>
       </v-card-actions>
 
@@ -652,6 +725,58 @@
   background: #0f172a !important;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
+.footer-left {
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.reaction-controls {
+  flex-shrink: 0;
+}
+.reaction-btn {
+  min-width: 0 !important;
+  padding: 0 6px !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  font-weight: 600 !important;
+  gap: 6px;
+}
+.reaction-count {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+  margin-inline-start: 2px;
+}
+.watchers-count {
+  gap: 6px;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+  flex-shrink: 0;
+}
+.watchers-count__value {
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.watch-action-btn {
+  gap: 0 !important;
+}
+.watch-action-btn__count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  opacity: 0.62;
+  line-height: 1;
+}
+.watch-action-btn__sep {
+  margin: 0 10px;
+  opacity: 0.35;
+  font-weight: 400;
+  line-height: 1;
+}
+.watch-action-btn__label {
+  margin-inline-start: 8px;
+  font-weight: 600;
+}
 .main-action-btn {
   background: linear-gradient(135deg, #4FD1C5 0%, #2dd4bf 100%) !important;
   color: #0b0d12 !important;
@@ -664,6 +789,8 @@
 .footer-actions-wrapper {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 .v-card-text.pa-0.modal-body-bg {
   flex: 1 1 auto;
@@ -928,15 +1055,28 @@
     display: none;
   }
 
+  .footer-left {
+    width: 100%;
+    justify-content: space-between;
+  }
+
   .footer-actions-wrapper {
     width: 100%;
     flex-direction: column;
     gap: 10px;
   }
 
-  .modal-footer .v-btn {
+  .footer-actions-wrapper .watchers-count {
+    align-self: flex-start;
+  }
+
+  .modal-footer .footer-actions-wrapper > .v-btn {
     width: 100%;
     justify-content: center;
+  }
+
+  .modal-footer .reaction-btn {
+    width: auto !important;
   }
 }
 </style>
@@ -980,6 +1120,7 @@ import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 import { getLevelFromXp, getLevelInfo } from '../utils/levelSystem'
 import { Trophy } from 'lucide-vue-next'
 import { useChallengeDetailsMembership } from '../composables/useChallengeDetailsMembership'
+import { useChallengeReaction } from '../composables/useChallengeReaction'
 import { buildDayClass, isDayProtected as isDayProtectedUtil } from '../composables/useChallengeDetailsCalendar'
 import { createPendingQuestAction } from '../composables/useChallengeQuestPanel'
 
@@ -1861,6 +2002,8 @@ function openInviteFromTriumph() {
 
 const {
   watchingId,
+  watchersCount,
+  syncWatchersCount,
   canInviteFriends,
   showJoinActionButton,
   showWatchActionButton,
@@ -1880,6 +2023,37 @@ const {
   onUpdate: () => emit('update'),
   onError: (msg) => showFeedback(msg)
 })
+
+const {
+  likesCount,
+  dislikesCount,
+  userReaction,
+  reactionLoading,
+  showReactionControls,
+  handleLike,
+  handleDislike
+} = useChallengeReaction({
+  challenge: computed(() => props.challenge),
+  isOwner: computed(() => props.isOwner),
+  currentUserId,
+  t,
+  onError: (msg) => showFeedback(msg)
+})
+
+watch(
+  () => props.challenge?._id,
+  () => {
+    syncWatchersCount()
+  },
+  { immediate: true }
+)
+
+watch(
+  () => props.challenge?.watchersCount,
+  () => {
+    syncWatchersCount()
+  }
+)
 
 const showLeaveButtonEffective = computed(() => {
   if (!props.challenge || !currentUserId.value) return false

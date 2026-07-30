@@ -18,6 +18,7 @@ export function useChallengeDetailsMembership({
   onError
 }) {
   const watchingId = ref(null)
+  const watchersCount = ref(0)
 
   const isJoined = computed(() => unref(isCurrentUserParticipant))
 
@@ -62,6 +63,20 @@ export function useChallengeDetailsMembership({
     return watchedStore.isWatched(c)
   })
 
+  function syncWatchersCount() {
+    const c = unref(challenge)
+    watchersCount.value = Math.max(0, Number(c?.watchersCount) || 0)
+  }
+
+  function applyWatchersCount(nextCount) {
+    const count = Math.max(0, Number(nextCount) || 0)
+    watchersCount.value = count
+    const c = unref(challenge)
+    if (c && typeof c === 'object') {
+      c.watchersCount = count
+    }
+  }
+
   function mainActionButtonText(tab, saveLabel, updateLabel, joinLabel) {
     if (showJoinActionButton.value) return joinLabel
     if (unref(isOwner) && unref(challenge)?.challengeType === CHALLENGE_TYPES.RESULT) {
@@ -78,11 +93,24 @@ export function useChallengeDetailsMembership({
     const challengeId = c._id
     watchingId.value = challengeId
 
+    const prevCount = watchersCount.value
+    applyWatchersCount(prevCount + 1)
+    if (c && typeof c === 'object') {
+      c.isWatched = true
+    }
+    watchedStore.addId(challengeId)
+
     try {
-      await watchedStore.watch(challengeId, userId, c)
-      onClose?.()
+      const data = await watchedStore.watch(challengeId, userId, c)
+      if (typeof data?.watchersCount === 'number') {
+        applyWatchersCount(data.watchersCount)
+      }
       onUpdate?.()
     } catch (error) {
+      applyWatchersCount(prevCount)
+      if (c && typeof c === 'object') {
+        c.isWatched = false
+      }
       watchedStore.removeId(challengeId)
       onError?.(error.response?.data?.message || t('challenges.watchError'))
     } finally {
@@ -97,13 +125,25 @@ export function useChallengeDetailsMembership({
 
     const challengeId = c._id
     watchingId.value = challengeId
+
+    const prevCount = watchersCount.value
+    applyWatchersCount(prevCount - 1)
+    if (c && typeof c === 'object') {
+      c.isWatched = false
+    }
     watchedStore.removeId(challengeId)
 
     try {
-      await watchedStore.unwatch(challengeId, userId)
-      onClose?.()
+      const data = await watchedStore.unwatch(challengeId, userId)
+      if (typeof data?.watchersCount === 'number') {
+        applyWatchersCount(data.watchersCount)
+      }
       onUpdate?.()
     } catch (error) {
+      applyWatchersCount(prevCount)
+      if (c && typeof c === 'object') {
+        c.isWatched = true
+      }
       watchedStore.addId(challengeId)
       onError?.(error.response?.data?.message || t('challenges.unwatchError'))
     } finally {
@@ -113,6 +153,8 @@ export function useChallengeDetailsMembership({
 
   return {
     watchingId,
+    watchersCount,
+    syncWatchersCount,
     isJoined,
     showLeaveButtonEffective,
     canInviteFriends,

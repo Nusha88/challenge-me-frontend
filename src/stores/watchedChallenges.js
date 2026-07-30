@@ -131,19 +131,26 @@ export const useWatchedChallengesStore = defineStore('watchedChallenges', () => 
   }
 
   async function watch(challengeId, userId, challenge = null) {
-    await challengeService.watchChallenge(challengeId, userId)
+    const { data } = await challengeService.watchChallenge(challengeId, userId)
 
     if (challenge) {
+      if (typeof data?.watchersCount === 'number') {
+        challenge.watchersCount = data.watchersCount
+      }
+      challenge.isWatched = true
       upsertChallenge(challenge)
     } else {
       addId(challengeId)
       invalidateCache()
     }
+
+    return data
   }
 
   async function unwatch(challengeId, userId) {
-    await challengeService.unwatchChallenge(challengeId, userId)
+    const { data } = await challengeService.unwatchChallenge(challengeId, userId)
     removeId(challengeId)
+    return data
   }
 
   return {

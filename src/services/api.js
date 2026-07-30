@@ -314,6 +314,9 @@ export const challengeService = {
   unwatchChallenge: (challengeId, userId) => {
     return api.post(`/challenges/${challengeId}/unwatch`, { userId })
   },
+  setChallengeReaction: (challengeId, value) => {
+    return api.post(`/challenges/${challengeId}/reaction`, { value })
+  },
   getWatchedChallenges: (userId) => {
     return api.get(`/challenges/watched/${userId}`)
   },
