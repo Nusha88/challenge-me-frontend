@@ -597,6 +597,7 @@
 import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { challengeService, uploadService } from '../services/api'
+import { prepareImageForUpload } from '../utils/imageUpload'
 import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
 import { useI18n } from 'vue-i18n'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
@@ -676,28 +677,10 @@ const commentPlaceholder = computed(() => {
   return placeholders[state.selectedPlaceholderIndex]
 })
 
-// Image upload helper
-const readFileAsBase64 = (file) => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      const result = reader.result
-      if (typeof result === 'string') {
-        const base64 = result.includes(',') ? result.split(',')[1] : result
-        resolve(base64)
-      } else {
-        reject(new Error('Unable to read file'))
-      }
-    }
-    reader.onerror = () => reject(reader.error || new Error('Unable to read file'))
-    reader.readAsDataURL(file)
-  })
-}
-
 async function uploadImage(file) {
   state.uploadingImage = true
   try {
-    const base64 = await readFileAsBase64(file)
+    const base64 = await prepareImageForUpload(file, { maxSizeMb: 5 })
     // Upload via the backend proxy (ImgBB key stays server-side).
     const response = await uploadService.uploadImageBase64(base64)
     const imageUrl = response?.data?.url
@@ -722,10 +705,6 @@ async function handleImageSelect(event, type = 'comment', commentId = null, repl
   }
 
   const maxSizeMb = 5
-  if (file.size > maxSizeMb * 1024 * 1024) {
-    alert(t('challenges.uploadTooLarge', { size: maxSizeMb }))
-    return
-  }
 
   // Set uploading state
   if (type === 'reply') {
@@ -761,7 +740,11 @@ async function handleImageSelect(event, type = 'comment', commentId = null, repl
       state.uploadingReplyToReplyImages[replyId] = false
     }
   } catch (error) {
-    alert(error.message || t('challenges.uploadError'))
+    if (error.message?.includes('exceeds')) {
+      alert(t('challenges.uploadTooLarge', { size: maxSizeMb }))
+    } else {
+      alert(error.message || t('challenges.uploadError'))
+    }
     if (type === 'comment') {
       state.newCommentImagePreview = null
       state.newCommentImageName = null

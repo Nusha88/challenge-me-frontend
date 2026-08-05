@@ -69,10 +69,17 @@ export function compressImageFile(file, { maxWidth = 1920, quality = 0.85 } = {}
   })
 }
 
+// Compress when not already a small JPEG — large phone photos are the main
+// cause of upload timeouts through the Render → ImgBB proxy.
+const COMPRESS_IF_LARGER_THAN = 1 * 1024 * 1024
+
 export async function prepareImageForUpload(file, { maxSizeMb = 5 } = {}) {
   let uploadBlob = file
 
-  if (file.size > maxSizeMb * 1024 * 1024 || !file.type?.startsWith('image/jpeg')) {
+  const shouldCompress =
+    file.size > COMPRESS_IF_LARGER_THAN || !file.type?.startsWith('image/jpeg')
+
+  if (shouldCompress) {
     try {
       uploadBlob = await compressImageFile(file)
     } catch (error) {

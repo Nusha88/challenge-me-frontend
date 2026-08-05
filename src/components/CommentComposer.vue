@@ -114,10 +114,6 @@ async function onImageSelect(event) {
   }
 
   const maxSizeMb = 5
-  if (file.size > maxSizeMb * 1024 * 1024) {
-    alert(t('challenges.uploadTooLarge', { size: maxSizeMb }))
-    return
-  }
 
   const reader = new FileReader()
   reader.onload = (e) => {
@@ -127,10 +123,14 @@ async function onImageSelect(event) {
 
   emit('uploading', true)
   try {
-    const url = await uploadImage(file)
+    const url = await uploadImage(file, { maxSizeMb })
     emit('update:imageUrl', url)
   } catch (error) {
-    alert(error.message || t('challenges.uploadError'))
+    if (error.message?.includes('exceeds')) {
+      alert(t('challenges.uploadTooLarge', { size: maxSizeMb }))
+    } else {
+      alert(error.message || t('challenges.uploadError'))
+    }
     imagePreview.value = null
     emit('update:imageUrl', null)
   } finally {

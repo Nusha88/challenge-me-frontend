@@ -1,27 +1,11 @@
 import { ref } from 'vue'
 import { uploadService } from '../services/api'
-
-function readFileAsBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      const result = reader.result
-      if (typeof result === 'string') {
-        const base64 = result.includes(',') ? result.split(',')[1] : result
-        resolve(base64)
-      } else {
-        reject(new Error('Unable to read file'))
-      }
-    }
-    reader.onerror = () => reject(reader.error || new Error('Unable to read file'))
-    reader.readAsDataURL(file)
-  })
-}
+import { prepareImageForUpload, readFileAsBase64 } from '../utils/imageUpload'
 
 // Uploads an image via the backend proxy (which holds the ImgBB key) and
-// returns the resulting URL.
-async function uploadImageFile(file) {
-  const base64 = await readFileAsBase64(file)
+// returns the resulting URL. Compresses first to keep the base64 payload small.
+async function uploadImageFile(file, { maxSizeMb = 5 } = {}) {
+  const base64 = await prepareImageForUpload(file, { maxSizeMb })
   const response = await uploadService.uploadImageBase64(base64)
   const imageUrl = response?.data?.url
   if (!imageUrl) {
@@ -33,10 +17,10 @@ async function uploadImageFile(file) {
 export function useImgbbUpload() {
   const uploadingImage = ref(false)
 
-  async function uploadImage(file) {
+  async function uploadImage(file, options) {
     uploadingImage.value = true
     try {
-      return await uploadImageFile(file)
+      return await uploadImageFile(file, options)
     } finally {
       uploadingImage.value = false
     }

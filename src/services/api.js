@@ -377,15 +377,39 @@ export const challengeService = {
   }
 }
 
+function isTimeoutError(error) {
+  return error?.code === 'ECONNABORTED' || /timeout/i.test(error?.message || '')
+}
+
+// ImgBB via Render can exceed 30s (cold start + large base64 + ImgBB lag).
+const UPLOAD_TIMEOUT_MS = 90000
+
+async function postUploadWithRetry(url, data, options = {}, retries = 1) {
+  try {
+    return await api.post(url, data, options)
+  } catch (error) {
+    if (retries > 0 && isTimeoutError(error)) {
+      console.warn('[Upload] request timed out, retrying once…')
+      return postUploadWithRetry(url, data, options, retries - 1)
+    }
+    throw error
+  }
+}
+
 // Image upload service — proxies to the backend, which holds the ImgBB key.
 export const uploadService = {
   // image: base64 string (without the data: prefix). Returns { url }.
   uploadImageBase64: (image) => {
-    return api.post('/uploads/image', { image }, { timeout: 30000 })
+    return postUploadWithRetry(
+      '/uploads/image',
+      { image },
+      { timeout: UPLOAD_TIMEOUT_MS },
+      1
+    )
   },
   // Returns { dataUrl } for remote images (server-side fetch bypasses CORS).
   fetchImageDataUrl: (url) => {
-    return api.get('/uploads/image-data', { params: { url }, timeout: 30000 })
+    return api.get('/uploads/image-data', { params: { url }, timeout: UPLOAD_TIMEOUT_MS })
   }
 }
 

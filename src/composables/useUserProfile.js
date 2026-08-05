@@ -1,6 +1,7 @@
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { userService, challengeService, uploadService } from '../services/api'
+import { prepareImageForUpload } from '../utils/imageUpload'
 import { useI18n } from 'vue-i18n'
 import { useUserStore } from '../stores/user'
 import { enrichUserForDisplay } from '../utils/userLevelDisplay'
@@ -163,23 +164,6 @@ export function useUserProfile(props = {}) {
     await Promise.all([fetchChallenges(), fetchChecklistHistory()])
   }
 
-  function readFileAsBase64(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => {
-        const result = reader.result
-        if (typeof result === 'string') {
-          const base64 = result.includes(',') ? result.split(',')[1] : result
-          resolve(base64)
-        } else {
-          reject(new Error('Unable to read file'))
-        }
-      }
-      reader.onerror = () => reject(reader.error || new Error('Unable to read file'))
-      reader.readAsDataURL(file)
-    })
-  }
-
   async function handleAvatarSelection(files) {
     if (!files || (Array.isArray(files) && files.length === 0)) return
 
@@ -194,15 +178,10 @@ export function useUserProfile(props = {}) {
     }
 
     const maxSizeMb = 5
-    if (file.size > maxSizeMb * 1024 * 1024) {
-      uploadError.value = t('profile.uploadTooLarge', { size: maxSizeMb })
-      return
-    }
-
     uploading.value = true
 
     try {
-      const base64 = await readFileAsBase64(file)
+      const base64 = await prepareImageForUpload(file, { maxSizeMb })
       const uploadResponse = await uploadService.uploadImageBase64(base64)
       const imageUrl = uploadResponse?.data?.url
       if (!imageUrl) {
@@ -217,7 +196,11 @@ export function useUserProfile(props = {}) {
       }
       window.dispatchEvent(new Event('auth-changed'))
     } catch (err) {
-      uploadError.value = err.message || t('profile.uploadError')
+      if (err.message?.includes('exceeds')) {
+        uploadError.value = t('profile.uploadTooLarge', { size: maxSizeMb })
+      } else {
+        uploadError.value = err.message || t('profile.uploadError')
+      }
     } finally {
       uploading.value = false
     }
