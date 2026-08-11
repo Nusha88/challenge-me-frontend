@@ -1,5 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { isTokenExpired, clearStoredAuth } from '../utils/tokenUtils'
+import { useUserStore } from '../stores/user'
+import { isSuperAdminUserId } from '../constants/superAdmin'
 
 // All route components are lazy-loaded so the initial bundle only ships the
 // code for the first route the user lands on.
@@ -88,6 +90,12 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/statistic',
+      name: 'statistic',
+      component: () => import('../components/StatisticsPage.vue'),
+      meta: { requiresAuth: true, requiresSuperAdmin: true }
+    },
+    {
       path: '/missions/:id',
       name: 'view-challenge',
       component: () => import('../components/AllChallengesComponent.vue')
@@ -102,6 +110,7 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   const requiresAuth = to.matched.some(r => r.meta?.requiresAuth)
+  const requiresSuperAdmin = to.matched.some(r => r.meta?.requiresSuperAdmin)
   let token = (() => {
     try {
       return localStorage.getItem('token')
@@ -124,6 +133,13 @@ router.beforeEach((to) => {
   // If user is already logged in, keep them out of auth pages
   if ((to.name === 'login' || to.name === 'register') && token) {
     return { name: 'today' }
+  }
+
+  if (requiresSuperAdmin) {
+    const userStore = useUserStore()
+    if (!isSuperAdminUserId(userStore.userId)) {
+      return { name: 'today' }
+    }
   }
 })
 

@@ -13,6 +13,7 @@
     "profile": "Профиль",
     "addChallenge": "Запустить миссию",
     "allUsers": "Герои",
+    "statistic": "Статистика",
     "myChallenges": "Мои миссии",
     "allChallenges": "Мир миссий",
     "watchedChallenges": "Интересно",
@@ -525,6 +526,55 @@
       "master": "Мастер Судьбы",
       "grandmaster": "Гроссмейстер",
       "legend": "Легенда Ignite"
+    }
+  },
+  "statistic": {
+    "title": "Статистика",
+    "usersTab": "Пользователи",
+    "missionsTab": "Миссии",
+    "loadError": "Не удалось загрузить пользователей",
+    "missionsLoadError": "Не удалось загрузить миссии",
+    "statusUpdateError": "Не удалось обновить статус пользователя",
+    "visibilityUpdateError": "Не удалось обновить видимость миссии",
+    "deleteError": "Не удалось удалить пользователя",
+    "missionDeleteError": "Не удалось удалить миссию",
+    "deleteConfirmTitle": "Удалить пользователя?",
+    "deleteConfirmMessage": "Это навсегда удалит {name} и созданные им миссии из системы. Действие нельзя отменить.",
+    "deleteConfirmAction": "Удалить",
+    "missionDeleteConfirmTitle": "Удалить миссию?",
+    "missionDeleteConfirmMessage": "Это навсегда удалит «{title}» из системы. Действие нельзя отменить.",
+    "missionDeleteConfirmAction": "Удалить",
+    "type": {
+      "ritual": "Ритуал",
+      "quest": "Квест"
+    },
+    "privacy": {
+      "public": "Публичная",
+      "private": "Приватная"
+    },
+    "missionStatus": {
+      "active": "Активная",
+      "archived": "Архив",
+      "upcoming": "Предстоящая"
+    },
+    "columns": {
+      "name": "Имя",
+      "email": "Email",
+      "level": "Уровень",
+      "xp": "XP",
+      "sparks": "Искры",
+      "missions": "Миссии",
+      "activeMissions": "Активные миссии",
+      "status": "Статус",
+      "actions": "",
+      "title": "Название",
+      "type": "Тип",
+      "privacy": "Приватность",
+      "participants": "Участники",
+      "ownerName": "Владелец",
+      "visibility": "Видимость",
+      "missionStatus": "Статус",
+      "lastActivity": "Последняя активность"
     }
   },
   "users": {

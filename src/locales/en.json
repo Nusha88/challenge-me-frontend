@@ -13,6 +13,7 @@
     "profile": "Profile",
     "addChallenge": "Launch mission",
     "allUsers": "Heroes",
+    "statistic": "Statistic",
     "myChallenges": "My Missions",
     "allChallenges": "Explore",
     "watchedChallenges": "Following",
@@ -525,6 +526,55 @@
       "master": "Fate Master",
       "grandmaster": "Grandmaster",
       "legend": "Ignite Legend"
+    }
+  },
+  "statistic": {
+    "title": "Statistic",
+    "usersTab": "Users",
+    "missionsTab": "Missions",
+    "loadError": "Failed to load users",
+    "missionsLoadError": "Failed to load missions",
+    "statusUpdateError": "Failed to update user status",
+    "visibilityUpdateError": "Failed to update mission visibility",
+    "deleteError": "Failed to delete user",
+    "missionDeleteError": "Failed to delete mission",
+    "deleteConfirmTitle": "Delete user?",
+    "deleteConfirmMessage": "This will permanently remove {name} and their owned missions from the system. This cannot be undone.",
+    "deleteConfirmAction": "Delete",
+    "missionDeleteConfirmTitle": "Delete mission?",
+    "missionDeleteConfirmMessage": "This will permanently remove \"{title}\" from the system. This cannot be undone.",
+    "missionDeleteConfirmAction": "Delete",
+    "type": {
+      "ritual": "Ritual",
+      "quest": "Quest"
+    },
+    "privacy": {
+      "public": "Public",
+      "private": "Private"
+    },
+    "missionStatus": {
+      "active": "Active",
+      "archived": "Archived",
+      "upcoming": "Upcoming"
+    },
+    "columns": {
+      "name": "User name",
+      "email": "Email",
+      "level": "Level",
+      "xp": "XP",
+      "sparks": "Sparks",
+      "missions": "Missions",
+      "activeMissions": "Active missions",
+      "status": "Status",
+      "actions": "",
+      "title": "Title",
+      "type": "Type",
+      "privacy": "Privacy",
+      "participants": "Participants",
+      "ownerName": "Owner",
+      "visibility": "Visibility",
+      "missionStatus": "Status",
+      "lastActivity": "Last activity"
     }
   },
   "users": {

@@ -164,6 +164,24 @@ export const userService = {
   getUserById: (userId) => {
     return api.get(`/auth/users/${userId}`)
   },
+  getAdminUsers: (params = {}) => {
+    return api.get('/admin/users', { params })
+  },
+  updateUserStatus: (userId, status) => {
+    return api.patch(`/admin/users/${userId}/status`, { status })
+  },
+  deleteAdminUser: (userId) => {
+    return api.delete(`/admin/users/${userId}`)
+  },
+  getAdminMissions: (params = {}) => {
+    return api.get('/admin/missions', { params })
+  },
+  updateMissionVisibility: (missionId, visibility) => {
+    return api.patch(`/admin/missions/${missionId}/visibility`, { visibility })
+  },
+  deleteAdminMission: (missionId) => {
+    return api.delete(`/admin/missions/${missionId}`)
+  },
   getTodayChecklist: () => {
     return api.get('/auth/daily-checklist/today', {
       headers: userService._clientDayHeaders()

@@ -122,6 +122,19 @@
           <v-list-item-title>{{ t('navigation.allUsers') }}</v-list-item-title>
         </v-list-item>
 
+        <v-list-item
+          v-if="isSuperAdmin"
+          to="/statistic"
+          :active="currentRoute === 'statistic'"
+          color="primary"
+          @click="handleNavClick"
+        >
+          <template #prepend>
+            <BarChart3 :size="20" class="sidebar-lucide-icon mr-2" />
+          </template>
+          <v-list-item-title>{{ t('navigation.statistic') }}</v-list-item-title>
+        </v-list-item>
+
         <div v-if="canInviteMore" class="sidebar-referral-block">
           <button
             type="button"
@@ -173,9 +186,10 @@
 <script setup>
 import { computed, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Sparkles, Mountain, Compass, Eye, Trophy, Star, Globe2, LogOut } from 'lucide-vue-next'
+import { Sparkles, Mountain, Compass, Eye, Trophy, Star, Globe2, LogOut, BarChart3 } from 'lucide-vue-next'
 import InviteFriendDialog from './InviteFriendDialog.vue'
 import { useReferralProgram } from '../../composables/useReferralProgram'
+import { useSuperAdmin } from '../../composables/useSuperAdmin'
 
 const props = defineProps({
   userName: { type: String, default: '' },
@@ -198,6 +212,7 @@ const props = defineProps({
 const emit = defineEmits(['profile', 'logout', 'navigate'])
 
 const { t } = useI18n()
+const { isSuperAdmin } = useSuperAdmin()
 
 const isYesterdayStreak = computed(() => {
   return !props.hasTodayCompletedTasks && props.yesterdayStreakDays > 0
