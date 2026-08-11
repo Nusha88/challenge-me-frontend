@@ -34,7 +34,7 @@
       <v-tabs v-model="tab" grow class="custom-tabs" density="default" height="48">
         <v-tab value="progress">{{ t('challenges.progress') }}</v-tab>
         <v-tab value="details">{{ t('challenges.about') }}</v-tab>
-        <v-tab v-if="challenge.allowComments" value="community">{{ t('challenges.community.title') }}</v-tab>
+        <v-tab v-if="challenge.allowComments && currentUserId" value="community">{{ t('challenges.community.title') }}</v-tab>
         <v-tab v-if="isOwner" value="diary">{{ t('challenges.diary.tabTitle') }}</v-tab>
       </v-tabs>
 
@@ -259,7 +259,7 @@
             </div>
           </v-window-item>
 
-          <v-window-item value="community" eager :transition="false" :reverse-transition="false">
+          <v-window-item v-if="challenge.allowComments && currentUserId" value="community" eager :transition="false" :reverse-transition="false">
             <div class="diary-container">
               <v-alert
                 v-if="isFinished"
@@ -1240,6 +1240,13 @@ function ensureWatchedStoreLoaded() {
   }
 }
 
+function resolveInitialTab(nextTab) {
+  if (nextTab === 'community' && !currentUserId.value) {
+    return 'progress'
+  }
+  return nextTab
+}
+
 watch(
   () => props.modelValue,
   (open) => {
@@ -1249,7 +1256,7 @@ watch(
         heavyContentReady.value = true
       })
       if (props.initialTab) {
-        tab.value = props.initialTab
+        tab.value = resolveInitialTab(props.initialTab)
       }
     } else {
       heavyContentReady.value = false
@@ -1262,7 +1269,7 @@ watch(
   () => props.initialTab,
   (nextTab) => {
     if (props.modelValue && nextTab) {
-      tab.value = nextTab
+      tab.value = resolveInitialTab(nextTab)
     }
   }
 )
