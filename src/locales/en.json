@@ -1008,6 +1008,20 @@
     "sections": {
       "upcoming": "Upcoming"
     },
+    "templates": {
+      "title": "Mission templates",
+      "systemAuthor": "System",
+      "use": "Use template",
+      "durationDays": "{days} days",
+      "weeklyRitualBadge": "🔥 Ritual of the week",
+      "participants": "Ritual participants",
+      "prev": "Previous templates",
+      "next": "Next templates"
+    },
+    "weeklyRitual": {
+      "boostedHint": "Boosted reward for completing",
+      "accept": "Take this week's ritual"
+    },
     "empty": {
       "filtered": "No missions match these filters. Clear them to see the full world again.",
       "catalog": "The world is quiet right now. Launch a mission or check back soon.",

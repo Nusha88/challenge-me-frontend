@@ -1,89 +1,66 @@
 <template>
-  <v-card 
-    class="main-ritual-hero mb-10" 
+  <v-card
+    class="main-ritual-hero mb-10"
     theme="dark"
-    @click="$emit('click', challenge)"
     elevation="0"
+    @click="handleUse"
   >
     <v-img
-      :src="challenge?.imageUrl || 'https://images.unsplash.com/photo-149485981460c-3834b3a25b5c?auto=format&fit=crop&q=80&w=1200'"
+      :src="template?.imageUrl || fallbackImage"
       cover
       class="hero-image-wrapper align-center justify-center"
     >
       <div class="hero-overlay"></div>
 
       <v-card-text class="hero-content d-flex flex-column align-center text-center">
-        
-        <div class="ritual-badge-container mb-6">
-          <v-chip
-            :style="{ backgroundColor: '#7048E8', color: '#FFFFFF' }"
-            variant="flat"
-            label
-            size="small"
-            class="ritual-chip px-4 font-weight-black"
-          >
-            <v-icon start size="14">mdi-star</v-icon>
-            {{ getChallengeTypeLabel(CHALLENGE_TYPES.HABIT).toUpperCase() }}
-          </v-chip>
-          <span class="ritual-subtitle">{{ t('challenges.mainRitualOfWeek') }}</span>
+        <div class="ritual-badge-container mb-5">
+          <span class="weekly-quest-badge weekly-quest-badge--hero">
+            {{ t('allChallenges.templates.weeklyRitualBadge') }}
+          </span>
         </div>
 
-        <h1 class="ritual-title mb-6">
-          {{ challenge?.title || t('challenges.defaultRitualTitle') }}
+        <h1 class="ritual-title mb-4">
+          {{ template?.title || t('challenges.defaultRitualTitle') }}
         </h1>
+
+        <p v-if="template?.description" class="ritual-description mb-6">
+          {{ template.description }}
+        </p>
 
         <div class="actions-wrapper">
           <div class="social-panel d-flex align-center py-2 px-6">
-            <v-avatar-group density="comfortable">
-              <v-avatar 
-                v-for="(participant, index) in displayedParticipants" 
-                :key="index"
-                size="36"
-                border="2"
-                :color="getParticipantColor(participant)"
-                class="participant-avatar"
-              >
-                <v-img v-if="getParticipantAvatarUrl(participant)" :src="getParticipantAvatarUrl(participant)" />
-                <span v-else class="text-caption font-weight-bold">{{ getParticipantInitial(participant) }}</span>
-              </v-avatar>
-            </v-avatar-group>
-            
-            <div class="ml-4 text-left">
-              <div class="stats-count">{{ participantCount }} {{ t('challenges.heroesInLine') }}</div>
-              <div class="stats-label">{{ t('challenges.waitingForYou') }}</div>
+            <div class="reward-block text-left">
+              <div class="stats-count">
+                <span class="sparks-icon">✦</span>
+                {{ rewardSparks }}
+                {{ t('navigation.sparksLabel') }}
+              </div>
+              <div class="stats-label">{{ t('allChallenges.weeklyRitual.boostedHint') }}</div>
+            </div>
+
+            <v-divider vertical class="mx-6 my-2" color="rgba(255,255,255,0.2)"></v-divider>
+
+            <div class="meta-block text-left">
+              <div class="stats-count">{{ durationLabel }}</div>
+              <div class="stats-label">{{ t('challenges.duration') }}</div>
             </div>
 
             <v-divider vertical class="mx-6 my-2" color="rgba(255,255,255,0.2)"></v-divider>
 
             <v-btn
-              v-if="canJoin"
               color="teal-accent-3"
               height="54"
               rounded="xl"
               class="join-btn px-8"
-              :loading="joining"
-              @click.stop="handleJoin"
+              @click.stop="handleUse"
             >
-              <template v-slot:prepend>
+              <template #prepend>
                 <v-icon class="join-icon">mdi-flash</v-icon>
               </template>
-              {{ t('challenges.acceptChallenge') }}
-            </v-btn>
-
-            <v-btn
-              v-else-if="isParticipant"
-              variant="flat"
-              color="white"
-              height="54"
-              rounded="xl"
-              class="joined-btn px-8"
-            >
-              <v-icon start color="teal-accent-4">mdi-check-decagram</v-icon>
-              {{ t('challenges.joined') }}
+              {{ t('allChallenges.weeklyRitual.accept') }}
             </v-btn>
           </div>
         </div>
-
       </v-card-text>
     </v-img>
   </v-card>
@@ -95,6 +72,7 @@
   border-radius: 32px !important;
   overflow: hidden;
   position: relative;
+  cursor: pointer;
   transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
@@ -106,7 +84,6 @@
   height: 100%;
 }
 
-/* Затемнение фона */
 .hero-overlay {
   position: absolute;
   inset: 0;
@@ -121,15 +98,38 @@
   max-width: 900px !important;
 }
 
-/* Бейдж и подпись */
 .ritual-badge-container {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
-.ritual-chip {
-  box-shadow: 0 0 15px rgba(20, 255, 236, 0.4);
+.weekly-quest-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.95) 0%, rgba(249, 115, 22, 0.95) 100%);
+  color: #1a1204;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow: 0 0 16px rgba(251, 191, 36, 0.5);
+  animation: weekly-flame-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes weekly-flame-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 12px rgba(251, 191, 36, 0.4);
+  }
+  50% {
+    transform: scale(1.06);
+    box-shadow: 0 0 26px rgba(251, 191, 36, 0.85);
+  }
 }
 
 .ritual-subtitle {
@@ -140,16 +140,23 @@
   color: #4FD1C5;
 }
 
-/* Заголовок */
 .ritual-title {
-  font-size: 3.5rem !important;
+  font-size: 3.2rem !important;
   line-height: 1;
   font-weight: 900;
   letter-spacing: -2px !important;
   text-shadow: 0 10px 30px rgba(0,0,0,0.5);
 }
 
-/* Стеклянная панель управления */
+.ritual-description {
+  max-width: 640px;
+  margin: 0 auto;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 1.05rem;
+  line-height: 1.45;
+  font-weight: 500;
+}
+
 .social-panel {
   background: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(16px);
@@ -164,6 +171,11 @@
   color: #fff;
 }
 
+.sparks-icon {
+  color: #FBBF24;
+  margin-right: 4px;
+}
+
 .stats-label {
   font-size: 11px;
   text-transform: uppercase;
@@ -171,7 +183,6 @@
   letter-spacing: 1px;
 }
 
-/* Кнопки */
 .join-btn {
   font-weight: 900 !important;
   font-size: 16px !important;
@@ -195,68 +206,59 @@
   to { opacity: 1; transform: scale(1.2); }
 }
 
-/* --- Адаптивность --- */
+@media (prefers-reduced-motion: reduce) {
+  .weekly-quest-badge,
+  .join-icon {
+    animation: none;
+  }
+}
+
 @media (max-width: 960px) {
-  .ritual-title { font-size: 2.8rem !important; }
+  .ritual-title { font-size: 2.4rem !important; }
   .social-panel { flex-wrap: wrap; border-radius: 24px; justify-content: center; }
 }
 
 @media (max-width: 600px) {
-  .main-ritual-hero { height: 300px !important; }
-  .ritual-title { font-size: 1.75rem !important; letter-spacing: -1px !important; }
+  .main-ritual-hero { height: 360px !important; }
+  .ritual-title { font-size: 1.6rem !important; letter-spacing: -1px !important; }
+  .ritual-description { font-size: 0.9rem; }
   .social-panel {
     padding: 12px !important;
     flex-direction: column;
     width: 100%;
+    text-align: center;
   }
+  .reward-block,
+  .meta-block { text-align: center !important; }
   .v-divider { display: none; }
-  .ml-4 { text-align: center !important; margin: 8px 0 !important; }
-  .join-btn, .joined-btn { width: 100%; }
+  .join-btn { width: 100%; }
 }
 </style>
 
 <script setup>
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useChallengeType, CHALLENGE_TYPES } from '../composables/useChallengeType'
 
 const props = defineProps({
-  challenge: { type: Object, default: null },
-  currentUserId: { type: String, default: null },
-  joining: { type: Boolean, default: false }
+  template: { type: Object, default: null },
+  rewardSparks: { type: Number, default: 150 }
 })
 
-const emit = defineEmits(['join', 'click'])
+const emit = defineEmits(['use'])
 const { t } = useI18n()
-const { getChallengeTypeLabel } = useChallengeType()
 
-const participantCount = computed(() => props.challenge?.participants?.length || 0)
-const displayedParticipants = computed(() => props.challenge?.participants?.slice(0, 3) || [])
+const fallbackImage = 'https://images.unsplash.com/photo-149485981460c-3834b3a25b5c?auto=format&fit=crop&q=80&w=1200'
 
-const isParticipant = computed(() => {
-  if (!props.currentUserId || !props.challenge?.participants) return false
-  return props.challenge.participants.some(participant => {
-    const userId = participant.userId?._id || participant.userId || participant._id || participant
-    return userId && userId.toString() === props.currentUserId.toString()
-  })
+const durationLabel = computed(() => {
+  const days = Number(props.template?.durationDays)
+  if (!days) return ''
+  const optionKey = `challenges.durationOptions.${days}days`
+  const translated = t(optionKey)
+  if (translated !== optionKey) return translated
+  return t('allChallenges.templates.durationDays', { days })
 })
 
-const canJoin = computed(() => {
-  if (!props.currentUserId || !props.challenge) return false
-  if (isParticipant.value) return false
-  const ownerId = props.challenge.owner?._id || props.challenge.owner
-  return ownerId !== props.currentUserId
-})
-
-function getParticipantColor(participant) {
-  const seed = (participant.userId?._id || participant._id || 'default').toString()
-  let hash = 0
-  for (let i = 0; i < seed.length; i++) hash = seed.charCodeAt(i) + ((hash << 5) - hash)
-  return `hsl(${Math.abs(hash % 360)}, 65%, 55%)`
+function handleUse() {
+  if (props.template) emit('use', props.template)
 }
-
-function getParticipantAvatarUrl(participant) { return participant.userId?.avatar || participant.avatar || null }
-function getParticipantName(participant) { return participant.userId?.name || participant.name || t('common.unknown') }
-function getParticipantInitial(participant) { return getParticipantName(participant).charAt(0).toUpperCase() }
-function handleJoin() { if (props.challenge) emit('join', props.challenge) }
 </script>

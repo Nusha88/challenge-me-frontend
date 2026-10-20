@@ -2,14 +2,11 @@
   <div class="all-challenges">
     <AllChallengesHeader />
 
+    <MissionTemplatesSection />
+
     <MainRitualSection
       v-if="showMainRitual"
-      :loading="loadingMainRitual"
-      :main-ritual="mainRitual"
-      :current-user-id="currentUserId"
-      :joining-id="joiningId"
-      @join="joinChallenge"
-      @open="openDetails"
+      @use="launchTemplate"
     />
 
     <FilterPanel
@@ -98,6 +95,7 @@ import FilterPanel from './FilterPanel.vue'
 import ChallengeSkeletonGrid from './ChallengeSkeletonGrid.vue'
 import AllChallengesHeader from './all-challenges/AllChallengesHeader.vue'
 import MainRitualSection from './all-challenges/MainRitualSection.vue'
+import MissionTemplatesSection from './all-challenges/MissionTemplatesSection.vue'
 import ChallengeGrid from './all-challenges/ChallengeGrid.vue'
 import UpcomingChallengesSection from './all-challenges/UpcomingChallengesSection.vue'
 import ExploreEmptyState from './all-challenges/ExploreEmptyState.vue'
@@ -105,7 +103,7 @@ import { useUserStore } from '../stores/user'
 import { useAllChallenges } from '../composables/useAllChallenges'
 import { useChallengeFilters } from '../composables/useChallengeFilters'
 import { useMainRitual } from '../composables/useMainRitual'
-import { useChallengeActions } from '../composables/useChallengeActions'
+import { useMissionTemplateLaunch } from '../composables/useMissionTemplateLaunch'
 import { useInfiniteScroll } from '../composables/useInfiniteScroll'
 import { openMissionDetails } from '../utils/openMissionDetails'
 import { useChallengeUpdatedListener } from '../composables/useChallengeUpdatedListener'
@@ -142,14 +140,12 @@ const {
 } = allChallengesState
 
 const {
-  loadingMainRitual,
   showMainRitual,
-  mainRitual,
   gridChallenges,
-  upcomingChallenges,
-  fetchMainRitual,
-  clearMainRitual
+  upcomingChallenges
 } = useMainRitual(filters, challenges)
+
+const { launchTemplate } = useMissionTemplateLaunch()
 
 const showUpcomingSection = computed(
   () => upcomingChallenges.value.length > 0 && filters.value.showUpcoming !== false
@@ -180,17 +176,6 @@ const emptyStateText = computed(() =>
     ? t('allChallenges.empty.filtered')
     : t('allChallenges.empty.catalog')
 )
-
-const challengeActions = useChallengeActions({
-  challenges,
-  currentUserId,
-  errorMessage: allChallengesState.errorMessage,
-  currentPage,
-  fetchChallenges,
-  onAfterJoin: () => (showMainRitual.value ? fetchMainRitual() : undefined)
-})
-
-const { joiningId, leavingId, joinChallenge, leaveChallenge } = challengeActions
 
 const { detailsDialogOpen } = useChallengeDetailsProvider()
 
@@ -242,7 +227,6 @@ async function openChallengeById(challengeId) {
 
 useChallengeUpdatedListener(() => {
   fetchChallenges(currentPage.value || 1, false)
-  if (showMainRitual.value) fetchMainRitual()
 })
 
 watch(detailsDialogOpen, (open) => {
@@ -265,14 +249,7 @@ watch(
 )
 
 setupFilterWatchers({
-  fetchChallenges: (page, append) => fetchChallenges(page, append),
-  onOwnerFilterChange: (owner) => {
-    if (!owner && showMainRitual.value) {
-      fetchMainRitual()
-    } else if (owner) {
-      clearMainRitual()
-    }
-  }
+  fetchChallenges: (page, append) => fetchChallenges(page, append)
 })
 
 const { loadMoreTrigger } = useInfiniteScroll({
@@ -317,12 +294,7 @@ onMounted(async () => {
     openChallengeById(challengeIdFromRoute)
   }
 
-  const listTasks = []
-  if (showMainRitual.value) {
-    listTasks.push(fetchMainRitual())
-  }
-  listTasks.push(fetchChallenges(1, false))
-  await Promise.all(listTasks)
+  await fetchChallenges(1, false)
 })
 </script>
 

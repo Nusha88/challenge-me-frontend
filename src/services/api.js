@@ -314,6 +314,9 @@ export const challengeService = {
   getMainRitual: () => {
     return api.get('/challenges/main-ritual')
   },
+  getTemplateParticipants: () => {
+    return api.get('/challenges/templates/participants')
+  },
   getChallenge: (id) => {
     return api.get(`/challenges/${id}`)
   },

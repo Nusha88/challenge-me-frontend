@@ -102,6 +102,7 @@ function normalizeRestartDraft(data) {
   if (data.reward) draft.reward = data.reward
   if (data.difficulty) draft.difficulty = data.difficulty
   if (data.allowComments !== undefined) draft.allowComments = data.allowComments
+  if (data.templateId) draft.templateId = data.templateId
 
   const durationState = resolveDurationFromDraft(data)
   if (durationState) {
@@ -136,6 +137,11 @@ export function useRestartChallengeDraft() {
     sessionStorage.removeItem(RESTART_DRAFT_KEY)
   }
 
+  function saveRestartDraft(data) {
+    if (!data || typeof data !== 'object') return
+    sessionStorage.setItem(RESTART_DRAFT_KEY, JSON.stringify(data))
+  }
+
   function loadRestartDraft() {
     const raw = sessionStorage.getItem(RESTART_DRAFT_KEY)
     if (!raw) {
@@ -162,6 +168,7 @@ export function useRestartChallengeDraft() {
   }
 
   return {
+    saveRestartDraft,
     loadRestartDraft,
     clearRestartDraft,
     getRestartedChallengeId,

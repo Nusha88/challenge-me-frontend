@@ -73,7 +73,8 @@ function createDefaultForm() {
     reward: '',
     difficulty: 'medium',
     allowComments: true,
-    communityQuest: false
+    communityQuest: false,
+    templateId: ''
   }
 }
 
@@ -238,6 +239,7 @@ export function useChallengeCreateForm() {
     if (draft.difficulty) form.value.difficulty = draft.difficulty
     if (draft.allowComments !== undefined) form.value.allowComments = draft.allowComments
     if (draft.startOption) form.value.startOption = draft.startOption
+    if (draft.templateId) form.value.templateId = draft.templateId
     if (draft.duration) {
       form.value.duration = draft.duration
       form.value.customDuration = draft.customDuration || ''
@@ -287,6 +289,7 @@ export function useChallengeCreateForm() {
       form.value.actions = normalizeActionTree(saved.actions)
       form.value.duration = '30'
       form.value.startOption = 'today'
+      form.value.templateId = ''
     }
 
     if (form.value.duration !== 'custom') {
@@ -380,6 +383,7 @@ export function useChallengeCreateForm() {
     }
 
     if (form.value.imageUrl) payload.imageUrl = form.value.imageUrl
+    if (form.value.templateId) payload.templateId = form.value.templateId
 
     if (form.value.challengeType === CHALLENGE_TYPES.HABIT) {
       payload.frequency = form.value.frequency

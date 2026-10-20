@@ -1,0 +1,47 @@
+[
+  {
+    "id": "elixir-of-life",
+    "title": "💧 Эликсир Жизни: Утренний баланс",
+    "description": "Выпей один большой стакан чистой теплой воды сразу после пробуждения, до кофе или завтрака.",
+    "challengeType": "habit",
+    "durationDays": 21,
+    "frequency": "daily",
+    "privacy": "public"
+  },
+  {
+    "id": "ancient-scrolls",
+    "title": "📚 Страницы древних свитков",
+    "description": "Прочитай минимум 10 страниц любой полезной или художественной книги без соцсетей.",
+    "challengeType": "habit",
+    "durationDays": 30,
+    "frequency": "daily",
+    "privacy": "public"
+  },
+  {
+    "id": "digital-detox",
+    "title": "🧘‍♂️ Ментальный щит: Цифровой детокс",
+    "description": "Проведи первые 30 минут после пробуждения или последние 30 минут перед сном без смартфона и компьютера.",
+    "challengeType": "habit",
+    "durationDays": 21,
+    "frequency": "daily",
+    "privacy": "public"
+  },
+  {
+    "id": "eight-thousand-steps",
+    "title": "🚶‍♂️ Разведка боем: 8 000 шагов",
+    "description": "Выйди на прогулку или откажись от лифта. Движение генерирует энергию для героя.",
+    "challengeType": "habit",
+    "durationDays": 7,
+    "frequency": "daily",
+    "privacy": "public"
+  },
+  {
+    "id": "archivists-scroll",
+    "title": "📅 Свиток Архивариуса: Карта завтрашнего дня",
+    "description": "За 15 минут до сна запиши 3 главные задачи на завтрашний день в календарь или блокнот.",
+    "challengeType": "habit",
+    "durationDays": 21,
+    "frequency": "daily",
+    "privacy": "public"
+  }
+]

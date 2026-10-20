@@ -1,64 +1,31 @@
-import { ref, computed, unref } from 'vue'
-import { challengeService } from '../services/api'
+import { computed, unref } from 'vue'
 import { isChallengeUpcoming } from '../utils/challengeStatus'
 
-export function useMainRitual(filters, challenges) {
-  const mainRitual = ref(null)
-  const loadingMainRitual = ref(false)
+function isTemplateMission(challenge) {
+  return Boolean(challenge?.templateId)
+}
 
+export function useMainRitual(filters, challenges) {
   const showMainRitual = computed(() => !unref(filters).owner)
 
-  async function fetchMainRitual() {
-    loadingMainRitual.value = true
-    try {
-      const { data } = await challengeService.getMainRitual()
-      mainRitual.value = data?.challenge ?? null
-    } catch (error) {
-      console.error('Error fetching main ritual:', error)
-      mainRitual.value = null
-    } finally {
-      loadingMainRitual.value = false
-    }
-  }
-
-  function clearMainRitual() {
-    mainRitual.value = null
-    loadingMainRitual.value = false
-  }
-
-  const gridChallenges = computed(() => {
+  const catalogChallenges = computed(() => {
     const list = unref(challenges)
     if (!list?.length) return []
+    if (unref(filters)?.owner) return [...list]
+    return list.filter((challenge) => !isTemplateMission(challenge))
+  })
 
-    let filtered = [...list]
-
-    if (mainRitual.value) {
-      filtered = filtered.filter((c) => c._id !== mainRitual.value._id)
-    }
-
-    return filtered.filter((c) => !isChallengeUpcoming(c))
+  const gridChallenges = computed(() => {
+    return catalogChallenges.value.filter((c) => !isChallengeUpcoming(c))
   })
 
   const upcomingChallenges = computed(() => {
-    const list = unref(challenges)
-    if (!list?.length) return []
-
-    let upcoming = list.filter((c) => isChallengeUpcoming(c))
-
-    if (mainRitual.value && isChallengeUpcoming(mainRitual.value)) {
-      upcoming = upcoming.filter((c) => c._id !== mainRitual.value._id)
-    }
-
-    return upcoming
+    return catalogChallenges.value.filter((c) => isChallengeUpcoming(c))
   })
 
   return {
-    loadingMainRitual,
     showMainRitual,
-    mainRitual,
     gridChallenges,
-    upcomingChallenges,
-    fetchMainRitual,
-    clearMainRitual
+    upcomingChallenges
   }
 }
