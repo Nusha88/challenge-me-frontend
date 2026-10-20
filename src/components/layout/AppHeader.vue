@@ -5,7 +5,7 @@
         <v-app-bar-nav-icon
           v-if="showAppUserChrome"
           class="d-md-none"
-          @click="$emit('toggle-drawer')"
+          @click.stop="$emit('toggle-drawer')"
         ></v-app-bar-nav-icon>
         <StreakBadge
           :visible="isLoggedIn && showStreak"

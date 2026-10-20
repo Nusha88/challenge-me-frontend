@@ -3,6 +3,8 @@
     v-model="isOpen"
     :permanent="mdAndUp"
     :temporary="!mdAndUp"
+    disable-resize-watcher
+    disable-route-watcher
     location="left"
     :width="drawerWidth"
     :scrim="!mdAndUp"
@@ -70,11 +72,11 @@ function closeMobileDrawer() {
   }
 }
 
-watch(mdAndUp, (isDesktop) => {
-  if (!isDesktop) {
+watch(mdAndUp, (isDesktop, wasDesktop) => {
+  if (wasDesktop && !isDesktop) {
     emit('update:drawerOpen', false)
   }
-}, { immediate: true })
+})
 </script>
 
 <style scoped>

@@ -43,15 +43,19 @@ const isAuthPage = computed(() => {
     || route.path === '/register'
 })
 
-const isMarketingPage = computed(() => route.path === '/' || route.name === 'home')
 const isLoggedIn = computed(() => userStore.isLoggedIn)
 const isDemoMode = computed(() => demoStore.isDemoMode)
+const isPublicLanding = computed(() => {
+  return !isLoggedIn.value && (route.path === '/' || route.name === 'home')
+})
 const currentUserId = computed(() => {
   const id = userStore.userId
   return id != null ? String(id) : null
 })
 const showAppChrome = computed(() => {
-  return (isLoggedIn.value || isDemoMode.value) && !isAuthPage.value && !isMarketingPage.value
+  if (isAuthPage.value) return false
+  if (isLoggedIn.value) return true
+  return isDemoMode.value && !isPublicLanding.value
 })
 const showDemoBanner = computed(() => isDemoMode.value && showAppChrome.value)
 

@@ -1032,7 +1032,11 @@
     },
     "weeklyRitual": {
       "boostedHint": "Boosted reward for completing",
-      "accept": "Take this week's ritual"
+      "accept": "Accept the challenge ⚡",
+      "inGame": "⚡ You're in! (Day {current} of {total})",
+      "checkIn": "🟢 Check in for today",
+      "together": "👥 On the path with you: {count} {heroes}",
+      "togetherHeroes": "hero | heroes"
     },
     "empty": {
       "filtered": "No missions match these filters. Clear them to see the full world again.",
