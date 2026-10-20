@@ -1,6 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { isTokenExpired, clearStoredAuth } from '../utils/tokenUtils'
 import { useUserStore } from '../stores/user'
+import { useDemoStore } from '../stores/demo'
+import { useDemoAuthGate } from '../composables/useDemoAuthGate'
 import { isSuperAdminUserId } from '../constants/superAdmin'
 
 // All route components are lazy-loaded so the initial bundle only ships the
@@ -108,7 +110,7 @@ const router = createRouter({
   ]
 })
 
-router.beforeEach((to) => {
+router.beforeEach((to, from) => {
   const requiresAuth = to.matched.some(r => r.meta?.requiresAuth)
   const requiresSuperAdmin = to.matched.some(r => r.meta?.requiresSuperAdmin)
   let token = (() => {
@@ -126,8 +128,24 @@ router.beforeEach((to) => {
     token = null
   }
 
+  if (!token && to.name === 'user-profile') {
+    useDemoAuthGate().openAuthGate({ redirect: '/register?from=demo' })
+    if (from.name) return false
+    return { path: '/missions', replace: true }
+  }
+
   if (requiresAuth && !token) {
-    return { name: 'login', query: { redirect: to.fullPath } }
+    const demoStore = useDemoStore()
+    if (demoStore.isDemoAllowedRoute(to.name)) {
+      demoStore.startDemo()
+      return
+    }
+
+    useDemoAuthGate().openAuthGate({
+      redirect: `/register?from=demo&redirect=${encodeURIComponent(to.fullPath)}`
+    })
+    if (from.name) return false
+    return { path: '/missions', replace: true }
   }
 
   // If user is already logged in, keep them out of auth pages

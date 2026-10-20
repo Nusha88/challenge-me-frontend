@@ -1,9 +1,16 @@
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { challengeService } from '../services/api'
+import { useDemoStore } from '../stores/demo'
+import { getDemoMissions } from '../services/demoStorage'
+import { DEMO_USER_ID } from '../constants/demo'
 
 export function useTemplateParticipants() {
+  const { t } = useI18n()
+  const demoStore = useDemoStore()
   const participantsByTemplateId = ref({})
   const loading = ref(false)
+  const demoMissionsVersion = computed(() => demoStore.missionsVersion)
 
   async function fetchTemplateParticipants() {
     loading.value = true
@@ -21,7 +28,20 @@ export function useTemplateParticipants() {
   }
 
   function getParticipants(templateId) {
-    return participantsByTemplateId.value?.[templateId] || []
+    const remote = participantsByTemplateId.value?.[templateId] || []
+    if (!demoStore.isDemoMode || !templateId) return remote
+    void demoMissionsVersion.value
+    const hasLocal = getDemoMissions().some((mission) => mission.templateId === templateId)
+    if (!hasLocal) return remote
+    if (remote.some((participant) => String(participant.id) === DEMO_USER_ID)) return remote
+    return [
+      {
+        id: DEMO_USER_ID,
+        name: t('demo.guestName'),
+        avatarUrl: ''
+      },
+      ...remote
+    ]
   }
 
   onMounted(fetchTemplateParticipants)

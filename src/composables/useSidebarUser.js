@@ -2,6 +2,7 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useUserStore } from '../stores/user'
+import { useDemoStore } from '../stores/demo'
 import {
   getLevelFromXp,
   getXpForLevel,
@@ -14,9 +15,12 @@ export function useSidebarUser() {
   const route = useRoute()
   const { t } = useI18n()
   const userStore = useUserStore()
+  const demoStore = useDemoStore()
 
-  const user = computed(() => userStore.user)
-  const userXp = computed(() => Number(user.value?.xp || 0))
+  const userXp = computed(() => {
+    if (demoStore.isDemoMode) return Number(demoStore.character?.xp || 0)
+    return Number(userStore.user?.xp || 0)
+  })
   const userLevel = computed(() => getLevelFromXp(userXp.value))
   const xpForCurrentLevel = computed(() => getXpForLevel(userLevel.value))
   const xpForNextLevel = computed(() => getXpForNextLevel(userLevel.value))
@@ -39,15 +43,16 @@ export function useSidebarUser() {
   })
 
   const sidebarContentProps = computed(() => ({
-    userName: userStore.userName,
-    userAvatarUrl: userStore.userAvatarUrl,
+    userName: demoStore.isDemoMode ? t('demo.guestName') : userStore.userName,
+    userAvatarUrl: demoStore.isDemoMode ? '' : userStore.userAvatarUrl,
     userLevel: userLevel.value,
     heroRankTitle: heroRank.value.title,
     heroRankColor: heroRank.value.color,
     levelProgressPercentage: levelProgressPercentage.value,
     xpDisplayCurrent: userXp.value,
     xpDisplayNeeded: xpForNextLevel.value,
-    currentRoute: route.name
+    currentRoute: route.name,
+    isDemoMode: demoStore.isDemoMode
   }))
 
   return {

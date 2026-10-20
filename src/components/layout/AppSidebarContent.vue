@@ -98,6 +98,7 @@
         </v-list-item>
 
         <v-list-item
+          v-if="!isDemoMode"
           to="/missions/watched"
           :active="currentRoute === 'watched-challenges'"
           color="primary"
@@ -111,6 +112,7 @@
         </v-list-item>
 
         <v-list-item
+          v-if="!isDemoMode"
           to="/heroes"
           :active="currentRoute === 'users'"
           color="primary"
@@ -135,7 +137,7 @@
           <v-list-item-title>{{ t('navigation.statistic') }}</v-list-item-title>
         </v-list-item>
 
-        <div v-if="canInviteMore" class="sidebar-referral-block">
+        <div v-if="canInviteMore && !isDemoMode" class="sidebar-referral-block">
           <button
             type="button"
             class="sidebar-referral-btn app-cta-secondary"
@@ -171,7 +173,7 @@
         <span>{{ t('navigation.reportBug') }}</span>
       </a>
 
-      <div class="sidebar-menu-card logout-card mt-auto mb-4">
+      <div v-if="!isDemoMode" class="sidebar-menu-card logout-card mt-auto mb-4">
         <v-list-item class="logout-item" @click="handleLogoutClick">
           <template #prepend>
             <LogOut :size="20" class="logout-icon sidebar-lucide-icon mr-2" />
@@ -206,7 +208,8 @@ const props = defineProps({
   yesterdayStreakDays: { type: Number, default: 0 },
   hasTodayCompletedTasks: { type: Boolean, default: false },
   streakDaysText: { type: String, default: '' },
-  showStreak: { type: Boolean, default: false }
+  showStreak: { type: Boolean, default: false },
+  isDemoMode: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['profile', 'logout', 'navigate'])

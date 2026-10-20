@@ -13,6 +13,10 @@ import {
 import { isChallengeEnded } from '../utils/challengeStatus'
 import { APP_EVENTS, dispatchAppEvent } from '../utils/appEvents'
 import { useUserStore } from '../stores/user'
+import { useDemoStore } from '../stores/demo'
+import { useDemoAuthGate } from './useDemoAuthGate'
+import { getDemoMissionById } from '../services/demoStorage'
+import { DEMO_USER_ID, isDemoMissionId } from '../constants/demo'
 import { useXpAwardFeedback } from './useXpAwardFeedback'
 
 // Single shared dialog state (one provider for the whole app)
@@ -54,6 +58,12 @@ export async function openChallengeDetailsProvider({
   const id = challengeId || challenge?._id || challenge?.id
   if (!id) return
 
+  const demoStore = useDemoStore()
+  if (demoStore.isSocialGated && !isDemoMissionId(String(id))) {
+    useDemoAuthGate().openAuthGate({ redirect: '/register?from=demo' })
+    return
+  }
+
   const hasCommentTarget = Boolean(commentId)
   scrollTarget.value = hasCommentTarget
     ? {
@@ -62,6 +72,15 @@ export async function openChallengeDetailsProvider({
       }
     : null
   initialTab.value = tab || (hasCommentTarget ? 'community' : 'progress')
+
+  if (isDemoMissionId(String(id))) {
+    const localChallenge = challenge || getDemoMissionById(id)
+    if (!localChallenge) return
+    openChallengeDetails(selectedChallenge, detailsDialogOpen, localChallenge, {
+      skipFetch: true
+    })
+    return
+  }
 
   if (challenge) {
     openChallengeDetails(selectedChallenge, detailsDialogOpen, challenge)
@@ -88,7 +107,9 @@ export function useChallengeDetailsProvider() {
 
   const currentUserId = computed(() => {
     const id = userStore.userId
-    return id != null ? String(id) : null
+    if (id != null) return String(id)
+    if (useDemoStore().isDemoMode) return DEMO_USER_ID
+    return null
   })
 
   const selectedIsOwner = computed(() => {
@@ -178,6 +199,12 @@ export function useChallengeDetailsProvider() {
 
   async function handleDialogUpdate() {
     if (!selectedChallenge.value?._id) return
+    if (isDemoMissionId(String(selectedChallenge.value._id))) {
+      const local = getDemoMissionById(selectedChallenge.value._id)
+      if (local) selectedChallenge.value = local
+      notifyChallengeUpdated(selectedChallenge.value)
+      return
+    }
     await refreshChallengeInBackground(
       selectedChallenge,
       selectedChallenge.value._id,

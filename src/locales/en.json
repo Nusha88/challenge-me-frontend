@@ -2,6 +2,18 @@
   "app": {
     "name": "Ignite"
   },
+  "demo": {
+    "guestName": "Guest",
+    "bannerText": "Progress is saved only on this device. Create an account to keep your hero.",
+    "saveHero": "Save hero",
+    "gateTitle": "🔒 Hero authorization required",
+    "gateBody": "Full access to player profiles and mission details opens after you register. In demo mode you can create your own rituals and level up days locally!",
+    "register": "Sign up",
+    "login": "Log in",
+    "continueInDemo": "Continue in demo",
+    "tryWithoutAccount": "Try without signing up",
+    "migratePartial": "Some demo missions could not be transferred. You can create them again."
+  },
   "navigation": {
     "home": "Home",
     "register": "Sign Up",

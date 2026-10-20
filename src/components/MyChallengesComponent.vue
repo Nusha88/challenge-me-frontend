@@ -153,6 +153,8 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user'
+import { useDemoStore } from '../stores/demo'
+import { DEMO_USER_ID } from '../constants/demo'
 import { useI18n } from 'vue-i18n'
 import MyChallengeSection from './MyChallengeSection.vue'
 import ChallengeSkeletonGrid from './ChallengeSkeletonGrid.vue'
@@ -167,9 +169,10 @@ import { useChallengeDetailsProvider } from '../composables/useChallengeDetailsP
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
+const demoStore = useDemoStore()
 const { t } = useI18n()
 
-const currentUserId = computed(() => userStore.userId)
+const currentUserId = computed(() => userStore.userId || (demoStore.isDemoMode ? DEMO_USER_ID : null))
 const statusTab = ref('active')
 const hasInitializedTab = ref(false)
 

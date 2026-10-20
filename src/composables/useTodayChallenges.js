@@ -13,6 +13,9 @@ import { getYesterdayDateStr, isDateScheduledForChallenge } from '../utils/ritua
 import { useXpAwardFeedback } from './useXpAwardFeedback'
 import { shouldTriggerHabitMissionCompletion } from '../utils/missionParticipation'
 import { useMissionCompletionFlow } from './useMissionCompletionFlow'
+import { useDemoStore } from '../stores/demo'
+import { useDemoMissions } from './useDemoMissions'
+import { DEMO_USER_ID } from '../constants/demo'
 
 function getParticipantUserId(participant) {
   return participant?.userId?._id || participant?.userId || participant?._id
@@ -52,6 +55,8 @@ function isChallengeFinished(challenge) {
 
 export function useTodayChallenges({ onUpdated } = {}) {
   const userStore = useUserStore()
+  const demoStore = useDemoStore()
+  const { completeToday: completeDemoToday } = useDemoMissions()
   const { applyXpAwardResponse } = useXpAwardFeedback()
   const { completeHabitMission } = useMissionCompletionFlow()
 
@@ -61,7 +66,9 @@ export function useTodayChallenges({ onUpdated } = {}) {
   const hasLoadedOnce = ref(false)
 
   function getUserId() {
-    return userStore.userId
+    if (userStore.userId) return userStore.userId
+    if (demoStore.isDemoMode) return DEMO_USER_ID
+    return null
   }
 
   function isTodayValidForChallenge(challenge) {
@@ -226,7 +233,7 @@ export function useTodayChallenges({ onUpdated } = {}) {
 
   const tomorrowsChallenges = computed(() => {
     const userId = getUserId()
-    const isLoggedIn = !!localStorage.getItem('token')
+    const isLoggedIn = !!localStorage.getItem('token') || demoStore.isDemoMode
 
     if (!userId || !isLoggedIn) {
       return []
@@ -301,6 +308,19 @@ export function useTodayChallenges({ onUpdated } = {}) {
     }
 
     try {
+      if (demoStore.isDemoMode) {
+        if (checked) {
+          const updated = completeDemoToday(challenge._id)
+          if (updated) {
+            participant.completedDays = updated.participants?.[0]?.completedDays || newCompletedDays
+          }
+        }
+        if (onUpdated) await onUpdated()
+        window.dispatchEvent(new Event('participant-completed-days-updated'))
+        window.dispatchEvent(new Event('challenge-updated'))
+        return
+      }
+
       if (checked && shouldTriggerHabitMissionCompletion(challenge, newCompletedDays)) {
         await completeHabitMission(challenge, newCompletedDays, {
           onUpdate: onUpdated

@@ -3,6 +3,9 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { challengeService } from '../services/api'
 import { useUserStore } from '../stores/user'
+import { useDemoStore } from '../stores/demo'
+import { useDemoMissions } from './useDemoMissions'
+import { DEMO_USER_ID } from '../constants/demo'
 import { fireConfetti } from '../utils/confetti'
 import { toDateInputValue, addDays } from '../utils/dateUtils'
 import { useRestartChallengeDraft } from './useRestartChallengeDraft'
@@ -143,6 +146,8 @@ export function useChallengeCreateForm() {
   const router = useRouter()
   const { t } = useI18n()
   const userStore = useUserStore()
+  const demoStore = useDemoStore()
+  const { createMission: createDemoMission } = useDemoMissions()
   const { applyRewardResponse } = useXpAwardFeedback()
   const {
     loadRestartDraft,
@@ -456,7 +461,7 @@ export function useChallengeCreateForm() {
       return
     }
 
-    const userId = userStore.userId
+    const userId = userStore.userId || (demoStore.isDemoMode ? DEMO_USER_ID : null)
     if (!userId) {
       errorMessage.value = t('challenges.mustBeLoggedIn')
       return
@@ -467,6 +472,12 @@ export function useChallengeCreateForm() {
 
     try {
       const payload = buildChallengePayload(userId)
+      if (demoStore.isDemoMode) {
+        demoStore.startDemo()
+        const mission = createDemoMission(payload)
+        await handleCreateSuccess({ data: { challenge: mission, _id: mission._id } })
+        return
+      }
       const response = await challengeService.createChallenge(payload)
       await deleteRestartedChallengeIfNeeded()
       await handleCreateSuccess(response)

@@ -34,8 +34,8 @@
       <v-tabs v-model="tab" grow class="custom-tabs" density="default" height="48">
         <v-tab value="progress">{{ t('challenges.progress') }}</v-tab>
         <v-tab value="details">{{ t('challenges.about') }}</v-tab>
-        <v-tab v-if="challenge.allowComments && currentUserId" value="community">{{ t('challenges.community.title') }}</v-tab>
-        <v-tab v-if="isOwner" value="diary">{{ t('challenges.diary.tabTitle') }}</v-tab>
+        <v-tab v-if="challenge.allowComments && currentUserId && !isDemoChallenge" value="community">{{ t('challenges.community.title') }}</v-tab>
+        <v-tab v-if="isOwner && !isDemoChallenge" value="diary">{{ t('challenges.diary.tabTitle') }}</v-tab>
       </v-tabs>
 
       <v-alert
@@ -259,7 +259,7 @@
             </div>
           </v-window-item>
 
-          <v-window-item v-if="challenge.allowComments && currentUserId" value="community" eager :transition="false" :reverse-transition="false">
+          <v-window-item v-if="challenge.allowComments && currentUserId && !isDemoChallenge" value="community" eager :transition="false" :reverse-transition="false">
             <div class="diary-container">
               <v-alert
                 v-if="isFinished"
@@ -292,7 +292,7 @@
             </div>
           </v-window-item>
 
-          <v-window-item v-if="isOwner" value="diary" eager :transition="false" :reverse-transition="false">
+          <v-window-item v-if="isOwner && !isDemoChallenge" value="diary" eager :transition="false" :reverse-transition="false">
             <div class="diary-container">
               <DiaryComponent
                 :challenge-id="String(challenge._id)"
@@ -1087,6 +1087,9 @@ import { useRoute, useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import {useChallengeType} from '../composables/useChallengeType'
 import {useUserStore} from '../stores/user'
+import { useDemoMode } from '../composables/useDemoMode'
+import { useDemoMissions } from '../composables/useDemoMissions'
+import { isDemoMissionId } from '../constants/demo'
 import { useWatchedChallengesStore } from '../stores/watchedChallenges'
 import ChallengeActions from './ChallengeActions.vue'
 import MissionInviteModal from './mission-invite/MissionInviteModal.vue'
@@ -1228,14 +1231,15 @@ const watchedStore = useWatchedChallengesStore()
 const { applyXpAwardResponse } = useXpAwardFeedback()
 const { completeHabitMission, completeQuestMission } = useMissionCompletionFlow()
 
-const currentUserId = computed(() => {
-  const id = userStore.userId
-  return id != null ? String(id) : null
-})
+const { requireAuthOrPrompt, getEffectiveUserId } = useDemoMode()
+const { completeToday: completeDemoToday } = useDemoMissions()
+
+const currentUserId = computed(() => getEffectiveUserId())
+const isDemoChallenge = computed(() => isDemoMissionId(props.challenge?._id))
 
 function ensureWatchedStoreLoaded() {
   const userId = currentUserId.value
-  if (userId) {
+  if (userId && !isDemoChallenge.value) {
     watchedStore.fetchForUser(userId)
   }
 }
@@ -2568,6 +2572,7 @@ function getParticipantInitial(name) {
 }
 
 function navigateToOwner() {
+  if (!requireAuthOrPrompt()) return
   if (!props.challenge?.owner?._id && !props.challenge?.owner) return
   const ownerId = props.challenge.owner._id || props.challenge.owner
   // Navigate first so /missions deep-link cleanup does not race and cancel profile.
@@ -2578,6 +2583,7 @@ function navigateToOwner() {
 
 function navigateToParticipant(participantId) {
   if (!participantId) return
+  if (!requireAuthOrPrompt()) return
   // Navigate first so /missions deep-link cleanup does not race and cancel profile.
   router.push(`/heroes/${participantId}`).finally(() => {
     handleVisibility(false)
@@ -2596,6 +2602,14 @@ async function handleParticipantSave() {
     const completedDays = localCurrentUserCompletedDays.value.length > 0 
       ? localCurrentUserCompletedDays.value 
       : currentUserCompletedDays.value
+
+    if (isDemoChallenge.value) {
+      const updated = completeDemoToday(props.challenge._id)
+      if (updated) emit('update')
+      emit('update:modelValue', false)
+      navigateAfterDialogClose()
+      return
+    }
 
     if (shouldTriggerHabitMissionCompletion(props.challenge, completedDays)) {
       await completeHabitMission(props.challenge, completedDays, {

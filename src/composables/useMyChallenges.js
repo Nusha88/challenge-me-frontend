@@ -5,11 +5,14 @@ import { useWatchedChallengesStore } from '../stores/watchedChallenges'
 import { isChallengeFinished, isChallengeUpcoming } from '../utils/challengeStatus'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 import { useXpAwardFeedback } from './useXpAwardFeedback'
+import { useDemoStore } from '../stores/demo'
+import { getDemoMissions } from '../services/demoStorage'
 
 export function useMyChallenges(currentUserId) {
   const { t } = useI18n()
   const { applyRewardResponse } = useXpAwardFeedback()
   const watchedStore = useWatchedChallengesStore()
+  const demoStore = useDemoStore()
 
   const challenges = ref([])
   const loading = ref(false)
@@ -148,6 +151,14 @@ export function useMyChallenges(currentUserId) {
   }
 
   async function fetchChallenges() {
+    if (demoStore.isDemoMode) {
+      loading.value = true
+      listError.value = ''
+      challenges.value = getDemoMissions()
+      loading.value = false
+      return
+    }
+
     const userId = unref(currentUserId)
     if (!userId) {
       listError.value = t('users.userNotFound')

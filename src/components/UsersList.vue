@@ -130,9 +130,11 @@ import HeroPodiumCard from './heroes/HeroPodiumCard.vue'
 import HeroListCard from './heroes/HeroListCard.vue'
 import { useHeroesList } from '../composables/useHeroesList'
 import { useInfiniteScroll } from '../composables/useInfiniteScroll'
+import { useDemoMode } from '../composables/useDemoMode'
 
 const router = useRouter()
 const { t } = useI18n()
+const { requireAuthOrPrompt } = useDemoMode()
 
 const {
   users,
@@ -172,6 +174,7 @@ const emptyText = computed(() =>
 )
 
 function handleUserClick(user) {
+  if (!requireAuthOrPrompt()) return
   const userId = user._id || user.id
   if (userId) {
     router.push(`/heroes/${userId}`)

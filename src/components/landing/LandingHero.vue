@@ -29,6 +29,15 @@
             {{ t('home.landing.secondaryCta') }}
             <v-icon end size="18">mdi-arrow-right</v-icon>
           </v-btn>
+
+          <v-btn
+            variant="text"
+            size="x-large"
+            class="hero-demo"
+            @click="startDemoFromLanding"
+          >
+            {{ t('demo.tryWithoutAccount') }}
+          </v-btn>
         </div>
 
         <ul class="hero-trust">
@@ -65,9 +74,11 @@
 <script setup>
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import LandingPrimaryCta from './LandingPrimaryCta.vue'
 import { BROWSE_MISSIONS_ROUTE } from './landingLinks'
 import { GOALS, reachGoal } from '../../services/analytics'
+import { useDemoMode } from '../../composables/useDemoMode'
 
 /*
  * Served from public/ rather than imported, so index.html can preload the hero
@@ -79,6 +90,8 @@ const heroWebp900 = '/landing/hero-900.webp'
 const heroJpg900 = '/landing/hero-900.jpg'
 
 const { t } = useI18n()
+const router = useRouter()
+const { startDemo } = useDemoMode()
 
 const trustItems = computed(() => [
   { icon: 'mdi-gift-outline', label: t('home.landing.trustFree') },
@@ -88,6 +101,11 @@ const trustItems = computed(() => [
 
 function trackSecondary() {
   reachGoal(GOALS.LANDING_SECONDARY_CLICK, { position: 'hero' })
+}
+
+function startDemoFromLanding() {
+  startDemo()
+  router.push('/today')
 }
 </script>
 
@@ -173,6 +191,17 @@ function trackSecondary() {
 .hero-secondary:hover {
   border-color: var(--lp-border-hi) !important;
   background: rgba(79, 209, 197, 0.07);
+}
+
+.hero-demo {
+  color: rgba(255, 255, 255, 0.78) !important;
+  text-transform: none;
+  letter-spacing: 0.01em;
+  font-weight: 600 !important;
+}
+
+.hero-demo:hover {
+  color: #ffffff !important;
 }
 
 .hero-trust {
@@ -272,7 +301,8 @@ function trackSecondary() {
     gap: 12px;
   }
 
-  .hero-secondary {
+  .hero-secondary,
+  .hero-demo {
     width: 100%;
   }
 

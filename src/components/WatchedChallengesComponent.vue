@@ -92,10 +92,12 @@ import { buildTopPerformers } from '../utils/challengeProgress'
 import { useWatchedPage } from '../composables/useWatchedPage'
 import { openMissionDetails } from '../utils/openMissionDetails'
 import { useChallengeUpdatedListener } from '../composables/useChallengeUpdatedListener'
+import { useDemoMode } from '../composables/useDemoMode'
 
 const router = useRouter()
 const { t } = useI18n()
 const userStore = useUserStore()
+const { requireAuthOrPrompt } = useDemoMode()
 
 const currentUserId = computed(() => userStore.userId)
 
@@ -136,6 +138,7 @@ function unwatchFromCard(challenge) {
 
 function navigateToUser(user) {
   if (!user) return
+  if (!requireAuthOrPrompt()) return
   const userId = user._id || user
   if (!userId) return
   router.push(`/heroes/${userId}`)

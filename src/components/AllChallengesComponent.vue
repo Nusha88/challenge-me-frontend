@@ -110,6 +110,8 @@ import { useChallengeUpdatedListener } from '../composables/useChallengeUpdatedL
 import { useChallengeDetailsProvider } from '../composables/useChallengeDetailsProvider'
 import { challengeService } from '../services/api'
 import { canOpenChallenge } from '../utils/challengeStatus'
+import { useDemoMode } from '../composables/useDemoMode'
+import { isDemoMissionId } from '../constants/demo'
 
 const router = useRouter()
 const route = useRoute()
@@ -117,7 +119,8 @@ const { t } = useI18n()
 const userStore = useUserStore()
 const filterPanelRef = ref(null)
 
-const currentUserId = computed(() => userStore.userId)
+const { isSocialGated, requireAuthOrPrompt, getEffectiveUserId } = useDemoMode()
+const currentUserId = computed(() => getEffectiveUserId() || userStore.userId)
 
 const {
   filters,
@@ -191,6 +194,10 @@ function parseCommentHash(hash) {
 }
 
 function openDetails(challenge) {
+  if (isSocialGated.value && !isDemoMissionId(challenge?._id)) {
+    requireAuthOrPrompt()
+    return
+  }
   if (!canOpenChallenge(challenge, currentUserId.value)) return
   const target = parseCommentHash(route.hash)
   openMissionDetails({
@@ -206,6 +213,13 @@ function openDetails(challenge) {
 
 async function openChallengeById(challengeId) {
   if (!challengeId) return
+  if (isSocialGated.value && !isDemoMissionId(String(challengeId))) {
+    requireAuthOrPrompt()
+    if (route.name === 'view-challenge') {
+      router.replace({ path: '/missions', query: route.query })
+    }
+    return
+  }
   const target = parseCommentHash(route.hash)
   let challenge = challenges.value.find((c) => String(c._id) === String(challengeId))
   if (!challenge) {

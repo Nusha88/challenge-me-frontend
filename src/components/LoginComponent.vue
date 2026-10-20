@@ -8,6 +8,7 @@ import { useUserStore } from '../stores/user'
 import { getAuthErrorMessage } from '../utils/authErrorMessage'
 import { togglePasswordVisibility } from '../composables/usePasswordFieldToggle'
 import { GOALS, reachGoal } from '../services/analytics'
+import { discardDemoWithoutMigrate } from '../services/demoMigration'
 import SuccessDialog from './SuccessDialog.vue'
 import AuthBackLink from './layout/AuthBackLink.vue'
 import registerBgImage from '../assets/auth/auth-bg-1248.webp'
@@ -79,6 +80,7 @@ const handleLogin = async () => {
     // Store user data and token in Pinia store
     userStore.setUser(response.data.user)
     userStore.setToken(response.data.token)
+    discardDemoWithoutMigrate()
     // Show success dialog - don't dispatch auth-changed yet to prevent sidebar from showing
     showSuccess.value = true
   } catch (err) {

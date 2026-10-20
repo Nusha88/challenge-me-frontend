@@ -67,6 +67,7 @@
           />
 
           <TodayChecklistPanel
+            v-if="!isDemoMode"
             ref="checklistPanelRef"
             :unfinished-steps-count="unfinishedStepsCount"
             :is-empty="checklistTotalSteps === 0"
@@ -121,8 +122,6 @@
       @save="saveImage"
       @update:selected-tasks="setSelectedTasks"
     />
-
-    />
   </div>
 </template>
 
@@ -131,6 +130,9 @@ import { ref, reactive, computed, onMounted, onActivated, watch, nextTick } from
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user'
+import { useDemoStore } from '../stores/demo'
+import { getDemoMissions } from '../services/demoStorage'
+import { DEMO_USER_ID } from '../constants/demo'
 import IgniteLoader from './IgniteLoader.vue'
 import HomeGreeting from './home/HomeGreeting.vue'
 import HomeDayTabs from './home/HomeDayTabs.vue'
@@ -161,6 +163,8 @@ import { useRitualTimeWindows } from '../composables/useRitualTimeWindows'
 const { t, locale } = useI18n()
 const route = useRoute()
 const userStore = useUserStore()
+const demoStore = useDemoStore()
+const isDemoMode = computed(() => demoStore.isDemoMode)
 
 const state = reactive({
   userName: '',
@@ -219,6 +223,7 @@ const {
 })
 
 const freezeButtonConfig = computed(() => {
+  if (demoStore.isDemoMode) return null
   const phase = ritualTimePhase.value
 
   if (phase === 'freeze_today') {
@@ -247,6 +252,7 @@ const freezeButtonConfig = computed(() => {
 })
 
 function showSecondChanceForChallenge(challenge) {
+  if (demoStore.isDemoMode) return false
   return shouldShowSecondChance(challenge, {
     isSecondChanceWindow: isSecondChanceWindow.value
   })
@@ -314,6 +320,10 @@ const isTodayProgressLoading = computed(
 let profileFetchInFlight = null
 
 async function updateUser() {
+  if (demoStore.isDemoMode) {
+    state.userName = t('demo.guestName')
+    return
+  }
   if (profileFetchInFlight) return profileFetchInFlight
 
   profileFetchInFlight = (async () => {
@@ -359,6 +369,19 @@ function resetStreakState() {
 }
 
 async function fetchHomeData() {
+  if (demoStore.isDemoMode) {
+    const missions = getDemoMissions()
+    state.userName = t('demo.guestName')
+    applyStreakFromData([], missions, DEMO_USER_ID)
+    loadTodaysChallenges(missions, DEMO_USER_ID)
+    loadingChallenges.value = false
+    state.initialDataLoading = false
+    hasLoadedTodayMissionsOnce.value = true
+    hasLoadedTodayStepsOnce.value = true
+    state.checklistLoading = false
+    return
+  }
+
   const userId = userStore.userId
   const isLoggedIn = !!localStorage.getItem('token')
 
@@ -643,7 +666,7 @@ watch(
 watch(
   () => state.activeTab,
   (newTab) => {
-    if (newTab === 'tomorrow') loadTomorrowSteps()
+    if (newTab === 'tomorrow' && !demoStore.isDemoMode) loadTomorrowSteps()
   }
 )
 </script>

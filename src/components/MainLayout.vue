@@ -3,6 +3,7 @@ import { ref, onMounted, onBeforeUnmount, computed, watch, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import { useUserStore } from '../stores/user'
+import { useDemoStore } from '../stores/demo'
 import { useWatchedChallengesStore } from '../stores/watchedChallenges'
 import NotificationsComponent from './NotificationsComponent.vue'
 import ChallengeDetailsDialog from './ChallengeDetailsDialog.vue'
@@ -13,6 +14,9 @@ import AppSidebar from './layout/AppSidebar.vue'
 import MobileFab from './layout/MobileFab.vue'
 import ReferralWelcomeDialog from './layout/ReferralWelcomeDialog.vue'
 import InstallAppInstructionModal from './InstallAppInstructionModal.vue'
+import DemoModeBanner from './demo/DemoModeBanner.vue'
+import DemoAuthGateModal from './demo/DemoAuthGateModal.vue'
+import { useDemoAuthGate } from '../composables/useDemoAuthGate'
 import { userService } from '../services/api'
 import { useUnreadNotifications } from '../composables/useUnreadNotifications'
 import { useUserStreak } from '../composables/useUserStreak'
@@ -28,6 +32,8 @@ const router = useRouter()
 const route = useRoute()
 const { t } = useI18n()
 const userStore = useUserStore()
+const demoStore = useDemoStore()
+const { openAuthGate } = useDemoAuthGate()
 const { mobile, lgAndUp } = useDisplay()
 const { startTour } = useOnboarding()
 
@@ -37,12 +43,17 @@ const isAuthPage = computed(() => {
     || route.path === '/register'
 })
 
+const isMarketingPage = computed(() => route.path === '/' || route.name === 'home')
 const isLoggedIn = computed(() => userStore.isLoggedIn)
+const isDemoMode = computed(() => demoStore.isDemoMode)
 const currentUserId = computed(() => {
   const id = userStore.userId
   return id != null ? String(id) : null
 })
-const showAppChrome = computed(() => isLoggedIn.value && !isAuthPage.value)
+const showAppChrome = computed(() => {
+  return (isLoggedIn.value || isDemoMode.value) && !isAuthPage.value && !isMarketingPage.value
+})
+const showDemoBanner = computed(() => isDemoMode.value && showAppChrome.value)
 
 const showMobileFab = computed(() => {
   return showAppChrome.value && route.name !== 'add-challenge'
@@ -155,6 +166,14 @@ function confirmLogout() {
 
 function logout() {
   requestLogout()
+}
+
+function handleProfileClick() {
+  if (isDemoMode.value) {
+    openAuthGate({ redirect: '/register?from=demo' })
+    return
+  }
+  router.push('/profile')
 }
 
 function startLoggedInSession() {
@@ -307,12 +326,13 @@ async function maybeStartOnboarding() {
     <AppHeader
       v-if="!isAuthPage"
       :is-logged-in="isLoggedIn"
+      :is-demo-mode="showAppChrome && isDemoMode"
       :unread-count="unreadNotificationCount"
       :display-streak-days="displayStreakDays"
       :yesterday-streak-days="yesterdayStreakDays"
       :has-today-completed-tasks="hasTodayCompletedTasks"
       :streak-days-text="streakDaysText"
-      :show-streak="showStreak"
+      :show-streak="showStreak && isLoggedIn"
       @toggle-drawer="toggleDrawer"
       @open-notifications="openNotifications"
     />
@@ -324,9 +344,9 @@ async function maybeStartOnboarding() {
       :yesterday-streak-days="yesterdayStreakDays"
       :has-today-completed-tasks="hasTodayCompletedTasks"
       :streak-days-text="streakDaysText"
-      :show-streak="showStreak"
+      :show-streak="showStreak && isLoggedIn"
       @update:drawer-open="drawerOpen = $event"
-      @profile="router.push('/profile')"
+      @profile="handleProfileClick"
       @logout="logout"
     />
 
@@ -334,12 +354,13 @@ async function maybeStartOnboarding() {
 
     <v-main
       :class="['main-content', {
-        'public-view': !isLoggedIn,
+        'public-view': !showAppChrome,
         'with-sidebar': showAppChrome,
         'auth-layout': isAuthPage
       }]"
     >
       <div class="main-content-wrapper">
+        <DemoModeBanner v-if="showDemoBanner" />
         <div
           :class="['main-content-inner', {
             'content-column': showAppChrome,
@@ -378,6 +399,8 @@ async function maybeStartOnboarding() {
       @leave="handleGlobalDialogLeave"
       @update="handleGlobalDialogUpdate"
     />
+
+    <DemoAuthGateModal />
 
     <XpAwardToast />
 

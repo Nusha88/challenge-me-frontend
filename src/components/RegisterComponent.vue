@@ -140,6 +140,10 @@
     :button-text="t('common.ok')"
     @close="closeSuccessModal"
   />
+
+  <v-snackbar v-model="migrateWarningOpen" color="warning" timeout="5000">
+    {{ t('demo.migratePartial') }}
+  </v-snackbar>
 </template>
 
 <script setup>
@@ -151,6 +155,7 @@ import { authService } from '../services/api'
 import { getAuthErrorMessage } from '../utils/authErrorMessage'
 import { togglePasswordVisibility } from '../composables/usePasswordFieldToggle'
 import { GOALS, reachGoal } from '../services/analytics'
+import { migrateDemoMissionsAfterRegister } from '../services/demoMigration'
 import SuccessDialog from './SuccessDialog.vue'
 import AuthBackLink from './layout/AuthBackLink.vue'
 import swardImage from '../assets/auth/auth-mark-256.webp'
@@ -163,6 +168,7 @@ const loading = ref(false)
 const error = ref('')
 const errors = ref({})
 const showSuccess = ref(false)
+const migrateWarningOpen = ref(false)
 const showPassword = ref(false)
 const passwordFieldRef = ref(null)
 const { t } = useI18n()
@@ -348,6 +354,13 @@ const handleSubmit = async () => {
     // Store user data and token in Pinia store
     userStore.setUser(response.data.user)
     userStore.setToken(response.data.token)
+    const userId = response.data.user?.id || response.data.user?._id
+    try {
+      const { failed } = await migrateDemoMissionsAfterRegister(userId)
+      if (failed > 0) migrateWarningOpen.value = true
+    } catch {
+      migrateWarningOpen.value = true
+    }
     reachGoal(GOALS.REGISTER_SUCCESS)
     // Show success dialog - don't dispatch auth-changed yet to prevent sidebar from showing
     showSuccess.value = true

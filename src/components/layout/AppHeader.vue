@@ -1,9 +1,9 @@
 <template>
   <v-app-bar class="app-bar-custom" elevation="0" :fixed="isMobileHeader">
-    <div class="header-content-wrapper" :class="{ 'header-content-wrapper--guest': !isLoggedIn }">
+    <div class="header-content-wrapper" :class="{ 'header-content-wrapper--guest': !showAppUserChrome }">
       <div class="header-section header-left">
         <v-app-bar-nav-icon
-          v-if="isLoggedIn"
+          v-if="showAppUserChrome"
           class="d-md-none"
           @click="$emit('toggle-drawer')"
         ></v-app-bar-nav-icon>
@@ -32,7 +32,7 @@
             />
           </router-link>
           <button
-            v-if="isLoggedIn"
+            v-if="showAppUserChrome"
             type="button"
             class="sparks-container"
             :aria-label="t('navigation.sparksInfoAriaLabel')"
@@ -47,7 +47,7 @@
       </div>
 
       <div class="header-section header-right">
-        <v-menu v-if="!isLoggedIn" location="bottom end">
+        <v-menu v-if="!showAppUserChrome" location="bottom end">
           <template #activator="{ props: menuProps }">
             <v-btn
               v-bind="menuProps"
@@ -72,7 +72,7 @@
           </v-list>
         </v-menu>
         <v-btn
-          v-if="!isLoggedIn && route.path !== '/login'"
+          v-if="!showAppUserChrome && route.path !== '/login'"
           to="/login"
           variant="text"
           class="login-button"
@@ -80,7 +80,7 @@
           {{ t('navigation.login') }}
         </v-btn>
         <v-btn
-          v-if="!isLoggedIn && route.path !== '/register'"
+          v-if="!showAppUserChrome && route.path !== '/register'"
           to="/register"
           variant="flat"
           class="sign-up-button"
@@ -88,7 +88,7 @@
           {{ t('navigation.register') }}
         </v-btn>
         <v-btn
-          v-if="isLoggedIn"
+          v-if="showAppUserChrome"
           to="/missions/add"
           variant="elevated"
           size="large"
@@ -130,14 +130,16 @@ import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useDisplay } from 'vuetify'
 import { useUserStore } from '../../stores/user'
+import { useDemoStore } from '../../stores/demo'
 import { setLocale, SUPPORTED_LOCALES } from '../../i18n'
 import { APP_EVENTS, addAppEventListener, removeAppEventListener } from '../../utils/appEvents'
 import brandLogo from '../../assets/landing/brand-256.webp'
 import StreakBadge from './StreakBadge.vue'
 import SparksInfoDialog from './SparksInfoDialog.vue'
 
-defineProps({
+const props = defineProps({
   isLoggedIn: { type: Boolean, default: false },
+  isDemoMode: { type: Boolean, default: false },
   unreadCount: { type: Number, default: 0 },
   displayStreakDays: { type: Number, default: 0 },
   yesterdayStreakDays: { type: Number, default: 0 },
@@ -152,7 +154,12 @@ const route = useRoute()
 const { t, locale } = useI18n()
 const { mdAndUp } = useDisplay()
 const userStore = useUserStore()
-const userSparks = computed(() => userStore.userSparks)
+const demoStore = useDemoStore()
+const showAppUserChrome = computed(() => props.isLoggedIn || props.isDemoMode)
+const userSparks = computed(() => {
+  if (props.isDemoMode) return Number(demoStore.character?.sparks || 0)
+  return userStore.userSparks
+})
 const sparksInfoOpen = ref(false)
 const sparksSpentAnimating = ref(false)
 const sparksGainedAnimating = ref(false)

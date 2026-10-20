@@ -97,6 +97,7 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useChallengeType } from '../../composables/useChallengeType'
+import { useDemoMode } from '../../composables/useDemoMode'
 
 const VISIBLE_AVATARS = 5
 
@@ -118,6 +119,7 @@ const props = defineProps({
 defineEmits(['use'])
 
 const router = useRouter()
+const { requireAuthOrPrompt } = useDemoMode()
 
 const { t } = useI18n()
 const { getMissionTypeLabel } = useChallengeType()
@@ -152,6 +154,7 @@ function getInitial(name) {
 
 function openHero(userId) {
   if (!userId) return
+  if (!requireAuthOrPrompt()) return
   router.push(`/heroes/${userId}`)
 }
 </script>
