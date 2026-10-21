@@ -11,6 +11,8 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "@dicebear/core": "^10.7.0",
+    "@dicebear/styles": "^10.6.0",
     "@mdi/font": "^7.4.47",
     "axios": "^1.10.0",
     "canvas-confetti": "^1.9.4",

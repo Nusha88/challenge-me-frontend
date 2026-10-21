@@ -17,10 +17,14 @@
         offset-y="5"
         overlap
       >
-        <v-avatar size="48" class="hero-list-avatar">
-          <v-img v-if="user.avatarUrl" :src="user.avatarUrl" cover />
-          <span v-else class="avatar-initials">{{ user.initials }}</span>
-        </v-avatar>
+        <RankedAvatar
+          :avatar-url="user.avatarUrl"
+          :seed="user._id || user.id"
+          :initials="user.initials"
+          :level="user.displayLevel"
+          :size="48"
+          :alt="user.name || ''"
+        />
       </v-badge>
 
       <div class="hero-list-copy">
@@ -62,6 +66,7 @@
 
 <script setup>
 import { useI18n } from 'vue-i18n'
+import RankedAvatar from '../user/RankedAvatar.vue'
 
 defineProps({
   user: { type: Object, required: true }
@@ -101,16 +106,6 @@ const { t } = useI18n()
   display: flex;
   align-items: center;
   gap: 14px;
-}
-
-.hero-list-avatar {
-  border: 2px solid rgba(79, 209, 197, 0.22);
-  background: #0f172a !important;
-}
-
-.avatar-initials {
-  color: var(--home-text, #fff);
-  font-weight: 700;
 }
 
 .hero-list-copy {

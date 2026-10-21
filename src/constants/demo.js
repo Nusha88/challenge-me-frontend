@@ -12,7 +12,7 @@ export const DEMO_ALLOWED_ROUTE_NAMES = Object.freeze([
   'add-challenge'
 ])
 
-export const DEMO_HABIT_DAY_XP = 5
+export const DEMO_HABIT_DAY_XP = 10
 export const DEMO_HABIT_DAY_SPARKS = 2
 
 export function isDemoMissionId(id) {

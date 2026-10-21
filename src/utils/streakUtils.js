@@ -45,6 +45,26 @@ export function buildCompletedDateSet(checklists, habitChallenges, userId) {
   return completedDates
 }
 
+export function isAuraDimmed(completedDates, today = new Date()) {
+  if (!(completedDates instanceof Set) || completedDates.size === 0) {
+    return false
+  }
+
+  const cursor = new Date(today)
+  cursor.setHours(0, 0, 0, 0)
+  cursor.setDate(cursor.getDate() - 1)
+
+  for (let i = 0; i < 3; i++) {
+    const dateStr = toDateInputValue(cursor)
+    if (completedDates.has(dateStr)) {
+      return false
+    }
+    cursor.setDate(cursor.getDate() - 1)
+  }
+
+  return true
+}
+
 export function calculateStreakFromDate(startDate, completedDates) {
   let streak = 0
   const currentDate = new Date(startDate)

@@ -7,7 +7,7 @@ import { useAppEventListeners } from './useAppEvents'
 import { APP_EVENTS } from '../utils/appEvents'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 import { toDateInputValue } from '../utils/dateUtils'
-import { buildCompletedDateSet, calculateStreakFromDate } from '../utils/streakUtils'
+import { buildCompletedDateSet, calculateStreakFromDate, isAuraDimmed } from '../utils/streakUtils'
 
 export function useUserStreak() {
   const route = useRoute()
@@ -17,6 +17,7 @@ export function useUserStreak() {
   const streakDays = ref(0)
   const yesterdayStreakDays = ref(0)
   const hasTodayCompletedTasks = ref(false)
+  const auraDimmed = ref(false)
   const isLoggedIn = computed(() => userStore.isLoggedIn)
 
   async function calculateStreak() {
@@ -50,6 +51,7 @@ export function useUserStreak() {
       hasTodayCompletedTasks.value = completedDates.has(todayStr)
       streakDays.value = calculateStreakFromDate(today, completedDates)
       yesterdayStreakDays.value = calculateStreakFromDate(yesterday, completedDates)
+      auraDimmed.value = isAuraDimmed(completedDates, today)
     } catch (error) {
       console.error('Error calculating streak:', error)
       reset()
@@ -60,6 +62,7 @@ export function useUserStreak() {
     streakDays.value = 0
     yesterdayStreakDays.value = 0
     hasTodayCompletedTasks.value = false
+    auraDimmed.value = false
   }
 
   const displayStreakDays = computed(() => {
@@ -121,6 +124,7 @@ export function useUserStreak() {
     streakDays,
     yesterdayStreakDays,
     hasTodayCompletedTasks,
+    auraDimmed,
     displayStreakDays,
     streakDaysText,
     showStreak,

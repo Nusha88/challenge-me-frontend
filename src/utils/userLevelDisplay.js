@@ -70,6 +70,7 @@ export function enrichUserForDisplay(user, t) {
     progressPercent: getUserLevelProgressPercent(user),
     rankName: levelInfo.rankName,
     rankColor: levelInfo.color,
+    rankTier: levelInfo.tier,
     initials: getUserInitials(user.name)
   }
 }

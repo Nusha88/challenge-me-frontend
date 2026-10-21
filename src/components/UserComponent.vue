@@ -27,6 +27,7 @@ const {
   fileInputRef,
   currentUserId,
   isOwnProfile,
+  auraDimmed,
   targetUserId,
   finishedUserMissions,
   liveUserMissions,
@@ -34,7 +35,8 @@ const {
   clearError,
   clearUploadError,
   triggerFileInput,
-  handleFileInputChange
+  handleFileInputChange,
+  removeAvatar
 } = useUserProfile(props)
 
 function bindFileInput(el) {
@@ -57,8 +59,10 @@ function bindFileInput(el) {
         :user="displayUser"
         :uploading="uploading"
         :upload-error="uploadError"
+        :dimmed="auraDimmed"
         @bind-file-input="bindFileInput"
         @trigger-upload="triggerFileInput"
+        @remove-avatar="removeAvatar"
         @file-change="handleFileInputChange"
         @clear-upload-error="clearUploadError"
       />

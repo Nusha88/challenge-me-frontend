@@ -32,26 +32,37 @@
         @change="$emit('file-change', $event)"
       />
 
-      <v-hover v-slot="{ isHovering, props: hoverProps }">
-        <v-avatar
-          size="112"
-          v-bind="hoverProps"
-          class="identity-avatar clickable"
-          @click="$emit('trigger-upload')"
-        >
-          <v-img v-if="user.avatarUrl" :src="user.avatarUrl" cover />
-          <div v-else class="avatar-gen">{{ user.initials }}</div>
-          <v-fade-transition>
-            <div
-              v-if="isHovering || uploading"
-              class="avatar-overlay d-flex align-center justify-center"
-            >
+      <div class="identity-avatar">
+        <v-hover v-slot="{ isHovering, props: hoverProps }">
+          <RankedAvatar
+            v-bind="hoverProps"
+            :avatar-url="user.avatarUrl"
+            :seed="user._id || user.id"
+            :initials="user.initials"
+            :level="user.displayLevel"
+            :dimmed="dimmed"
+            :size="112"
+            clickable
+            :alt="user.name || ''"
+            @click="$emit('trigger-upload')"
+          >
+            <template v-if="isHovering || uploading" #overlay>
               <v-progress-circular v-if="uploading" indeterminate color="white" size="28" />
               <v-icon v-else color="white" size="28">mdi-camera-plus</v-icon>
-            </div>
-          </v-fade-transition>
-        </v-avatar>
-      </v-hover>
+            </template>
+          </RankedAvatar>
+        </v-hover>
+
+        <button
+          v-if="hasPhoto"
+          type="button"
+          class="remove-avatar-btn"
+          :disabled="uploading"
+          @click="$emit('remove-avatar')"
+        >
+          {{ t('profile.removeAvatar') }}
+        </button>
+      </div>
 
       <div class="identity-copy">
         <h2 class="identity-name">{{ user.name }}</h2>
@@ -67,7 +78,7 @@
         </div>
         <div class="xp-block">
           <div class="xp-labels">
-            <span>{{ t('profile.rankLabel') }} {{ rankRoman }}</span>
+            <span>{{ rankLine }}</span>
             <span>{{ t('profile.levelLabel') }} {{ user.displayLevel }}</span>
           </div>
           <v-progress-linear
@@ -99,21 +110,31 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { getRank, getRankIcon } from '../../utils/levelSystem'
+import { getRank, getRankTier, getRankIcon } from '../../utils/levelSystem'
+import RankedAvatar from '../user/RankedAvatar.vue'
 
 const props = defineProps({
   user: { type: Object, default: null },
   uploading: { type: Boolean, default: false },
-  uploadError: { type: String, default: '' }
+  uploadError: { type: String, default: '' },
+  dimmed: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['trigger-upload', 'file-change', 'clear-upload-error', 'bind-file-input'])
+const emit = defineEmits(['trigger-upload', 'remove-avatar', 'file-change', 'clear-upload-error', 'bind-file-input'])
+
+const hasPhoto = computed(() => Boolean(props.user?.avatarUrl))
 
 const { t } = useI18n()
 const fileInputRef = ref(null)
 
 const rankIcon = computed(() => getRankIcon(props.user?.displayLevel || 1))
-const rankRoman = computed(() => getRank(props.user?.displayLevel || 1))
+const rankLine = computed(() => {
+  const level = props.user?.displayLevel || 1
+  const roman = getRank(level)
+  const tier = getRankTier(level)
+  if (!tier) return `${t('profile.rankLabel')} ${roman}`
+  return `${t('profile.rankLabel')} ${roman} · ${t('profile.rankTier', { n: tier })}`
+})
 
 watch(fileInputRef, (el) => {
   emit('bind-file-input', el)
@@ -196,40 +217,39 @@ watch(fileInputRef, (el) => {
   border-radius: var(--home-radius, 16px);
 }
 
+.identity-avatar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.remove-avatar-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--home-text-dim, #94a3b8);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+
+.remove-avatar-btn:hover:not(:disabled) {
+  color: #ff5252;
+}
+
+.remove-avatar-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 @media (min-width: 960px) {
   .identity-band {
     flex-direction: row;
     align-items: flex-end;
   }
-}
-
-.identity-avatar {
-  border: 3px solid rgba(79, 209, 197, 0.35) !important;
-  background: #1a1a2e;
-  position: relative;
-  overflow: hidden;
-}
-
-.identity-avatar.clickable {
-  cursor: pointer;
-}
-
-.avatar-gen {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2rem;
-  font-weight: 800;
-  color: #4fd1c5;
-  background: linear-gradient(135deg, #1a1a2e, #16213e);
-}
-
-.avatar-overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.55);
 }
 
 .identity-copy {

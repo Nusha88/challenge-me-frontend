@@ -465,6 +465,8 @@
     "uploadHint": "PNG или JPG до 5 МБ",
     "uploadSuccess": "Аватар успешно обновлён.",
     "uploadError": "Не удалось обновить аватар.",
+    "removeAvatar": "Удалить фото",
+    "removeAvatarError": "Не удалось удалить аватар.",
     "uploadInvalidType": "Пожалуйста, выберите файл изображения.",
     "uploadTooLarge": "Файл должен быть меньше {size} МБ.",
     "uploading": "Загрузка...",
@@ -533,12 +535,13 @@
     "completedPublic": "Завершенные (публичные)",
     "ranks": {
       "explorer": "Первопроходец",
-      "adept": "Знаток",
-      "warrior": "Титан",
+      "adept": "Хранитель Искры",
+      "warrior": "Пламенный Адепт",
       "master": "Мастер Судьбы",
       "grandmaster": "Гроссмейстер",
       "legend": "Легенда Ignite"
-    }
+    },
+    "rankTier": "Тир {n}"
   },
   "statistic": {
     "title": "Статистика",

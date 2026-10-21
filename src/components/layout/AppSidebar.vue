@@ -19,6 +19,7 @@
       :has-today-completed-tasks="hasTodayCompletedTasks"
       :streak-days-text="streakDaysText"
       :show-streak="showStreak"
+      :aura-dimmed="auraDimmed"
       @profile="$emit('profile')"
       @logout="$emit('logout')"
       @navigate="closeMobileDrawer"
@@ -38,7 +39,8 @@ const props = defineProps({
   yesterdayStreakDays: { type: Number, default: 0 },
   hasTodayCompletedTasks: { type: Boolean, default: false },
   streakDaysText: { type: String, default: '' },
-  showStreak: { type: Boolean, default: false }
+  showStreak: { type: Boolean, default: false },
+  auraDimmed: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['update:drawerOpen', 'profile', 'logout'])

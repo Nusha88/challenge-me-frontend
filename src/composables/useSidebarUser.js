@@ -3,6 +3,7 @@ import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useUserStore } from '../stores/user'
 import { useDemoStore } from '../stores/demo'
+import { DEMO_USER_ID } from '../constants/demo'
 import {
   getLevelFromXp,
   getXpForLevel,
@@ -34,9 +35,13 @@ export function useSidebarUser() {
 
   const heroRank = computed(() => {
     const levelInfo = getLevelInfo(userLevel.value)
+    const title = t(`profile.ranks.${levelInfo.rankKey}`)
+    const withTier = levelInfo.tier
+      ? `${title} · ${t('profile.rankTier', { n: levelInfo.tier })}`
+      : title
 
     return {
-      title: t(`profile.ranks.${levelInfo.rankKey}`),
+      title: withTier,
       color: levelInfo.color,
       icon: getRankIcon(userLevel.value)
     }
@@ -45,6 +50,7 @@ export function useSidebarUser() {
   const sidebarContentProps = computed(() => ({
     userName: demoStore.isDemoMode ? t('demo.guestName') : userStore.userName,
     userAvatarUrl: demoStore.isDemoMode ? '' : userStore.userAvatarUrl,
+    userSeed: demoStore.isDemoMode ? DEMO_USER_ID : userStore.userId || '',
     userLevel: userLevel.value,
     heroRankTitle: heroRank.value.title,
     heroRankColor: heroRank.value.color,

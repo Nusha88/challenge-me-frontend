@@ -6,6 +6,7 @@ import { useI18n } from 'vue-i18n'
 import { useUserStore } from '../stores/user'
 import { enrichUserForDisplay } from '../utils/userLevelDisplay'
 import { getXpForNextLevel } from '../utils/levelSystem'
+import { buildCompletedDateSet, isAuraDimmed } from '../utils/streakUtils'
 import { filterHabitChallengesForUser } from '../utils/activityHeatmap'
 import { isChallengeFinished, isChallengeUpcoming } from '../utils/challengeStatus'
 
@@ -52,6 +53,16 @@ export function useUserProfile(props = {}) {
   const habitChallenges = computed(() =>
     filterHabitChallengesForUser(challenges.value, targetUserId.value)
   )
+
+  const auraDimmed = computed(() => {
+    if (!isOwnProfile.value || !targetUserId.value) return false
+    const completedDates = buildCompletedDateSet(
+      checklistHistory.value,
+      habitChallenges.value,
+      targetUserId.value
+    )
+    return isAuraDimmed(completedDates, new Date())
+  })
 
   const userMissions = computed(() => {
     if (isOwnProfile.value) return []
@@ -206,6 +217,24 @@ export function useUserProfile(props = {}) {
     }
   }
 
+  async function removeAvatar() {
+    if (uploading.value || !user.value?.avatarUrl) return
+
+    uploadError.value = ''
+    uploading.value = true
+
+    try {
+      const updateResponse = await userService.updateProfile({ avatarUrl: '' })
+      user.value = updateResponse.data.user
+      userStore.updateUser({ avatarUrl: '' })
+      window.dispatchEvent(new Event('auth-changed'))
+    } catch (err) {
+      uploadError.value = err.message || t('profile.removeAvatarError')
+    } finally {
+      uploading.value = false
+    }
+  }
+
   function triggerFileInput() {
     if (uploading.value || !fileInputRef.value) return
     fileInputRef.value.click()
@@ -290,6 +319,7 @@ export function useUserProfile(props = {}) {
     fileInputRef,
     currentUserId,
     isOwnProfile,
+    auraDimmed,
     targetUserId,
     userMissions,
     activeUserMissions,
@@ -300,6 +330,7 @@ export function useUserProfile(props = {}) {
     clearUploadError,
     triggerFileInput,
     handleFileInputChange,
-    handleAvatarSelection
+    handleAvatarSelection,
+    removeAvatar
   }
 }

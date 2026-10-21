@@ -2,12 +2,12 @@
   <div class="all-challenges">
     <AllChallengesHeader />
 
-    <MissionTemplatesSection />
-
     <MainRitualSection
       v-if="showMainRitual"
       @use="launchTemplate"
     />
+
+    <MissionTemplatesSection />
 
     <FilterPanel
       ref="filterPanelRef"

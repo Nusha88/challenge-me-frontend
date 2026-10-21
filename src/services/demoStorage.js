@@ -2,6 +2,7 @@ import {
   DEMO_STORAGE_KEYS,
   DEMO_USER_ID
 } from '../constants/demo'
+import { isWeeklyRitualTemplate } from '../utils/weeklyRitualSchedule'
 
 function createEmptyCharacter() {
   return {
@@ -115,6 +116,7 @@ export function createDemoMission(payload, { guestName = 'Guest' } = {}) {
     imageUrl: payload.imageUrl || '',
     challengeType: payload.challengeType || 'habit',
     templateId: payload.templateId || '',
+    isWeeklyRitual: isWeeklyRitualTemplate(payload.templateId),
     privacy: payload.privacy || 'private',
     frequency: payload.frequency || 'daily',
     startDate: payload.startDate || '',

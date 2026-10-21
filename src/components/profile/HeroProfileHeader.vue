@@ -6,10 +6,14 @@
     </router-link>
 
     <div v-if="user" class="hero-identity">
-      <v-avatar size="120" class="hero-avatar">
-        <v-img v-if="user.avatarUrl" :src="user.avatarUrl" cover />
-        <div v-else class="avatar-gen">{{ user.initials }}</div>
-      </v-avatar>
+      <RankedAvatar
+        :avatar-url="user.avatarUrl"
+        :seed="user._id || user.id"
+        :initials="user.initials"
+        :level="user.displayLevel"
+        :size="120"
+        :alt="user.name || ''"
+      />
 
       <div class="hero-copy">
         <h1 class="hero-name">{{ user.name }}</h1>
@@ -20,7 +24,7 @@
         <div class="hero-meta">
           <v-chip :color="user.rankColor" size="small" class="rank-chip">
             <v-icon start size="16">{{ rankIcon }}</v-icon>
-            {{ t('profile.levelLabel') }} {{ user.displayLevel }}
+            {{ rankLine }}
           </v-chip>
           <span class="meta-badge">
             <v-icon size="14">mdi-sword</v-icon>
@@ -38,7 +42,7 @@
 
         <div class="xp-block">
           <div class="xp-labels">
-            <span>{{ t('profile.rankLabel') }} {{ rankRoman }}</span>
+            <span>{{ rankLine }}</span>
             <span>{{ user.displayXp }} / {{ user.xpForNextLevel }} XP</span>
           </div>
           <v-progress-linear
@@ -56,7 +60,8 @@
 <script setup>
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { getRank, getRankIcon } from '../../utils/levelSystem'
+import { getRank, getRankTier, getRankIcon } from '../../utils/levelSystem'
+import RankedAvatar from '../user/RankedAvatar.vue'
 
 const props = defineProps({
   user: { type: Object, default: null }
@@ -65,7 +70,13 @@ const props = defineProps({
 const { t } = useI18n()
 
 const rankIcon = computed(() => getRankIcon(props.user?.displayLevel || 1))
-const rankRoman = computed(() => getRank(props.user?.displayLevel || 1))
+const rankLine = computed(() => {
+  const level = props.user?.displayLevel || 1
+  const roman = getRank(level)
+  const tier = getRankTier(level)
+  if (!tier) return `${t('profile.rankLabel')} ${roman}`
+  return `${t('profile.rankLabel')} ${roman} · ${t('profile.rankTier', { n: tier })}`
+})
 </script>
 
 <style scoped>
@@ -104,24 +115,6 @@ const rankRoman = computed(() => getRank(props.user?.displayLevel || 1))
     flex-direction: row;
     align-items: flex-end;
   }
-}
-
-.hero-avatar {
-  border: 3px solid rgba(79, 209, 197, 0.35) !important;
-  background: #1a1a2e;
-  flex-shrink: 0;
-}
-
-.avatar-gen {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2rem;
-  font-weight: 800;
-  color: #4fd1c5;
-  background: linear-gradient(135deg, #1a1a2e, #16213e);
 }
 
 .hero-copy {

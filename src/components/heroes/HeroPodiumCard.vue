@@ -22,16 +22,20 @@
           offset-x="10"
           offset-y="10"
         >
-          <v-avatar size="96" class="hero-avatar">
-            <v-img v-if="user.avatarUrl" :src="user.avatarUrl" cover />
-            <div v-else class="avatar-fallback">{{ user.initials }}</div>
-          </v-avatar>
+          <RankedAvatar
+            :avatar-url="user.avatarUrl"
+            :seed="user._id || user.id"
+            :initials="user.initials"
+            :level="user.displayLevel"
+            :size="96"
+            :alt="user.name || ''"
+          />
         </v-badge>
       </div>
 
       <h3 class="hero-name">{{ user.name }}</h3>
       <div class="hero-rank-tag" :style="{ color: user.rankColor }">
-        {{ user.rankName }}
+        {{ podiumRankLine }}
       </div>
 
       <div class="xp-block">
@@ -69,6 +73,8 @@
 <script setup>
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { getRankTier } from '../../utils/levelSystem'
+import RankedAvatar from '../user/RankedAvatar.vue'
 
 const props = defineProps({
   user: { type: Object, required: true },
@@ -83,6 +89,12 @@ const badgeColor = computed(() => {
   if (props.rank === 1) return 'amber-accent-4'
   if (props.rank === 2) return 'blue-grey-lighten-4'
   return 'orange-darken-4'
+})
+
+const podiumRankLine = computed(() => {
+  const tier = getRankTier(props.user?.displayLevel || 1)
+  if (!tier) return props.user?.rankName || ''
+  return `${props.user?.rankName} · ${t('profile.rankTier', { n: tier })}`
 })
 </script>
 
@@ -148,22 +160,6 @@ const badgeColor = computed(() => {
 .rank-color-1 { background: #ffd700; color: #000; }
 .rank-color-2 { background: #c0c0c0; color: #000; }
 .rank-color-3 { background: #cd7f32; color: #fff; }
-
-.hero-avatar {
-  border: 3px solid var(--home-border, rgba(255, 255, 255, 0.08));
-}
-
-.avatar-fallback {
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, #1e293b, #0f172a);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28px;
-  font-weight: 900;
-  color: var(--home-teal, #4fd1c5);
-}
 
 .hero-name {
   margin: 8px 0 0;

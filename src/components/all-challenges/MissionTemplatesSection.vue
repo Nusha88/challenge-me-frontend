@@ -4,7 +4,6 @@
       :label="t('allChallenges.templates.title')"
       icon="mdi-lightning-bolt-outline"
       :count="templates.length"
-      flush-top
     />
 
     <div class="templates-carousel">

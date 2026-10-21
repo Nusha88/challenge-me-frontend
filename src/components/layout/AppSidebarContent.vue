@@ -6,10 +6,16 @@
           class="d-flex align-center mb-3 sidebar-user-clickable settings-icon"
           @click="handleProfileClick"
         >
-          <v-avatar size="40" class="sidebar-avatar mr-3">
-            <v-img v-if="userAvatarUrl" :src="userAvatarUrl" :alt="userName || ''" cover></v-img>
-            <span v-else class="sidebar-avatar-initials">{{ getUserInitials(userName) }}</span>
-          </v-avatar>
+          <RankedAvatar
+            class="mr-3"
+            :avatar-url="userAvatarUrl"
+            :seed="userSeed"
+            :initials="getUserInitials(userName)"
+            :level="userLevel"
+            :size="40"
+            :dimmed="auraDimmed"
+            :alt="userName || ''"
+          />
           <div class="flex-grow-1">
             <div class="text-body-1 font-weight-medium">{{ userName || t('navigation.profile') }}</div>
             <div class="text-caption text-medium-emphasis" :style="{ color: heroRankColor }">
@@ -173,7 +179,23 @@
         <span>{{ t('navigation.reportBug') }}</span>
       </a>
 
-      <div v-if="!isDemoMode" class="sidebar-menu-card logout-card mt-auto mb-4">
+      <div v-if="isDemoMode" class="sidebar-menu-card demo-auth-card mt-auto mb-4">
+        <router-link
+          to="/register?from=demo"
+          class="demo-auth-register app-cta-primary"
+          @click="handleNavClick"
+        >
+          {{ t('demo.saveHero') }}
+        </router-link>
+        <p class="demo-auth-login">
+          {{ t('auth.alreadyHaveAccount') }}
+          <router-link to="/login" class="demo-auth-login-link" @click="handleNavClick">
+            {{ t('auth.loginCta') }}
+          </router-link>
+        </p>
+      </div>
+
+      <div v-else class="sidebar-menu-card logout-card mt-auto mb-4">
         <v-list-item class="logout-item" @click="handleLogoutClick">
           <template #prepend>
             <LogOut :size="20" class="logout-icon sidebar-lucide-icon mr-2" />
@@ -190,12 +212,14 @@ import { computed, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Sparkles, Mountain, Compass, Eye, Trophy, Star, Globe2, LogOut, BarChart3 } from 'lucide-vue-next'
 import InviteFriendDialog from './InviteFriendDialog.vue'
+import RankedAvatar from '../user/RankedAvatar.vue'
 import { useReferralProgram } from '../../composables/useReferralProgram'
 import { useSuperAdmin } from '../../composables/useSuperAdmin'
 
 const props = defineProps({
   userName: { type: String, default: '' },
   userAvatarUrl: { type: String, default: '' },
+  userSeed: { type: [String, Number], default: '' },
   userLevel: { type: Number, default: 1 },
   heroRankTitle: { type: String, default: '' },
   heroRankColor: { type: String, default: '#7048E8' },
@@ -209,7 +233,8 @@ const props = defineProps({
   hasTodayCompletedTasks: { type: Boolean, default: false },
   streakDaysText: { type: String, default: '' },
   showStreak: { type: Boolean, default: false },
-  isDemoMode: { type: Boolean, default: false }
+  isDemoMode: { type: Boolean, default: false },
+  auraDimmed: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['profile', 'logout', 'navigate'])
@@ -362,26 +387,9 @@ function handleNavClick() {
 
 .sidebar-content-wrapper > .v-list {
   flex: 1;
-  overflow-y: visible;
-}
-
-.sidebar-avatar {
-  border: 2px solid white;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-  background: #7048E8;
-  color: white;
-}
-
-.sidebar-avatar-initials {
-  font-weight: 700;
-  font-size: 14px;
-  letter-spacing: 0.5px;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  color: white;
+  flex-direction: column;
+  overflow-y: visible;
 }
 
 .xp-sidebar-card {
@@ -434,6 +442,45 @@ function handleNavClick() {
 .logout-card:hover .sidebar-lucide-icon {
   filter: drop-shadow(0 0 8px rgba(255, 82, 82, 0.5));
   transform: translateX(3px);
+}
+
+.demo-auth-card {
+  margin-top: auto !important;
+  padding: 12px 10px !important;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  border: 1px solid rgba(112, 72, 232, 0.28) !important;
+  background: rgba(112, 72, 232, 0.08) !important;
+}
+
+.demo-auth-register {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 12px;
+  text-decoration: none;
+  font-size: 0.875rem;
+}
+
+.demo-auth-login {
+  margin: 0;
+  text-align: center;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.demo-auth-login-link {
+  color: #4FD1C5;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.demo-auth-login-link:hover {
+  text-decoration: underline;
 }
 
 :deep(.v-list-subheader) {

@@ -68,6 +68,7 @@ const {
   displayStreakDays,
   yesterdayStreakDays,
   hasTodayCompletedTasks,
+  auraDimmed,
   streakDaysText,
   showStreak,
   calculateStreak,
@@ -349,6 +350,7 @@ async function maybeStartOnboarding() {
       :has-today-completed-tasks="hasTodayCompletedTasks"
       :streak-days-text="streakDaysText"
       :show-streak="showStreak && isLoggedIn"
+      :aura-dimmed="auraDimmed && isLoggedIn"
       @update:drawer-open="drawerOpen = $event"
       @profile="handleProfileClick"
       @logout="logout"

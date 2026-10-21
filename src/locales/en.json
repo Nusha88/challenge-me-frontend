@@ -465,6 +465,8 @@
     "uploadHint": "PNG or JPG up to 5 MB",
     "uploadSuccess": "Avatar updated successfully.",
     "uploadError": "Failed to update avatar.",
+    "removeAvatar": "Remove photo",
+    "removeAvatarError": "Failed to remove avatar.",
     "uploadInvalidType": "Please choose an image file.",
     "uploadTooLarge": "File must be smaller than {size} MB.",
     "uploading": "Uploading...",
@@ -533,12 +535,13 @@
     "completedPublic": "Completed (public)",
     "ranks": {
       "explorer": "Pathfinder",
-      "adept": "Expert",
-      "warrior": "Titan",
+      "adept": "Spark Keeper",
+      "warrior": "Flame Adept",
       "master": "Fate Master",
       "grandmaster": "Grandmaster",
       "legend": "Ignite Legend"
-    }
+    },
+    "rankTier": "Tier {n}"
   },
   "statistic": {
     "title": "Statistic",
