@@ -17,7 +17,7 @@
             {{ t('home.loggedIn.dailyChecklist.copyToTomorrow') }} | {{ unfinishedStepsCount }}
           </v-btn>
         </div>
-        <DailyChecklist ref="innerChecklistRef" />
+        <DailyChecklist ref="innerChecklistRef" :hide-composer="hideComposer" />
       </div>
     </v-card-text>
   </v-card>
@@ -30,7 +30,8 @@ import DailyChecklist from '../DailyChecklist.vue'
 
 defineProps({
   unfinishedStepsCount: { type: Number, default: 0 },
-  isEmpty: { type: Boolean, default: false }
+  isEmpty: { type: Boolean, default: false },
+  hideComposer: { type: Boolean, default: false }
 })
 
 defineEmits(['copy-to-tomorrow'])

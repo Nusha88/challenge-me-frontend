@@ -14,8 +14,8 @@
       @click="$emit('freeze')"
     >
       <v-icon size="18">{{ freezeConfig.icon }}</v-icon>
-      <span class="freeze-chip-label">{{ t(freezeConfig.labelKey) }}</span>
-      <span class="home-cost-badge">
+      <span class="freeze-chip-label">{{ freezeLabel }}</span>
+      <span v-if="freezeStock <= 0" class="home-cost-badge">
         <span>|</span>
         <span>{{ freezeCost }}</span>
         <span class="sparks-icon">✦</span>
@@ -32,12 +32,14 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-defineProps({
+const props = defineProps({
   modelValue: { type: String, required: true },
   freezeConfig: { type: Object, default: null },
   freezeCost: { type: Number, default: 50 },
+  freezeStock: { type: Number, default: 0 },
   hasEnoughSparks: { type: Boolean, default: true },
   freezeLoading: { type: Boolean, default: false }
 })
@@ -45,6 +47,15 @@ defineProps({
 defineEmits(['update:modelValue', 'freeze'])
 
 const { t } = useI18n()
+
+const freezeLabel = computed(() => {
+  if (!props.freezeConfig) return ''
+  const label = t(props.freezeConfig.labelKey)
+  if (props.freezeStock > 0) {
+    return t('sparks.rituals.withStock', { label, count: props.freezeStock })
+  }
+  return label
+})
 </script>
 
 <style scoped>

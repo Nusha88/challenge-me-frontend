@@ -2,7 +2,10 @@ import { ref, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useUserStore } from '../stores/user'
+import { useDemoStore } from '../stores/demo'
 import { userService, challengeService } from '../services/api'
+import { getDemoChecklistHistory, getDemoMissions } from '../services/demoStorage'
+import { DEMO_USER_ID } from '../constants/demo'
 import { useAppEventListeners } from './useAppEvents'
 import { APP_EVENTS } from '../utils/appEvents'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
@@ -13,14 +16,46 @@ export function useUserStreak() {
   const route = useRoute()
   const { t, locale } = useI18n()
   const userStore = useUserStore()
+  const demoStore = useDemoStore()
 
   const streakDays = ref(0)
   const yesterdayStreakDays = ref(0)
   const hasTodayCompletedTasks = ref(false)
   const auraDimmed = ref(false)
   const isLoggedIn = computed(() => userStore.isLoggedIn)
+  const isDemoMode = computed(() => demoStore.isDemoMode)
+
+  function applyStreakFromDates(completedDates) {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    const yesterday = new Date(today)
+    yesterday.setDate(yesterday.getDate() - 1)
+    yesterday.setHours(0, 0, 0, 0)
+
+    const todayStr = toDateInputValue(today)
+
+    hasTodayCompletedTasks.value = completedDates.has(todayStr)
+    streakDays.value = calculateStreakFromDate(today, completedDates)
+    yesterdayStreakDays.value = calculateStreakFromDate(yesterday, completedDates)
+    auraDimmed.value = isAuraDimmed(completedDates, today)
+  }
 
   async function calculateStreak() {
+    if (isDemoMode.value) {
+      const missions = getDemoMissions()
+      const habitChallenges = missions.filter(
+        (challenge) => challenge.challengeType === CHALLENGE_TYPES.HABIT
+      )
+      const completedDates = buildCompletedDateSet(
+        getDemoChecklistHistory(),
+        habitChallenges,
+        DEMO_USER_ID
+      )
+      applyStreakFromDates(completedDates)
+      return
+    }
+
     const userId = userStore.userId
     if (!userId || !isLoggedIn.value) {
       reset()
@@ -38,20 +73,7 @@ export function useUserStreak() {
         .filter((challenge) => challenge.challengeType === CHALLENGE_TYPES.HABIT)
 
       const completedDates = buildCompletedDateSet(checklists, habitChallenges, userId)
-
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-
-      const yesterday = new Date(today)
-      yesterday.setDate(yesterday.getDate() - 1)
-      yesterday.setHours(0, 0, 0, 0)
-
-      const todayStr = toDateInputValue(today)
-
-      hasTodayCompletedTasks.value = completedDates.has(todayStr)
-      streakDays.value = calculateStreakFromDate(today, completedDates)
-      yesterdayStreakDays.value = calculateStreakFromDate(yesterday, completedDates)
-      auraDimmed.value = isAuraDimmed(completedDates, today)
+      applyStreakFromDates(completedDates)
     } catch (error) {
       console.error('Error calculating streak:', error)
       reset()
@@ -115,10 +137,18 @@ export function useUserStreak() {
   ])
 
   watch(() => route.path, () => {
-    if (isLoggedIn.value) {
+    if (isLoggedIn.value || isDemoMode.value) {
       calculateStreak()
     }
   })
+
+  watch(() => demoStore.missionsVersion, () => {
+    if (isDemoMode.value) calculateStreak()
+  })
+
+  watch(isDemoMode, (demo) => {
+    if (demo) calculateStreak()
+  }, { immediate: true })
 
   return {
     streakDays,

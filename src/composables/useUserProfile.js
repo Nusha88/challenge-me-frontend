@@ -9,6 +9,7 @@ import { getXpForNextLevel } from '../utils/levelSystem'
 import { buildCompletedDateSet, isAuraDimmed } from '../utils/streakUtils'
 import { filterHabitChallengesForUser } from '../utils/activityHeatmap'
 import { isChallengeFinished, isChallengeUpcoming } from '../utils/challengeStatus'
+import { useXpAwardFeedback } from './useXpAwardFeedback'
 
 /**
  * Load profile / hero data: user, challenges (one fetch), checklist history.
@@ -17,6 +18,7 @@ export function useUserProfile(props = {}) {
   const route = useRoute()
   const userStore = useUserStore()
   const { t } = useI18n()
+  const { applyRewardResponse } = useXpAwardFeedback()
 
   const user = ref(null)
   const challenges = ref([])
@@ -97,6 +99,7 @@ export function useUserProfile(props = {}) {
       error.value = ''
       try {
         const response = await userService.getProfile()
+        applyRewardResponse(response)
         if (response.data?.user) {
           user.value = response.data.user
           userStore.setUser(response.data.user)

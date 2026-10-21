@@ -3,6 +3,7 @@ import {
   DEMO_USER_ID
 } from '../constants/demo'
 import { isWeeklyRitualTemplate } from '../utils/weeklyRitualSchedule'
+import { toDateInputValue } from '../utils/dateUtils'
 
 function createEmptyCharacter() {
   return {
@@ -176,10 +177,55 @@ export function hasDemoMissions() {
   return getDemoMissions().length > 0
 }
 
-export function clearDemoData() {
+export function hasDemoChecklistTasks() {
+  return Object.values(getDemoChecklistsByDate()).some((day) => (
+    Array.isArray(day?.tasks) && day.tasks.length > 0
+  ))
+}
+
+export function getDemoChecklistsByDate() {
+  const stored = safeReadJson(DEMO_STORAGE_KEYS.CHECKLIST, {})
+  if (!stored || typeof stored !== 'object' || Array.isArray(stored)) return {}
+  return stored
+}
+
+export function getDemoChecklistForDate(dateStr = toDateInputValue()) {
+  const day = getDemoChecklistsByDate()[dateStr]
+  const tasks = Array.isArray(day?.tasks) ? day.tasks : []
+  return { date: dateStr, tasks }
+}
+
+export function setDemoChecklistForDate(dateStr, tasks) {
+  const all = getDemoChecklistsByDate()
+  const next = {
+    date: dateStr,
+    tasks: Array.isArray(tasks) ? tasks : []
+  }
+  all[dateStr] = next
+  safeWriteJson(DEMO_STORAGE_KEYS.CHECKLIST, all)
+  return next
+}
+
+export function getDemoChecklistHistory() {
+  return Object.entries(getDemoChecklistsByDate()).map(([dateStr, day]) => ({
+    date: `${dateStr}T12:00:00`,
+    tasks: Array.isArray(day?.tasks) ? day.tasks : []
+  }))
+}
+
+export function clearDemoChecklist() {
+  localStorage.removeItem(DEMO_STORAGE_KEYS.CHECKLIST)
+}
+
+export function clearDemoMissionsAndCharacter() {
   localStorage.removeItem(DEMO_STORAGE_KEYS.ACTIVE)
   localStorage.removeItem(DEMO_STORAGE_KEYS.MISSIONS)
   localStorage.removeItem(DEMO_STORAGE_KEYS.CHARACTER)
+}
+
+export function clearDemoData() {
+  clearDemoMissionsAndCharacter()
+  clearDemoChecklist()
 }
 
 export { createEmptyCharacter }

@@ -8,7 +8,7 @@
           @click.stop="$emit('toggle-drawer')"
         ></v-app-bar-nav-icon>
         <StreakBadge
-          :visible="isLoggedIn && showStreak"
+          :visible="showAppUserChrome && showStreak"
           :display-streak-days="displayStreakDays"
           :yesterday-streak-days="yesterdayStreakDays"
           :has-today-completed-tasks="hasTodayCompletedTasks"
@@ -35,11 +35,19 @@
             v-if="showAppUserChrome"
             type="button"
             class="sparks-container"
-            :aria-label="t('navigation.sparksInfoAriaLabel')"
-            @click="sparksInfoOpen = true"
+            :class="{ 'sparks-container--hint': showShopHint }"
+            :aria-label="t('navigation.sparksShopAriaLabel')"
+            @click="sparksShopOpen = true"
           >
             <span class="sparks-icon">✦</span>
             <span class="sparks-count" :class="sparksCountClass">{{ userSparks }}</span>
+            <v-icon
+              v-if="showShopHint"
+              size="14"
+              class="sparks-shop-hint-icon"
+            >
+              mdi-storefront-outline
+            </v-icon>
             <span v-if="spentDelta" class="sparks-spent-delta">{{ spentDelta }}</span>
             <span v-if="gainedDelta" class="sparks-gained-delta">{{ gainedDelta }}</span>
           </button>
@@ -117,15 +125,12 @@
       </div>
     </div>
 
-    <SparksInfoDialog
-      v-model="sparksInfoOpen"
-      :balance="userSparks"
-    />
+    <SparksShopDialog v-model="sparksShopOpen" />
   </v-app-bar>
 </template>
 
 <script setup>
-import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
+import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useDisplay } from 'vuetify'
@@ -135,7 +140,7 @@ import { setLocale, SUPPORTED_LOCALES } from '../../i18n'
 import { APP_EVENTS, addAppEventListener, removeAppEventListener } from '../../utils/appEvents'
 import brandLogo from '../../assets/landing/brand-256.webp'
 import StreakBadge from './StreakBadge.vue'
-import SparksInfoDialog from './SparksInfoDialog.vue'
+import SparksShopDialog from './SparksShopDialog.vue'
 
 const props = defineProps({
   isLoggedIn: { type: Boolean, default: false },
@@ -160,7 +165,9 @@ const userSparks = computed(() => {
   if (props.isDemoMode) return Number(demoStore.character?.sparks || 0)
   return userStore.userSparks
 })
-const sparksInfoOpen = ref(false)
+const SPARKS_SHOP_SEEN_KEY = 'sparks_shop_opened'
+const sparksShopOpen = ref(false)
+const showShopHint = ref(false)
 const sparksSpentAnimating = ref(false)
 const sparksGainedAnimating = ref(false)
 const spentDelta = ref('')
@@ -172,6 +179,27 @@ const sparksCountClass = computed(() => ({
   'sparks-count--spent': sparksSpentAnimating.value,
   'sparks-count--gained': sparksGainedAnimating.value
 }))
+
+function hasOpenedShop() {
+  try {
+    return localStorage.getItem(SPARKS_SHOP_SEEN_KEY) === 'true'
+  } catch {
+    return true
+  }
+}
+
+function markShopOpened() {
+  showShopHint.value = false
+  try {
+    localStorage.setItem(SPARKS_SHOP_SEEN_KEY, 'true')
+  } catch {
+    // Ignore quota / private-mode write failures
+  }
+}
+
+watch(sparksShopOpen, (open) => {
+  if (open) markShopOpened()
+})
 
 function handleSparksSpent(event) {
   const spent = Number(event?.detail?.spent || 0)
@@ -204,6 +232,7 @@ function handleSparksAwarded(event) {
 }
 
 onMounted(() => {
+  showShopHint.value = !hasOpenedShop()
   addAppEventListener(APP_EVENTS.SPARKS_SPENT, handleSparksSpent)
   addAppEventListener(APP_EVENTS.SPARKS_AWARDED, handleSparksAwarded)
 })
@@ -337,6 +366,33 @@ onBeforeUnmount(() => {
 .sparks-container:focus-visible {
   outline: 2px solid rgba(251, 191, 36, 0.55);
   outline-offset: 2px;
+}
+
+.sparks-container--hint {
+  animation: sparksShopHint 2.4s ease-in-out infinite;
+}
+
+.sparks-shop-hint-icon {
+  color: var(--home-gold, #fbbf24);
+  opacity: 0.9;
+}
+
+@keyframes sparksShopHint {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(251, 191, 36, 0);
+    border-color: rgba(251, 191, 36, 0.28);
+  }
+  50% {
+    box-shadow: 0 0 14px rgba(251, 191, 36, 0.42);
+    border-color: rgba(251, 191, 36, 0.7);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sparks-container--hint {
+    animation: none;
+    box-shadow: 0 0 10px rgba(251, 191, 36, 0.28);
+  }
 }
 
 .sparks-icon {

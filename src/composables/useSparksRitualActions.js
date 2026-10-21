@@ -16,8 +16,14 @@ export function useSparksRitualActions({ onUpdated, updateChallengeInList } = {}
   const ritualError = ref('')
 
   const userSparks = computed(() => userStore.userSparks)
-  const hasEnoughSparksForFreeze = computed(() => userSparks.value >= FREEZE_COST)
-  const hasEnoughSparksForSecondChance = computed(() => userSparks.value >= SECOND_CHANCE_COST)
+  const freezeTokens = computed(() => Number(userStore.user?.inventory?.freezeTokens || 0))
+  const secondChanceTokens = computed(() => Number(userStore.user?.inventory?.secondChanceTokens || 0))
+  const hasEnoughSparksForFreeze = computed(() => (
+    freezeTokens.value > 0 || userSparks.value >= FREEZE_COST
+  ))
+  const hasEnoughSparksForSecondChance = computed(() => (
+    secondChanceTokens.value > 0 || userSparks.value >= SECOND_CHANCE_COST
+  ))
 
   function applySparksResponse(data, defaultSpent) {
     if (data?.user) {
@@ -26,7 +32,9 @@ export function useSparksRitualActions({ onUpdated, updateChallengeInList } = {}
       userStore.updateUser({ sparks: data.sparks })
     }
 
-    const sparksSpent = Number(data?.sparksSpent || defaultSpent)
+    const sparksSpent = typeof data?.sparksSpent === 'number'
+      ? data.sparksSpent
+      : defaultSpent
     if (sparksSpent > 0) {
       dispatchAppEvent(APP_EVENTS.SPARKS_SPENT, { spent: sparksSpent })
     }
@@ -109,6 +117,8 @@ export function useSparksRitualActions({ onUpdated, updateChallengeInList } = {}
     ritualError,
     hasEnoughSparksForFreeze,
     hasEnoughSparksForSecondChance,
+    freezeTokens,
+    secondChanceTokens,
     useSecondChance,
     freezeDay,
     FREEZE_COST,

@@ -65,8 +65,8 @@
                 :title="!canUseSecondChance ? t('sparks.rituals.insufficientSparks') : ''"
                 @click.stop="$emit('second-chance', challenge)"
               >
-                <span>{{ t('sparks.rituals.secondChanceButton') }}</span>
-                <span class="home-cost-badge">
+                <span>{{ secondChanceLabel }}</span>
+                <span v-if="secondChanceStock <= 0" class="home-cost-badge">
                   <span>|</span>
                   <span>{{ secondChanceCost }}</span>
                   <span class="sparks-icon">✦</span>
@@ -126,12 +126,20 @@ const props = defineProps({
   getTotalDays: { type: Function, default: () => 0 },
   canUseSecondChance: { type: Boolean, default: false },
   secondChanceLoadingId: { type: String, default: null },
-  secondChanceCost: { type: Number, default: 30 }
+  secondChanceCost: { type: Number, default: 30 },
+  secondChanceStock: { type: Number, default: 0 }
 })
 
 defineEmits(['navigate', 'toggle-completion', 'second-chance'])
 
 const { t } = useI18n()
+
+const secondChanceLabel = computed(() => {
+  if (props.secondChanceStock > 0) {
+    return t('sparks.rituals.secondChanceButtonWithStock', { count: props.secondChanceStock })
+  }
+  return t('sparks.rituals.secondChanceButton')
+})
 
 const sectionTitle = computed(() => {
   return props.variant === 'tomorrow'

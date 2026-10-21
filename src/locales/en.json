@@ -41,7 +41,8 @@
     "reportBug": "Report a bug",
     "sparksAriaLabel": "Sparks balance: {count}",
     "sparksLabel": "Sparks",
-    "sparksInfoAriaLabel": "Learn about Sparks"
+    "sparksInfoAriaLabel": "Learn about Sparks",
+    "sparksShopAriaLabel": "Open Sparks shop"
   },
   "referral": {
     "sidebarCta": "Invite a friend",
@@ -58,11 +59,10 @@
     "shareTelegram": "Telegram",
     "shareWhatsApp": "WhatsApp",
     "welcomeTitle": "Welcome, hero!",
-    "welcomeHook": "Accept your first challenge so you and your friend both get 50 Sparks!",
+    "welcomeHook": "Check in on Today so you and your friend both get 50 Sparks!",
     "welcomeTitleSignup": "Welcome to Ignite!",
-    "welcomeHookSignup": "We're giving you 100 Sparks to fuel your growth. Create your first mission to activate the bonus and start your journey with an advantage!",
-    "welcomeCta": "Start a mission",
-    "welcomeDismiss": "Later",
+    "welcomeHookSignup": "We're giving you 100 Sparks. Check in on Today — the bonus is already on its way!",
+    "welcomeCta": "Let's go",
     "notificationTitle": "Friend joined!",
     "notificationText": "Your friend {name} accepted a challenge! You both received 50 Sparks. Keep it up!",
     "shareMessage": "Join me on Ignite — let's grow together with missions!"
@@ -80,11 +80,61 @@
       "customization": "Extension and mission upgrade",
       "customizationHint": "Extend or adjust a finished mission"
     },
+    "shop": {
+      "title": "Sparks shop",
+      "earnHint": "Sparks build up from live days and rituals.",
+      "tabs": {
+        "self": "For me",
+        "defense": "Defense"
+      },
+      "wish": {
+        "description": "Put here the things you don't just allow yourself. Sparks build up over days — then you give yourself permission.",
+        "honorHint": "The app doesn't check whether you actually watched the episode. This is a contract with yourself.",
+        "titleLabel": "What you're buying for yourself",
+        "costLabel": "Price in Sparks",
+        "add": "Add",
+        "redeem": "Redeem",
+        "delete": "Remove",
+        "redeemedToast": "You earned this",
+        "emptyHint": "Tap a chip to fill the form, then add it yourself.",
+        "priceHonor": "If you were going to do this tonight anyway — set the price higher.",
+        "priceHintDays": "≈ {days} live days of Ignite",
+        "priceHintFreeze": "like one streak freeze",
+        "priceHintLiveDay": "A live day is about 20 Sparks.",
+        "size": {
+          "small": "Small",
+          "medium": "Medium",
+          "large": "Large"
+        },
+        "templates": {
+          "series": "Watch an episode",
+          "cheatMeal": "Cheat meal",
+          "thatThing": "Buy that thing"
+        },
+        "limitReached": "You can keep up to 20 wishes",
+        "insufficient": "Not enough Sparks",
+        "invalidTitle": "Give the wish a short name",
+        "invalidCost": "Price must be a whole number from 10 to 9999",
+        "error": "Couldn't update the shop"
+      },
+      "defense": {
+        "description": "Buy into your stock. When you freeze or use a second chance, a crystal is spent first — and Sparks only if you have none.",
+        "freezeTitle": "Freeze crystal",
+        "freezeHint": "Holds a missed day so your streak survives.",
+        "secondChanceTitle": "Second chance crystal",
+        "secondChanceHint": "Protects today's progress in one ritual.",
+        "buy": "Buy",
+        "inStock": "{count} in stock",
+        "boughtToast": "Crystal added to your inventory"
+      }
+    },
     "rituals": {
       "freezeDayButton": "Freeze day",
       "freezeTodayButton": "FREEZE TODAY",
       "saveYesterdayStreakButton": "SAVE YESTERDAY'S STREAK",
       "secondChanceButton": "Second chance",
+      "secondChanceButtonWithStock": "Second chance ({count} in stock)",
+      "withStock": "{label} ({count} in stock)",
       "protectedBadge": "Protected",
       "freezeConfirm": "Spend {cost} Sparks to freeze today for all incomplete rituals?",
       "secondChanceConfirm": "Spend {cost} Sparks to protect today's progress for this ritual?",
@@ -283,6 +333,14 @@
         "text": "Your path is not yet defined. Launch your first mission to unlock experience treasures.",
         "launchFirstMission": "Launch First Mission",
         "explore": "Explore examples"
+      },
+      "firstDayQuest": {
+        "banner": "Day one. Check off the step to earn Sparks.",
+        "stepTitle": "Open Ignite",
+        "closed": "Day 1 is closed. Tomorrow the streak continues.",
+        "closedDemo": "Day 1 is closed. Save your hero so you don't lose the streak.",
+        "plantError": "Couldn't add today's step. Try again.",
+        "retry": "Retry"
       },
       "loadout": {
         "title": "Tomorrow's Loadout",

@@ -20,23 +20,13 @@
           </LandingPrimaryCta>
 
           <v-btn
-            :to="BROWSE_MISSIONS_ROUTE"
             variant="outlined"
             size="x-large"
             class="hero-secondary"
-            @click="trackSecondary"
+            @click="startDemoFromLanding"
           >
             {{ t('home.landing.secondaryCta') }}
             <v-icon end size="18">mdi-arrow-right</v-icon>
-          </v-btn>
-
-          <v-btn
-            variant="text"
-            size="x-large"
-            class="hero-demo"
-            @click="startDemoFromLanding"
-          >
-            {{ t('demo.tryWithoutAccount') }}
           </v-btn>
         </div>
 
@@ -76,7 +66,6 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import LandingPrimaryCta from './LandingPrimaryCta.vue'
-import { BROWSE_MISSIONS_ROUTE } from './landingLinks'
 import { GOALS, reachGoal } from '../../services/analytics'
 import { useDemoMode } from '../../composables/useDemoMode'
 
@@ -99,11 +88,8 @@ const trustItems = computed(() => [
   { icon: 'mdi-timer-sand', label: t('home.landing.trustFast') }
 ])
 
-function trackSecondary() {
-  reachGoal(GOALS.LANDING_SECONDARY_CLICK, { position: 'hero' })
-}
-
 function startDemoFromLanding() {
+  reachGoal(GOALS.LANDING_SECONDARY_CLICK, { position: 'hero' })
   startDemo()
   router.push('/today')
 }
@@ -191,17 +177,6 @@ function startDemoFromLanding() {
 .hero-secondary:hover {
   border-color: var(--lp-border-hi) !important;
   background: rgba(79, 209, 197, 0.07);
-}
-
-.hero-demo {
-  color: rgba(255, 255, 255, 0.78) !important;
-  text-transform: none;
-  letter-spacing: 0.01em;
-  font-weight: 600 !important;
-}
-
-.hero-demo:hover {
-  color: #ffffff !important;
 }
 
 .hero-trust {
@@ -301,8 +276,7 @@ function startDemoFromLanding() {
     gap: 12px;
   }
 
-  .hero-secondary,
-  .hero-demo {
+  .hero-secondary {
     width: 100%;
   }
 

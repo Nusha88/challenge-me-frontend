@@ -15,6 +15,28 @@
         :streak-days-text="streakDaysText"
       />
 
+      <v-alert
+        v-if="firstDayQuestStore.isQuestActive"
+        class="first-day-quest-banner"
+        type="info"
+        variant="tonal"
+        density="comfortable"
+      >
+        {{ t('home.loggedIn.firstDayQuest.banner') }}
+      </v-alert>
+
+      <v-alert
+        v-else-if="firstDayQuestStore.showClosedMessage && state.hasTodayCompletedTasks"
+        class="first-day-quest-banner first-day-quest-banner--closed"
+        type="success"
+        variant="tonal"
+        density="comfortable"
+        closable
+        @click:close="firstDayQuestStore.dismissClosed"
+      >
+        {{ firstDayClosedMessage }}
+      </v-alert>
+
       <TodayProgressCard
         v-if="state.activeTab === 'today'"
         :loading="isTodayProgressLoading"
@@ -31,10 +53,31 @@
       v-model="state.activeTab"
       :freeze-config="freezeButtonConfig"
       :freeze-cost="FREEZE_COST"
+      :freeze-stock="freezeTokens"
       :has-enough-sparks="hasEnoughSparksForFreeze"
       :freeze-loading="freezeLoading"
       @freeze="handleFreezeDay"
     />
+
+    <v-alert
+      v-if="firstDayQuestStore.plantError"
+      type="error"
+      variant="tonal"
+      density="compact"
+      class="ritual-error-alert"
+    >
+      <div class="first-day-plant-error">
+        <span>{{ t('home.loggedIn.firstDayQuest.plantError') }}</span>
+        <v-btn
+          size="small"
+          variant="text"
+          :loading="firstDayQuestStore.planting"
+          @click="retryFirstDayPlant"
+        >
+          {{ t('home.loggedIn.firstDayQuest.retry') }}
+        </v-btn>
+      </div>
+    </v-alert>
 
     <v-alert
       v-if="ritualError"
@@ -52,6 +95,7 @@
       <v-window-item value="today">
         <div class="todays-cards-wrapper">
           <TodayChallengesCard
+            v-if="!firstDayQuestStore.isQuestActive"
             :challenges="todaysChallenges"
             variant="today"
             :get-day-status="getTodayDayStatus"
@@ -61,16 +105,17 @@
             :show-second-chance="showSecondChanceForChallenge"
             :second-chance-loading-id="secondChanceLoadingId"
             :second-chance-cost="SECOND_CHANCE_COST"
+            :second-chance-stock="secondChanceTokens"
             @navigate="navigateToChallenge"
-            @toggle-completion="toggleTodayCompletion"
+            @toggle-completion="handleToggleTodayCompletion"
             @second-chance="handleSecondChance"
           />
 
           <TodayChecklistPanel
-            v-if="!isDemoMode"
             ref="checklistPanelRef"
-            :unfinished-steps-count="unfinishedStepsCount"
+            :unfinished-steps-count="(isDemoMode || firstDayQuestStore.isQuestActive) ? 0 : unfinishedStepsCount"
             :is-empty="checklistTotalSteps === 0"
+            :hide-composer="firstDayQuestStore.isQuestActive"
             @copy-to-tomorrow="copyUnfinishedStepsToTomorrow"
           />
         </div>
@@ -131,7 +176,9 @@ import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { useDemoStore } from '../stores/demo'
-import { getDemoMissions } from '../services/demoStorage'
+import { useFirstDayQuestStore } from '../stores/firstDayQuest'
+import { getDemoChecklistHistory, getDemoChecklistForDate, getDemoMissions } from '../services/demoStorage'
+import { migrateLeftoverDemoProgress } from '../services/demoMigration'
 import { DEMO_USER_ID } from '../constants/demo'
 import IgniteLoader from './IgniteLoader.vue'
 import HomeGreeting from './home/HomeGreeting.vue'
@@ -153,6 +200,7 @@ import { useCompletionCelebration } from '../composables/useCompletionCelebratio
 import { openMissionDetails } from '../utils/openMissionDetails'
 import { useChallengeUpdatedListener } from '../composables/useChallengeUpdatedListener'
 import { useHomeMotivationalMessage } from '../composables/useHomeMotivationalMessage'
+import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
 import {
   useSparksRitualActions,
   FREEZE_COST,
@@ -164,7 +212,15 @@ const { t, locale } = useI18n()
 const route = useRoute()
 const userStore = useUserStore()
 const demoStore = useDemoStore()
+const firstDayQuestStore = useFirstDayQuestStore()
+const { applyRewardResponse } = useXpAwardFeedback()
 const isDemoMode = computed(() => demoStore.isDemoMode)
+
+const firstDayClosedMessage = computed(() => {
+  return isDemoMode.value
+    ? t('home.loggedIn.firstDayQuest.closedDemo')
+    : t('home.loggedIn.firstDayQuest.closed')
+})
 
 const state = reactive({
   userName: '',
@@ -215,6 +271,8 @@ const {
   ritualError,
   hasEnoughSparksForFreeze,
   hasEnoughSparksForSecondChance,
+  freezeTokens,
+  secondChanceTokens,
   useSecondChance,
   freezeDay
 } = useSparksRitualActions({
@@ -329,6 +387,7 @@ async function updateUser() {
   profileFetchInFlight = (async () => {
     try {
       const response = await userService.getProfile()
+      applyRewardResponse(response)
       if (response.data?.user) {
         userStore.setUser(response.data.user)
         state.userName = response.data.user.name || ''
@@ -368,17 +427,34 @@ function resetStreakState() {
   state.hasTodayCompletedTasks = false
 }
 
+const firstDayStepTitle = computed(() => t('home.loggedIn.firstDayQuest.stepTitle'))
+
+async function plantFirstDayStepIfNeeded({ hasMissions, isDemo, existingTasks }) {
+  return firstDayQuestStore.ensureFirstDayStep({
+    hasMissions,
+    isDemo,
+    existingTasks,
+    stepTitle: firstDayStepTitle.value
+  })
+}
+
 async function fetchHomeData() {
   if (demoStore.isDemoMode) {
+    await plantFirstDayStepIfNeeded({
+      hasMissions: getDemoMissions().length > 0,
+      isDemo: true,
+      existingTasks: getDemoChecklistForDate().tasks
+    })
     const missions = getDemoMissions()
     state.userName = t('demo.guestName')
-    applyStreakFromData([], missions, DEMO_USER_ID)
+    applyStreakFromData(getDemoChecklistHistory(), missions, DEMO_USER_ID)
     loadTodaysChallenges(missions, DEMO_USER_ID)
+    firstDayQuestStore.syncFromToday({
+      hasCompletedToday: state.hasTodayCompletedTasks
+    })
     loadingChallenges.value = false
     state.initialDataLoading = false
     hasLoadedTodayMissionsOnce.value = true
-    hasLoadedTodayStepsOnce.value = true
-    state.checklistLoading = false
     return
   }
 
@@ -394,16 +470,47 @@ async function fetchHomeData() {
 
   loadingChallenges.value = true
   try {
+    await migrateLeftoverDemoProgress(userId)
+
     const [checklistResponse, challengesResponse] = await Promise.all([
       userService.getChecklistHistory(),
       challengeService.getChallengesByUser(userId, { excludePrivate: false })
     ])
 
-    const checklists = checklistResponse.data?.checklists || []
+    let checklists = checklistResponse.data?.checklists || []
     const allChallenges = challengesResponse.data?.challenges || []
 
     applyStreakFromData(checklists, allChallenges, userId)
+    firstDayQuestStore.reopenIfStale({
+      hasCompletedToday: state.hasTodayCompletedTasks
+    })
+
+    const todayTasks = checklists.find((item) => {
+      return toDateInputValue(item?.date) === toDateInputValue()
+    })?.tasks || []
+
+    const planted = await plantFirstDayStepIfNeeded({
+      hasMissions: allChallenges.length > 0,
+      isDemo: false,
+      existingTasks: todayTasks
+    })
+
+    if (planted) {
+      try {
+        const plantedChecklist = await userService.getChecklistHistory()
+        checklists = plantedChecklist.data?.checklists || checklists
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.error('Failed to reload first-day step', error)
+        }
+      }
+    }
+
+    applyStreakFromData(checklists, allChallenges, userId)
     loadTodaysChallenges(allChallenges, userId)
+    firstDayQuestStore.syncFromToday({
+      hasCompletedToday: state.hasTodayCompletedTasks
+    })
   } catch (error) {
     console.error('Error refreshing home data:', error)
     resetStreakState()
@@ -412,6 +519,18 @@ async function fetchHomeData() {
     loadingChallenges.value = false
     state.initialDataLoading = false
     hasLoadedTodayMissionsOnce.value = true
+  }
+}
+
+async function retryFirstDayPlant() {
+  firstDayQuestStore.clearPlantError()
+  await refreshHomeData()
+}
+
+async function handleToggleTodayCompletion(challenge, checked) {
+  await toggleTodayCompletion(challenge, checked)
+  if (checked) {
+    firstDayQuestStore.completeIfActive()
   }
 }
 
@@ -512,7 +631,8 @@ const {
     userName: state.userName,
     streakDays: state.streakDays
   }),
-  watchChecklistCompletedSteps: () => getChecklistApi()?.completedSteps
+  watchChecklistCompletedSteps: () => getChecklistApi()?.completedSteps,
+  shouldSuppressAutoDialog: () => firstDayQuestStore.suppressCompletionCelebration
 })
 
 const unfinishedStepsCount = computed(() => {
@@ -564,6 +684,9 @@ async function refreshHomeData({
   completionDialogDelayMs = 500
 } = {}) {
   await fetchHomeData()
+
+  await nextTick()
+  getChecklistApi()?.loadTodaySteps?.()
 
   if (reloadTomorrowSteps) loadTomorrowSteps()
 
@@ -717,6 +840,18 @@ watch(
 .ritual-error-alert {
   width: 100%;
   border-radius: 14px !important;
+}
+
+.first-day-quest-banner {
+  width: 100%;
+  border-radius: 14px !important;
+}
+
+.first-day-plant-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 /*

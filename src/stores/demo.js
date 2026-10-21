@@ -4,6 +4,8 @@ import { useUserStore } from './user'
 import {
   DEMO_HABIT_DAY_SPARKS,
   DEMO_HABIT_DAY_XP,
+  DEMO_CHECKLIST_TASK_XP,
+  DEMO_CHECKLIST_TASK_SPARKS,
   DEMO_ALLOWED_ROUTE_NAMES
 } from '../constants/demo'
 import {
@@ -65,6 +67,20 @@ export const useDemoStore = defineStore('demo', () => {
     }
   }
 
+  function awardChecklistTask() {
+    const next = setDemoCharacter({
+      ...character.value,
+      xp: Number(character.value?.xp || 0) + DEMO_CHECKLIST_TASK_XP,
+      sparks: Number(character.value?.sparks || 0) + DEMO_CHECKLIST_TASK_SPARKS
+    })
+    character.value = next
+    return {
+      xpGained: DEMO_CHECKLIST_TASK_XP,
+      sparksGained: DEMO_CHECKLIST_TASK_SPARKS,
+      character: next
+    }
+  }
+
   function isDemoAllowedRoute(routeName) {
     return DEMO_ALLOWED_ROUTE_NAMES.includes(routeName)
   }
@@ -79,6 +95,7 @@ export const useDemoStore = defineStore('demo', () => {
     stopDemo,
     discardDemo,
     awardHabitDay,
+    awardChecklistTask,
     syncCharacterFromStorage,
     touchMissions,
     isDemoAllowedRoute

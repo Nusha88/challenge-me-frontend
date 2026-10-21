@@ -68,7 +68,8 @@ export function useCompletionCelebration({
   getChallengeCompletedDays,
   getChallengeTotalDays,
   getDefaultShareTasks,
-  watchChecklistCompletedSteps
+  watchChecklistCompletedSteps,
+  shouldSuppressAutoDialog = () => false
 }) {
   const { t, locale } = useI18n()
   const userStore = useUserStore()
@@ -301,6 +302,7 @@ export function useCompletionCelebration({
   }
 
   function checkAndShowCompletionDialog() {
+    if (shouldSuppressAutoDialog()) return
     if (hasDismissedToday()) {
       return
     }
@@ -332,6 +334,7 @@ export function useCompletionCelebration({
 
   function scheduleCompletionDialogCheck(delayMs = 500) {
     setTimeout(() => {
+      if (shouldSuppressAutoDialog()) return
       if (isAllCompleted.value && !hasShownCompletionDialog.value && !hasDismissedToday()) {
         checkAndShowCompletionDialog()
       }

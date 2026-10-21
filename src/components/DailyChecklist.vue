@@ -27,7 +27,7 @@
           {{ step.title }}
         </span>
         <div
-          v-if="!step.done"
+          v-if="!step.done && !isFirstDayQuestStep(step)"
           class="delete-action"
           :title="t('home.loggedIn.dailyChecklist.deleteStep')"
           :aria-label="t('home.loggedIn.dailyChecklist.deleteStep')"
@@ -38,7 +38,7 @@
       </div>
     </div>
     
-    <div class="add-step-wrapper">
+    <div v-if="!hideComposer" class="add-step-wrapper">
       <input
         v-model="newStepText"
         type="text"
@@ -63,14 +63,32 @@ import { ref, computed, onMounted, defineExpose } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useDisplay } from 'vuetify'
 import { useUserStore } from '../stores/user'
+import { useDemoStore } from '../stores/demo'
 import { userService } from '../services/api'
 import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
+import { toDateInputValue } from '../utils/dateUtils'
+import { isFirstDayQuestStep } from '../utils/firstDayQuest'
+import {
+  getDemoChecklistForDate,
+  setDemoChecklistForDate
+} from '../services/demoStorage'
+import {
+  DEMO_CHECKLIST_TASK_XP,
+  DEMO_CHECKLIST_TASK_SPARKS
+} from '../constants/demo'
 import { Plus, Trash2, Footprints } from 'lucide-vue-next'
+import { APP_EVENTS, dispatchAppEvent } from '../utils/appEvents'
+
+defineProps({
+  hideComposer: { type: Boolean, default: false }
+})
 
 const { t } = useI18n()
 const { mobile } = useDisplay()
 const userStore = useUserStore()
+const demoStore = useDemoStore()
 const { applyRewardResponse } = useXpAwardFeedback()
+const isDemoMode = computed(() => demoStore.isDemoMode)
 
 const todaySteps = ref([])
 const newStepText = ref('')
@@ -90,18 +108,35 @@ const progressPercentage = computed(() => {
   return Math.round((completedSteps.value / totalSteps.value) * 100)
 })
 
+function mapTasks(tasks) {
+  return (Array.isArray(tasks) ? tasks : []).map((task) => ({
+    title: task.title,
+    done: Boolean(task.done),
+    locked: Boolean(task.done)
+  }))
+}
+
+function buildDemoRewardResponse() {
+  return {
+    data: {
+      xpAward: { gained: DEMO_CHECKLIST_TASK_XP },
+      sparksAward: { gained: DEMO_CHECKLIST_TASK_SPARKS }
+    }
+  }
+}
+
 const loadTodaySteps = async () => {
   loading.value = true
   error.value = ''
   try {
+    if (isDemoMode.value) {
+      todaySteps.value = mapTasks(getDemoChecklistForDate().tasks)
+      return
+    }
+
     const response = await userService.getTodayChecklist()
     if (response.data?.checklist?.tasks) {
-      // Mark steps that were already checked as locked (they already got XP)
-      todaySteps.value = response.data.checklist.tasks.map(task => ({
-        title: task.title,
-        done: task.done || false,
-        locked: task.done || false // Lock already checked items
-      }))
+      todaySteps.value = mapTasks(response.data.checklist.tasks)
     } else {
       todaySteps.value = []
     }
@@ -124,16 +159,26 @@ defineExpose({
   loadTodaySteps
 })
 
-const saveTodaySteps = async () => {
+const saveTodaySteps = async ({ awardDemo = false } = {}) => {
   try {
-    const tasks = todaySteps.value.map(step => ({
+    const tasks = todaySteps.value.map((step) => ({
       title: step.title,
       done: step.done || false
     }))
+
+    if (isDemoMode.value) {
+      setDemoChecklistForDate(toDateInputValue(), tasks)
+      if (awardDemo) {
+        demoStore.awardChecklistTask()
+        applyRewardResponse(buildDemoRewardResponse())
+      }
+      dispatchAppEvent(APP_EVENTS.CHECKLIST_UPDATED)
+      return
+    }
+
     const response = await userService.updateTodayChecklist(tasks)
     applyRewardResponse(response)
-    // Dispatch event to update streak in header
-    window.dispatchEvent(new Event('checklist-updated'))
+    dispatchAppEvent(APP_EVENTS.CHECKLIST_UPDATED)
   } catch (err) {
     console.error('Error saving daily checklist:', err)
     error.value = err.response?.data?.message || t('home.loggedIn.dailyChecklist.saveError')
@@ -163,8 +208,7 @@ const updateStep = async (index, done) => {
     
     // If item was just checked (unchecked -> checked), lock it after saving
     if (wasUnchecked) {
-      await saveTodaySteps()
-      // Lock the checkbox after XP is awarded
+      await saveTodaySteps({ awardDemo: true })
       todaySteps.value[index].locked = true
     } else {
       await saveTodaySteps()

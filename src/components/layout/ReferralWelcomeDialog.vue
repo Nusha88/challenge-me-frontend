@@ -22,18 +22,10 @@
         <v-btn
           block
           height="48"
-          class="welcome-cta-btn mb-3"
-          @click="$emit('start-mission')"
+          class="welcome-cta-btn"
+          @click="$emit('confirm')"
         >
           {{ t('referral.welcomeCta') }}
-        </v-btn>
-        <v-btn
-          block
-          variant="text"
-          class="welcome-dismiss-btn"
-          @click="$emit('dismiss')"
-        >
-          {{ t('referral.welcomeDismiss') }}
         </v-btn>
       </v-card-text>
     </v-card>
@@ -53,7 +45,7 @@ const props = defineProps({
   }
 })
 
-defineEmits(['update:modelValue', 'start-mission', 'dismiss'])
+defineEmits(['update:modelValue', 'confirm'])
 
 const { t } = useI18n()
 
@@ -126,10 +118,6 @@ const rewardAmount = computed(() => (isReferral.value ? 50 : 100))
   color: #0F172A !important;
   font-weight: 800 !important;
   border-radius: 12px !important;
-}
-
-.welcome-dismiss-btn {
-  color: rgba(255, 255, 255, 0.55) !important;
   text-transform: none !important;
 }
 </style>

@@ -1,9 +1,10 @@
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed, watch, nextTick } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import { useUserStore } from '../stores/user'
 import { useDemoStore } from '../stores/demo'
+import { useFirstDayQuestStore } from '../stores/firstDayQuest'
 import { useWatchedChallengesStore } from '../stores/watchedChallenges'
 import NotificationsComponent from './NotificationsComponent.vue'
 import ChallengeDetailsDialog from './ChallengeDetailsDialog.vue'
@@ -13,7 +14,6 @@ import AppHeader from './layout/AppHeader.vue'
 import AppSidebar from './layout/AppSidebar.vue'
 import MobileFab from './layout/MobileFab.vue'
 import ReferralWelcomeDialog from './layout/ReferralWelcomeDialog.vue'
-import InstallAppInstructionModal from './InstallAppInstructionModal.vue'
 import DemoModeBanner from './demo/DemoModeBanner.vue'
 import DemoAuthGateModal from './demo/DemoAuthGateModal.vue'
 import { useDemoAuthGate } from '../composables/useDemoAuthGate'
@@ -21,21 +21,23 @@ import { userService } from '../services/api'
 import { useUnreadNotifications } from '../composables/useUnreadNotifications'
 import { useUserStreak } from '../composables/useUserStreak'
 import { usePushNotifications } from '../composables/usePushNotifications'
-import { useOnboarding } from '../composables/useOnboarding'
 import { useAppEventListeners } from '../composables/useAppEvents'
 import { useChallengeDetailsProvider } from '../composables/useChallengeDetailsProvider'
 import { useI18n } from 'vue-i18n'
 import { APP_EVENTS, dispatchAppEvent } from '../utils/appEvents'
 import { clearAppBadge } from '../utils/appBadge'
+import { shouldSkipWelcomeInterrupt } from '../utils/firstDayQuest'
+import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
 
 const router = useRouter()
 const route = useRoute()
 const { t } = useI18n()
 const userStore = useUserStore()
 const demoStore = useDemoStore()
+const { applyRewardResponse } = useXpAwardFeedback()
 const { openAuthGate } = useDemoAuthGate()
-const { mobile, lgAndUp } = useDisplay()
-const { startTour } = useOnboarding()
+const { mobile } = useDisplay()
+const firstDayQuestStore = useFirstDayQuestStore()
 
 const isAuthPage = computed(() => {
   return ['login', 'register', 'forgot-password'].includes(route.name)
@@ -60,7 +62,9 @@ const showAppChrome = computed(() => {
 const showDemoBanner = computed(() => isDemoMode.value && showAppChrome.value)
 
 const showMobileFab = computed(() => {
-  return showAppChrome.value && route.name !== 'add-challenge'
+  return showAppChrome.value
+    && route.name !== 'add-challenge'
+    && !firstDayQuestStore.isQuestActive
 })
 
 const push = usePushNotifications()
@@ -88,8 +92,6 @@ const {
 
 const drawerOpen = ref(false)
 const logoutConfirmOpen = ref(false)
-const onboardingStarted = ref(false)
-const installInstructionOpen = ref(false)
 const referralWelcomeOpen = ref(false)
 const referralWelcomeVariant = ref('signup')
 let referralWelcomeChecked = false
@@ -190,11 +192,13 @@ function startLoggedInSession() {
 
 async function maybeShowReferralWelcome() {
   if (!isLoggedIn.value || isAuthPage.value) return
+  if (shouldSkipWelcomeInterrupt()) return
   if (localStorage.getItem('referral_hook_dismissed') === 'true') return
   if (referralWelcomeOpen.value || referralWelcomeChecked) return
 
   try {
     const response = await userService.getProfile()
+    applyRewardResponse(response)
     referralWelcomeChecked = true
     const user = response?.data?.user
     const shouldShowWelcome = user?.welcomeHookPending ?? user?.referralHookPending
@@ -212,32 +216,11 @@ async function maybeShowReferralWelcome() {
 async function handleAppEnter() {
   if (!isLoggedIn.value || isAuthPage.value) return
   await maybeShowReferralWelcome()
-  if (!referralWelcomeOpen.value) {
-    maybeStartOnboarding()
-  }
 }
 
-function dismissReferralWelcome() {
+function closeReferralWelcome() {
   localStorage.setItem('referral_hook_dismissed', 'true')
   referralWelcomeOpen.value = false
-}
-
-function startMissionFromReferralWelcome() {
-  referralWelcomeOpen.value = false
-  router.push('/missions/add')
-}
-
-function completeInstallInstructionOnboarding() {
-  localStorage.setItem('onboarding_complete', 'true')
-  localStorage.removeItem('onboarding_pending')
-  onboardingStarted.value = false
-}
-
-function handleInstallInstructionUpdate(open) {
-  installInstructionOpen.value = open
-  if (!open && localStorage.getItem('onboarding_pending') === 'true') {
-    completeInstallInstructionOnboarding()
-  }
 }
 
 function stopLoggedInSession() {
@@ -288,42 +271,12 @@ onBeforeUnmount(() => {
 })
 
 watch(
-  () => [isLoggedIn.value, isAuthPage.value, lgAndUp.value],
+  () => [isLoggedIn.value, isAuthPage.value],
   () => {
     handleAppEnter()
   },
   { immediate: true }
 )
-
-watch(referralWelcomeOpen, (open, wasOpen) => {
-  if (wasOpen && !open) {
-    maybeStartOnboarding()
-  }
-})
-
-async function maybeStartOnboarding() {
-  if (onboardingStarted.value || !isLoggedIn.value) return
-  if (isAuthPage.value) return
-  if (referralWelcomeOpen.value) return
-  if (localStorage.getItem('onboarding_complete') === 'true') return
-  if (localStorage.getItem('onboarding_pending') !== 'true') return
-
-  onboardingStarted.value = true
-
-  if (!lgAndUp.value) {
-    installInstructionOpen.value = true
-    return
-  }
-
-  await nextTick()
-  setTimeout(() => {
-    try {
-      startTour()
-    } catch {
-      onboardingStarted.value = false
-    }
-  }, 500)
-}
 </script>
 
 <template>
@@ -337,7 +290,7 @@ async function maybeStartOnboarding() {
       :yesterday-streak-days="yesterdayStreakDays"
       :has-today-completed-tasks="hasTodayCompletedTasks"
       :streak-days-text="streakDaysText"
-      :show-streak="showStreak && isLoggedIn"
+      :show-streak="showStreak && (isLoggedIn || isDemoMode)"
       @toggle-drawer="toggleDrawer"
       @open-notifications="openNotifications"
     />
@@ -349,7 +302,7 @@ async function maybeStartOnboarding() {
       :yesterday-streak-days="yesterdayStreakDays"
       :has-today-completed-tasks="hasTodayCompletedTasks"
       :streak-days-text="streakDaysText"
-      :show-streak="showStreak && isLoggedIn"
+      :show-streak="showStreak && (isLoggedIn || isDemoMode)"
       :aura-dimmed="auraDimmed && isLoggedIn"
       @update:drawer-open="drawerOpen = $event"
       @profile="handleProfileClick"
@@ -415,14 +368,7 @@ async function maybeStartOnboarding() {
     <ReferralWelcomeDialog
       v-model="referralWelcomeOpen"
       :variant="referralWelcomeVariant"
-      @start-mission="startMissionFromReferralWelcome"
-      @dismiss="dismissReferralWelcome"
-    />
-
-    <InstallAppInstructionModal
-      :model-value="installInstructionOpen"
-      @update:model-value="handleInstallInstructionUpdate"
-      @completed="completeInstallInstructionOnboarding"
+      @confirm="closeReferralWelcome"
     />
 
     <v-dialog v-model="logoutConfirmOpen" max-width="420">

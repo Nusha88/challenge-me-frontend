@@ -219,6 +219,24 @@ export const userService = {
     return api.post('/auth/sparks/freeze-day', { target }, {
       headers: userService._clientDayHeaders()
     })
+  },
+  getShop: () => {
+    return api.get('/shop')
+  },
+  createWish: (payload) => {
+    return api.post('/shop/wishes', payload)
+  },
+  updateWish: (id, payload) => {
+    return api.patch(`/shop/wishes/${id}`, payload)
+  },
+  deleteWish: (id) => {
+    return api.delete(`/shop/wishes/${id}`)
+  },
+  redeemWish: (id) => {
+    return api.post(`/shop/wishes/${id}/redeem`)
+  },
+  buyShopToken: (type) => {
+    return api.post('/shop/tokens', { type })
   }
 }
 
