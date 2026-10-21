@@ -65,12 +65,13 @@ const { t } = useI18n()
 
 @media (max-width: 600px) {
   .demo-banner {
-    flex-direction: column;
-    align-items: stretch;
+    gap: 8px;
+    padding: 8px 10px;
   }
 
-  .demo-banner-cta {
-    width: 100%;
+  .demo-banner-text {
+    font-size: 0.78rem;
+    line-height: 1.3;
   }
 }
 </style>

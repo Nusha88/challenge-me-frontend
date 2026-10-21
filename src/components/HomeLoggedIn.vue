@@ -38,7 +38,7 @@
       </v-alert>
 
       <TodayProgressCard
-        v-if="state.activeTab === 'today'"
+        v-if="state.activeTab === 'today' && !firstDayQuestStore.isQuestActive"
         :loading="isTodayProgressLoading"
         :visible="totalItems > 0"
         :completed-items="completedItems"
@@ -91,8 +91,8 @@
       {{ ritualError }}
     </v-alert>
 
-    <v-window v-model="state.activeTab">
-      <v-window-item value="today">
+    <v-window v-model="state.activeTab" :touch="false">
+      <v-window-item value="today" eager :transition="false" :reverse-transition="false">
         <div class="todays-cards-wrapper">
           <TodayChallengesCard
             v-if="!firstDayQuestStore.isQuestActive"
@@ -121,7 +121,7 @@
         </div>
       </v-window-item>
 
-      <v-window-item value="tomorrow">
+      <v-window-item value="tomorrow" eager :transition="false" :reverse-transition="false">
         <TomorrowLoadoutCard
           :mission-count="tomorrowsChallenges.length"
           :step-count="tomorrowSteps.length"
@@ -871,6 +871,19 @@ watch(
   .todays-cards-wrapper {
     grid-template-columns: 1fr;
   }
+
+  .todays-cards-wrapper > .todays-checklist-card {
+    order: -1;
+  }
+}
+
+.home-logged-in-container :deep(.v-window) {
+  overflow: visible;
+}
+
+.home-logged-in-container :deep(.v-window__container) {
+  height: auto !important;
+  overflow: visible;
 }
 
 .home-logged-in-container :deep(.v-window),
