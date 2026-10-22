@@ -5,7 +5,8 @@ export function getNotificationIcon(type) {
     mention: 'mdi-at',
     watch: 'mdi-eye-outline',
     daily_recap: 'mdi-weather-sunset-up',
-    referral_completed: 'mdi-gift'
+    referral_completed: 'mdi-gift',
+    friend_request: 'mdi-account-plus'
   }
   return icons[type] || 'mdi-bell-ring-outline'
 }
@@ -35,6 +36,9 @@ export function getNotificationText(notification, t) {
   }
   if (notification.type === 'watch') {
     return t('notifications.userWatchingChallenge', { mission })
+  }
+  if (notification.type === 'friend_request') {
+    return notification.body || t('notifications.friendRequest')
   }
   return t('notifications.newComment', { mission })
 }

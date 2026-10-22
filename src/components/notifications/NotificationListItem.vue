@@ -12,10 +12,14 @@ defineProps({
   notification: {
     type: Object,
     required: true
+  },
+  acting: {
+    type: String,
+    default: ''
   }
 })
 
-defineEmits(['click', 'delete'])
+defineEmits(['click', 'delete', 'accept', 'reject'])
 
 const { t, locale } = useI18n()
 
@@ -68,6 +72,32 @@ function formatDate(dateString) {
         <span class="time-stamp">{{ formatDate(notification.createdAt) }}</span>
       </div>
       <p class="message-text">{{ getNotificationText(notification, t) }}</p>
+      <div
+        v-if="notification.type === 'friend_request'"
+        class="friend-request-actions"
+        @click.stop
+        @keydown.stop
+      >
+        <v-btn
+          class="friend-accept text-none"
+          size="small"
+          :loading="acting === 'accept'"
+          :disabled="Boolean(acting)"
+          @click="$emit('accept', notification)"
+        >
+          {{ t('notifications.friendAccept') }}
+        </v-btn>
+        <v-btn
+          class="friend-reject text-none"
+          size="small"
+          variant="text"
+          :loading="acting === 'reject'"
+          :disabled="Boolean(acting)"
+          @click="$emit('reject', notification)"
+        >
+          {{ t('notifications.friendReject') }}
+        </v-btn>
+      </div>
     </div>
 
     <v-btn
@@ -198,6 +228,24 @@ function formatDate(dateString) {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.friend-request-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.friend-accept {
+  color: #0b0d12 !important;
+  background: linear-gradient(135deg, var(--home-teal, #4fd1c5), var(--home-purple, #7048e8)) !important;
+  border-radius: 10px !important;
+  font-weight: 800 !important;
+}
+
+.friend-reject {
+  color: var(--home-text-dim, #94a3b8) !important;
+  font-weight: 700 !important;
 }
 
 .delete-btn {

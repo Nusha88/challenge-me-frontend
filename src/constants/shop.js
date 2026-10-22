@@ -12,9 +12,9 @@ export const WISH_SIZE_CHIPS = Object.freeze([
 ])
 
 export const WISH_TEMPLATES = Object.freeze([
-  { key: 'series', cost: 50 },
-  { key: 'cheatMeal', cost: 80 },
-  { key: 'thatThing', cost: 300 }
+  { key: 'tiktok', cost: 30 },
+  { key: 'coffee', cost: 25 },
+  { key: 'sleepIn', cost: 45 }
 ])
 
 export const DEFENSE_CATALOG = Object.freeze([

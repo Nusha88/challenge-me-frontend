@@ -1,6 +1,8 @@
 <script setup>
+import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUserProfile } from '../composables/useUserProfile'
+import { useFriendship } from '../composables/useFriendship'
 import ProfilePageHeader from './profile/ProfilePageHeader.vue'
 import HeroProfileHeader from './profile/HeroProfileHeader.vue'
 import ActivityHeatmap from './profile/ActivityHeatmap.vue'
@@ -39,6 +41,34 @@ const {
   removeAvatar
 } = useUserProfile(props)
 
+const {
+  friendshipStatus,
+  isBusy,
+  loadStatuses,
+  sendRequest,
+  acceptRequest,
+  rejectRequest
+} = useFriendship()
+
+const friendError = ref('')
+
+watch(
+  [targetUserId, isOwnProfile],
+  ([id, own]) => {
+    if (id && !own) loadStatuses([{ _id: id }])
+  },
+  { immediate: true }
+)
+
+async function runFriendAction(action) {
+  friendError.value = ''
+  try {
+    await action()
+  } catch {
+    friendError.value = t('users.squad.actionError')
+  }
+}
+
 function bindFileInput(el) {
   fileInputRef.value = el
 }
@@ -70,7 +100,24 @@ function bindFileInput(el) {
       <HeroProfileHeader
         v-else
         :user="displayUser"
+        :friendship-status="friendshipStatus(displayUser)"
+        :friend-busy="isBusy(displayUser)"
+        @friend-add="runFriendAction(() => sendRequest(displayUser))"
+        @friend-cancel="runFriendAction(() => rejectRequest(displayUser))"
+        @friend-accept="runFriendAction(() => acceptRequest(displayUser))"
+        @friend-reject="runFriendAction(() => rejectRequest(displayUser))"
       />
+
+      <v-alert
+        v-if="friendError && !isOwnProfile"
+        type="error"
+        variant="tonal"
+        class="rounded-xl mb-4"
+        closable
+        @click:close="friendError = ''"
+      >
+        {{ friendError }}
+      </v-alert>
 
       <ActivityHeatmap
         :habit-challenges="habitChallenges"

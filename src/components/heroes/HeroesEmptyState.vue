@@ -12,7 +12,15 @@
     <p class="heroes-empty-text">{{ text }}</p>
     <div class="heroes-empty-actions">
       <button
-        v-if="hasSearch"
+        v-if="ctaLabel"
+        type="button"
+        class="heroes-empty-primary"
+        @click="$emit('cta')"
+      >
+        {{ ctaLabel }}
+      </button>
+      <button
+        v-else-if="hasSearch"
         type="button"
         class="heroes-empty-secondary"
         @click="$emit('clear-search')"
@@ -36,10 +44,11 @@ import treasureImage from '../../assets/home/treasure-280.webp'
 
 defineProps({
   text: { type: String, required: true },
-  hasSearch: { type: Boolean, default: false }
+  hasSearch: { type: Boolean, default: false },
+  ctaLabel: { type: String, default: '' }
 })
 
-defineEmits(['clear-search'])
+defineEmits(['clear-search', 'cta'])
 
 const { t } = useI18n()
 </script>

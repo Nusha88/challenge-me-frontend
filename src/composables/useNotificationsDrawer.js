@@ -97,6 +97,16 @@ export function useNotificationsDrawer(props, emit) {
     }
   }
 
+  function removeNotificationLocally(notification) {
+    if (!notification) return
+    const existed = notifications.value.some((item) => item._id === notification._id)
+    if (!existed) return
+    notifications.value = notifications.value.filter((item) => item._id !== notification._id)
+    if (!notification.read) {
+      emit('unread-count-changed', Math.max(0, props.unreadCount - 1))
+    }
+  }
+
   async function deleteNotification(notification) {
     try {
       await notificationService.deleteNotification(notification._id)
@@ -141,6 +151,7 @@ export function useNotificationsDrawer(props, emit) {
     clearError,
     markNotificationReadOptimistic,
     markAllAsRead,
-    deleteNotification
+    deleteNotification,
+    removeNotificationLocally
   }
 }

@@ -25,22 +25,35 @@
       </template>
     </v-text-field>
 
-    <div
-      class="heroes-sort-tabs"
-      role="tablist"
-      :aria-label="t('users.sort.label')"
-    >
-      <button
-        v-for="option in sortOptions"
-        :key="option.value"
-        type="button"
-        class="heroes-sort-tab"
-        role="tab"
-        :aria-selected="sortBy === option.value"
-        :class="{ active: sortBy === option.value }"
-        @click="$emit('update:sortBy', option.value)"
+    <div class="heroes-filters">
+      <div
+        class="heroes-sort-tabs"
+        role="tablist"
+        :aria-label="t('users.sort.label')"
       >
-        {{ option.label }}
+        <button
+          v-for="option in sortOptions"
+          :key="option.value"
+          type="button"
+          class="heroes-sort-tab"
+          role="tab"
+          :aria-selected="viewMode === 'hall' && sortBy === option.value"
+          :class="{ active: viewMode === 'hall' && sortBy === option.value }"
+          @click="$emit('select-sort', option.value)"
+        >
+          {{ option.label }}
+        </button>
+      </div>
+
+      <button
+        type="button"
+        class="squad-tab"
+        :class="{ active: viewMode === 'squad' }"
+        :aria-pressed="viewMode === 'squad'"
+        @click="$emit('open-squad')"
+      >
+        {{ t('users.squad.tab') }}
+        <span v-if="incomingCount > 0" class="squad-badge">{{ incomingCount }}</span>
       </button>
     </div>
   </div>
@@ -52,10 +65,12 @@ import { useI18n } from 'vue-i18n'
 
 defineProps({
   modelValue: { type: String, default: '' },
-  sortBy: { type: String, default: 'xp' }
+  sortBy: { type: String, default: 'xp' },
+  viewMode: { type: String, default: 'hall' },
+  incomingCount: { type: Number, default: 0 }
 })
 
-defineEmits(['update:modelValue', 'update:sortBy', 'search', 'clear'])
+defineEmits(['update:modelValue', 'select-sort', 'open-squad', 'search', 'clear'])
 
 const { t } = useI18n()
 
@@ -98,15 +113,68 @@ const sortOptions = computed(() => [
   color: var(--home-text-dim, #94a3b8) !important;
 }
 
+.heroes-filters {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .heroes-sort-tabs {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
-  flex-shrink: 0;
+  flex: 1;
   padding: 4px;
   border-radius: 14px;
   background: var(--home-surface-soft, rgba(255, 255, 255, 0.03));
   border: 1px solid var(--home-border, rgba(255, 255, 255, 0.08));
+}
+
+.squad-tab {
+  appearance: none;
+  border: 1px solid var(--home-border, rgba(255, 255, 255, 0.08));
+  background: var(--home-surface-soft, rgba(255, 255, 255, 0.03));
+  color: var(--home-text-dim, #94a3b8);
+  border-radius: 14px;
+  min-height: 52px;
+  padding: 8px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition:
+    background 0.2s var(--home-ease, ease),
+    color 0.2s var(--home-ease, ease),
+    border-color 0.2s var(--home-ease, ease);
+}
+
+.squad-tab.active {
+  color: var(--home-text, #f1f5f9);
+  border-color: var(--home-border-hi, rgba(79, 209, 197, 0.38));
+  background: var(--home-surface, rgba(22, 27, 40, 0.85));
+  box-shadow: inset 0 0 0 1px var(--home-border-hi, rgba(79, 209, 197, 0.28));
+}
+
+.squad-badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--home-teal, #4fd1c5);
+  color: #0b0d12;
+  font-size: 0.65rem;
+  font-weight: 900;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .heroes-sort-tab {
@@ -146,11 +214,18 @@ const sortOptions = computed(() => [
     gap: 10px;
   }
 
-  .heroes-sort-tabs {
+  .heroes-filters {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .heroes-sort-tabs,
+  .squad-tab {
     width: 100%;
   }
 
-  .heroes-sort-tab {
+  .heroes-sort-tab,
+  .squad-tab {
     min-height: 40px;
     font-size: 0.68rem;
     padding: 6px 8px;

@@ -7,5 +7,6 @@ export const APP_EVENTS = Object.freeze({
   XP_AWARDED: 'xp-awarded',
   SPARKS_AWARDED: 'sparks-awarded',
   SPARKS_SPENT: 'sparks-spent',
-  OPEN_CHALLENGE: 'open-challenge'
+  OPEN_CHALLENGE: 'open-challenge',
+  FRIENDSHIP_CHANGED: 'friendship-changed'
 })

@@ -64,14 +64,8 @@
             <p class="sparks-shop-description">
               {{ t('sparks.shop.wish.description') }}
             </p>
-            <p class="sparks-shop-honor">
-              {{ t('sparks.shop.wish.honorHint') }}
-            </p>
 
-            <div v-if="!wishItems.length" class="sparks-template-chips">
-              <p class="sparks-shop-empty-hint">
-                {{ t('sparks.shop.wish.emptyHint') }}
-              </p>
+            <div class="sparks-template-chips">
               <button
                 v-for="template in wishTemplates"
                 :key="template.key"
@@ -83,6 +77,9 @@
                 <span class="sparks-chip-cost">
                   <span class="sparks-icon">✦</span>
                   {{ template.cost }}
+                </span>
+                <span class="sparks-chip-hint">
+                  ({{ t(`sparks.shop.wish.templates.${template.key}Hint`) }})
                 </span>
               </button>
             </div>
@@ -122,8 +119,8 @@
                   <span class="sparks-chip-cost">{{ chip.cost }}</span>
                 </button>
               </div>
-              <p class="sparks-price-hint">{{ priceHint }}</p>
-              <p class="sparks-shop-honor">{{ t('sparks.shop.wish.priceHonor') }}</p>
+              <p class="sparks-price-hint">{{ t('sparks.shop.wish.priceHintLiveDay') }}</p>
+              <p v-if="priceHint" class="sparks-price-hint sparks-price-hint--detail">{{ priceHint }}</p>
               <p v-if="!canAddWish" class="sparks-shop-limit">
                 {{ t('sparks.shop.wish.limitReached') }}
               </p>
@@ -398,7 +395,6 @@ watch(
 }
 
 .sparks-shop-honor,
-.sparks-shop-empty-hint,
 .sparks-price-hint,
 .sparks-shop-limit,
 .sparks-stock {
@@ -412,6 +408,17 @@ watch(
   color: rgba(255, 193, 7, 0.86);
   font-weight: 700;
   margin-bottom: 6px;
+}
+
+.sparks-price-hint--detail {
+  color: rgba(255, 255, 255, 0.55);
+  font-weight: 600;
+}
+
+.sparks-chip-hint {
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 
 .sparks-balance-pill {

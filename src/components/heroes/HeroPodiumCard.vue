@@ -8,6 +8,22 @@
     @keydown.enter.prevent="$emit('click', user)"
     @keydown.space.prevent="$emit('click', user)"
   >
+    <div
+      v-if="showFriendAction"
+      class="podium-friend"
+      @click.stop
+      @keydown.stop
+    >
+      <FriendActionButton
+        compact
+        :status="friendshipStatus"
+        :busy="friendBusy"
+        @add="$emit('friend-add', user)"
+        @cancel="$emit('friend-cancel', user)"
+        @accept="$emit('friend-accept', user)"
+        @reject="$emit('friend-reject', user)"
+      />
+    </div>
     <v-card-text class="hero-podium-body">
       <div class="avatar-wrapper">
         <div :class="['rank-crown-badge', `rank-color-${rank}`]">
@@ -75,13 +91,17 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { getRankTier } from '../../utils/levelSystem'
 import RankedAvatar from '../user/RankedAvatar.vue'
+import FriendActionButton from '../friends/FriendActionButton.vue'
 
 const props = defineProps({
   user: { type: Object, required: true },
-  rank: { type: Number, required: true }
+  rank: { type: Number, required: true },
+  friendshipStatus: { type: String, default: 'none' },
+  friendBusy: { type: Boolean, default: false },
+  showFriendAction: { type: Boolean, default: false }
 })
 
-defineEmits(['click'])
+defineEmits(['click', 'friend-add', 'friend-cancel', 'friend-accept', 'friend-reject'])
 
 const { t } = useI18n()
 
@@ -128,6 +148,13 @@ const podiumRankLine = computed(() => {
 
 .rank-3 {
   border-color: rgba(205, 127, 50, 0.3) !important;
+}
+
+.podium-friend {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 12;
 }
 
 .hero-podium-body {

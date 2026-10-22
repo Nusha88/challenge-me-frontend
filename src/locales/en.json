@@ -88,28 +88,28 @@
         "defense": "Defense"
       },
       "wish": {
-        "description": "Put here the things you don't just allow yourself. Sparks build up over days — then you give yourself permission.",
-        "honorHint": "The app doesn't check whether you actually watched the episode. This is a contract with yourself.",
+        "description": "Turn Sparks into real pleasures. Add your own wishes or pick a ready template below. An honest deal with yourself.",
         "titleLabel": "What you're buying for yourself",
         "costLabel": "Price in Sparks",
         "add": "Add",
         "redeem": "Redeem",
         "delete": "Remove",
         "redeemedToast": "You earned this",
-        "emptyHint": "Tap a chip to fill the form, then add it yourself.",
-        "priceHonor": "If you were going to do this tonight anyway — set the price higher.",
         "priceHintDays": "≈ {days} live days of Ignite",
         "priceHintFreeze": "like one streak freeze",
-        "priceHintLiveDay": "A live day is about 20 Sparks.",
+        "priceHintLiveDay": "Earnings for a perfect day: ~20 ✦",
         "size": {
-          "small": "Small",
-          "medium": "Medium",
-          "large": "Large"
+          "small": "Weakness",
+          "medium": "Whim",
+          "large": "Dream"
         },
         "templates": {
-          "series": "Watch an episode",
-          "cheatMeal": "Cheat meal",
-          "thatThing": "Buy that thing"
+          "tiktok": "1 hour of TikTok/Reels",
+          "tiktokHint": "licensed scrolling",
+          "coffee": "Coffee and dessert",
+          "coffeeHint": "a quick joy",
+          "sleepIn": "Sleep in until noon",
+          "sleepInHint": "a proper weekend rest"
         },
         "limitReached": "You can keep up to 20 wishes",
         "insufficient": "Not enough Sparks",
@@ -687,7 +687,24 @@
     "daysShort": "{count}d",
     "userChallenges": "User Missions",
     "noChallenges": "This user has no missions yet",
-    "userNotFound": "User not found"
+    "userNotFound": "User not found",
+    "squad": {
+      "title": "My squad",
+      "tab": "My squad",
+      "incoming": "Squad requests",
+      "incomingLead": "Wants to join your squad",
+      "members": "Squadmates",
+      "empty": "Your squad is empty. Find heroes in the hall of fame.",
+      "findHeroes": "Back to heroes",
+      "add": "Add to squad",
+      "sent": "Request sent",
+      "inSquad": "In squad",
+      "accept": "Accept",
+      "reject": "Reject",
+      "cancel": "Cancel request",
+      "loadError": "Could not load your squad",
+      "actionError": "Could not update this request"
+    }
   },
   "challenges": {
     "allTypes": "All",
@@ -1280,6 +1297,10 @@
     "pushReplyBody": "{fromName} replied to your comment on \"{missionTitle}\"",
     "userJoinedChallenge": "joined {mission}",
     "userWatchingChallenge": "started following {mission}",
+    "friendRequest": "wants to join your squad",
+    "friendAccept": "Accept",
+    "friendReject": "Reject",
+    "friendActionError": "Could not update this squad request",
     "dailyRecapTitle": "Daily Recap",
     "dailyRecapFallback": "Today's missions are still active. Make a final push!",
     "xpGainedToast": "+{count} XP",

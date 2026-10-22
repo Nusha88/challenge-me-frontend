@@ -1,4 +1,5 @@
 <script setup>
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useDisplay } from 'vuetify'
@@ -6,6 +7,7 @@ import NotificationListItem from './notifications/NotificationListItem.vue'
 import { useNotificationsDrawer } from '../composables/useNotificationsDrawer'
 import { resolveNotificationNavigation } from '../utils/notificationNavigation'
 import { APP_EVENTS, dispatchAppEvent } from '../utils/appEvents'
+import { friendService } from '../services/api'
 
 const props = defineProps({
   modelValue: {
@@ -36,8 +38,12 @@ const {
   loadNotifications,
   markNotificationReadOptimistic,
   markAllAsRead,
-  deleteNotification
+  deleteNotification,
+  removeNotificationLocally
 } = useNotificationsDrawer(props, emit)
+
+const actingNotificationId = ref(null)
+const actingKind = ref('')
 
 function handleDrawerUpdate(value) {
   if (!value) {
@@ -53,6 +59,44 @@ function closeDrawer(event) {
   }
   emit('update:modelValue', false)
   emit('close')
+}
+
+function senderId(notification) {
+  return notification?.fromUserId?._id || notification?.fromUserId || null
+}
+
+async function resolveFriendRequestId(notification) {
+  if (notification.friendshipId) return notification.friendshipId
+  const userId = senderId(notification)
+  if (!userId) return null
+  const { data } = await friendService.getStatus(userId)
+  return data?.friendshipId || null
+}
+
+async function handleFriendDecision(notification, kind) {
+  actingNotificationId.value = notification._id
+  actingKind.value = kind
+  try {
+    const friendshipId = await resolveFriendRequestId(notification)
+    if (!friendshipId) throw new Error('missing_friendship')
+    if (kind === 'accept') {
+      await friendService.accept(friendshipId)
+    } else {
+      await friendService.reject(friendshipId)
+    }
+    removeNotificationLocally(notification)
+    dispatchAppEvent(APP_EVENTS.FRIENDSHIP_CHANGED, {
+      userId: senderId(notification),
+      friendshipId,
+      status: kind === 'accept' ? 'accepted' : 'none'
+    })
+  } catch (error) {
+    console.error('Error updating friend request:', error)
+    errorMessage.value = t('notifications.friendActionError')
+  } finally {
+    actingNotificationId.value = null
+    actingKind.value = ''
+  }
 }
 
 function handleNotificationClick(notification) {
@@ -158,8 +202,11 @@ function handleNotificationClick(notification) {
             v-for="notification in notifications"
             :key="notification._id"
             :notification="notification"
+            :acting="actingNotificationId === notification._id ? actingKind : ''"
             @click="handleNotificationClick"
             @delete="deleteNotification"
+            @accept="handleFriendDecision($event, 'accept')"
+            @reject="handleFriendDecision($event, 'reject')"
           />
         </div>
       </div>

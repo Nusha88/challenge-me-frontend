@@ -59,9 +59,7 @@ export function useSparksShop() {
   })
   const priceHint = computed(() => {
     const cost = parsedCost.value
-    if (cost == null || cost < WISH_COST_MIN) {
-      return t('sparks.shop.wish.priceHintLiveDay')
-    }
+    if (cost == null || cost < WISH_COST_MIN) return ''
 
     const parts = [t('sparks.shop.wish.priceHintDays', { days: formatWishDays(cost) })]
     if (cost === 50) {

@@ -52,6 +52,15 @@
             rounded
           />
         </div>
+
+        <FriendActionButton
+          :status="friendshipStatus"
+          :busy="friendBusy"
+          @add="$emit('friend-add')"
+          @cancel="$emit('friend-cancel')"
+          @accept="$emit('friend-accept')"
+          @reject="$emit('friend-reject')"
+        />
       </div>
     </div>
   </header>
@@ -62,10 +71,15 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { getRank, getRankTier, getRankIcon } from '../../utils/levelSystem'
 import RankedAvatar from '../user/RankedAvatar.vue'
+import FriendActionButton from '../friends/FriendActionButton.vue'
 
 const props = defineProps({
-  user: { type: Object, default: null }
+  user: { type: Object, default: null },
+  friendshipStatus: { type: String, default: 'none' },
+  friendBusy: { type: Boolean, default: false }
 })
+
+defineEmits(['friend-add', 'friend-cancel', 'friend-accept', 'friend-reject'])
 
 const { t } = useI18n()
 
@@ -124,9 +138,18 @@ const rankLine = computed(() => {
   text-align: center;
 }
 
+.hero-copy :deep(.friend-action) {
+  display: flex;
+  justify-content: center;
+}
+
 @media (min-width: 960px) {
   .hero-copy {
     text-align: left;
+  }
+
+  .hero-copy :deep(.friend-action) {
+    justify-content: flex-start;
   }
 }
 

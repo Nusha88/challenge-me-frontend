@@ -9,7 +9,7 @@ export function resolveNotificationNavigation(notification) {
     return { kind: 'route', path: '/today' }
   }
 
-  if (notification.type === 'referral_completed') {
+  if (notification.type === 'referral_completed' || notification.type === 'friend_request') {
     const friendId = notification.fromUserId?._id || notification.fromUserId
     if (!friendId) return { kind: 'noop' }
     return { kind: 'route', path: `/heroes/${friendId}` }

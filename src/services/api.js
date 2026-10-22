@@ -452,6 +452,19 @@ export const uploadService = {
   }
 }
 
+export const friendService = {
+  getFriends: () => api.get('/friends'),
+  getIncoming: () => api.get('/friends/incoming'),
+  getIncomingCount: () => api.get('/friends/incoming-count'),
+  getStatus: (userId) => api.get(`/friends/status/${userId}`),
+  getStatuses: (ids = []) => api.get('/friends/statuses', {
+    params: { ids: ids.join(',') }
+  }),
+  sendRequest: (userId) => api.post('/friends/request', { userId }),
+  accept: (friendshipId) => api.post(`/friends/${friendshipId}/accept`),
+  reject: (friendshipId) => api.post(`/friends/${friendshipId}/reject`)
+}
+
 // Notification service
 export const notificationService = {
   getNotifications: (userId, options = {}) => {

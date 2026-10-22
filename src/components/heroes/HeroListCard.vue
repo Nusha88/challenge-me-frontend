@@ -30,6 +30,16 @@
       <div class="hero-list-copy">
         <div class="hero-list-top">
           <h4 class="hero-list-name text-truncate">{{ user.name }}</h4>
+          <FriendActionButton
+            v-if="showFriendAction"
+            compact
+            :status="friendshipStatus"
+            :busy="friendBusy"
+            @add="$emit('friend-add', user)"
+            @cancel="$emit('friend-cancel', user)"
+            @accept="$emit('friend-accept', user)"
+            @reject="$emit('friend-reject', user)"
+          />
           <v-icon size="18" class="chevron-icon">mdi-chevron-right</v-icon>
         </div>
 
@@ -67,12 +77,16 @@
 <script setup>
 import { useI18n } from 'vue-i18n'
 import RankedAvatar from '../user/RankedAvatar.vue'
+import FriendActionButton from '../friends/FriendActionButton.vue'
 
 defineProps({
-  user: { type: Object, required: true }
+  user: { type: Object, required: true },
+  friendshipStatus: { type: String, default: 'none' },
+  friendBusy: { type: Boolean, default: false },
+  showFriendAction: { type: Boolean, default: false }
 })
 
-defineEmits(['click'])
+defineEmits(['click', 'friend-add', 'friend-cancel', 'friend-accept', 'friend-reject'])
 
 const { t } = useI18n()
 </script>

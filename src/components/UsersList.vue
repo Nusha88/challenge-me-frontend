@@ -1,17 +1,17 @@
 <template>
   <div class="users-container">
-    <HeroesPageHeader :total-users="totalUsers" />
+    <HeroesPageHeader :total-users="headerCount" />
 
     <v-alert
-      v-if="error"
+      v-if="error || squadError || friendError"
       type="error"
       variant="tonal"
       class="mb-4"
       closable
-      @click:close="clearError"
+      @click:close="clearVisibleError"
     >
       <div class="heroes-error-row">
-        <span>{{ error }}</span>
+        <span>{{ error || squadError || friendError }}</span>
         <v-btn
           size="small"
           variant="text"
@@ -27,12 +27,81 @@
     <HeroesSearchBar
       v-model="searchQuery"
       :sort-by="sortBy"
-      @update:sort-by="setSort"
+      :view-mode="viewMode"
+      :incoming-count="incomingCount"
+      @select-sort="selectSort"
+      @open-squad="openSquad"
       @search="handleSearch"
       @clear="clearSearch"
     />
 
-    <HeroesSkeleton v-if="loading && !hasLoadedOnce" />
+    <HeroesSkeleton v-if="showSkeleton" />
+
+    <template v-else-if="viewMode === 'squad'">
+      <HeroesEmptyState
+        v-if="showSquadEmpty"
+        :text="squadEmptyText"
+        :cta-label="t('users.squad.findHeroes')"
+        @cta="selectSort(sortBy)"
+      />
+
+      <div v-else class="squad-view">
+        <template v-if="visibleIncoming.length > 0">
+          <MissionSectionDivider
+            :label="t('users.squad.incoming')"
+            icon="mdi-account-plus-outline"
+            :count="visibleIncoming.length"
+            flush-top
+          />
+          <v-row class="mb-6">
+            <v-col
+              v-for="(item, index) in visibleIncoming"
+              :key="item.friendshipId"
+              cols="12"
+              sm="6"
+              lg="4"
+              class="reveal-animation"
+              :style="{ '--i': index }"
+            >
+              <SquadRequestCard
+                :user="item.user"
+                :busy="isBusy(item.user)"
+                @open="handleUserClick"
+                @accept="handleFriendAccept(item.user, item.friendshipId)"
+                @reject="handleFriendReject(item.user, item.friendshipId)"
+              />
+            </v-col>
+          </v-row>
+        </template>
+
+        <template v-if="visibleFriends.length > 0">
+          <MissionSectionDivider
+            :label="t('users.squad.members')"
+            icon="mdi-account-heart-outline"
+            :count="visibleFriends.length"
+            :flush-top="visibleIncoming.length === 0"
+          />
+          <v-row>
+            <v-col
+              v-for="(item, index) in visibleFriends"
+              :key="item.friendshipId"
+              cols="12"
+              sm="6"
+              lg="4"
+              class="reveal-animation"
+              :style="{ '--i': index + visibleIncoming.length }"
+            >
+              <HeroListCard
+                :user="item.user"
+                friendship-status="accepted"
+                show-friend-action
+                @click="handleUserClick"
+              />
+            </v-col>
+          </v-row>
+        </template>
+      </div>
+    </template>
 
     <template v-else-if="!loading || users.length > 0">
       <HeroesEmptyState
@@ -62,7 +131,14 @@
               <HeroPodiumCard
                 :user="user"
                 :rank="index + 1"
+                :friendship-status="friendshipStatus(user)"
+                :friend-busy="isBusy(user)"
+                :show-friend-action="canShowAction(user)"
                 @click="handleUserClick"
+                @friend-add="handleFriendAdd"
+                @friend-cancel="handleFriendCancel"
+                @friend-accept="handleFriendAccept"
+                @friend-reject="handleFriendReject"
               />
             </v-col>
           </v-row>
@@ -85,7 +161,17 @@
               class="reveal-animation"
               :style="{ '--i': index + 3 }"
             >
-              <HeroListCard :user="user" @click="handleUserClick" />
+              <HeroListCard
+                :user="user"
+                :friendship-status="friendshipStatus(user)"
+                :friend-busy="isBusy(user)"
+                :show-friend-action="canShowAction(user)"
+                @click="handleUserClick"
+                @friend-add="handleFriendAdd"
+                @friend-cancel="handleFriendCancel"
+                @friend-accept="handleFriendAccept"
+                @friend-reject="handleFriendReject"
+              />
             </v-col>
           </v-row>
         </template>
@@ -118,7 +204,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import MissionSectionDivider from './MissionSectionDivider.vue'
@@ -128,13 +214,17 @@ import HeroesSkeleton from './heroes/HeroesSkeleton.vue'
 import HeroesEmptyState from './heroes/HeroesEmptyState.vue'
 import HeroPodiumCard from './heroes/HeroPodiumCard.vue'
 import HeroListCard from './heroes/HeroListCard.vue'
+import SquadRequestCard from './friends/SquadRequestCard.vue'
 import { useHeroesList } from '../composables/useHeroesList'
 import { useInfiniteScroll } from '../composables/useInfiniteScroll'
 import { useDemoMode } from '../composables/useDemoMode'
+import { useFriendship } from '../composables/useFriendship'
 
 const router = useRouter()
 const { t } = useI18n()
 const { requireAuthOrPrompt } = useDemoMode()
+const viewMode = ref('hall')
+const friendError = ref('')
 
 const {
   users,
@@ -156,12 +246,33 @@ const {
   clearError
 } = useHeroesList()
 
+const {
+  incomingCount,
+  incoming,
+  friends,
+  loadingSquad,
+  squadError,
+  friendshipStatus,
+  isBusy,
+  canShowAction,
+  loadStatuses,
+  loadSquad,
+  filterSquad,
+  sendRequest,
+  acceptRequest,
+  rejectRequest
+} = useFriendship()
+
 const { loadMoreTrigger } = useInfiniteScroll({
-  enabled: hasMore,
+  enabled: computed(() => viewMode.value === 'hall' && hasMore.value),
   loading,
   loadingMore,
   onLoadMore: loadMoreUsers
 })
+
+const squadVisible = computed(() => filterSquad(searchQuery.value))
+const visibleIncoming = computed(() => squadVisible.value.incoming)
+const visibleFriends = computed(() => squadVisible.value.friends)
 
 const showEmpty = computed(
   () => !loading.value && !error.value && users.value.length === 0
@@ -173,6 +284,29 @@ const emptyText = computed(() =>
     : t('users.noUsers')
 )
 
+const showSkeleton = computed(() =>
+  viewMode.value === 'squad'
+    ? loadingSquad.value && friends.value.length === 0 && incoming.value.length === 0
+    : loading.value && !hasLoadedOnce.value
+)
+
+const showSquadEmpty = computed(() =>
+  !loadingSquad.value
+  && !squadError.value
+  && visibleIncoming.value.length === 0
+  && visibleFriends.value.length === 0
+)
+
+const squadEmptyText = computed(() =>
+  searchQuery.value.trim()
+    ? t('users.noUsersFound')
+    : t('users.squad.empty')
+)
+
+const headerCount = computed(() =>
+  viewMode.value === 'squad' ? friends.value.length : totalUsers.value
+)
+
 function handleUserClick(user) {
   if (!requireAuthOrPrompt()) return
   const userId = user._id || user.id
@@ -181,9 +315,60 @@ function handleUserClick(user) {
   }
 }
 
+function selectSort(value) {
+  viewMode.value = 'hall'
+  setSort(value)
+}
+
+function openSquad() {
+  if (!requireAuthOrPrompt()) return
+  viewMode.value = 'squad'
+  loadSquad()
+}
+
 async function retryFetch() {
+  friendError.value = ''
+  if (viewMode.value === 'squad') {
+    await loadSquad()
+    return
+  }
   await fetchUsers(1, false)
 }
+
+function clearVisibleError() {
+  clearError()
+  friendError.value = ''
+  squadError.value = ''
+}
+
+async function runFriendAction(action) {
+  friendError.value = ''
+  try {
+    await action()
+  } catch {
+    friendError.value = t('users.squad.actionError')
+  }
+}
+
+function handleFriendAdd(user) {
+  return runFriendAction(() => sendRequest(user))
+}
+
+function handleFriendCancel(user) {
+  return runFriendAction(() => rejectRequest(user))
+}
+
+function handleFriendAccept(user, friendshipId) {
+  return runFriendAction(() => acceptRequest(user, friendshipId))
+}
+
+function handleFriendReject(user, friendshipId) {
+  return runFriendAction(() => rejectRequest(user, friendshipId))
+}
+
+watch(users, (list) => {
+  if (viewMode.value === 'hall') loadStatuses(list)
+})
 
 onMounted(() => {
   fetchUsers(1, false)
