@@ -70,7 +70,32 @@
               </div>
 
               <div
-                v-if="cardData?.participantsLine"
+                v-if="cardData?.participantsPreview?.length > 1"
+                class="invite-avatars-row"
+              >
+                <div
+                  v-for="person in cardData.participantsPreview"
+                  :key="person.id"
+                  class="invite-party-avatar"
+                  :title="person.name"
+                >
+                  <img
+                    v-if="person.avatarUrl"
+                    :src="person.avatarUrl"
+                    alt=""
+                    class="invite-avatar-img"
+                  />
+                  <span v-else>{{ person.initial }}</span>
+                </div>
+                <div
+                  v-if="cardData.participantsRemaining > 0"
+                  class="invite-party-avatar invite-party-more"
+                >
+                  +{{ cardData.participantsRemaining }}
+                </div>
+              </div>
+              <div
+                v-else-if="cardData?.participantsLine"
                 class="invite-participants-pill"
               >
                 {{ cardData.participantsLine }}
@@ -110,6 +135,13 @@
         >
           {{ t('challenges.inviteCard.generate') }}
         </v-btn>
+        <button
+          type="button"
+          class="copy-invite-link"
+          @click="copyInviteLink"
+        >
+          {{ copyFeedback || t('challenges.share.copyLink') }}
+        </button>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -152,6 +184,8 @@ const inviteCardRef = ref(null)
 const generating = ref(false)
 const heroImageSrc = ref('')
 const heroImageLoading = ref(false)
+const copyFeedback = ref('')
+let copyFeedbackTimer = 0
 
 const dialogModel = computed({
   get: () => props.modelValue,
@@ -189,6 +223,36 @@ watch(
     if (open) showProgress.value = true
   }
 )
+
+function flashCopyFeedback(message) {
+  copyFeedback.value = message
+  window.clearTimeout(copyFeedbackTimer)
+  copyFeedbackTimer = window.setTimeout(() => {
+    copyFeedback.value = ''
+  }, 2000)
+}
+
+async function copyInviteLink() {
+  const url = String(props.inviteUrl || '').trim()
+  if (!url) return
+
+  try {
+    await navigator.clipboard.writeText(url)
+    flashCopyFeedback(t('challenges.share.linkCopied'))
+  } catch {
+    const textArea = document.createElement('textarea')
+    textArea.value = url
+    document.body.appendChild(textArea)
+    textArea.select()
+    try {
+      document.execCommand('copy')
+      flashCopyFeedback(t('challenges.share.linkCopied'))
+    } catch {
+      flashCopyFeedback(t('challenges.share.copyFailed'))
+    }
+    document.body.removeChild(textArea)
+  }
+}
 
 async function generateInviteCard() {
   if (!inviteCardRef.value) return
@@ -294,7 +358,7 @@ async function generateInviteCard() {
 .invite-card-preview {
   width: 100%;
   max-width: 380px;
-  min-height: 560px;
+  min-height: 420px;
   position: relative;
   overflow: hidden;
   border-radius: 32px;
@@ -310,7 +374,7 @@ async function generateInviteCard() {
 .invite-card-hero {
   position: relative;
   flex-shrink: 0;
-  height: 320px;
+  height: 200px;
   overflow: hidden;
 }
 
@@ -350,7 +414,7 @@ async function generateInviteCard() {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  padding: 28px 28px 24px;
+  padding: 18px 22px 16px;
 }
 
 .invite-card-topline {
@@ -367,15 +431,15 @@ async function generateInviteCard() {
 }
 
 .invite-card-hook {
-  margin: 14px 0 0;
-  font-size: 0.95rem;
+  margin: 8px 0 0;
+  font-size: 0.82rem;
   font-weight: 700;
   color: rgba(255, 255, 255, 0.72);
 }
 
 .invite-card-title {
   margin: 4px 0 0;
-  font-size: 1.85rem;
+  font-size: 1.45rem;
   line-height: 1.1;
   font-weight: 900;
   letter-spacing: -0.04em;
@@ -387,25 +451,25 @@ async function generateInviteCard() {
   z-index: 1;
   flex: 1;
   min-height: 0;
-  padding: 4px 28px 20px;
+  padding: 4px 22px 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .invite-person-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
-  border-radius: 18px;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .invite-avatar {
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   overflow: hidden;
   flex-shrink: 0;
@@ -451,6 +515,38 @@ async function generateInviteCard() {
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.invite-avatars-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding-left: 2px;
+}
+
+.invite-party-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(79, 209, 197, 0.18);
+  border: 2px solid #111827;
+  color: #4FD1C5;
+  font-weight: 800;
+  font-size: 0.72rem;
+  margin-left: -6px;
+}
+
+.invite-party-avatar:first-child {
+  margin-left: 0;
+}
+
+.invite-party-more {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.85);
 }
 
 .invite-participants-pill {
@@ -504,18 +600,40 @@ async function generateInviteCard() {
 }
 
 .invite-dialog-actions {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   padding: 16px 24px 20px;
 }
 
+.copy-invite-link {
+  display: block;
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.62);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.copy-invite-link:hover {
+  color: #fff;
+}
+
 @media (max-width: 600px) {
   .invite-card-preview {
-    min-height: 520px;
+    min-height: 380px;
     border-radius: 24px;
   }
 
   .invite-card-hero {
-    height: 260px;
+    height: 168px;
   }
 
   .invite-card-hero-content,

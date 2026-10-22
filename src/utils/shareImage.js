@@ -197,6 +197,58 @@ async function loadImageFromDataUrl(dataUrl) {
   })
 }
 
+function decodeSvgDataUri(src) {
+  const comma = src.indexOf(',')
+  if (comma < 0) return ''
+  const meta = src.slice(0, comma)
+  const payload = src.slice(comma + 1)
+  if (/;base64/i.test(meta)) {
+    const binary = atob(payload)
+    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0))
+    return new TextDecoder().decode(bytes)
+  }
+  return decodeURIComponent(payload)
+}
+
+function withSvgSize(svgText, size) {
+  const sized = String(svgText || '').replace(
+    /<svg\b([^>]*)>/i,
+    (match, attrs) => {
+      let next = attrs || ''
+      if (!/\bwidth=/i.test(next)) next += ` width="${size}"`
+      if (!/\bheight=/i.test(next)) next += ` height="${size}"`
+      return `<svg${next}>`
+    }
+  )
+  return sized
+}
+
+function isSvgImageSrc(src) {
+  const value = String(src || '')
+  return value.includes('image/svg+xml') || /\.svg(\?|$)/i.test(value)
+}
+
+/**
+ * html2canvas cannot paint SVG data-URI images. Rasterize to PNG first.
+ */
+export async function rasterizeImageToPngDataUrl(src, size = 320) {
+  const safeSize = Math.max(24, Math.round(Number(size) || 320))
+  let url = String(src || '')
+  if (!url) throw new Error('Image source missing')
+
+  if (isSvgImageSrc(url) && url.startsWith('data:')) {
+    const svg = withSvgSize(decodeSvgDataUri(url), safeSize)
+    url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+  }
+
+  const image = await loadImageFromDataUrl(url)
+  const canvas = document.createElement('canvas')
+  canvas.width = safeSize
+  canvas.height = safeSize
+  canvas.getContext('2d').drawImage(image, 0, 0, safeSize, safeSize)
+  return canvas.toDataURL('image/png')
+}
+
 function measureHeroSize(hero, existingImg) {
   const heroRect = hero.getBoundingClientRect()
   const imgRect = existingImg?.getBoundingClientRect?.()

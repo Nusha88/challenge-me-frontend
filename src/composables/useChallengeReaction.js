@@ -45,9 +45,7 @@ export function useChallengeReaction({
     return !!unref(currentUserId) && !unref(isOwner)
   })
 
-  const showReactionControls = computed(() => {
-    return !!unref(challenge)
-  })
+  const showReactionControls = computed(() => false)
 
   function nextState(current, value) {
     if (current === value) {

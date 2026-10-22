@@ -13,6 +13,10 @@
         :display-streak-days="displayStreakDays"
         :yesterday-streak-days="state.yesterdayStreakDays"
         :streak-days-text="streakDaysText"
+        :avatar-url="greetingHero.avatarUrl"
+        :user-seed="greetingHero.seed"
+        :user-level="greetingHero.level"
+        @profile="handleHeroProfileClick"
       />
 
       <v-alert
@@ -45,7 +49,7 @@
         :total-items="totalItems"
         :percentage="combinedProgressPercentage"
         :can-share="isAllCompleted"
-        @share="openCompletionShare"
+        @share="handleOpenCompletionShare"
       />
     </section>
 
@@ -151,21 +155,17 @@
     </v-window>
 
     <CompletionCelebrationDialog
+      ref="celebrationDialogRef"
       v-model="showCompletionDialog"
-      :preparing-share="preparingShare"
       :sharing="generatingImage"
       :saving="savingImage"
       :share-error="shareError"
       :status-message="statusMessage"
       :sparks-claimed="sparksClaimed"
-      :preview-data-url="previewDataUrl"
-      :user-name="state.userName"
-      :streak-days="displayStreakDays"
-      :tasks="selectedShareTasks"
+      :payload="victorySharePayload"
       @close="closeCompletionDialog"
       @share="shareVictory"
       @save="saveImage"
-      @update:selected-tasks="setSelectedTasks"
     />
   </div>
 </template>
@@ -173,7 +173,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onActivated, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { useDemoStore } from '../stores/demo'
 import { useFirstDayQuestStore } from '../stores/firstDayQuest'
@@ -197,6 +197,7 @@ import { useHomeWindowEvents } from '../composables/useHomeWindowEvents'
 import { useTodayChallenges } from '../composables/useTodayChallenges'
 import { useTomorrowChecklist } from '../composables/useTomorrowChecklist'
 import { useCompletionCelebration } from '../composables/useCompletionCelebration'
+import { useReferralProgram } from '../composables/useReferralProgram'
 import { openMissionDetails } from '../utils/openMissionDetails'
 import { useChallengeUpdatedListener } from '../composables/useChallengeUpdatedListener'
 import { useHomeMotivationalMessage } from '../composables/useHomeMotivationalMessage'
@@ -207,14 +208,36 @@ import {
   SECOND_CHANCE_COST
 } from '../composables/useSparksRitualActions'
 import { useRitualTimeWindows } from '../composables/useRitualTimeWindows'
+import { useDemoAuthGate } from '../composables/useDemoAuthGate'
+import { getLevelFromXp } from '../utils/levelSystem'
 
 const { t, locale } = useI18n()
 const route = useRoute()
+const router = useRouter()
 const userStore = useUserStore()
 const demoStore = useDemoStore()
 const firstDayQuestStore = useFirstDayQuestStore()
+const { openAuthGate } = useDemoAuthGate()
 const { applyRewardResponse } = useXpAwardFeedback()
 const isDemoMode = computed(() => demoStore.isDemoMode)
+
+const greetingHero = computed(() => ({
+  avatarUrl: isDemoMode.value ? '' : (userStore.userAvatarUrl || ''),
+  seed: isDemoMode.value ? DEMO_USER_ID : (userStore.userId || ''),
+  level: getLevelFromXp(
+    isDemoMode.value
+      ? Number(demoStore.character?.xp || 0)
+      : Number(userStore.userXp || 0)
+  )
+}))
+
+function handleHeroProfileClick() {
+  if (isDemoMode.value) {
+    openAuthGate({ redirect: '/register?from=demo' })
+    return
+  }
+  router.push('/profile')
+}
 
 const firstDayClosedMessage = computed(() => {
   return isDemoMode.value
@@ -233,6 +256,8 @@ const state = reactive({
 })
 
 const checklistPanelRef = ref(null)
+const celebrationDialogRef = ref(null)
+const { stats: referralStats, loadReferralStats } = useReferralProgram()
 const hasLoadedTodayStepsOnce = ref(false)
 const completedDates = ref(new Set())
 const refreshHomeDataRef = { current: async () => {} }
@@ -575,65 +600,56 @@ const isAllCompleted = computed(() => {
   return completedItems.value === totalItems.value
 })
 
-const completionShareTasks = computed(() => {
-  const challengeTasks = todaysChallenges.value
-    .filter((challenge) => {
-      const status = getTodayDayStatus(challenge)
-      return status === 'completed' || status === 'protected'
-    })
-    .map((challenge) => ({
-      id: `challenge-${challenge._id}`,
-      type: 'challenge',
-      title: challenge.title,
-      selected: true,
-      payload: challenge
-    }))
+const APP_SHARE_URL = 'https://ignite-me.app'
 
-  const checklistTasks = resolveExposedArray(getChecklistApi()?.todaySteps)
-    .filter((step) => step.done)
-    .map((step, index) => ({
-      id: `checklist-${step._id || index}`,
-      type: 'checklist',
-      title: step.title,
-      selected: true,
-      payload: step
-    }))
+const victorySharePayload = computed(() => {
+  const firstMission = todaysChallenges.value.find((challenge) => {
+    const status = getTodayDayStatus(challenge)
+    return status === 'completed' || status === 'protected'
+  })
 
-  return [...challengeTasks, ...checklistTasks]
+  return {
+    userName: state.userName,
+    streakDays: state.streakDays,
+    avatarUrl: isDemoMode.value ? '' : (userStore.userAvatarUrl || ''),
+    userId: isDemoMode.value ? DEMO_USER_ID : (userStore.userId || ''),
+    xp: isDemoMode.value
+      ? Number(demoStore.character?.xp || 0)
+      : Number(userStore.userXp || 0),
+    completedCount: completedItems.value,
+    totalCount: totalItems.value,
+    referralLink: (!isDemoMode.value && referralStats.value.referralLink) || APP_SHARE_URL,
+    firstMissionTitle: firstMission?.title || ''
+  }
 })
 
 const {
   showCompletionDialog,
   generatingImage,
-  preparingShare,
   savingImage,
   shareError,
   statusMessage,
-  previewDataUrl,
-  selectedShareTasks,
   sparksClaimed,
-  setSelectedTasks,
   closeCompletionDialog,
   openCompletionShare,
-  scheduleCompletionDialogCheck,
   shareVictory,
   saveImage
 } = useCompletionCelebration({
   isAllCompleted,
-  completedItems,
-  totalItems,
-  isInitialDataLoading: () => state.initialDataLoading,
-  isChecklistLoading: () => state.checklistLoading,
-  getChallengeCompletedDays,
-  getChallengeTotalDays,
-  getDefaultShareTasks: () => completionShareTasks.value,
-  getCompletionImageData: () => ({
-    userName: state.userName,
-    streakDays: state.streakDays
-  }),
-  watchChecklistCompletedSteps: () => getChecklistApi()?.completedSteps,
-  shouldSuppressAutoDialog: () => firstDayQuestStore.suppressCompletionCelebration
+  getCompletionImageData: () => victorySharePayload.value,
+  getCardElement: () => celebrationDialogRef.value?.getCardElement?.() || null
 })
+
+async function handleOpenCompletionShare() {
+  if (userStore.isLoggedIn && !isDemoMode.value) {
+    try {
+      await loadReferralStats()
+    } catch (error) {
+      console.warn('Referral stats for victory share failed', error)
+    }
+  }
+  openCompletionShare()
+}
 
 const unfinishedStepsCount = computed(() => {
   const steps = resolveExposedArray(getChecklistApi()?.todaySteps)
@@ -679,9 +695,7 @@ const updateChecklistLoading = () => {
 async function refreshHomeData({
   reloadTomorrowSteps = false,
   waitForChecklist = false,
-  maxWaitAttempts = 15,
-  checkCompletionDialog = false,
-  completionDialogDelayMs = 500
+  maxWaitAttempts = 15
 } = {}) {
   await fetchHomeData()
 
@@ -699,10 +713,6 @@ async function refreshHomeData({
     }
     await nextTick()
   }
-
-  if (checkCompletionDialog) {
-    scheduleCompletionDialogCheck(completionDialogDelayMs)
-  }
 }
 
 refreshHomeDataRef.current = refreshHomeData
@@ -717,14 +727,13 @@ async function handleChecklistUpdated() {
   }
 
   updateChecklistLoading()
-  scheduleCompletionDialogCheck()
 }
 
 useHomeWindowEvents({
   onAuthChanged: updateUser,
   onChecklistUpdated: handleChecklistUpdated,
   onChallengeUpdated: refreshHomeData,
-  onChallengeCompleted: () => refreshHomeData({ checkCompletionDialog: true }),
+  onChallengeCompleted: refreshHomeData,
   onParticipantCompletedDaysUpdated: refreshHomeData
 })
 
@@ -753,8 +762,7 @@ onMounted(async () => {
   updateChecklistLoading()
   await refreshHomeData({
     waitForChecklist: true,
-    maxWaitAttempts: 10,
-    checkCompletionDialog: true
+    maxWaitAttempts: 10
   })
 
   if (!hasLoadedTodayStepsOnce.value) {
@@ -766,9 +774,7 @@ onMounted(async () => {
 onActivated(async () => {
   await refreshHomeData({
     reloadTomorrowSteps: true,
-    waitForChecklist: true,
-    checkCompletionDialog: true,
-    completionDialogDelayMs: 1000
+    waitForChecklist: true
   })
 })
 
@@ -778,9 +784,7 @@ watch(
     if (newPath === '/' || newPath === '/today') {
       await refreshHomeData({
         reloadTomorrowSteps: true,
-        waitForChecklist: true,
-        checkCompletionDialog: true,
-        completionDialogDelayMs: 1000
+        waitForChecklist: true
       })
     }
   }

@@ -330,7 +330,7 @@
       "treasureAlt": "Treasure chest waiting for your first mission",
       "tomorrowArtAlt": "Rocket ready for tomorrow's plans",
       "emptyMissions": {
-        "text": "Your path is not yet defined. Launch your first mission to unlock experience treasures.",
+        "text": "Start your first mission for XP and a rank.",
         "launchFirstMission": "Launch First Mission",
         "explore": "Explore examples"
       },
@@ -351,7 +351,8 @@
       "dailyChecklist": {
         "title": "Daily Steps",
         "empty": "Write down your first tiny action for today to start building momentum!",
-        "addStepPlaceholder": "Enter a step...",
+        "firstStepPlaceholder": "First step for today…",
+        "addStepPlaceholder": "Another step…",
         "addStep": "Add Step",
         "deleteStep": "Delete step",
         "markComplete": "Mark as complete",
@@ -379,10 +380,13 @@
         "stepsCompleted": "Daily steps completed",
         "dayStreak": "day streak | day streak",
         "tagline": "Show up. Level up.",
-        "completedTasksSummary": "Completed tasks: {count}"
+        "completedTasksSummary": "Completed tasks: {count}",
+        "summaryLine": "Missions and steps today: {done} / {total}",
+        "rankLine": "Rank {rank}: {title}"
       },
       "generateCompletionImage": "Generate Completion Image",
       "shareTriumph": "Share triumph",
+      "progressRemaining": "{count} left",
       "completionDialog": {
         "title": "Congratulations!",
         "message": "You've completed all your daily missions! Generate a victory card to celebrate.",
@@ -927,6 +931,7 @@
     "questActionError": "Failed to complete action",
     "updateError": "Failed to update mission",
     "completedDaysProgress": "Completed {done}/{total} days ({rate}%)",
+    "dailyRewardHint": "Today: +{xp} XP · {sparks} Sparks",
     "pace": {
       "descriptions": {
         "firstSteps": "Taking first steps",
@@ -1085,6 +1090,7 @@
       "title": "Mission templates",
       "systemAuthor": "System",
       "use": "Use template",
+      "inUse": "Already in play",
       "durationDays": "{days} days",
       "weeklyRitualBadge": "🔥 Ritual of the week",
       "participants": "Ritual participants",

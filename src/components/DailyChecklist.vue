@@ -3,9 +3,8 @@
     <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4"></v-progress-linear>
     <v-alert v-if="error" type="error" class="mb-4" density="compact">{{ error }}</v-alert>
     
-    <div v-if="!loading && todaySteps.length === 0" class="empty-state">
-      <Footprints :size="24" class="empty-state-icon" />
-      {{ t('home.loggedIn.dailyChecklist.empty') }}
+    <div v-if="!loading && todaySteps.length === 0" class="empty-state" aria-hidden="true">
+      <Footprints :size="20" class="empty-state-icon" />
     </div>
     <div v-else class="checklist-list">
       <div
@@ -42,17 +41,17 @@
       <input
         v-model="newStepText"
         type="text"
-        :placeholder="t('home.loggedIn.dailyChecklist.addStepPlaceholder')"
+        :placeholder="stepPlaceholder"
         class="step-input"
         @keyup.enter="addStep"
       />
       <v-btn
         :disabled="!newStepText.trim()"
         class="add-step-btn"
-        icon
+        variant="text"
         @click="addStep"
       >
-        <Plus :size="18" color="white" />
+        + {{ t('home.loggedIn.dailyChecklist.addStep') }}
       </v-btn>
     </div>
   </div>
@@ -76,7 +75,7 @@ import {
   DEMO_CHECKLIST_TASK_XP,
   DEMO_CHECKLIST_TASK_SPARKS
 } from '../constants/demo'
-import { Plus, Trash2, Footprints } from 'lucide-vue-next'
+import { Trash2, Footprints } from 'lucide-vue-next'
 import { APP_EVENTS, dispatchAppEvent } from '../utils/appEvents'
 
 defineProps({
@@ -97,6 +96,12 @@ const error = ref('')
 
 const completedSteps = computed(() => {
   return todaySteps.value.filter(step => step.done).length
+})
+
+const stepPlaceholder = computed(() => {
+  return todaySteps.value.length === 0
+    ? t('home.loggedIn.dailyChecklist.firstStepPlaceholder')
+    : t('home.loggedIn.dailyChecklist.addStepPlaceholder')
 })
 
 const totalSteps = computed(() => {
@@ -228,8 +233,7 @@ onMounted(() => {
 
 /* Список элементов */
 .checklist-list {
-  margin-top: 16px;
-  min-height: 150px;
+  margin-top: 8px;
 }
 
 .checklist-item {
@@ -331,51 +335,40 @@ onMounted(() => {
 }
 
 .step-input::placeholder {
-  color: rgba(255, 255, 255, 0.3); /* Приглушенный плейсхолдер */
+  color: #a8b4c8;
 }
 
 .add-step-btn {
-  background: #7048E8 !important;
-  color: white !important;
-  border-radius: 10px !important;
+  color: #c4b5fd !important;
+  text-transform: none !important;
+  font-size: 0.82rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.01em;
   height: 36px !important;
-  width: 36px !important;
-  min-width: 36px !important;
-  padding: 0 !important;
-  box-shadow: 0 4px 10px rgba(112, 72, 232, 0.3) !important;
+  min-width: auto !important;
+  padding: 0 10px !important;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
-.add-step-btn:hover {
-  transform: scale(1.05);
-  filter: brightness(1.1);
+.add-step-btn:hover:not(.v-btn--disabled) {
+  color: #fff !important;
 }
 
-/* Пустое состояние */
 .empty-state {
-  color: rgba(255, 255, 255, 0.3);
-  font-size: 0.85rem;
-  text-align: center;
-  padding-top: 40px;
-  font-style: italic;
-  min-height: 150px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  padding: 8px 0 12px;
 }
 
 .empty-state-icon {
-  color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.28);
 }
 
-/* Reduce margin/padding for empty state on mobile */
 @media (max-width: 959px) {
-  .empty-state {
-    padding-top: 20px;
-    min-height: 100px;
-  }
   .checklist-item {
-    padding: 14px 8px; /* Чуть больше места для нажатия пальцем */
+    padding: 14px 8px;
   }
 }
 </style>

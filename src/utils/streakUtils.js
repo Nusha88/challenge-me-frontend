@@ -83,3 +83,11 @@ export function calculateStreakFromDate(startDate, completedDates) {
 
   return streak
 }
+
+export function getStreakHeatTier(days) {
+  const n = Math.max(0, Number(days) || 0)
+  if (n >= 14) return 14
+  if (n >= 7) return 7
+  if (n >= 3) return 3
+  return n > 0 ? 1 : 0
+}

@@ -11,7 +11,7 @@ import { useMissionCompletionFlow } from './useMissionCompletionFlow'
 import { useAppEventListeners } from './useAppEvents'
 import { APP_EVENTS, dispatchAppEvent } from '../utils/appEvents'
 import { getDemoMissions } from '../services/demoStorage'
-import { isChallengeFinished, isChallengeUpcoming } from '../utils/challengeStatus'
+import { findActiveTemplateChallenge } from '../utils/templateMembership'
 import { getChallengeTotalDays } from '../utils/challengeProgress'
 import {
   findParticipantForUser,
@@ -26,17 +26,6 @@ import { toDateInputValue } from '../utils/dateUtils'
 import { getMissionTemplateById } from '../constants/missionTemplates'
 
 const VISIBLE_COMPANION_AVATARS = 4
-
-function findJoinedTemplateChallenge(challenges, templateId) {
-  if (!templateId) return null
-
-  const matches = (challenges || []).filter((challenge) => {
-    return String(challenge?.templateId || '') === String(templateId)
-      && !isChallengeFinished(challenge)
-  })
-
-  return matches.find((challenge) => !isChallengeUpcoming(challenge)) || matches[0] || null
-}
 
 export function useWeeklyRitualStatus() {
   const weeklyRitualStore = useWeeklyRitualStore()
@@ -106,7 +95,7 @@ export function useWeeklyRitualStatus() {
     }
 
     if (demoStore.isDemoMode) {
-      joinedChallenge.value = findJoinedTemplateChallenge(getDemoMissions(), id)
+      joinedChallenge.value = findActiveTemplateChallenge(getDemoMissions(), id)
       return
     }
 
@@ -120,7 +109,7 @@ export function useWeeklyRitualStatus() {
       const { data } = await challengeService.getChallengesByUser(userId, {
         excludePrivate: false
       })
-      joinedChallenge.value = findJoinedTemplateChallenge(data?.challenges || [], id)
+      joinedChallenge.value = findActiveTemplateChallenge(data?.challenges || [], id)
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error loading weekly ritual membership:', error)

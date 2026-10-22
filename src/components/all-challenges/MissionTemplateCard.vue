@@ -3,9 +3,10 @@
     class="mission-template-card"
     :class="{
       'has-cover': Boolean(template.imageUrl),
-      'is-weekly-ritual': isWeeklyRitual
+      'is-weekly-ritual': isWeeklyRitual,
+      'is-in-use': inUse
     }"
-    @click="$emit('use', template)"
+    @click="handleCardClick"
   >
     <div
       v-if="template.imageUrl"
@@ -80,6 +81,7 @@
           <div class="author-name">{{ t('allChallenges.templates.systemAuthor') }}</div>
         </div>
         <v-btn
+          v-if="!inUse"
           class="use-template-btn"
           size="small"
           rounded="lg"
@@ -87,6 +89,9 @@
         >
           {{ t('allChallenges.templates.use') }}
         </v-btn>
+        <span v-else class="in-use-label">
+          {{ t('allChallenges.templates.inUse') }}
+        </span>
       </div>
     </div>
   </v-card>
@@ -113,10 +118,14 @@ const props = defineProps({
   participants: {
     type: Array,
     default: () => []
+  },
+  inUse: {
+    type: Boolean,
+    default: false
   }
 })
 
-defineEmits(['use'])
+const emit = defineEmits(['use', 'open'])
 
 const router = useRouter()
 const { requireAuthOrPrompt } = useDemoMode()
@@ -156,6 +165,14 @@ function openHero(userId) {
   if (!userId) return
   if (!requireAuthOrPrompt()) return
   router.push(`/heroes/${userId}`)
+}
+
+function handleCardClick() {
+  if (props.inUse) {
+    emit('open', props.template)
+    return
+  }
+  emit('use', props.template)
 }
 </script>
 
@@ -392,6 +409,14 @@ function openHero(userId) {
   font-size: 0.9rem;
   font-weight: 700;
   color: #ffffff;
+}
+
+.in-use-label {
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: rgba(79, 209, 197, 0.92);
+  white-space: nowrap;
 }
 
 .use-template-btn {

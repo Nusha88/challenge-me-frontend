@@ -86,6 +86,7 @@
 
         <HomeEmptyState
           v-else-if="variant === 'today'"
+          compact-on-mobile
           :image-src="treasureImage"
           :image-alt="t('home.loggedIn.treasureAlt')"
           :text="t('home.loggedIn.emptyMissions.text')"

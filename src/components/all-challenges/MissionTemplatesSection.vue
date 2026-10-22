@@ -33,7 +33,9 @@
             :template="template"
             :is-weekly-ritual="isWeeklyRitual(template.id)"
             :participants="getParticipants(template.id)"
-            @use="launchTemplate"
+            :in-use="isTemplateInUse(template.id)"
+            @use="handleUseTemplate"
+            @open="openActiveTemplate"
           />
         </div>
       </div>
@@ -60,11 +62,28 @@ import { getMissionTemplates } from '../../constants/missionTemplates'
 import { useWeeklyRitualStore } from '../../stores/weeklyRitual'
 import { useMissionTemplateLaunch } from '../../composables/useMissionTemplateLaunch'
 import { useTemplateParticipants } from '../../composables/useTemplateParticipants'
+import { useActiveTemplateMissions } from '../../composables/useActiveTemplateMissions'
+import { openMissionDetails } from '../../utils/openMissionDetails'
 
 const { t } = useI18n()
 const { isWeeklyRitual } = useWeeklyRitualStore()
 const { launchTemplate } = useMissionTemplateLaunch()
 const { getParticipants } = useTemplateParticipants()
+const { isTemplateInUse, getActiveChallenge } = useActiveTemplateMissions()
+
+function openActiveTemplate(template) {
+  const challenge = getActiveChallenge(template?.id)
+  if (!challenge) return
+  openMissionDetails({ challenge })
+}
+
+function handleUseTemplate(template) {
+  if (isTemplateInUse(template?.id)) {
+    openActiveTemplate(template)
+    return
+  }
+  launchTemplate(template)
+}
 
 const templates = computed(() => getMissionTemplates())
 

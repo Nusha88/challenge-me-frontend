@@ -4,6 +4,35 @@ import { useUserStore } from '../stores/user'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 import { getMissionShareUrl } from '../utils/appUrl'
 
+const MAX_INVITE_AVATARS = 5
+
+function mapInviteParticipants(challenge) {
+  const list = Array.isArray(challenge?.participants) ? challenge.participants : []
+  const unique = []
+  const seen = new Set()
+
+  for (const participant of list) {
+    const user = participant?.userId && typeof participant.userId === 'object'
+      ? participant.userId
+      : participant
+    const id = String(user?._id || user?.id || participant?._id || participant?.id || '')
+    if (!id || seen.has(id)) continue
+    seen.add(id)
+    const name = String(user?.name || participant?.name || '').trim()
+    unique.push({
+      id,
+      name,
+      avatarUrl: user?.avatarUrl || participant?.avatarUrl || '',
+      initial: name.charAt(0).toUpperCase() || '?'
+    })
+  }
+
+  return {
+    participantsPreview: unique.slice(0, MAX_INVITE_AVATARS),
+    participantsRemaining: Math.max(0, unique.length - MAX_INVITE_AVATARS)
+  }
+}
+
 /**
  * Builds the invite poster field bag from challenge + progress context.
  */
@@ -49,6 +78,7 @@ export function buildMissionInviteCardData({
 
   const name = inviterName || ''
   const initial = name ? name.trim().charAt(0).toUpperCase() : '?'
+  const { participantsPreview, participantsRemaining } = mapInviteParticipants(challenge)
 
   return {
     challengeId: challenge._id,
@@ -60,6 +90,8 @@ export function buildMissionInviteCardData({
     joinHook: t('challenges.inviteCard.joinMe'),
     statusLine,
     participantsLine,
+    participantsPreview,
+    participantsRemaining,
     ctaLabel: t('challenges.inviteCard.cta'),
     dialogTitle: isQuest
       ? t('challenges.inviteCard.questDialogTitle')

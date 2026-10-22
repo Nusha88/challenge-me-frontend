@@ -15,27 +15,15 @@
         @click.stop="$emit('edit')"
       />
 
-      <v-menu v-if="!isFinished" location="bottom end">
-        <template #activator="{ props: menuProps }">
-          <v-btn
-            variant="text"
-            size="small"
-            v-bind="menuProps"
-            class="action-btn"
-            icon="mdi-share-variant"
-          />
-        </template>
-        <v-list class="share-menu-list" bg-color="#161b28">
-          <v-list-item base-color="#f1f5f9" @click="$emit('copy-link')">
-            <template #prepend><v-icon size="18" color="#4FD1C5">mdi-link</v-icon></template>
-            <v-list-item-title class="share-menu-title">{{ t('challenges.share.copyLink') }}</v-list-item-title>
-          </v-list-item>
-          <v-list-item v-if="canInviteFriends" base-color="#f1f5f9" @click="$emit('invite')">
-            <template #prepend><v-icon size="18" color="#4FD1C5">mdi-account-multiple-plus</v-icon></template>
-            <v-list-item-title class="share-menu-title">{{ t('challenges.share.inviteFriends') }}</v-list-item-title>
-          </v-list-item>
-        </v-list>
-      </v-menu>
+      <v-btn
+        v-if="canInviteFriends && !isFinished"
+        icon="mdi-share-variant"
+        variant="text"
+        size="small"
+        class="action-btn"
+        :aria-label="t('challenges.share.share')"
+        @click.stop="$emit('invite')"
+      />
 
       <v-btn
         icon="mdi-close"
@@ -89,7 +77,7 @@ const props = defineProps({
   endLabel: { type: String, default: '' }
 })
 
-defineEmits(['edit', 'copy-link', 'invite', 'close'])
+defineEmits(['edit', 'invite', 'close'])
 
 const { t } = useI18n()
 const isHabit = computed(() => props.challenge.challengeType === CHALLENGE_TYPES.HABIT)
@@ -131,13 +119,5 @@ const isHabit = computed(() => props.challenge.challengeType === CHALLENGE_TYPES
 .chip-result {
   background-color: rgba(251, 191, 36, 0.9) !important;
   color: #0b0d12 !important;
-}
-
-.share-menu-list {
-  background: #161b28 !important;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-.share-menu-title {
-  color: #f1f5f9 !important;
 }
 </style>

@@ -330,7 +330,7 @@
       "treasureAlt": "Сундук с сокровищами ждёт первую миссию",
       "tomorrowArtAlt": "Ракета готова к планам на завтра",
       "emptyMissions": {
-        "text": "Твой путь ещё не определён. Запусти первую миссию, чтобы открыть сокровища опыта.",
+        "text": "Запусти первую миссию — за опыт и ранг.",
         "launchFirstMission": "Запустить первую миссию",
         "explore": "Смотреть примеры"
       },
@@ -351,7 +351,8 @@
       "dailyChecklist": {
         "title": "Шаги дня",
         "empty": "Запиши свое первое маленькое действие на сегодня, чтобы задать темп!",
-        "addStepPlaceholder": "Введите шаг...",
+        "firstStepPlaceholder": "Первый шаг на сегодня…",
+        "addStepPlaceholder": "Ещё шаг…",
         "addStep": "Добавить шаг",
         "deleteStep": "Удалить шаг",
         "markComplete": "Отметить как выполненное",
@@ -379,10 +380,13 @@
         "stepsCompleted": "Шагов выполнено",
         "dayStreak": "день подряд | дня подряд | дней подряд",
         "tagline": "Появляйся. Прокачивайся.",
-        "completedTasksSummary": "Выполнено задач: {count}"
+        "completedTasksSummary": "Выполнено задач: {count}",
+        "summaryLine": "Миссии и шаги сегодня: {done} / {total}",
+        "rankLine": "Ранг {rank}: {title}"
       },
       "generateCompletionImage": "Создать изображение",
       "shareTriumph": "Поделиться триумфом",
+      "progressRemaining": "Осталось {count}",
       "completionDialog": {
         "title": "Поздравляем!",
         "message": "Вы выполнили все ежедневные миссии! Создайте карточку победы, чтобы отпраздновать.",
@@ -927,6 +931,7 @@
     "questActionError": "Не удалось выполнить шаг",
     "updateError": "Не удалось обновить миссию",
     "completedDaysProgress": "Выполнено {done}/{total} дней ({rate}%)",
+    "dailyRewardHint": "Сегодня: +{xp} XP · {sparks} искры",
     "pace": {
       "descriptions": {
         "firstSteps": "Делает первые шаги",
@@ -1085,6 +1090,7 @@
       "title": "Шаблоны миссий",
       "systemAuthor": "Системный",
       "use": "Использовать",
+      "inUse": "Уже в игре",
       "durationDays": "{days} дн.",
       "weeklyRitualBadge": "🔥 Ритуал недели",
       "participants": "Участники ритуала",

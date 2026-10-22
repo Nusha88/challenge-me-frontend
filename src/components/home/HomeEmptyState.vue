@@ -1,5 +1,5 @@
 <template>
-  <div class="home-empty-state">
+  <div class="home-empty-state" :class="{ 'is-compact-mobile': compactOnMobile }">
     <img
       v-if="imageSrc"
       :src="imageSrc"
@@ -47,7 +47,8 @@ defineProps({
   primaryTo: { type: String, default: '' },
   secondaryLabel: { type: String, default: '' },
   secondaryTo: { type: String, default: '' },
-  actionLabel: { type: String, default: '' }
+  actionLabel: { type: String, default: '' },
+  compactOnMobile: { type: Boolean, default: false }
 })
 
 defineEmits(['action'])
@@ -125,5 +126,41 @@ defineEmits(['action'])
 .home-empty-secondary:hover {
   border-color: var(--home-border-hi, rgba(79, 209, 197, 0.38));
   color: #fff;
+}
+
+@media (max-width: 959px) {
+  .is-compact-mobile {
+    gap: 10px;
+    padding: 4px 0 48px;
+  }
+
+  .is-compact-mobile .home-empty-art {
+    display: none;
+  }
+
+  .is-compact-mobile .home-empty-text {
+    font-size: 0.85rem;
+    line-height: 1.4;
+  }
+
+  .is-compact-mobile .home-empty-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    width: 100%;
+    max-width: 280px;
+  }
+
+  .is-compact-mobile .home-empty-secondary {
+    min-height: auto;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.62);
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
 }
 </style>

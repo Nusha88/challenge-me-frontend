@@ -26,7 +26,6 @@
         :start-label="formatDisplayDate(challenge.startDate)"
         :end-label="formatDisplayDate(challenge.endDate)"
         @edit="openEditPage"
-        @copy-link="copyLink"
         @invite="openInviteCardDialog"
         @close="handleVisibility(false)"
       />
@@ -78,15 +77,26 @@
                       </div>
                     </div>
                     <h3 v-else class="section-title">{{ t('challenges.progress') }}</h3>
-                    <v-chip
+                    <div
                       v-if="!isFinished && currentDayText"
-                      size="small"
-                      variant="outlined"
-                      color="#4FD1C5"
-                      class="progress-days-chip flex-shrink-0"
+                      class="progress-days-block flex-shrink-0"
                     >
-                      {{ currentDayText }}
-                    </v-chip>
+                      <v-chip
+                        size="small"
+                        variant="outlined"
+                        color="#4FD1C5"
+                        class="progress-days-chip"
+                      >
+                        {{ currentDayText }}
+                      </v-chip>
+                      <v-progress-linear
+                        :model-value="overallCompletionPercent"
+                        color="#4FD1C5"
+                        height="4"
+                        rounded
+                        class="progress-days-bar"
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -130,12 +140,15 @@
                   </div>
                 </div>
 
-                <div v-if="!isFinished" class="calendar-legend mt-8">
-                  <div class="legend-item"><span class="dot completed"></span> {{ t('challenges.completed') }}</div>
-                  <div class="legend-item"><span class="dot protected"></span> {{ t('sparks.rituals.protectedBadge') }}</div>
-                  <div class="legend-item"><span class="dot missed"></span> {{ t('challenges.missed') }}</div>
-                  <div class="legend-item"><span class="dot today"></span> {{ t('challenges.today') }}</div>
-                </div>
+                <p
+                  v-if="showDailyRewardHint"
+                  class="daily-reward-hint"
+                >
+                  {{ t('challenges.dailyRewardHint', {
+                    xp: HABIT_DAY_XP_DISPLAY,
+                    sparks: HABIT_DAY_SPARKS_DISPLAY
+                  }) }}
+                </p>
               </template>
 
               <template v-else>
@@ -311,40 +324,6 @@
           <v-btn v-if="showLeaveButtonEffective" color="#ff5252" variant="text" @click="openLeaveConfirm">
             {{ t('challenges.giveUp') }}
           </v-btn>
-
-          <div
-            v-if="showReactionControls"
-            class="reaction-controls d-flex align-center ga-3"
-            role="group"
-            :aria-label="t('challenges.reactions')"
-          >
-            <v-btn
-              class="reaction-btn"
-              variant="text"
-              size="small"
-              :color="userReaction === 'like' ? '#4FD1C5' : 'rgba(255,255,255,0.55)'"
-              :disabled="isOwner || reactionLoading"
-              :aria-label="`${t('challenges.like')}${likesCount ? `, ${likesCount}` : ''}`"
-              :aria-pressed="userReaction === 'like'"
-              @click="handleLike"
-            >
-              <v-icon size="18">{{ userReaction === 'like' ? 'mdi-thumb-up' : 'mdi-thumb-up-outline' }}</v-icon>
-              <span v-if="likesCount > 0" class="reaction-count">{{ likesCount }}</span>
-            </v-btn>
-            <v-btn
-              class="reaction-btn"
-              variant="text"
-              size="small"
-              :color="userReaction === 'dislike' ? '#4FD1C5' : 'rgba(255,255,255,0.55)'"
-              :disabled="isOwner || reactionLoading"
-              :aria-label="`${t('challenges.dislike')}${dislikesCount ? `, ${dislikesCount}` : ''}`"
-              :aria-pressed="userReaction === 'dislike'"
-              @click="handleDislike"
-            >
-              <v-icon size="18">{{ userReaction === 'dislike' ? 'mdi-thumb-down' : 'mdi-thumb-down-outline' }}</v-icon>
-              <span v-if="dislikesCount > 0" class="reaction-count">{{ dislikesCount }}</span>
-            </v-btn>
-          </div>
         </div>
 
         <v-spacer></v-spacer>
@@ -366,22 +345,6 @@
               <v-icon size="18">{{ isWatched ? 'mdi-eye-off' : 'mdi-eye' }}</v-icon>
               <span class="watch-action-btn__label">{{ isWatched ? t('challenges.unwatch') : t('challenges.watch') }}</span>
             </v-btn>
-
-            <div
-              v-else
-              class="watchers-count d-flex align-center"
-              :title="t('challenges.watchersCount')"
-              :aria-label="t('challenges.watchersCountLabel', { count: watchersCount })"
-            >
-              <v-icon
-                v-if="isCurrentUserParticipant"
-                size="18"
-                color="rgba(255,255,255,0.45)"
-              >
-                mdi-eye
-              </v-icon>
-              <span class="watchers-count__value">{{ watchersCount }}</span>
-            </div>
 
             <v-btn
               v-if="showEndMissionButton"
@@ -406,22 +369,6 @@
               {{ mainActionButtonText }}
             </v-btn>
           </template>
-
-          <div
-            v-else
-            class="watchers-count d-flex align-center"
-            :title="t('challenges.watchersCount')"
-            :aria-label="t('challenges.watchersCountLabel', { count: watchersCount })"
-          >
-            <v-icon
-              v-if="isCurrentUserParticipant"
-              size="18"
-              color="rgba(255,255,255,0.45)"
-            >
-              mdi-eye
-            </v-icon>
-            <span class="watchers-count__value">{{ watchersCount }}</span>
-          </div>
         </div>
       </v-card-actions>
 
@@ -729,35 +676,6 @@
   min-width: 0;
   flex-wrap: wrap;
 }
-.reaction-controls {
-  flex-shrink: 0;
-}
-.reaction-btn {
-  min-width: 0 !important;
-  padding: 0 6px !important;
-  letter-spacing: 0 !important;
-  text-transform: none !important;
-  font-weight: 600 !important;
-  gap: 6px;
-}
-.reaction-count {
-  font-variant-numeric: tabular-nums;
-  font-size: 0.85rem;
-  margin-inline-start: 2px;
-}
-.watchers-count {
-  gap: 6px;
-  color: rgba(255, 255, 255, 0.45);
-  font-size: 0.85rem;
-  font-variant-numeric: tabular-nums;
-  user-select: none;
-  flex-shrink: 0;
-}
-.watchers-count__value {
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-}
 .watch-action-btn {
   gap: 0 !important;
 }
@@ -892,8 +810,28 @@
   opacity: 0.95;
 }
 
-.progress-days-chip {
+.progress-days-block {
   margin-inline-start: auto;
+  min-width: 168px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.progress-days-chip {
+  justify-content: center;
+}
+
+.progress-days-bar {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.daily-reward-hint {
+  margin: 16px 0 0;
+  font-size: 0.85rem;
+  font-weight: 650;
+  color: rgba(255, 255, 255, 0.68);
 }
 
 .description-text {
@@ -903,57 +841,15 @@
   color: rgba(255, 255, 255, 0.85);
 }
 
-.calendar-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin-top: 24px;
-  justify-content: flex-start;
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-
-.dot {
-  width: 14px;
-  height: 14px;
-  border-radius: 4px; 
-  border: 1px solid transparent;
-  transition: all 0.3s ease;
-}
-
-
-.dot.completed {
-  background: rgba(79, 209, 197, 0.1) !important;
-  border: 1px solid #4FD1C5 !important;
-  box-shadow: 0 0 8px rgba(79, 209, 197, 0.3);
-}
-
-.dot.protected {
-  background-color: rgba(255, 193, 7, 0.1) !important;
-  border-color: rgba(255, 193, 7, 0.5) !important;
-}
-
-.dot.missed {
-  background: rgba(255, 255, 255, 0.02) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-}
-
-.dot.today {
-  background: rgba(244, 167, 130, 0.05) !important;
-  border: 1px solid #F4A782 !important;
-  box-shadow: 0 0 10px rgba(244, 167, 130, 0.4);
-}
-
 .day-cell.is-missed:not(.is-completed):not(.protected-day):not(.is-pre-join) {
-  background: rgba(255, 255, 255, 0.02) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background: rgba(255, 82, 82, 0.06) !important;
+  border: 1px solid rgba(255, 82, 82, 0.28) !important;
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.day-cell.is-missed:not(.is-completed):not(.protected-day) .day-number {
+  text-decoration: line-through;
+  opacity: 0.75;
 }
 
 .day-cell.is-pre-join {
@@ -982,12 +878,6 @@
   filter: drop-shadow(0 0 3px rgba(76, 175, 80, 0.6));
   z-index: 2;
 }
-.legend-item {
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: 600;
-  font-size: 0.7rem;
-}
 
 .leave-confirm-card {
   background: #0f172a !important;
@@ -1013,6 +903,11 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
+  }
+
+  .progress-days-block {
+    margin-inline-start: 0;
+    width: 100%;
   }
 
   .progress-header-row .section-title {
@@ -1066,17 +961,9 @@
     gap: 10px;
   }
 
-  .footer-actions-wrapper .watchers-count {
-    align-self: flex-start;
-  }
-
   .modal-footer .footer-actions-wrapper > .v-btn {
     width: 100%;
     justify-content: center;
-  }
-
-  .modal-footer .reaction-btn {
-    width: auto !important;
   }
 }
 </style>
@@ -1103,7 +990,6 @@ import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
 import { useMissionCompletionFlow } from '../composables/useMissionCompletionFlow'
 import { useMissionInvite } from '../composables/useMissionInvite'
 import { createEmptyTriumphSharePayload, assignTriumphSharePayload, buildQuestStepPayload } from '../utils/triumphSharePayload'
-import { getMissionShareUrl } from '../utils/appUrl'
 import { openMissionDetails } from '../utils/openMissionDetails'
 import { fireConfettiFromElement } from '../utils/confetti'
 import { getPaceStatus } from '../utils/challengePace'
@@ -1120,10 +1006,10 @@ import {
   shouldTriggerHabitMissionCompletion
 } from '../utils/missionParticipation'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
+import { HABIT_DAY_XP_DISPLAY, HABIT_DAY_SPARKS_DISPLAY } from '../constants/rewardDisplay'
 import { getLevelFromXp, getLevelInfo } from '../utils/levelSystem'
 import { Trophy } from 'lucide-vue-next'
 import { useChallengeDetailsMembership } from '../composables/useChallengeDetailsMembership'
-import { useChallengeReaction } from '../composables/useChallengeReaction'
 import { buildDayClass, isDayProtected as isDayProtectedUtil } from '../composables/useChallengeDetailsCalendar'
 import { createPendingQuestAction } from '../composables/useChallengeQuestPanel'
 
@@ -1697,6 +1583,12 @@ const showPersonalPace = computed(
   () => !!paceStatus.value && (props.isOwner || isCurrentUserParticipant.value)
 )
 
+const showDailyRewardHint = computed(() => {
+  if (!props.challenge || isFinished.value) return false
+  if (props.challenge.challengeType !== CHALLENGE_TYPES.HABIT) return false
+  return props.isOwner || isCurrentUserParticipant.value
+})
+
 const currentDayText = computed(() => {
   if (!props.challenge || !props.challenge.startDate) return ''
   const start = new Date(props.challenge.startDate)
@@ -1829,7 +1721,7 @@ function isDayProtected(day) {
 
 function getDayCellStyle(day) {
   if (day.isLocked || day.isScheduled === false) return undefined
-  if (isDayProtected(day)) return undefined
+  if (isDayProtected(day) || day.isMissed) return undefined
   const total = totalParticipantsCount.value
   if (total <= 0) return undefined
   const bg = getCellColor(day.completedParticipantsCount, total)
@@ -1842,12 +1734,19 @@ function getDayCellTooltip(day) {
   }
   if (day.isBeforeJoin) return ''
 
+  const parts = []
+  if (isDayProtected(day)) {
+    parts.push(t('sparks.rituals.protectedBadge'))
+  }
+
   const total = totalParticipantsCount.value
-  if (total <= 0 || day.isScheduled === false) return ''
-  return t('challenges.calendarDayHeroesActive', {
-    active: day.completedParticipantsCount,
-    total
-  })
+  if (total > 0 && day.isScheduled !== false) {
+    parts.push(t('challenges.calendarDayHeroesActive', {
+      active: day.completedParticipantsCount,
+      total
+    }))
+  }
+  return parts.join(' · ')
 }
 
 function getDayClass(day) {
@@ -2032,22 +1931,6 @@ const {
   t,
   onClose: () => emit('update:modelValue', false),
   onUpdate: () => emit('update'),
-  onError: (msg) => showFeedback(msg)
-})
-
-const {
-  likesCount,
-  dislikesCount,
-  userReaction,
-  reactionLoading,
-  showReactionControls,
-  handleLike,
-  handleDislike
-} = useChallengeReaction({
-  challenge: computed(() => props.challenge),
-  isOwner: computed(() => props.isOwner),
-  currentUserId,
-  t,
   onError: (msg) => showFeedback(msg)
 })
 
@@ -2643,29 +2526,6 @@ async function handleParticipantSave() {
     showFeedback(error.response?.data?.message || t('challenges.endMissionError'))
   } finally {
     participantSaveLoading.value = false
-  }
-}
-
-
-const getShareUrl = () => getMissionShareUrl(props.challenge?._id)
-
-const copyLink = async () => {
-  const url = getShareUrl()
-  try {
-    await navigator.clipboard.writeText(url)
-    showFeedback(t('challenges.share.linkCopied'), 'success')
-  } catch (err) {
-    const textArea = document.createElement('textarea')
-    textArea.value = url
-    document.body.appendChild(textArea)
-    textArea.select()
-    try {
-      document.execCommand('copy')
-      showFeedback(t('challenges.share.linkCopied'), 'success')
-    } catch (e) {
-      showFeedback(t('challenges.share.copyFailed'))
-    }
-    document.body.removeChild(textArea)
   }
 }
 </script>

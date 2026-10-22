@@ -3,14 +3,20 @@
   <div
     v-else-if="visible"
     class="home-progress home-glass-card"
+    :class="{ 'home-progress--conquered': canShare }"
     role="group"
     :aria-label="progressLabel"
   >
-    <div class="progress-header">
+    <p v-if="canShare" class="conquered-title">
+      {{ t('home.loggedIn.completionDialog.conqueredTitle') }}
+    </p>
+
+    <div class="progress-header" :class="{ 'progress-header--quiet': canShare }">
       <span class="level-badge">
+        <v-icon v-if="canShare" size="16" class="done-icon">mdi-check-circle-outline</v-icon>
         {{ completedItems }} / {{ totalItems }} {{ t('home.loggedIn.dailyChecklist.completed') }}
       </span>
-      <span class="level-badge">{{ percentage }}%</span>
+      <span class="level-badge">{{ statusLabel }}</span>
     </div>
 
     <div
@@ -29,15 +35,19 @@
     </div>
 
     <v-fade-transition>
-      <v-btn
-        v-if="canShare"
-        variant="outlined"
-        class="share-triumph-btn"
-        prepend-icon="mdi-share-variant"
-        @click="$emit('share')"
-      >
-        {{ t('home.loggedIn.shareTriumph') }}
-      </v-btn>
+      <div v-if="canShare" class="share-cta">
+        <v-btn
+          class="share-triumph-btn"
+          variant="flat"
+          prepend-icon="mdi-share-variant"
+          @click="$emit('share')"
+        >
+          {{ t('home.loggedIn.shareTriumph') }}
+        </v-btn>
+        <p class="share-hint">
+          {{ t('home.loggedIn.completionDialog.sparksHint') }}
+        </p>
+      </div>
     </v-fade-transition>
   </div>
 </template>
@@ -61,8 +71,15 @@ defineEmits(['share'])
 
 const { t } = useI18n()
 
+const remainingCount = computed(() => Math.max(0, props.totalItems - props.completedItems))
+
+const statusLabel = computed(() => {
+  if (props.canShare) return `${props.percentage}%`
+  return t('home.loggedIn.progressRemaining', { count: remainingCount.value })
+})
+
 const progressLabel = computed(() => {
-  return `${props.completedItems} / ${props.totalItems} · ${props.percentage}%`
+  return `${props.completedItems} / ${props.totalItems} · ${statusLabel.value}`
 })
 </script>
 
@@ -76,6 +93,23 @@ const progressLabel = computed(() => {
   margin-bottom: 1.25rem;
 }
 
+.home-progress--conquered {
+  box-shadow:
+    0 0 0 1px rgba(79, 209, 197, 0.28),
+    0 0 28px rgba(126, 70, 196, 0.28);
+}
+
+.conquered-title {
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', 'Montserrat', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff;
+  text-shadow: 0 0 16px rgba(79, 209, 197, 0.28);
+}
+
 .progress-header {
   display: flex;
   justify-content: space-between;
@@ -83,10 +117,22 @@ const progressLabel = computed(() => {
   gap: 12px;
 }
 
+.progress-header--quiet .level-badge {
+  font-size: 0.88rem;
+  color: rgba(241, 245, 249, 0.72);
+}
+
 .level-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-weight: 800;
   color: var(--home-text, #f1f5f9);
   font-size: 1.05rem;
+}
+
+.done-icon {
+  color: var(--home-teal, #4fd1c5);
 }
 
 .progress-track {
@@ -133,23 +179,34 @@ const progressLabel = computed(() => {
   }
 }
 
+.share-cta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .share-triumph-btn {
-  border: 1px solid rgba(79, 209, 197, 0.35) !important;
-  background: rgba(26, 26, 46, 0.35) !important;
-  color: rgba(255, 255, 255, 0.88) !important;
+  background: linear-gradient(90deg, #7e46c4 0%, #4fd1c5 100%) !important;
+  color: #fff !important;
   border-radius: 12px !important;
   text-transform: none !important;
-  font-size: 0.9rem !important;
-  font-weight: 600 !important;
-  width: fit-content;
-  align-self: flex-start;
+  font-size: 0.95rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.02em;
+  width: 100%;
+  box-shadow: 0 8px 20px rgba(126, 70, 196, 0.28);
 }
 
 .share-triumph-btn:hover {
-  background: rgba(79, 209, 197, 0.14) !important;
-  border-color: var(--home-teal, #4fd1c5) !important;
-  color: #fff !important;
-  box-shadow: var(--home-glow-teal, 0 0 16px rgba(79, 209, 197, 0.28));
+  filter: brightness(1.06);
+}
+
+.share-hint {
+  margin: 0;
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(79, 209, 197, 0.9);
 }
 
 @media (prefers-reduced-motion: reduce) {
