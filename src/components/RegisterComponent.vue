@@ -42,6 +42,19 @@
             <p class="text-body-1 text-slate-400">{{ t('auth.registerSubtitle') }}</p>
           </div>
 
+          <SocialAuthButtons :referral-code="referralCode" @error="error = $event" />
+
+          <v-alert
+            v-if="error"
+            type="error"
+            icon="none"
+            class="mb-4 pl-0 pr-0 pt-0 pb-0 rounded-xs"
+            closable
+            @click:close="clearError"
+          >
+            {{ error }}
+          </v-alert>
+
           <v-form @submit.prevent="handleSubmit">
             <v-text-field
               v-model="formData.name"
@@ -92,17 +105,6 @@
                 />
               </template>
             </v-text-field>
-
-            <v-alert
-              v-if="error"
-              type="error"
-              icon="none"
-              class="mb-4 pl-0 pr-0 pt-0 pb-0 rounded-xs"
-              closable
-              @click:close="clearError"
-            >
-              {{ error }}
-            </v-alert>
 
             <v-btn
               type="submit"
@@ -157,6 +159,7 @@ import { togglePasswordVisibility } from '../composables/usePasswordFieldToggle'
 import { GOALS, reachGoal } from '../services/analytics'
 import { migrateDemoMissionsAfterRegister } from '../services/demoMigration'
 import SuccessDialog from './SuccessDialog.vue'
+import SocialAuthButtons from './auth/SocialAuthButtons.vue'
 import AuthBackLink from './layout/AuthBackLink.vue'
 import swardImage from '../assets/auth/auth-mark-256.webp'
 import registerBgImage from '../assets/auth/auth-bg-1248.webp'

@@ -21,7 +21,8 @@ const AUTH_PATHS = new Set([
   '/login',
   '/register',
   '/forgot-password',
-  '/reset-password'
+  '/reset-password',
+  '/auth/callback'
 ])
 
 function isSafeInAppPath(path) {

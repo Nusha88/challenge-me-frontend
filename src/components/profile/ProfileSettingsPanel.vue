@@ -5,6 +5,29 @@
       {{ t('profile.settings') }}
     </h3>
 
+    <div v-if="telegramAvailable || googleLinked || telegramLinked" class="setting-row setting-row--stack">
+      <div class="setting-copy">
+        <span class="setting-label">{{ t('profile.linkedAccounts') }}</span>
+        <span class="setting-hint">{{ t('profile.linkedAccountsHint') }}</span>
+      </div>
+      <div class="linked-accounts">
+        <span v-if="googleLinked" class="linked-chip">
+          <v-icon size="16">mdi-google</v-icon>
+          {{ t('profile.googleLinked') }}
+        </span>
+        <span v-if="telegramLinked" class="linked-chip">
+          <v-icon size="16">mdi-send</v-icon>
+          {{ t('profile.telegramLinked') }}
+        </span>
+        <SocialAuthButtons
+          v-if="telegramAvailable && !telegramLinked"
+          mode="link"
+          @linked="onTelegramLinked"
+          @error="linkError = $event"
+        />
+      </div>
+    </div>
+
     <div class="setting-row">
       <span class="setting-label">{{ t('navigation.language') }}</span>
       <v-menu location="bottom end">
@@ -136,6 +159,29 @@
     </div>
 
     <v-alert
+      v-if="linkError"
+      type="error"
+      variant="tonal"
+      density="compact"
+      class="mt-2"
+      closable
+      @click:close="linkError = ''"
+    >
+      {{ linkError }}
+    </v-alert>
+    <v-alert
+      v-if="linkSuccess"
+      type="success"
+      variant="tonal"
+      density="compact"
+      class="mt-2"
+      closable
+      @click:close="linkSuccess = ''"
+    >
+      {{ linkSuccess }}
+    </v-alert>
+
+    <v-alert
       v-for="alert in statusAlerts"
       :key="alert.key"
       :type="alert.type"
@@ -156,7 +202,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { SUPPORTED_LOCALES, setLocale } from '../../i18n'
-import { userService, pushService } from '../../services/api'
+import { userService, pushService, authService } from '../../services/api'
+import SocialAuthButtons from '../auth/SocialAuthButtons.vue'
 import {
   getNotificationPermission,
   requestAndSubscribeToPushNotifications,
@@ -189,6 +236,11 @@ const weeklyChronicleError = ref('')
 const weeklyChronicleSuccess = ref('')
 const installInstructionOpen = ref(false)
 const recapTimeInputRef = ref(null)
+const telegramAvailable = ref(false)
+const telegramLinked = ref(false)
+const googleLinked = ref(false)
+const linkError = ref('')
+const linkSuccess = ref('')
 
 function openRecapTimePicker() {
   if (dailyRecapSaving.value) return
@@ -444,11 +496,37 @@ async function handlePushNotificationsToggle(enabled) {
   }
 }
 
+function applyLinkedProviders(user) {
+  const providers = Array.isArray(user?.providers) ? user.providers : []
+  telegramLinked.value = providers.includes('telegram')
+  googleLinked.value = providers.includes('google')
+}
+
+function onTelegramLinked(user) {
+  applyLinkedProviders(user)
+  linkSuccess.value = t('profile.telegramLinkSuccess')
+  linkError.value = ''
+}
+
+async function loadLinkedAccounts() {
+  try {
+    const [{ data: providers }, profile] = await Promise.all([
+      authService.getProviders(),
+      userService.getProfile()
+    ])
+    telegramAvailable.value = Boolean(providers?.telegram)
+    applyLinkedProviders(profile.data.user)
+  } catch {
+    telegramAvailable.value = false
+  }
+}
+
 onMounted(() => {
   checkPushNotificationStatus()
   loadDailyRecapSettings()
   loadWeeklyChronicleSettings()
   syncPreferredLanguage()
+  loadLinkedAccounts()
 })
 </script>
 
@@ -481,6 +559,27 @@ onMounted(() => {
 
 .setting-row:last-of-type {
   border-bottom: none;
+}
+
+.setting-row--stack {
+  align-items: flex-start;
+  flex-direction: column;
+}
+
+.linked-accounts {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.linked-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #4FD1C5;
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 
 .setting-copy {

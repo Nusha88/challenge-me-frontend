@@ -42,6 +42,11 @@ const router = createRouter({
       component: () => import('../components/LoginComponent.vue')
     },
     {
+      path: '/auth/callback',
+      name: 'auth-callback',
+      component: () => import('../components/AuthCallback.vue')
+    },
+    {
       path: '/forgot-password',
       name: 'forgot-password',
       component: () => import('../components/ForgotPasswordComponent.vue')

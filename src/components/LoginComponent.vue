@@ -1,6 +1,6 @@
 
 <script setup>
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { authService } from '../services/api'
 import { useI18n } from 'vue-i18n'
@@ -11,6 +11,7 @@ import { GOALS, reachGoal } from '../services/analytics'
 import { discardDemoWithoutMigrate } from '../services/demoMigration'
 import SuccessDialog from './SuccessDialog.vue'
 import AuthBackLink from './layout/AuthBackLink.vue'
+import SocialAuthButtons from './auth/SocialAuthButtons.vue'
 import registerBgImage from '../assets/auth/auth-bg-1248.webp'
 import swardImage from '../assets/auth/auth-mark-256.webp'
 
@@ -25,6 +26,18 @@ const showPassword = ref(false)
 const passwordFieldRef = ref(null)
 const { t } = useI18n()
 
+const SOCIAL_QUERY_ERRORS = {
+  google: 'auth.socialFailed',
+  google_unavailable: 'auth.googleUnavailable',
+  disabled: 'auth.accountDisabled'
+}
+
+onMounted(() => {
+  const queryError = typeof route.query.error === 'string' ? route.query.error : ''
+  if (queryError) {
+    error.value = t(SOCIAL_QUERY_ERRORS[queryError] || 'auth.socialFailed')
+  }
+})
 
 const formData = ref({
   email: '',
@@ -162,6 +175,18 @@ function closeSuccessModal() {
             <p class="text-body-1 text-slate-400">{{ t('auth.loginSubtitle') }}</p>
           </div>
 
+          <SocialAuthButtons @error="error = $event" />
+
+          <v-alert
+              v-if="error"
+              type="error"
+              class="mb-4 rounded-xs"
+              closable
+              @click:close="clearError"
+          >
+            {{ error }}
+          </v-alert>
+
           <v-form @submit.prevent="handleLogin">
             <v-text-field
                 v-model="formData.email"
@@ -205,16 +230,6 @@ function closeSuccessModal() {
                 {{ t('auth.forgotPassword') }}
               </a>
             </div>
-
-            <v-alert
-              v-if="error"
-              type="error"
-              class="mb-4 rounded-xs"
-              closable
-              @click:close="clearError"
-            >
-              {{ error }}
-            </v-alert>
 
             <v-btn
                 type="submit"

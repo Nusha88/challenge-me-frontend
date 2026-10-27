@@ -40,9 +40,10 @@ const { mobile } = useDisplay()
 const firstDayQuestStore = useFirstDayQuestStore()
 
 const isAuthPage = computed(() => {
-  return ['login', 'register', 'forgot-password'].includes(route.name)
+  return ['login', 'register', 'forgot-password', 'auth-callback'].includes(route.name)
     || route.path === '/login'
     || route.path === '/register'
+    || route.path === '/auth/callback'
 })
 
 const isLoggedIn = computed(() => userStore.isLoggedIn)

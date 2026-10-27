@@ -111,12 +111,30 @@ api.interceptors.response.use(
 )
 
 // Auth service
+export function getApiBaseUrl() {
+  return apiBaseUrl
+}
+
 export const authService = {
   register: (userData) => {
     return api.post('/auth/register', userData)
   },
   login: (credentials) => {
     return api.post('/auth/login', credentials)
+  },
+  getProviders: () => {
+    return api.get('/auth/providers')
+  },
+  loginTelegram: (data) => {
+    return api.post('/auth/telegram', data)
+  },
+  googleStartUrl: (params = {}) => {
+    const search = new URLSearchParams()
+    if (params.referralCode) search.set('referralCode', params.referralCode)
+    if (params.redirect) search.set('redirect', params.redirect)
+    if (params.demo) search.set('demo', '1')
+    const query = search.toString()
+    return `${apiBaseUrl}/auth/google${query ? `?${query}` : ''}`
   },
   logout: () => {
     localStorage.removeItem('token')
