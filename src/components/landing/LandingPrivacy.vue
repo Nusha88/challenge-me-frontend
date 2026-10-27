@@ -6,7 +6,7 @@
         <h2 class="lp-h2">{{ t('home.landing.privacy.title') }}</h2>
       </header>
 
-      <div class="lp-grid lp-grid--2 privacy-grid">
+      <div class="lp-grid privacy-grid">
         <article v-spotlight class="lp-card lp-card--spotlight privacy-card privacy-card--public reveal reveal-1">
           <div class="privacy-head">
             <span class="lp-icon-tile">
@@ -18,7 +18,18 @@
           <p class="lp-card-text">{{ t('home.landing.privacy.publicText') }}</p>
         </article>
 
-        <article v-spotlight class="lp-card lp-card--spotlight privacy-card privacy-card--private reveal reveal-2">
+        <article v-spotlight class="lp-card lp-card--spotlight privacy-card privacy-card--squad reveal reveal-2">
+          <div class="privacy-head">
+            <span class="lp-icon-tile lp-icon-tile--gold">
+              <v-icon>mdi-account-group-outline</v-icon>
+            </span>
+            <span class="lp-chip privacy-chip-squad">{{ t('home.landing.privacy.squadChip') }}</span>
+          </div>
+          <h3 class="privacy-title">{{ t('home.landing.privacy.squadTitle') }}</h3>
+          <p class="lp-card-text">{{ t('home.landing.privacy.squadText') }}</p>
+        </article>
+
+        <article v-spotlight class="lp-card lp-card--spotlight privacy-card privacy-card--private reveal reveal-3">
           <div class="privacy-head">
             <span class="lp-icon-tile lp-icon-tile--purple">
               <v-icon>mdi-lock-outline</v-icon>
@@ -41,6 +52,16 @@ const { t } = useI18n()
 </script>
 
 <style scoped>
+.privacy-grid {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 800px) {
+  .privacy-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 .privacy-card {
   display: flex;
   flex-direction: column;
@@ -50,6 +71,12 @@ const { t } = useI18n()
 .privacy-card--public {
   background:
     radial-gradient(120% 100% at 0% 0%, rgba(79, 209, 197, 0.08), transparent 60%),
+    var(--lp-surface);
+}
+
+.privacy-card--squad {
+  background:
+    radial-gradient(120% 100% at 0% 0%, rgba(251, 191, 36, 0.1), transparent 60%),
     var(--lp-surface);
 }
 
@@ -69,6 +96,12 @@ const { t } = useI18n()
 
 .privacy-head .lp-icon-tile {
   margin-bottom: 0;
+}
+
+.privacy-chip-squad {
+  background: rgba(251, 191, 36, 0.12);
+  border-color: rgba(251, 191, 36, 0.32);
+  color: #fbbf24;
 }
 
 .privacy-chip-private {

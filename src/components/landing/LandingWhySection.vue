@@ -71,9 +71,7 @@ const { t } = useI18n()
 
 const insights = [
   { id: 'motivation', icon: 'mdi-lightning-bolt-outline', tone: '' },
-  { id: 'social', icon: 'mdi-bullhorn-outline', tone: 'lp-icon-tile--purple' },
-  { id: 'together', icon: 'mdi-account-group-outline', tone: '' },
-  { id: 'privacy', icon: 'mdi-shield-lock-outline', tone: 'lp-icon-tile--purple' },
+  { id: 'together', icon: 'mdi-account-group-outline', tone: 'lp-icon-tile--purple' },
   { id: 'scale', icon: 'mdi-stairs-up', tone: 'lp-icon-tile--gold' }
 ]
 
@@ -166,36 +164,9 @@ onBeforeUnmount(() => {
   padding: 0;
 }
 
-@media (min-width: 640px) {
+@media (min-width: 800px) {
   .why-track {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  /* Five cards over two columns would leave the last one half-width and orphaned. */
-  .why-card:last-child {
-    grid-column: 1 / -1;
-  }
-}
-
-/*
- * Three across, then the remaining two centred underneath. A six-column track
- * with two-column cards is what makes the second row line up under the first.
- */
-@media (min-width: 1000px) {
-  .why-track {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-  }
-
-  .why-card {
-    grid-column: span 2;
-  }
-
-  .why-card:nth-child(4) {
-    grid-column: 2 / span 2;
-  }
-
-  .why-card:nth-child(5) {
-    grid-column: 4 / span 2;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 

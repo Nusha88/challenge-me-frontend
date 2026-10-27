@@ -49,6 +49,16 @@
 
       <aside class="lp-card steps-card reveal reveal-3">
         <span class="lp-icon-tile lp-icon-tile--gold">
+          <v-icon>mdi-account-group-outline</v-icon>
+        </span>
+        <div>
+          <h3 class="lp-card-title">{{ t('home.landing.missions.squad.title') }}</h3>
+          <p class="lp-card-text">{{ t('home.landing.missions.squad.description') }}</p>
+        </div>
+      </aside>
+
+      <aside class="lp-card steps-card reveal reveal-4">
+        <span class="lp-icon-tile">
           <v-icon>mdi-checkbox-marked-circle-outline</v-icon>
         </span>
         <div>

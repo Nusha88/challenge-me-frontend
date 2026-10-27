@@ -14,7 +14,6 @@
         <p class="hero-subtitle">{{ t('home.landing.subtitle') }}</p>
 
         <div class="hero-actions">
-          <!-- No note here: the trust row below already carries the same reassurance. -->
           <LandingPrimaryCta position="hero">
             {{ t('home.landing.primaryCta') }}
           </LandingPrimaryCta>
@@ -26,9 +25,18 @@
             @click="startDemoFromLanding"
           >
             {{ t('home.landing.secondaryCta') }}
-            <v-icon end size="18">mdi-arrow-right</v-icon>
+            <v-icon end size="18">mdi-play-outline</v-icon>
           </v-btn>
         </div>
+
+        <router-link
+          :to="BROWSE_MISSIONS_ROUTE"
+          class="hero-browse"
+          @click="trackBrowse"
+        >
+          {{ t('home.landing.browseCta') }}
+          <v-icon size="16">mdi-arrow-right</v-icon>
+        </router-link>
 
         <ul class="hero-trust">
           <li v-for="item in trustItems" :key="item.icon" class="hero-trust-item">
@@ -39,23 +47,18 @@
       </div>
 
       <div class="hero-visual">
-        <picture>
-          <source
-            type="image/webp"
-            :srcset="`${heroWebp460} 460w, ${heroWebp900} 900w`"
-            sizes="(max-width: 960px) 240px, 420px"
-          />
+        <div class="hero-phone">
           <img
-            :src="heroJpg900"
+            :src="screenshot.src"
             :alt="t('home.landing.heroImageAlt')"
-            class="hero-artifact"
-            width="900"
-            height="900"
+            class="hero-screen"
+            :width="screenshot.width"
+            :height="screenshot.height"
             decoding="async"
             fetchpriority="high"
           />
-        </picture>
-        <span class="hero-artifact-glow" aria-hidden="true"></span>
+        </div>
+        <span class="hero-phone-glow" aria-hidden="true"></span>
       </div>
     </div>
   </section>
@@ -66,32 +69,37 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import LandingPrimaryCta from './LandingPrimaryCta.vue'
+import { BROWSE_MISSIONS_ROUTE } from './landingLinks'
 import { GOALS, reachGoal } from '../../services/analytics'
 import { useDemoMode } from '../../composables/useDemoMode'
+import screenRu from '../../assets/landing/screen-today-ru-420.webp'
+import screenEn from '../../assets/landing/screen-today-en-420.webp'
 
-/*
- * Served from public/ rather than imported, so index.html can preload the hero
- * during HTML parsing instead of waiting for the JS bundle to render this
- * component. Kept in sync by scripts/optimize-landing-assets.sh.
- */
-const heroWebp460 = '/landing/hero-460.webp'
-const heroWebp900 = '/landing/hero-900.webp'
-const heroJpg900 = '/landing/hero-900.jpg'
+const SCREENSHOTS = {
+  ru: { src: screenRu, width: 420, height: 799 },
+  en: { src: screenEn, width: 420, height: 823 }
+}
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const router = useRouter()
 const { startDemo } = useDemoMode()
 
+const screenshot = computed(() => SCREENSHOTS[locale.value] ?? SCREENSHOTS.en)
+
 const trustItems = computed(() => [
-  { icon: 'mdi-gift-outline', label: t('home.landing.trustFree') },
+  { icon: 'mdi-account-off-outline', label: t('home.landing.trustDemo') },
   { icon: 'mdi-cloud-check-outline', label: t('home.landing.trustNoDownload') },
   { icon: 'mdi-timer-sand', label: t('home.landing.trustFast') }
 ])
 
 function startDemoFromLanding() {
-  reachGoal(GOALS.LANDING_SECONDARY_CLICK, { position: 'hero' })
+  reachGoal(GOALS.LANDING_SECONDARY_CLICK, { position: 'hero', action: 'demo' })
   startDemo()
   router.push('/today')
+}
+
+function trackBrowse() {
+  reachGoal(GOALS.LANDING_SECONDARY_CLICK, { position: 'hero', action: 'browse' })
 }
 </script>
 
@@ -150,7 +158,7 @@ function startDemoFromLanding() {
   font-size: clamp(0.95rem, 1.7vw, 1.14rem);
   line-height: 1.65;
   color: var(--lp-text-dim);
-  max-width: 58ch;
+  max-width: 42ch;
   margin: 0 0 30px;
   text-wrap: pretty;
 }
@@ -160,7 +168,7 @@ function startDemoFromLanding() {
   align-items: flex-start;
   gap: 16px;
   flex-wrap: wrap;
-  margin-bottom: 26px;
+  margin-bottom: 14px;
 }
 
 .hero-secondary {
@@ -177,6 +185,26 @@ function startDemoFromLanding() {
 .hero-secondary:hover {
   border-color: var(--lp-border-hi) !important;
   background: rgba(79, 209, 197, 0.07);
+}
+
+.hero-browse {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 26px;
+  color: var(--lp-teal);
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+  letter-spacing: 0.01em;
+}
+
+.hero-browse:hover {
+  color: #7ee8dd;
+}
+
+.hero-browse .v-icon {
+  color: inherit !important;
 }
 
 .hero-trust {
@@ -208,28 +236,28 @@ function startDemoFromLanding() {
   align-items: center;
 }
 
-.hero-artifact {
+.hero-phone {
   position: relative;
   z-index: 1;
+  width: min(280px, 100%);
+  padding: 8px;
+  border-radius: 34px;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.03));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 26px 60px rgba(0, 0, 0, 0.55);
+}
+
+.hero-screen {
   display: block;
   width: 100%;
-  max-width: 420px;
   height: auto;
-  filter: drop-shadow(0 0 34px rgba(79, 209, 197, 0.28)) contrast(1.08);
-  -webkit-mask-image: radial-gradient(circle, #000 42%, transparent 78%);
-  mask-image: radial-gradient(circle, #000 42%, transparent 78%);
-  animation: hero-float 7s ease-in-out infinite;
+  border-radius: 26px;
 }
 
-@keyframes hero-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-18px); }
-}
-
-.hero-artifact-glow {
+.hero-phone-glow {
   position: absolute;
-  width: 62%;
-  aspect-ratio: 1;
+  width: 70%;
+  height: 70%;
   border-radius: 50%;
   background: radial-gradient(circle, rgba(112, 72, 232, 0.28), transparent 68%);
   filter: blur(46px);
@@ -242,14 +270,6 @@ function startDemoFromLanding() {
     text-align: center;
   }
 
-  .hero-copy {
-    order: 2;
-  }
-
-  .hero-visual {
-    order: 1;
-  }
-
   .hero-subtitle {
     margin-inline: auto;
   }
@@ -259,17 +279,13 @@ function startDemoFromLanding() {
     justify-content: center;
   }
 
-  .hero-artifact {
-    max-width: 240px;
+  .hero-phone {
+    width: min(200px, 58vw);
   }
 }
 
 @media (max-width: 600px) {
-  /* Keeps the primary CTA above the fold on short phones. */
-  .hero-artifact {
-    max-width: 176px;
-  }
-
+  /* Copy first so the primary CTA stays above the fold on short phones. */
   .hero-actions {
     flex-direction: column;
     align-items: stretch;
@@ -282,10 +298,21 @@ function startDemoFromLanding() {
 
   .hero-trust {
     gap: 6px 14px;
+    justify-content: center;
   }
 
   .hero-trust-item {
     font-size: 0.75rem;
+  }
+
+  .hero-phone {
+    width: min(168px, 46vw);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-badge-dot {
+    animation: none;
   }
 }
 </style>

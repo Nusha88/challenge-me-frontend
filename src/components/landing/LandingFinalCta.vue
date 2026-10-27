@@ -11,6 +11,10 @@
         <LandingPrimaryCta position="final" :note="t('home.landing.finalCta.note')">
           {{ t('home.landing.finalCta.button') }}
         </LandingPrimaryCta>
+
+        <button type="button" class="final-cta-demo" @click="startDemoFromLanding">
+          {{ t('home.landing.secondaryCta') }}
+        </button>
       </div>
     </div>
   </section>
@@ -18,9 +22,20 @@
 
 <script setup>
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import LandingPrimaryCta from './LandingPrimaryCta.vue'
+import { GOALS, reachGoal } from '../../services/analytics'
+import { useDemoMode } from '../../composables/useDemoMode'
 
 const { t } = useI18n()
+const router = useRouter()
+const { startDemo } = useDemoMode()
+
+function startDemoFromLanding() {
+  reachGoal(GOALS.LANDING_SECONDARY_CLICK, { position: 'final', action: 'demo' })
+  startDemo()
+  router.push('/today')
+}
 </script>
 
 <style scoped>
@@ -70,5 +85,21 @@ const { t } = useI18n()
   margin: 0 0 28px;
   max-width: 48ch;
   text-wrap: pretty;
+}
+
+.final-cta-demo {
+  position: relative;
+  margin-top: 14px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--lp-teal);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.final-cta-demo:hover {
+  color: #7ee8dd;
 }
 </style>

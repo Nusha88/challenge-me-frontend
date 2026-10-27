@@ -25,8 +25,8 @@
         <span class="proof-divider" aria-hidden="true"></span>
 
         <div class="proof-item proof-item--qualitative">
-          <v-icon size="20" class="proof-icon">mdi-flask-outline</v-icon>
-          <span class="proof-label">{{ t('home.landing.proof.betaLabel') }}</span>
+          <v-icon size="20" class="proof-icon">mdi-account-group-outline</v-icon>
+          <span class="proof-label">{{ t('home.landing.proof.modeLabel') }}</span>
         </div>
       </div>
     </div>

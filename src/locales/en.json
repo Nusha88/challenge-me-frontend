@@ -155,45 +155,38 @@
     "landing": {
       "badge": "Open beta · Free",
       "title": "Turn your habits and goals into an RPG quest",
-      "subtitle": "Ignite turns self-improvement into a game. Habits become Daily Rituals, a big goal becomes an Epic Quest of small steps, and every step earns XP, ranks and Sparks. Public, with people who cheer you on, or completely private.",
-      "primaryCta": "Create my first mission",
-      "secondaryCta": "Look around first",
-      "stickyCta": "Start free",
+      "subtitle": "Daily rituals, epic quests, or a private squad. Every step counts.",
+      "primaryCta": "Create an account",
+      "secondaryCta": "Try without signing up",
+      "browseCta": "Browse public missions",
+      "stickyCta": "Create an account",
       "trustFree": "Free during beta",
+      "trustDemo": "No account needed to try",
       "trustNoDownload": "Nothing to install",
       "trustFast": "First mission in 2 minutes",
-      "heroImageAlt": "A glowing crystal artifact representing your progress in Ignite",
+      "heroImageAlt": "The Ignite Today screen with daily missions and steps",
       "proof": {
         "pioneers": "Be one of the first heroes",
         "heroesLabel": "heroes on board",
         "missionsLabel": "missions running",
-        "betaLabel": "open beta"
+        "betaLabel": "open beta",
+        "modeLabel": "Squad, public, or solo"
       },
       "why": {
         "eyebrow": "Why good intentions die",
         "title": "It was never about willpower",
-        "lead": "Ignite grew out of five things I kept noticing while studying motivation, goal-setting and discipline — and out of what actually helps.",
+        "lead": "Three things that keep a plan alive after the first burst of motivation fades.",
         "problemLabel": "The pattern",
         "solutionLabel": "In Ignite",
         "motivation": {
-          "title": "Laziness is a myth",
-          "problem": "There are no lazy people, only a shortage of motivation.",
-          "solution": "XP, ranks and Sparks give every small action an immediate, visible payoff."
-        },
-        "social": {
-          "title": "Social capital works",
-          "problem": "A public promise pulls far harder than a quiet decision to start on Monday.",
-          "solution": "Make a mission public and your progress becomes visible — and your effort gets noticed."
+          "title": "Motivation fades without a payoff",
+          "problem": "A quiet decision to start on Monday has nothing that pays you back today.",
+          "solution": "XP, ranks and Sparks make every small action immediately visible."
         },
         "together": {
           "title": "Company makes it lighter",
           "problem": "Difficult habits are far easier to build among people doing the same thing than alone.",
-          "solution": "Join anyone's public ritual and share the wins, the slumps and the encouragement."
-        },
-        "privacy": {
-          "title": "Privacy is a strength too",
-          "problem": "For many people, feeling watched and fearing judgement only adds stress.",
-          "solution": "Any mission can be fully private. Nobody sees it. No feed, no comparison."
+          "solution": "Join a public ritual, or start a squad — invite-only, just your people."
         },
         "scale": {
           "title": "Scale is the scary part",
@@ -202,9 +195,9 @@
         }
       },
       "missions": {
-        "eyebrow": "Two kinds of mission",
+        "eyebrow": "Rituals, quests, squads",
         "title": "Pick the shape of your goal",
-        "lead": "Either kind can be public or private. You decide who gets to see it.",
+        "lead": "A ritual for a habit. A quest for a finish line. A squad when you want it with your people — invite-only.",
         "examplesLabel": "For example",
         "guideCta": "Create a mission",
         "guideLoading": "Loading the walkthrough",
@@ -232,15 +225,19 @@
           "cta": "See how a quest works",
           "guideTitle": "How to create a Quest"
         },
+        "squad": {
+          "title": "Or take it with a squad",
+          "description": "Invite people from My squad. They see the calendar, write in the squad thread, and nobody else gets in."
+        },
         "steps": {
           "title": "Plus a place for the small stuff",
           "description": "Things too small for a ritual and too one-off for a quest — book the dentist, pick up a parcel. Daily Steps for today and tomorrow, and they earn XP too."
         }
       },
       "rewards": {
-        "eyebrow": "The economy",
+        "eyebrow": "What you earn",
         "title": "Every step pays out",
-        "lead": "Progress you can see is progress you keep.",
+        "lead": "XP, ranks and Sparks — visible progress, not a private score you forget.",
         "xp": {
           "title": "Experience",
           "text": "Missions and daily steps award XP. XP is what moves your hero up."
@@ -251,19 +248,22 @@
         },
         "sparks": {
           "title": "Sparks",
-          "text": "The in-app currency you earn simply for not giving up."
+          "text": "Earned for showing up. Spend them to freeze a streak or extend a ritual."
         },
         "freeze": {
           "title": "Streak freeze",
-          "text": "Spend Sparks to freeze a streak, keep a run unbroken, or extend a ritual you did not want to end."
+          "text": "Miss a day without breaking the run. A missed day never deletes your progress."
         }
       },
       "privacy": {
         "eyebrow": "Your call",
-        "title": "Public when it helps. Private when it doesn't.",
+        "title": "Public, squad, or just you.",
         "publicTitle": "Public mission",
-        "publicText": "Visible to others. People can join your rituals, follow your quests, comment and cheer you on. Accountability that actually bites.",
+        "publicText": "Visible to others. People can join your rituals, follow your quests, comment and cheer you on.",
         "publicChip": "Shared",
+        "squadTitle": "Squad mission",
+        "squadText": "Invite-only. Your people see the calendar and the thread. Nobody else gets in.",
+        "squadChip": "Invite only",
         "privateTitle": "Private mission",
         "privateText": "Yours alone. No audience, no comparison, no pressure — just you and the streak.",
         "privateChip": "Invisible"
@@ -297,7 +297,7 @@
         "downloadQuestion": "Do I have to install anything?",
         "downloadAnswer": "No. It is a web app — open it in your browser, and add it to your home screen if you want it one tap away.",
         "privacyQuestion": "Will other people see my goals?",
-        "privacyAnswer": "Only if you want them to. Every mission is either public or private, and private means nobody but you can see it.",
+        "privacyAnswer": "Only if you want them to. A mission can be public, invite-only with a squad, or fully private.",
         "aloneQuestion": "Can I use it completely alone?",
         "aloneAnswer": "Absolutely. Joining, commenting and following are all optional. Plenty of people run only private missions and never touch the social side.",
         "failQuestion": "What if I miss a day?",
@@ -305,8 +305,8 @@
       },
       "finalCta": {
         "title": "Your first mission is one tap away",
-        "text": "Pick the habit you keep abandoning. Give yourself a rank for it.",
-        "button": "Start my first mission",
+        "text": "Pick the habit you keep abandoning. Create an account, or try it first without one.",
+        "button": "Create an account",
         "note": "Free · no card · no download"
       },
       "footer": {
