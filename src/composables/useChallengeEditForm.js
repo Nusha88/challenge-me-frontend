@@ -331,7 +331,7 @@ export function useChallengeEditForm() {
       endDate: editForm.endDate,
       imageUrl: editForm.imageUrl,
       privacy: editForm.privacy === 'public' ? 'public' : 'private',
-      allowComments: editForm.allowComments,
+      allowComments: challenge.value?.inviteOnly ? true : editForm.allowComments,
       challengeType
     }
 

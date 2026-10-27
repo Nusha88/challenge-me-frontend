@@ -791,7 +791,8 @@
       "members": "{count} in the ritual",
       "inviteError": "Could not send invites",
       "actionError": "Could not update this invite",
-      "demoGate": "Sign in to invite your squad"
+      "demoGate": "Sign in to invite your squad",
+      "tabTitle": "Squad"
     },
     "accessCommunity": "Access & Community",
     "personalPath": "Personal Path",

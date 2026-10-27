@@ -104,6 +104,7 @@
         v-model:allow-comments="allowComments"
         show-comments-toggle
         :show-squad="mode === 'create'"
+        :invite-only="inviteOnly"
         :disabled="disabled"
         :menu-props="menuProps"
       />
@@ -133,7 +134,8 @@ const props = defineProps({
   durationError: { type: String, default: '' },
   frequencyError: { type: String, default: '' },
   disabled: { type: Boolean, default: false },
-  menuProps: { type: Object, default: undefined }
+  menuProps: { type: Object, default: undefined },
+  inviteOnly: { type: Boolean, default: false }
 })
 
 defineEmits(['pick-start', 'pick-end'])

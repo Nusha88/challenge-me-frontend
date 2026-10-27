@@ -394,7 +394,7 @@ export function useChallengeCreateForm() {
       owner: userId,
       privacy: normalizedPrivacy.value,
       challengeType: form.value.challengeType,
-      allowComments: form.value.allowComments,
+      allowComments: form.value.privacy === 'squad' ? true : form.value.allowComments,
       communityQuest: form.value.communityQuest
     }
 

@@ -141,6 +141,20 @@ export function createDemoMission(payload, { guestName = 'Guest' } = {}) {
   return mission
 }
 
+export function updateDemoMissionActions(challengeId, actions) {
+  const missions = getDemoMissions()
+  const index = missions.findIndex((item) => String(item._id) === String(challengeId))
+  if (index === -1) return null
+
+  const mission = {
+    ...missions[index],
+    actions: Array.isArray(actions) ? JSON.parse(JSON.stringify(actions)) : []
+  }
+  missions[index] = mission
+  setDemoMissions(missions)
+  return mission
+}
+
 export function completeDemoMissionDay(challengeId, dateStr) {
   const missions = getDemoMissions()
   const index = missions.findIndex((item) => String(item._id) === String(challengeId))

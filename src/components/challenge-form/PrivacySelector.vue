@@ -67,7 +67,7 @@
       </v-row>
 
       <v-expand-transition>
-        <div v-if="showCommentsToggle && privacy === 'public'" class="privacy-comments mt-4">
+        <div v-if="showCommentsCheckbox" class="privacy-comments mt-4">
           <v-checkbox
             v-model="allowComments"
             :label="t('challenges.allowCommentsLabel')"
@@ -92,7 +92,8 @@ const props = defineProps({
   disabled: { type: Boolean, default: false },
   menuProps: { type: Object, default: undefined },
   showCommentsToggle: { type: Boolean, default: false },
-  showSquad: { type: Boolean, default: false }
+  showSquad: { type: Boolean, default: false },
+  inviteOnly: { type: Boolean, default: false }
 })
 
 const privacy = defineModel('privacy', { type: String, default: 'private' })
@@ -102,6 +103,9 @@ const { t } = useI18n()
 const { requireAuthOrPrompt } = useDemoMode()
 
 const cardCols = computed(() => (props.showSquad ? 4 : 6))
+const showCommentsCheckbox = computed(() =>
+  props.showCommentsToggle && privacy.value === 'public' && !props.inviteOnly
+)
 
 const privacyOptions = computed(() => [
   { title: t('challenges.privacyOptions.public'), value: 'public' },
@@ -112,6 +116,9 @@ function selectPrivacy(value) {
   if (props.disabled) return
   if (value === 'squad' && !requireAuthOrPrompt()) return
   privacy.value = value
+  if (value === 'squad') {
+    allowComments.value = true
+  }
 }
 </script>
 

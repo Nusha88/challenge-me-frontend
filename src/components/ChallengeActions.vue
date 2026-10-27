@@ -38,7 +38,7 @@
                     v-if="!readonly"
                     :model-value="action.checked"
                     @update:model-value="(val) => updateActionChecked(index, val)"
-                    :disabled="!action.text || action.text.trim() === ''"
+                    :disabled="checksDisabled || !action.text || action.text.trim() === ''"
                     color="#4FD1C5"
                     density="compact"
                   ></v-checkbox-btn>
@@ -51,8 +51,8 @@
                 <div
                   v-if="readonly || !editingActions[index]"
                   class="text-display"
-                  :class="{ 'strikethrough': action.checked && !hideProgressChecks, 'non-clickable-text': readonly || simplifiedView }"
-                  @click="!readonly && !simplifiedView && startEditingAction(index)"
+                  :class="{ 'strikethrough': action.checked && !hideProgressChecks, 'non-clickable-text': readonly || simplifiedView || lockStructure }"
+                  @click="canEditActionText && startEditingAction(index)"
                 >
                   {{ action.text || t('challenges.actionPlaceholder') }}
                 </div>
@@ -89,6 +89,7 @@
                 v-if="!readonly"
                 :model-value="child.checked"
                 @update:model-value="(val) => updateChildActionChecked(index, childIndex, val)"
+                :disabled="checksDisabled"
                 color="#4FD1C5"
                 density="compact"
               ></v-checkbox-btn>
@@ -99,7 +100,8 @@
             
             <div
               class="child-text flex-grow-1"
-              @click="!readonly && startEditingChildAction(index, childIndex)"
+              :class="{ 'non-clickable-text': lockStructure }"
+              @click="canEditActionText && startEditingChildAction(index, childIndex)"
             >
               <span v-if="!editingChildActions[`${index}-${childIndex}`]" :class="{ 'strikethrough': child.checked && !hideProgressChecks }">
                 {{ child.text || '...' }}
@@ -117,7 +119,7 @@
               ></v-text-field>
             </div>
             
-            <v-btn v-if="!readonly" icon="mdi-close" variant="text" size="x-small" color="rgba(255,255,255,0.2)" @click="removeChildAction(index, childIndex)"></v-btn>
+            <v-btn v-if="!readonly && !lockStructure" icon="mdi-close" variant="text" size="x-small" color="rgba(255,255,255,0.2)" @click="removeChildAction(index, childIndex)"></v-btn>
           </div>
         </transition-group>
       </div>
@@ -321,11 +323,14 @@ const props = defineProps({
   hideItemControls: { type: Boolean, default: false },
   hideProgressChecks: { type: Boolean, default: false },
   hideHeader: { type: Boolean, default: false },
-  confirmTopLevelCheck: { type: Boolean, default: false }
+  confirmTopLevelCheck: { type: Boolean, default: false },
+  lockStructure: { type: Boolean, default: false },
+  checksDisabled: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['update:modelValue', 'request-complete'])
+const emit = defineEmits(['update:modelValue', 'request-complete', 'check-change'])
 const { t } = useI18n()
+const canEditActionText = computed(() => !props.readonly && !props.simplifiedView && !props.lockStructure)
 
 const editingActions = ref({})
 const editingChildActions = ref({})
@@ -394,6 +399,7 @@ function updateActionChecked(index, value) {
   if (localActions.value[index].children?.length > 0) {
     localActions.value[index].children.forEach(c => c.checked = value)
   }
+  emit('check-change')
 }
 
 function markActionChecked(index) {
@@ -410,6 +416,7 @@ function updateChildActionChecked(pIdx, cIdx, value) {
   localActions.value[pIdx].children[cIdx].checked = value
   const allChecked = localActions.value[pIdx].children.every(c => c.checked)
   localActions.value[pIdx].checked = allChecked
+  emit('check-change')
 }
 
 function startEditingAction(i) {

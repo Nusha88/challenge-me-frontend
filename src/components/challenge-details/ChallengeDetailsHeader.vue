@@ -1,7 +1,7 @@
 <template>
   <v-img
     :src="challenge.imageUrl"
-    height="280"
+    :height="coverHeight"
     cover
     class="align-end text-white header-image"
   >
@@ -16,13 +16,13 @@
       />
 
       <v-btn
-        v-if="canInviteFriends && !isFinished"
-        icon="mdi-share-variant"
+        v-if="showInviteButton"
+        :icon="canInviteSquad ? 'mdi-account-plus' : 'mdi-share-variant'"
         variant="text"
         size="small"
         class="action-btn"
-        :aria-label="t('challenges.share.share')"
-        @click.stop="$emit('invite')"
+        :aria-label="inviteAriaLabel"
+        @click.stop="$emit(canInviteSquad ? 'invite-squad' : 'invite')"
       />
 
       <v-btn
@@ -44,7 +44,20 @@
           >
             {{ typeLabel }}
           </v-chip>
-          <v-icon v-if="challenge.privacy === 'private'" color="rgba(255,255,255,0.5)" size="14">mdi-lock</v-icon>
+          <v-chip
+            v-if="challenge.inviteOnly"
+            size="x-small"
+            class="chip-squad font-weight-black text-uppercase px-3"
+          >
+            {{ t('challenges.squad.title') }}
+          </v-chip>
+          <v-icon
+            v-else-if="challenge.privacy === 'private'"
+            color="rgba(255,255,255,0.5)"
+            size="14"
+          >
+            mdi-lock
+          </v-icon>
         </div>
 
         <h2 class="text-h4 font-weight-bold mb-2 challenge-title">
@@ -65,6 +78,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useDisplay } from 'vuetify'
 import { CHALLENGE_TYPES } from '../../constants/challengeTypes'
 
 const props = defineProps({
@@ -72,15 +86,24 @@ const props = defineProps({
   isOwner: { type: Boolean, default: false },
   isFinished: { type: Boolean, default: false },
   canInviteFriends: { type: Boolean, default: false },
+  canInviteSquad: { type: Boolean, default: false },
   typeLabel: { type: String, default: '' },
   startLabel: { type: String, default: '' },
   endLabel: { type: String, default: '' }
 })
 
-defineEmits(['edit', 'invite', 'close'])
+defineEmits(['edit', 'invite', 'invite-squad', 'close'])
 
 const { t } = useI18n()
+const { smAndDown } = useDisplay()
 const isHabit = computed(() => props.challenge.challengeType === CHALLENGE_TYPES.HABIT)
+const coverHeight = computed(() => (smAndDown.value ? 160 : 280))
+const showInviteButton = computed(() =>
+  !props.isFinished && (props.canInviteFriends || props.canInviteSquad)
+)
+const inviteAriaLabel = computed(() =>
+  props.canInviteSquad ? t('challenges.squad.add') : t('challenges.share.share')
+)
 </script>
 
 <style scoped>
@@ -119,5 +142,23 @@ const isHabit = computed(() => props.challenge.challengeType === CHALLENGE_TYPES
 .chip-result {
   background-color: rgba(251, 191, 36, 0.9) !important;
   color: #0b0d12 !important;
+}
+.chip-squad {
+  background-color: rgba(112, 72, 232, 0.92) !important;
+  color: #ffffff !important;
+}
+
+@media (max-width: 600px) {
+  .header-content {
+    padding: 12px 20px !important;
+  }
+  .header-content .mb-3 {
+    margin-bottom: 8px !important;
+  }
+  .challenge-title {
+    font-size: 1.2rem !important;
+    line-height: 1.3;
+    margin-bottom: 4px !important;
+  }
 }
 </style>

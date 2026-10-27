@@ -8,7 +8,8 @@ import {
   completeDemoMissionDay,
   createDemoMission,
   getDemoMissionById,
-  getDemoMissions
+  getDemoMissions,
+  updateDemoMissionActions
 } from '../services/demoStorage'
 
 function buildHabitDayRewardResponse() {
@@ -61,10 +62,23 @@ export function useDemoMissions() {
     return result.mission
   }
 
+  function updateActions(challengeId, actions) {
+    const mission = updateDemoMissionActions(challengeId, actions)
+    if (!mission) return null
+    demoStore.touchMissions()
+    dispatchAppEvent(APP_EVENTS.CHALLENGE_UPDATED, {
+      challengeId: mission._id,
+      challenge: mission
+    })
+    dispatchAppEvent(APP_EVENTS.CHECKLIST_UPDATED)
+    return mission
+  }
+
   return {
     listMissions,
     getMission,
     createMission,
-    completeToday
+    completeToday,
+    updateActions
   }
 }

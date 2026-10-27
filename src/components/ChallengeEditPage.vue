@@ -130,6 +130,7 @@
                   :duration-error="errors.duration"
                   :frequency-error="errors.frequency"
                   :disabled="isDisabled"
+                  :invite-only="Boolean(challenge?.inviteOnly)"
                   :menu-props="tacticalSelectMenuProps"
                   @pick-start="openStartDatePicker"
                   @pick-end="openEndDatePicker"

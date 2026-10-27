@@ -104,11 +104,8 @@ const {
   scrollTarget: globalScrollTarget,
   initialTab: globalInitialTab,
   joinLoading: globalJoinLoading,
-  leaveLoading: globalLeaveLoading,
   selectedIsOwner: globalSelectedIsOwner,
-  selectedIsParticipant: globalSelectedIsParticipant,
   showDialogJoinButton: globalShowDialogJoinButton,
-  showDialogLeaveButton: globalShowDialogLeaveButton,
   openFromEvent,
   handleDialogClose: handleGlobalDialogClose,
   handleDialogLeave: handleGlobalDialogLeave,
@@ -356,16 +353,10 @@ watch(
       v-model="globalDetailsDialogOpen"
       :challenge="globalSelectedChallenge"
       :is-owner="globalSelectedIsOwner"
-      :is-participant="globalSelectedIsParticipant"
       :show-join-button="globalShowDialogJoinButton"
-      :show-leave-button="globalShowDialogLeaveButton"
       :initial-tab="globalInitialTab"
       :scroll-target="globalScrollTarget"
       :join-loading="globalJoinLoading"
-      :leave-loading="globalLeaveLoading"
-      :save-loading="false"
-      :save-error="''"
-      :delete-loading="false"
       @update:model-value="handleGlobalDialogClose"
       @join="handleGlobalDialogJoin"
       @leave="handleGlobalDialogLeave"
