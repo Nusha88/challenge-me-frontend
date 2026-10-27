@@ -42,6 +42,7 @@
                 v-model:start-date="form.startDate"
                 v-model:privacy="form.privacy"
                 v-model:allow-comments="form.allowComments"
+                v-model:invite-user-ids="form.inviteUserIds"
                 :duration-error="errors.duration"
               />
 

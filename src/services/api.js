@@ -71,9 +71,17 @@ api.interceptors.response.use(
   async error => {
     // Handle authentication errors (401/403)
     // Don't clear token for push subscription endpoints - they might fail during login
-    const isPushEndpoint = error.config?.url?.includes('/push/')
+    const requestUrl = error.config?.url || ''
+    const isPushEndpoint = requestUrl.includes('/push/')
+    const isMissionInviteRequest = requestUrl.includes('/invites')
+    const isInviteOnlyJoin = error.response?.data?.reason === 'invite_only'
     
-    if ((error.response?.status === 401 || error.response?.status === 403) && !isPushEndpoint) {
+    if (
+      (error.response?.status === 401 || error.response?.status === 403)
+      && !isPushEndpoint
+      && !isMissionInviteRequest
+      && !isInviteOnlyJoin
+    ) {
       const token = localStorage.getItem('token')
       if (token) {
         // Clear invalid token and notify the UI
@@ -344,6 +352,20 @@ export const challengeService = {
   leaveChallenge: (id, payload = {}) => {
     return api.post(`/challenges/${id}/leave`, payload)
   },
+  inviteToChallenge: (id, userIds = []) => {
+    return api.post(`/challenges/${id}/invites`, { userIds })
+  },
+  acceptMissionInvite: (id) => {
+    return api.post(`/challenges/${id}/invites/accept`, {}, {
+      headers: userService._clientDayHeaders()
+    })
+  },
+  rejectMissionInvite: (id) => {
+    return api.post(`/challenges/${id}/invites/reject`)
+  },
+  cancelMissionInvite: (id, userId) => {
+    return api.delete(`/challenges/${id}/invites/${userId}`)
+  },
   updateParticipantCompletedDays: (challengeId, userId, completedDays) => {
     return api.put(`/challenges/${challengeId}/participant/${userId}/completedDays`, { completedDays })
   },
@@ -452,6 +474,16 @@ export const uploadService = {
   }
 }
 
+export const chronicleService = {
+  getFeed: ({ cursor, limit } = {}) => api.get('/chronicle', {
+    params: {
+      ...(cursor ? { cursor } : {}),
+      ...(limit ? { limit } : {})
+    }
+  }),
+  cheer: (activityId) => api.post(`/chronicle/${activityId}/cheer`)
+}
+
 export const friendService = {
   getFriends: () => api.get('/friends'),
   getIncoming: () => api.get('/friends/incoming'),
@@ -484,6 +516,9 @@ export const notificationService = {
   },
   deleteNotification: (notificationId) => {
     return api.delete(`/notifications/${notificationId}`)
+  },
+  clearDailyRecap: (userId) => {
+    return api.delete(`/notifications/${userId}/daily-recap`)
   }
 }
 

@@ -28,6 +28,7 @@
     "statistic": "Statistic",
     "myChallenges": "My Missions",
     "allChallenges": "Explore",
+    "chronicle": "Chronicle",
     "watchedChallenges": "Following",
     "today": "Today",
     "language": "Language",
@@ -769,6 +770,29 @@
       "public": "Public",
       "private": "Private"
     },
+    "squad": {
+      "title": "Squad",
+      "cardTitle": "Squad",
+      "cardDesc": "Invite friends from My squad",
+      "invite": "Invite from squad",
+      "inviteHint": "They'll get a request to join this ritual",
+      "waiting": "Waiting for a reply",
+      "request": "invited you to a squad ritual",
+      "limit": "You can invite up to {count} heroes besides yourself",
+      "full": "Squad is full",
+      "notInSquad": "Only squadmates can be invited",
+      "empty": "Your squad is empty. Add friends first.",
+      "findFriends": "Open My squad",
+      "add": "Add from squad",
+      "pendingBanner": "You're invited to this ritual",
+      "accept": "Accept",
+      "reject": "Decline",
+      "cancel": "Cancel invite",
+      "members": "{count} in the ritual",
+      "inviteError": "Could not send invites",
+      "actionError": "Could not update this invite",
+      "demoGate": "Sign in to invite your squad"
+    },
     "accessCommunity": "Access & Community",
     "personalPath": "Personal Path",
     "personalPathDesc": "Your progress is hidden from everyone. Only you can see your achievements.",
@@ -1202,6 +1226,29 @@
       "explore": "Explore missions"
     }
   },
+  "chronicle": {
+    "title": "Chronicle",
+    "subtitle": "Circle feed",
+    "description": "See when friends and squadmates check in, finish rituals, and keep the fire going.",
+    "retry": "Retry",
+    "loadError": "Could not load the chronicle",
+    "cheer": "Ignite",
+    "cheered": "Ignited",
+    "loadMore": "Load more",
+    "aRitual": "a ritual",
+    "empty": {
+      "text": "The chronicle is quiet. Add friends or start a squad ritual to see their spark.",
+      "addFriends": "Add friends",
+      "createSquad": "Create a squad ritual"
+    },
+    "events": {
+      "checkin": "checked in on {title}",
+      "ritualComplete": "completed {title}",
+      "squadJoined": "joined the squad for {title}",
+      "levelUp": "reached level {level}",
+      "streak": "hit a {streak}-day streak"
+    }
+  },
   "watched": {
     "title": "Following",
     "subtitle": "Achievement radar",
@@ -1301,6 +1348,9 @@
     "friendAccept": "Accept",
     "friendReject": "Reject",
     "friendActionError": "Could not update this squad request",
+    "missionInvite": "invited you to a squad ritual",
+    "missionInviteActionError": "Could not update this ritual invite",
+    "cheer": "ignited your chronicle",
     "dailyRecapTitle": "Daily Recap",
     "dailyRecapFallback": "Today's missions are still active. Make a final push!",
     "xpGainedToast": "+{count} XP",

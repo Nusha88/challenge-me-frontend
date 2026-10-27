@@ -82,6 +82,7 @@ const {
   unreadNotificationCount,
   notificationsDrawerOpen,
   loadUnreadNotificationCount,
+  consumeDailyRecapNotifications,
   openNotifications,
   closeNotifications,
   handleUnreadCountChanged,
@@ -184,10 +185,16 @@ function handleProfileClick() {
 }
 
 function startLoggedInSession() {
-  loadUnreadNotificationCount()
+  void consumeDailyRecapNotifications()
   calculateStreak()
   startNotificationPolling()
   push.initializeOnce()
+}
+
+function handleAppVisible() {
+  if (typeof document === 'undefined' || document.visibilityState !== 'visible') return
+  if (!isLoggedIn.value) return
+  void consumeDailyRecapNotifications()
 }
 
 async function maybeShowReferralWelcome() {
@@ -258,6 +265,9 @@ onMounted(() => {
   if (isLoggedIn.value) {
     startLoggedInSession()
   }
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', handleAppVisible)
+  }
   if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage)
   }
@@ -265,6 +275,9 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   stopNotificationPolling()
+  if (typeof document !== 'undefined') {
+    document.removeEventListener('visibilitychange', handleAppVisible)
+  }
   if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
     navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage)
   }

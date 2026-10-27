@@ -74,6 +74,7 @@ export function useAllChallengesDialog({
     if (!selectedChallenge.value) return false
     if (isChallengeEnded(selectedChallenge.value)) return false
     if (selectedChallenge.value.challengeType !== CHALLENGE_TYPES.HABIT) return false
+    if (selectedChallenge.value.inviteOnly) return false
 
     return (
       !!unref(currentUserId) &&

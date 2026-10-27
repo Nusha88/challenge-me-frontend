@@ -30,6 +30,34 @@
         @close="handleVisibility(false)"
       />
 
+      <div v-if="showPendingInviteBanner" class="squad-invite-banner">
+        <div class="squad-invite-copy">
+          <p class="squad-invite-title">{{ t('challenges.squad.pendingBanner') }}</p>
+          <p class="squad-invite-text">{{ t('challenges.squad.request') }}</p>
+        </div>
+        <div class="squad-invite-actions">
+          <v-btn
+            class="squad-accept-btn text-none"
+            size="small"
+            :loading="inviteActing === 'accept'"
+            :disabled="Boolean(inviteActing)"
+            @click="handleAcceptSquadInvite"
+          >
+            {{ t('challenges.squad.accept') }}
+          </v-btn>
+          <v-btn
+            variant="text"
+            class="squad-reject-btn text-none"
+            size="small"
+            :loading="inviteActing === 'reject'"
+            :disabled="Boolean(inviteActing)"
+            @click="handleRejectSquadInvite"
+          >
+            {{ t('challenges.squad.reject') }}
+          </v-btn>
+        </div>
+      </div>
+
       <v-tabs v-model="tab" grow class="custom-tabs" density="default" height="48">
         <v-tab value="progress">{{ t('challenges.progress') }}</v-tab>
         <v-tab value="details">{{ t('challenges.about') }}</v-tab>
@@ -231,7 +259,68 @@
               </div>
             </div>
 
-            <div v-if="totalParticipantsCount > 1 && visibleParticipants.length" class="participants-box mt-4">
+            <div v-if="isSquadRitualChallenge" class="squad-roster mt-4">
+              <div class="squad-roster-head">
+                <div>
+                  <div class="squad-roster-title">{{ t('challenges.squad.title') }}</div>
+                  <div class="text-caption opacity-60">
+                    {{ t('challenges.squad.members', { count: totalParticipantsCount }) }}
+                  </div>
+                </div>
+                <v-btn
+                  v-if="canAddFromSquad"
+                  size="small"
+                  class="text-none squad-add-btn"
+                  :disabled="remainingSquadSlots <= 0"
+                  @click="openAddFromSquad"
+                >
+                  {{ t('challenges.squad.add') }}
+                </v-btn>
+              </div>
+
+              <div class="squad-member-list">
+                <button
+                  v-for="member in squadMembers"
+                  :key="member.id"
+                  type="button"
+                  class="squad-member-row"
+                  @click="navigateToParticipant(member.id)"
+                >
+                  <v-avatar size="36" class="participant-avatar">
+                    <v-img v-if="member.avatarUrl" :src="member.avatarUrl" cover />
+                    <span v-else>{{ getParticipantInitial(member.name) }}</span>
+                  </v-avatar>
+                  <span class="squad-member-name">{{ member.name || t('challenges.unknownHero') }}</span>
+                </button>
+              </div>
+
+              <div v-if="isOwner && pendingSquadInvites.length" class="squad-pending">
+                <div class="text-caption opacity-60 mb-2">{{ t('challenges.squad.waiting') }}</div>
+                <div
+                  v-for="invitee in pendingSquadInvites"
+                  :key="invitee.id"
+                  class="squad-member-row squad-member-row--pending"
+                >
+                  <v-avatar size="36" class="participant-avatar">
+                    <v-img v-if="invitee.avatarUrl" :src="invitee.avatarUrl" cover />
+                    <span v-else>{{ getParticipantInitial(invitee.name) }}</span>
+                  </v-avatar>
+                  <span class="squad-member-name">{{ invitee.name || t('challenges.unknownHero') }}</span>
+                  <v-btn
+                    variant="text"
+                    size="x-small"
+                    class="text-none squad-cancel-btn"
+                    :loading="cancellingInviteId === invitee.id"
+                    :disabled="Boolean(cancellingInviteId)"
+                    @click.stop="handleCancelSquadInvite(invitee.id)"
+                  >
+                    {{ t('challenges.squad.cancel') }}
+                  </v-btn>
+                </div>
+              </div>
+            </div>
+
+            <div v-else-if="totalParticipantsCount > 1 && visibleParticipants.length" class="participants-box mt-4">
               <div class="text-caption opacity-60 mb-2">{{ t('challenges.participants') }}</div>
               <div class="participants-row">
                 <v-tooltip
@@ -408,6 +497,35 @@
         :invite-url="inviteUrl"
         :card-data="inviteCardData"
       />
+
+      <v-dialog v-model="addFromSquadOpen" max-width="480">
+        <v-card class="add-squad-card">
+          <v-card-title class="text-h6 font-weight-bold">
+            {{ t('challenges.squad.add') }}
+          </v-card-title>
+          <v-card-text>
+            <SquadInvitePicker
+              v-if="addFromSquadOpen"
+              v-model="addFromSquadIds"
+              :exclude-ids="squadExcludeIds"
+              :max-count="remainingSquadSlots"
+            />
+          </v-card-text>
+          <v-card-actions class="justify-end">
+            <v-btn variant="text" class="text-none" @click="addFromSquadOpen = false">
+              {{ t('common.cancel') }}
+            </v-btn>
+            <v-btn
+              class="text-none squad-add-btn"
+              :loading="addingFromSquad"
+              :disabled="addFromSquadIds.length === 0 || addingFromSquad"
+              @click="submitAddFromSquad"
+            >
+              {{ t('challenges.squad.invite') }}
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
     </v-card>
   </v-dialog>
 
@@ -650,6 +768,113 @@
 .participant-avatar-more {
   border-color: rgba(112, 72, 232, 0.6);
   background: rgba(112, 72, 232, 0.2);
+}
+
+.squad-invite-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 12px 16px 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(112, 72, 232, 0.12);
+  border: 1px solid rgba(112, 72, 232, 0.35);
+}
+
+.squad-invite-title {
+  margin: 0;
+  font-weight: 800;
+  color: var(--home-text, #f1f5f9);
+}
+
+.squad-invite-text {
+  margin: 2px 0 0;
+  font-size: 0.82rem;
+  color: var(--home-text-dim, #94a3b8);
+}
+
+.squad-invite-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.squad-accept-btn,
+.squad-add-btn {
+  color: #0b0d12 !important;
+  background: linear-gradient(135deg, #4fd1c5, #7048e8) !important;
+  font-weight: 800 !important;
+}
+
+.squad-reject-btn,
+.squad-cancel-btn {
+  color: var(--home-text-dim, #94a3b8) !important;
+  font-weight: 700 !important;
+}
+
+.squad-roster {
+  background: rgba(30, 41, 59, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.squad-roster-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.squad-roster-title {
+  font-weight: 800;
+  color: var(--home-text, #f1f5f9);
+}
+
+.squad-member-list,
+.squad-pending {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.squad-pending {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.squad-member-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 4px;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.squad-member-row--pending {
+  cursor: default;
+}
+
+.squad-member-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.add-squad-card {
+  background: #0f131c !important;
+  color: var(--home-text, #f1f5f9) !important;
 }
 
 .info-message {
@@ -981,6 +1206,7 @@ import { useWatchedChallengesStore } from '../stores/watchedChallenges'
 import ChallengeActions from './ChallengeActions.vue'
 import MissionInviteModal from './mission-invite/MissionInviteModal.vue'
 import ChallengeDetailsHeader from './challenge-details/ChallengeDetailsHeader.vue'
+import SquadInvitePicker from './challenge-form/SquadInvitePicker.vue'
 import CommentsComponent from './CommentsComponent.vue'
 import DiaryComponent from './DiaryComponent.vue'
 import QuestSuccessModal from './QuestSuccessModal.vue'
@@ -1006,6 +1232,11 @@ import {
   shouldTriggerHabitMissionCompletion
 } from '../utils/missionParticipation'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
+import {
+  MAX_SQUAD_GUESTS,
+  isSquadRitual,
+  isPendingSquadInvite
+} from '../utils/challengeMembership'
 import { HABIT_DAY_XP_DISPLAY, HABIT_DAY_SPARKS_DISPLAY } from '../constants/rewardDisplay'
 import { getLevelFromXp, getLevelInfo } from '../utils/levelSystem'
 import { Trophy } from 'lucide-vue-next'
@@ -2001,6 +2232,114 @@ const visibleParticipants = computed(() => participantUsers.value.slice(0, MAX_V
 const remainingParticipantsCount = computed(() =>
   Math.max(0, participantUsers.value.length - MAX_VISIBLE_PARTICIPANTS)
 )
+
+const isSquadRitualChallenge = computed(() => isSquadRitual(props.challenge))
+const showPendingInviteBanner = computed(() =>
+  isPendingSquadInvite(props.challenge, currentUserId.value) && !isCurrentUserParticipant.value
+)
+const squadMembers = computed(() => participantUsers.value)
+const pendingSquadInvites = computed(() => {
+  if (!props.isOwner || !Array.isArray(props.challenge?.invites)) return []
+  const memberIds = new Set(squadMembers.value.map((member) => member.id))
+  const unique = new Map()
+  props.challenge.invites.forEach((row) => {
+    const user = row?.userId && typeof row.userId === 'object' ? row.userId : row
+    const id = String(user?._id || user?.id || row?.userId || '')
+    if (!id || memberIds.has(id) || unique.has(id)) return
+    unique.set(id, {
+      id,
+      name: user?.name || '',
+      avatarUrl: user?.avatarUrl || ''
+    })
+  })
+  return Array.from(unique.values())
+})
+const remainingSquadSlots = computed(() => {
+  const ownerId = String(props.challenge?.owner?._id || props.challenge?.owner || '')
+  const guestIds = new Set([
+    ...squadMembers.value.map((member) => member.id),
+    ...pendingSquadInvites.value.map((invitee) => invitee.id)
+  ])
+  guestIds.delete(ownerId)
+  return Math.max(0, MAX_SQUAD_GUESTS - guestIds.size)
+})
+const canAddFromSquad = computed(() =>
+  Boolean(props.isOwner && isSquadRitualChallenge.value && !isFinished.value)
+)
+const squadExcludeIds = computed(() => [
+  ...squadMembers.value.map((member) => member.id),
+  ...pendingSquadInvites.value.map((invitee) => invitee.id)
+])
+
+const inviteActing = ref('')
+const cancellingInviteId = ref('')
+const addFromSquadOpen = ref(false)
+const addFromSquadIds = ref([])
+const addingFromSquad = ref(false)
+
+function openAddFromSquad() {
+  if (!requireAuthOrPrompt()) return
+  addFromSquadIds.value = []
+  addFromSquadOpen.value = true
+}
+
+async function submitAddFromSquad() {
+  const challengeId = props.challenge?._id
+  if (!challengeId || addFromSquadIds.value.length === 0) return
+  addingFromSquad.value = true
+  try {
+    await challengeService.inviteToChallenge(challengeId, addFromSquadIds.value)
+    addFromSquadOpen.value = false
+    emit('update')
+  } catch (error) {
+    showFeedback(error.response?.data?.message || t('challenges.squad.inviteError'))
+  } finally {
+    addingFromSquad.value = false
+  }
+}
+
+async function handleAcceptSquadInvite() {
+  const challengeId = props.challenge?._id
+  if (!challengeId) return
+  inviteActing.value = 'accept'
+  try {
+    await challengeService.acceptMissionInvite(challengeId)
+    emit('update')
+  } catch (error) {
+    showFeedback(error.response?.data?.message || t('challenges.squad.actionError'))
+  } finally {
+    inviteActing.value = ''
+  }
+}
+
+async function handleRejectSquadInvite() {
+  const challengeId = props.challenge?._id
+  if (!challengeId) return
+  inviteActing.value = 'reject'
+  try {
+    await challengeService.rejectMissionInvite(challengeId)
+    handleVisibility(false)
+    emit('update')
+  } catch (error) {
+    showFeedback(error.response?.data?.message || t('challenges.squad.actionError'))
+  } finally {
+    inviteActing.value = ''
+  }
+}
+
+async function handleCancelSquadInvite(userId) {
+  const challengeId = props.challenge?._id
+  if (!challengeId || !userId) return
+  cancellingInviteId.value = userId
+  try {
+    await challengeService.cancelMissionInvite(challengeId, userId)
+    emit('update')
+  } catch (error) {
+    showFeedback(error.response?.data?.message || t('challenges.squad.actionError'))
+  } finally {
+    cancellingInviteId.value = ''
+  }
+}
 
 function calculateDuration(startDate, endDate) {
   if (!startDate || !endDate) return ''

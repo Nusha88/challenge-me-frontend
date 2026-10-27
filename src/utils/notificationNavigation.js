@@ -15,6 +15,21 @@ export function resolveNotificationNavigation(notification) {
     return { kind: 'route', path: `/heroes/${friendId}` }
   }
 
+  if (notification.type === 'cheer') {
+    const challengeId = notification.challengeId?._id || notification.challengeId
+    if (challengeId) {
+      return {
+        kind: 'challenge',
+        challengeId: String(challengeId),
+        commentId: null,
+        replyId: null
+      }
+    }
+    const fromId = notification.fromUserId?._id || notification.fromUserId
+    if (!fromId) return { kind: 'noop' }
+    return { kind: 'route', path: `/heroes/${fromId}` }
+  }
+
   const challengeId = notification.challengeId?._id || notification.challengeId
   if (!challengeId) return { kind: 'noop' }
 

@@ -37,7 +37,24 @@ export function canJoinHabitChallenge(challenge, currentUserId) {
   if (!challenge || !unref(currentUserId)) return false
   if (isChallengeEnded(challenge)) return false
   if (challenge.challengeType !== CHALLENGE_TYPES.HABIT) return false
+  if (challenge.inviteOnly) return false
   if (isChallengeOwner(challenge.owner, currentUserId)) return false
   if (isChallengeParticipant(challenge, currentUserId)) return false
   return true
+}
+
+export const MAX_SQUAD_GUESTS = 12
+
+export function isSquadRitual(challenge) {
+  return Boolean(challenge?.inviteOnly) && challenge?.challengeType === CHALLENGE_TYPES.HABIT
+}
+
+export function isPendingSquadInvite(challenge, currentUserId) {
+  const userId = unref(currentUserId)
+  if (!isSquadRitual(challenge) || !userId) return false
+  if (challenge.isPendingInvite) return true
+  return (challenge.invites || []).some((row) => {
+    const inviteeId = row?.userId?._id || row?.userId?.id || row?.userId
+    return inviteeId && String(inviteeId) === String(userId)
+  })
 }

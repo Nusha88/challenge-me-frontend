@@ -17,11 +17,11 @@
       <p class="field-label mb-4">{{ t('challenges.privacyMode') }}</p>
 
       <v-row>
-        <v-col cols="12" sm="6">
+        <v-col cols="12" :sm="cardCols">
           <div
             class="privacy-card"
             :class="{ active: privacy === 'private' }"
-            @click="!disabled && (privacy = 'private')"
+            @click="selectPrivacy('private')"
           >
             <v-icon size="32">mdi-shield-lock-outline</v-icon>
             <div class="ml-4">
@@ -29,15 +29,31 @@
               <span class="text-caption">{{ t('challenges.secretQuestDesc') }}</span>
             </div>
             <v-spacer />
-            <v-radio v-model="privacy" value="private" color="#7048E8" :disabled="disabled" />
+            <v-radio :model-value="privacy" value="private" color="#7048E8" :disabled="disabled" @click.prevent="selectPrivacy('private')" />
           </div>
         </v-col>
 
-        <v-col cols="12" sm="6">
+        <v-col v-if="showSquad" cols="12" :sm="cardCols">
+          <div
+            class="privacy-card"
+            :class="{ active: privacy === 'squad' }"
+            @click="selectPrivacy('squad')"
+          >
+            <v-icon size="32">mdi-account-group-outline</v-icon>
+            <div class="ml-4">
+              <span class="d-block font-weight-bold">{{ t('challenges.squad.cardTitle') }}</span>
+              <span class="text-caption">{{ t('challenges.squad.cardDesc') }}</span>
+            </div>
+            <v-spacer />
+            <v-radio :model-value="privacy" value="squad" color="#7048E8" :disabled="disabled" @click.prevent="selectPrivacy('squad')" />
+          </div>
+        </v-col>
+
+        <v-col cols="12" :sm="cardCols">
           <div
             class="privacy-card"
             :class="{ active: privacy === 'public' }"
-            @click="!disabled && (privacy = 'public')"
+            @click="selectPrivacy('public')"
           >
             <v-icon size="32">mdi-earth</v-icon>
             <div class="ml-4">
@@ -45,7 +61,7 @@
               <span class="text-caption">{{ t('challenges.worldChronicleDesc') }}</span>
             </div>
             <v-spacer />
-            <v-radio v-model="privacy" value="public" color="#7048E8" :disabled="disabled" />
+            <v-radio :model-value="privacy" value="public" color="#7048E8" :disabled="disabled" @click.prevent="selectPrivacy('public')" />
           </div>
         </v-col>
       </v-row>
@@ -69,23 +85,34 @@
 <script setup>
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useDemoMode } from '../../composables/useDemoMode'
 
-defineProps({
+const props = defineProps({
   variant: { type: String, default: 'cards' },
   disabled: { type: Boolean, default: false },
   menuProps: { type: Object, default: undefined },
-  showCommentsToggle: { type: Boolean, default: false }
+  showCommentsToggle: { type: Boolean, default: false },
+  showSquad: { type: Boolean, default: false }
 })
 
 const privacy = defineModel('privacy', { type: String, default: 'private' })
 const allowComments = defineModel('allowComments', { type: Boolean, default: true })
 
 const { t } = useI18n()
+const { requireAuthOrPrompt } = useDemoMode()
+
+const cardCols = computed(() => (props.showSquad ? 4 : 6))
 
 const privacyOptions = computed(() => [
   { title: t('challenges.privacyOptions.public'), value: 'public' },
   { title: t('challenges.privacyOptions.private'), value: 'private' }
 ])
+
+function selectPrivacy(value) {
+  if (props.disabled) return
+  if (value === 'squad' && !requireAuthOrPrompt()) return
+  privacy.value = value
+}
 </script>
 
 <style scoped>

@@ -92,6 +92,12 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/chronicle',
+      name: 'chronicle',
+      component: () => import('../components/chronicle/ChroniclePage.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/statistic',
       name: 'statistic',
       component: () => import('../components/StatisticsPage.vue'),

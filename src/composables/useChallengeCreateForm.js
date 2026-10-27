@@ -1,6 +1,6 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { challengeService } from '../services/api'
 import { useUserStore } from '../stores/user'
 import { useDemoStore } from '../stores/demo'
@@ -77,6 +77,7 @@ function createDefaultForm() {
     difficulty: 'medium',
     allowComments: true,
     communityQuest: false,
+    inviteUserIds: [],
     templateId: ''
   }
 }
@@ -143,6 +144,7 @@ function normalizeActionsForPayload(actions) {
 }
 
 export function useChallengeCreateForm() {
+  const route = useRoute()
   const router = useRouter()
   const { t } = useI18n()
   const userStore = useUserStore()
@@ -192,9 +194,10 @@ export function useChallengeCreateForm() {
     return hasTitle && hasDescription && hasDeadline && hasAction
   })
 
-  const normalizedPrivacy = computed(() =>
-    form.value.privacy === 'solo' ? 'private' : form.value.privacy
-  )
+  const normalizedPrivacy = computed(() => {
+    if (form.value.privacy === 'solo' || form.value.privacy === 'squad') return 'private'
+    return form.value.privacy
+  })
 
   watch(() => form.value.title, () => {
     if (errors.value.title) errors.value.title = ''
@@ -259,8 +262,16 @@ export function useChallengeCreateForm() {
     lastResultState.value = snapshotResultState(form.value)
   }
 
+  function applySquadPrivacyFromQuery() {
+    if (route.query.privacy !== 'squad') return
+    if (form.value.challengeType !== CHALLENGE_TYPES.HABIT) return
+    form.value.privacy = 'squad'
+    lastHabitState.value = snapshotHabitState(form.value)
+  }
+
   function initFromRestartDraft() {
     applyRestartDraft(loadRestartDraft())
+    applySquadPrivacyFromQuery()
   }
 
   function selectChallengeType(type) {
@@ -392,6 +403,12 @@ export function useChallengeCreateForm() {
 
     if (form.value.challengeType === CHALLENGE_TYPES.HABIT) {
       payload.frequency = form.value.frequency
+      if (form.value.privacy === 'squad') {
+        payload.inviteOnly = true
+        payload.inviteUserIds = Array.isArray(form.value.inviteUserIds)
+          ? form.value.inviteUserIds
+          : []
+      }
     }
 
     if (form.value.challengeType === CHALLENGE_TYPES.RESULT) {

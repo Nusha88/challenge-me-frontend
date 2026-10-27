@@ -32,7 +32,10 @@ export function useChallengeDetailsMembership({
     return unref(isCurrentUserParticipant)
   })
 
-  const canInviteFriends = computed(() => unref(isOwner) || isJoined.value)
+  const canInviteFriends = computed(() => {
+    if (unref(challenge)?.inviteOnly) return false
+    return unref(isOwner) || isJoined.value
+  })
 
   const canJoinPublicHabit = computed(() => {
     const c = unref(challenge)
@@ -40,6 +43,7 @@ export function useChallengeDetailsMembership({
     if (!c || !userId) return false
     if (unref(isFinished)) return false
     if (c.challengeType !== CHALLENGE_TYPES.HABIT) return false
+    if (c.inviteOnly) return false
     if (c.privacy === 'private') return false
     if (unref(isOwner)) return false
     if (isJoined.value) return false
@@ -48,11 +52,13 @@ export function useChallengeDetailsMembership({
 
   const showJoinActionButton = computed(() => {
     if (isJoined.value || unref(isOwner) || unref(isFinished) || !unref(currentUserId)) return false
+    if (unref(challenge)?.inviteOnly) return false
     if (unref(showJoinButton)) return true
     return canJoinPublicHabit.value
   })
 
   const showWatchActionButton = computed(() => {
+    if (unref(challenge)?.inviteOnly) return false
     return !unref(isOwner) && !unref(isFinished) && unref(currentUserId) && !isJoined.value
   })
 

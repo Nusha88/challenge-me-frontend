@@ -7,7 +7,7 @@ import NotificationListItem from './notifications/NotificationListItem.vue'
 import { useNotificationsDrawer } from '../composables/useNotificationsDrawer'
 import { resolveNotificationNavigation } from '../utils/notificationNavigation'
 import { APP_EVENTS, dispatchAppEvent } from '../utils/appEvents'
-import { friendService } from '../services/api'
+import { friendService, challengeService } from '../services/api'
 
 const props = defineProps({
   modelValue: {
@@ -99,9 +99,44 @@ async function handleFriendDecision(notification, kind) {
   }
 }
 
+async function handleMissionInviteDecision(notification, kind) {
+  const challengeId = notification.challengeId?._id || notification.challengeId
+  if (!challengeId) return
+  actingNotificationId.value = notification._id
+  actingKind.value = kind
+  try {
+    if (kind === 'accept') {
+      await challengeService.acceptMissionInvite(challengeId)
+    } else {
+      await challengeService.rejectMissionInvite(challengeId)
+    }
+    removeNotificationLocally(notification)
+    dispatchAppEvent(APP_EVENTS.CHALLENGE_UPDATED, {
+      challengeId: String(challengeId)
+    })
+  } catch (error) {
+    console.error('Error updating mission invite:', error)
+    errorMessage.value = t('notifications.missionInviteActionError')
+  } finally {
+    actingNotificationId.value = null
+    actingKind.value = ''
+  }
+}
+
+function handleInviteDecision(notification, kind) {
+  if (notification.type === 'mission_invite') {
+    return handleMissionInviteDecision(notification, kind)
+  }
+  return handleFriendDecision(notification, kind)
+}
+
 function handleNotificationClick(notification) {
   closeDrawer()
-  markNotificationReadOptimistic(notification)
+  if (notification.type === 'daily_recap') {
+    void deleteNotification(notification)
+  } else {
+    markNotificationReadOptimistic(notification)
+  }
 
   const nav = resolveNotificationNavigation(notification)
   if (nav.kind === 'route') {
@@ -205,8 +240,8 @@ function handleNotificationClick(notification) {
             :acting="actingNotificationId === notification._id ? actingKind : ''"
             @click="handleNotificationClick"
             @delete="deleteNotification"
-            @accept="handleFriendDecision($event, 'accept')"
-            @reject="handleFriendDecision($event, 'reject')"
+            @accept="handleInviteDecision($event, 'accept')"
+            @reject="handleInviteDecision($event, 'reject')"
           />
         </div>
       </div>

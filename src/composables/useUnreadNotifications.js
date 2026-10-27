@@ -24,6 +24,19 @@ export function useUnreadNotifications({ onUnreadLoadSuccess } = {}) {
     }
   }
 
+  async function consumeDailyRecapNotifications() {
+    const userId = userStore.userId
+    if (!userId || !isLoggedIn.value) return
+
+    try {
+      await notificationService.clearDailyRecap(userId)
+    } catch (error) {
+      console.error('Error clearing daily recap notifications:', error)
+    }
+
+    await loadUnreadNotificationCount()
+  }
+
   function openNotifications() {
     if (notificationsDrawerOpen.value) {
       notificationsDrawerOpen.value = false
@@ -55,6 +68,7 @@ export function useUnreadNotifications({ onUnreadLoadSuccess } = {}) {
     unreadNotificationCount,
     notificationsDrawerOpen,
     loadUnreadNotificationCount,
+    consumeDailyRecapNotifications,
     openNotifications,
     closeNotifications,
     handleUnreadCountChanged,

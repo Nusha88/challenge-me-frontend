@@ -105,6 +105,19 @@
 
         <v-list-item
           v-if="!isDemoMode"
+          to="/chronicle"
+          :active="currentRoute === 'chronicle'"
+          color="primary"
+          @click="handleNavClick"
+        >
+          <template #prepend>
+            <ScrollText :size="20" class="sidebar-lucide-icon mr-2" />
+          </template>
+          <v-list-item-title>{{ t('navigation.chronicle') }}</v-list-item-title>
+        </v-list-item>
+
+        <v-list-item
+          v-if="!isDemoMode"
           to="/missions/watched"
           :active="currentRoute === 'watched-challenges'"
           color="primary"
@@ -210,7 +223,7 @@
 <script setup>
 import { computed, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Sparkles, Mountain, Compass, Eye, Trophy, Star, Globe2, LogOut, BarChart3 } from 'lucide-vue-next'
+import { Sparkles, Mountain, Compass, Eye, Trophy, Star, Globe2, LogOut, BarChart3, ScrollText } from 'lucide-vue-next'
 import InviteFriendDialog from './InviteFriendDialog.vue'
 import RankedAvatar from '../user/RankedAvatar.vue'
 import { useReferralProgram } from '../../composables/useReferralProgram'

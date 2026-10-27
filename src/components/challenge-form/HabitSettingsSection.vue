@@ -103,8 +103,14 @@
         v-model:privacy="privacy"
         v-model:allow-comments="allowComments"
         show-comments-toggle
+        :show-squad="mode === 'create'"
         :disabled="disabled"
         :menu-props="menuProps"
+      />
+      <SquadInvitePicker
+        v-if="mode === 'create' && privacy === 'squad'"
+        v-model="inviteUserIds"
+        :disabled="disabled"
       />
     </div>
   </div>
@@ -115,6 +121,7 @@ import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import DurationSelector from './DurationSelector.vue'
 import PrivacySelector from './PrivacySelector.vue'
+import SquadInvitePicker from './SquadInvitePicker.vue'
 import {
   toDateInputValue,
   addDays,
@@ -139,6 +146,7 @@ const startDate = defineModel('startDate', { type: String, default: '' })
 const endDate = defineModel('endDate', { type: String, default: '' })
 const privacy = defineModel('privacy', { type: String, default: 'private' })
 const allowComments = defineModel('allowComments', { type: Boolean, default: true })
+const inviteUserIds = defineModel('inviteUserIds', { type: Array, default: () => [] })
 
 const { t, locale } = useI18n()
 
@@ -161,6 +169,12 @@ function handleDatePick(date) {
   }
   showDatePicker.value = false
 }
+
+watch(privacy, (value, previous) => {
+  if (previous === 'squad' && value !== 'squad') {
+    inviteUserIds.value = []
+  }
+})
 
 watch(startOption, (newValue) => {
   if (props.mode === 'edit') return

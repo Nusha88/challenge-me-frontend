@@ -6,7 +6,9 @@ export function getNotificationIcon(type) {
     watch: 'mdi-eye-outline',
     daily_recap: 'mdi-weather-sunset-up',
     referral_completed: 'mdi-gift',
-    friend_request: 'mdi-account-plus'
+    friend_request: 'mdi-account-plus',
+    mission_invite: 'mdi-account-group',
+    cheer: 'mdi-fire'
   }
   return icons[type] || 'mdi-bell-ring-outline'
 }
@@ -39,6 +41,12 @@ export function getNotificationText(notification, t) {
   }
   if (notification.type === 'friend_request') {
     return notification.body || t('notifications.friendRequest')
+  }
+  if (notification.type === 'mission_invite') {
+    return notification.body || t('notifications.missionInvite')
+  }
+  if (notification.type === 'cheer') {
+    return t('notifications.cheer')
   }
   return t('notifications.newComment', { mission })
 }
