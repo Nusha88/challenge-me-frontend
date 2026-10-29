@@ -1,5 +1,6 @@
 const AUTH_ERROR_KEYS = {
   'Invalid email or password': 'auth.invalidCredentials',
+  'This account has no password. Use Forgot password to set one.': 'auth.noPasswordSet',
   'A user with this email already exists': 'auth.emailAlreadyExists',
   'Too many registration attempts from this IP. Please try again later.': 'auth.tooManyRegistrationAttempts',
   'Google sign-in is not configured': 'auth.googleUnavailable',

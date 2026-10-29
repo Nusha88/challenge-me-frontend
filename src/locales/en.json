@@ -501,6 +501,7 @@
     "registrationFailed": "Registration failed. Please try again.",
     "loginFailed": "Login failed. Please try again.",
     "invalidCredentials": "Invalid email or password",
+    "noPasswordSet": "This account has no password. Use Forgot password to set one.",
     "emailAlreadyExists": "A user with this email already exists",
     "tooManyRegistrationAttempts": "Too many registration attempts from this IP. Please try again later.",
     "required": "This field is required",
