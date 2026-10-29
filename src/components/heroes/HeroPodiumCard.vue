@@ -68,20 +68,6 @@
         />
       </div>
 
-      <div class="hero-stats">
-        <div class="hero-mini-stat">
-          <v-icon size="14" color="#4FD1C5">mdi-sword</v-icon>
-          <span>{{ user.challengeCount || 0 }}</span>
-        </div>
-        <div class="hero-mini-stat">
-          <v-icon size="14" color="#4FD1C5">mdi-calendar-check</v-icon>
-          <span>{{ t('users.daysShort', { count: user.daysOnSite || 0 }) }}</span>
-        </div>
-        <div class="hero-mini-stat hero-mini-stat--sparks">
-          <span class="spark-glyph" aria-hidden="true">✦</span>
-          <span>{{ user.sparks ?? 0 }}</span>
-        </div>
-      </div>
     </v-card-text>
   </v-card>
 </template>
@@ -224,31 +210,6 @@ const podiumRankLine = computed(() => {
 
 .hero-xp-bar {
   background: rgba(255, 255, 255, 0.06) !important;
-}
-
-.hero-stats {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.hero-mini-stat {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--home-surface-soft, rgba(255, 255, 255, 0.05));
-  padding: 4px 10px;
-  border-radius: 10px;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--home-text-dim, rgba(255, 255, 255, 0.7));
-}
-
-.spark-glyph {
-  color: var(--home-gold, #ffd700);
-  font-size: 12px;
-  line-height: 1;
 }
 
 @media (max-width: 600px) {

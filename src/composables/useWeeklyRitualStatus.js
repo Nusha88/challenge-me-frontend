@@ -1,5 +1,10 @@
 import { computed, onMounted, ref } from 'vue'
 import { challengeService } from '../services/api'
+import {
+  clearMyMissionsListCache,
+  loadMyMissionsList,
+  patchMyMissionsListCache
+} from './useMyMissionsListCache'
 import { useWeeklyRitualStore } from '../stores/weeklyRitual'
 import { useUserStore } from '../stores/user'
 import { useDemoStore } from '../stores/demo'
@@ -87,7 +92,7 @@ export function useWeeklyRitualStatus() {
     return Math.max(companionsCount.value - visibleCompanions.value.length, 0)
   })
 
-  async function loadJoinedChallenge() {
+  async function loadJoinedChallenge({ force = false } = {}) {
     const id = templateId.value
     if (!id) {
       joinedChallenge.value = null
@@ -106,10 +111,8 @@ export function useWeeklyRitualStatus() {
     }
 
     try {
-      const { data } = await challengeService.getChallengesByUser(userId, {
-        excludePrivate: false
-      })
-      joinedChallenge.value = findActiveTemplateChallenge(data?.challenges || [], id)
+      const challenges = await loadMyMissionsList(userId, { force })
+      joinedChallenge.value = findActiveTemplateChallenge(challenges, id)
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error loading weekly ritual membership:', error)
@@ -166,6 +169,7 @@ export function useWeeklyRitualStatus() {
       )
       applyXpAwardResponse(response)
       patchLocalCompletedDays(newCompletedDays)
+      patchMyMissionsListCache(joinedChallenge.value)
       dispatchAppEvent(APP_EVENTS.PARTICIPANT_COMPLETED_DAYS_UPDATED)
       dispatchAppEvent(APP_EVENTS.CHALLENGE_UPDATED, {
         challengeId: challenge._id,
@@ -183,9 +187,30 @@ export function useWeeklyRitualStatus() {
   onMounted(loadJoinedChallenge)
 
   useAppEventListeners([
-    { event: APP_EVENTS.AUTH_CHANGED, handler: loadJoinedChallenge },
-    { event: APP_EVENTS.CHALLENGE_UPDATED, handler: loadJoinedChallenge },
-    { event: APP_EVENTS.PARTICIPANT_COMPLETED_DAYS_UPDATED, handler: loadJoinedChallenge }
+    {
+      event: APP_EVENTS.AUTH_CHANGED,
+      handler: () => {
+        clearMyMissionsListCache()
+        loadJoinedChallenge({ force: true })
+      }
+    },
+    {
+      event: APP_EVENTS.CHALLENGE_UPDATED,
+      handler: (event) => {
+        const challenge = event?.detail?.challenge
+        if (challenge && String(challenge._id) === String(joinedChallenge.value?._id)) {
+          patchMyMissionsListCache(challenge)
+          joinedChallenge.value = { ...joinedChallenge.value, ...challenge }
+          return
+        }
+        if (challenge) {
+          patchMyMissionsListCache(challenge)
+          loadJoinedChallenge()
+          return
+        }
+        loadJoinedChallenge({ force: true })
+      }
+    }
   ])
 
   return {

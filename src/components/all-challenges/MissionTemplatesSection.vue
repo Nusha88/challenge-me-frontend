@@ -55,6 +55,7 @@
 
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import MissionSectionDivider from '../MissionSectionDivider.vue'
 import MissionTemplateCard from './MissionTemplateCard.vue'
@@ -66,7 +67,9 @@ import { useActiveTemplateMissions } from '../../composables/useActiveTemplateMi
 import { openMissionDetails } from '../../utils/openMissionDetails'
 
 const { t } = useI18n()
-const { isWeeklyRitual } = useWeeklyRitualStore()
+const weeklyRitualStore = useWeeklyRitualStore()
+const { currentWeeklyRitualId } = storeToRefs(weeklyRitualStore)
+const { isWeeklyRitual } = weeklyRitualStore
 const { launchTemplate } = useMissionTemplateLaunch()
 const { getParticipants } = useTemplateParticipants()
 const { isTemplateInUse, getActiveChallenge } = useActiveTemplateMissions()
@@ -85,7 +88,10 @@ function handleUseTemplate(template) {
   launchTemplate(template)
 }
 
-const templates = computed(() => getMissionTemplates())
+const templates = computed(() => {
+  const weeklyId = currentWeeklyRitualId.value
+  return getMissionTemplates().filter((template) => template.id !== weeklyId)
+})
 
 const trackRef = ref(null)
 const canScrollLeft = ref(false)

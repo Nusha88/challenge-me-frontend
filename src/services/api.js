@@ -328,6 +328,7 @@ export const challengeService = {
     if (options.activity) params.activity = options.activity
     if (options.participants) params.participants = options.participants
     if (options.creationDate) params.creationDate = options.creationDate
+    if (options.view) params.view = options.view
     return api.get(`/challenges/user/${userId}`, { params })
   },
   getAllChallenges: (filters = {}) => {

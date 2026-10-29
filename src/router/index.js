@@ -68,11 +68,6 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
-      path: '/missions',
-      name: 'challenges',
-      component: () => import('../components/AllChallengesComponent.vue')
-    },
-    {
       path: '/missions/my',
       name: 'my-challenges',
       component: () => import('../components/MyChallengesComponent.vue'),
@@ -109,8 +104,8 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresSuperAdmin: true }
     },
     {
-      path: '/missions/:id',
-      name: 'view-challenge',
+      path: '/missions/:id?',
+      name: 'challenges',
       component: () => import('../components/AllChallengesComponent.vue')
     },
     {

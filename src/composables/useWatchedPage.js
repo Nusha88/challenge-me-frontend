@@ -10,7 +10,7 @@ export function useWatchedPage(currentUserId) {
   const { t } = useI18n()
   const { applyRewardResponse } = useXpAwardFeedback()
   const watchedStore = useWatchedChallengesStore()
-  const { feedActivities, loadFeedActivities } = useWatchedActivityFeed()
+  const { feedActivities, feedLoading, loadFeedActivities } = useWatchedActivityFeed()
 
   const errorMessage = ref('')
   const joiningId = ref(null)
@@ -35,10 +35,11 @@ export function useWatchedPage(currentUserId) {
 
     try {
       const shouldForce = force || watchedStore.isListStale()
-      await watchedStore.fetchForUser(userId, { force: shouldForce })
-      if (refreshFeed) {
-        await loadFeedActivities(userId)
-      }
+      const listPromise = watchedStore.fetchForUser(userId, { force: shouldForce })
+      const feedPromise = refreshFeed
+        ? loadFeedActivities(userId, { force })
+        : Promise.resolve()
+      await Promise.all([listPromise, feedPromise])
     } catch (error) {
       console.error('Error loading watched challenges:', error)
       errorMessage.value = error.response?.data?.message || t('challenges.loadError')
@@ -47,9 +48,9 @@ export function useWatchedPage(currentUserId) {
 
   function updateChallengeInList(challenge) {
     if (!challenge?._id) return
-    const index = watchedStore.challenges.findIndex((c) => c._id === challenge._id)
-    if (index !== -1) {
-      watchedStore.challenges[index] = challenge
+    const patched = watchedStore.patchChallenge(challenge)
+    if (!patched && watchedStore.isWatched(challenge)) {
+      watchedStore.upsertChallenge(challenge)
     }
   }
 
@@ -147,7 +148,7 @@ export function useWatchedPage(currentUserId) {
 
     try {
       await watchedStore.unwatch(challenge._id, userId)
-      await loadFeedActivities(userId)
+      await loadFeedActivities(userId, { force: true })
       onUnwatched?.(challenge)
     } catch (error) {
       console.error('Error unwatching challenge:', error)
@@ -165,7 +166,9 @@ export function useWatchedPage(currentUserId) {
     leavingId,
     unwatchingId,
     feedActivities,
+    feedLoading,
     loadWatchedChallenges,
+    loadFeedActivities,
     clearError,
     updateChallengeInList,
     joinChallenge,

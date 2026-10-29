@@ -87,8 +87,13 @@
           <v-window-item value="progress" eager :transition="false" :reverse-transition="false">
             <div class="tab-content-wrapper">
               <template v-if="challenge.challengeType === CHALLENGE_TYPES.HABIT">
-                <template v-if="isCurrentUserParticipant">
-                  <p class="progress-lead">{{ t('challenges.progressRitualLead') }}</p>
+                  <p class="progress-lead">
+                    {{
+                      isCurrentUserParticipant
+                        ? t('challenges.progressRitualLead')
+                        : t('challenges.authorProgress')
+                    }}
+                  </p>
                   <div class="progress-header mb-6">
                     <div v-if="!isFinished" class="progress-header-row d-flex justify-space-between align-center flex-wrap gap-2">
                       <div v-if="showPersonalPace" class="personal-pace-row">
@@ -190,12 +195,6 @@
                       sparks: HABIT_DAY_SPARKS_DISPLAY
                     }) }}
                   </p>
-                </template>
-                <div v-else class="guest-progress">
-                  <p v-if="aboutDescription" class="guest-progress-copy">
-                    {{ aboutDescription }}
-                  </p>
-                </div>
               </template>
 
               <template v-else>
@@ -1211,6 +1210,7 @@ import { getPaceStatus } from '../utils/challengePace'
 import { isChallengeEnded, areActionsCompleted } from '../utils/challengeStatus'
 import { getScheduledDaysCount, normalizeDateKey, toDateInputValue } from '../utils/dateUtils'
 import {
+  findParticipantForUser,
   getEffectiveCompletedDays
 } from '../utils/participantDays'
 import {
@@ -1542,9 +1542,17 @@ const currentParticipant = computed(() => {
   }) || null
 })
 
+const progressParticipant = computed(() => {
+  if (currentParticipant.value) return currentParticipant.value
+  const challenge = props.challenge
+  if (!challenge?.participants?.length) return null
+  const ownerId = challenge.owner?._id || challenge.owner?.id || challenge.owner
+  return findParticipantForUser(challenge, ownerId) || challenge.participants[0] || null
+})
+
 const joinedAtKey = computed(() => {
-  if (!props.challenge || !currentParticipant.value) return null
-  return getParticipantJoinedAtKey(props.challenge, currentParticipant.value)
+  if (!props.challenge || !progressParticipant.value) return null
+  return getParticipantJoinedAtKey(props.challenge, progressParticipant.value)
 })
 
 const calendarDays = computed(() => {
@@ -1557,7 +1565,7 @@ const calendarDays = computed(() => {
   today.setHours(0, 0, 0, 0)
   const todayStr = toDateInputValue(today)
   
-  const completedDays = currentUserCompletedDays.value
+  const completedDays = progressCompletedDays.value
   
   const days = []
   const current = new Date(start)
@@ -1568,7 +1576,7 @@ const calendarDays = computed(() => {
     .map((day) => normalizeDateKey(day))
     .filter(Boolean)
 
-  const participant = currentParticipant.value
+  const participant = progressParticipant.value
   const participantJoinedKey = joinedAtKey.value
   const viewerIsLateJoiner = participant ? isLateJoiner(props.challenge, participant) : false
 
@@ -1640,8 +1648,8 @@ const calendarDays = computed(() => {
 
 const totalDays = computed(() => {
   if (!props.challenge || props.challenge.challengeType !== CHALLENGE_TYPES.HABIT) return 0
-  if (currentParticipant.value) {
-    return countPersonalScheduledDays(props.challenge, currentParticipant.value)
+  if (progressParticipant.value) {
+    return countPersonalScheduledDays(props.challenge, progressParticipant.value)
   }
 
   return getScheduledDaysCount(
@@ -1685,10 +1693,10 @@ const daysOnPath = computed(() => {
 })
 
 const userCompletedCount = computed(() => {
-  if (currentParticipant.value) {
+  if (progressParticipant.value) {
     return countPersonalEffectiveDays(props.challenge, {
-      ...currentParticipant.value,
-      completedDays: currentUserCompletedDays.value
+      ...progressParticipant.value,
+      completedDays: progressCompletedDays.value
     })
   }
 
@@ -2037,22 +2045,10 @@ function getSquadFacesForDay(dateStr) {
 }
 
 
-const currentUserCompletedDays = computed(() => {
-  if (localCompletedDaysOverride.value) {
-    return localCompletedDaysOverride.value
-  }
-  
-  if (!props.challenge || !props.challenge.participants || !currentUserId.value) return []
-  
-  const participant = props.challenge.participants.find(p => {
-    const userId = p.userId?._id || p.userId || p._id
-    return userId && userId.toString() === currentUserId.value.toString()
-  })
-  
-  if (!participant || !participant.completedDays || !Array.isArray(participant.completedDays)) return []
-  
-  
-  const days = participant.completedDays
+function completedDaysFromParticipant(participant) {
+  if (!participant?.completedDays || !Array.isArray(participant.completedDays)) return []
+
+  return participant.completedDays
     .map(normalizeDateKey)
     .filter(Boolean)
     .filter((dateStr) => {
@@ -2060,8 +2056,18 @@ const currentUserCompletedDays = computed(() => {
       return !Number.isNaN(date.getTime())
     })
     .sort()
-  
-  return days
+}
+
+const currentUserCompletedDays = computed(() => {
+  if (localCompletedDaysOverride.value) {
+    return localCompletedDaysOverride.value
+  }
+  return completedDaysFromParticipant(currentParticipant.value)
+})
+
+const progressCompletedDays = computed(() => {
+  if (currentParticipant.value) return currentUserCompletedDays.value
+  return completedDaysFromParticipant(progressParticipant.value)
 })
 
 

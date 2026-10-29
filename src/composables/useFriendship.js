@@ -75,17 +75,22 @@ export function useFriendship() {
 
   async function loadStatuses(users) {
     if (!userStore.isLoggedIn) return
+    const known = statusByUserId.value
     const ids = (users || [])
       .map(userKey)
-      .filter((id) => id && id !== currentUserId.value)
+      .filter((id) => id && id !== currentUserId.value && !known[id])
     if (!ids.length) return
 
     try {
       const next = { ...statusByUserId.value }
       const chunkSize = 50
       for (let index = 0; index < ids.length; index += chunkSize) {
-        const { data } = await friendService.getStatuses(ids.slice(index, index + chunkSize))
+        const chunk = ids.slice(index, index + chunkSize)
+        const { data } = await friendService.getStatuses(chunk)
         Object.assign(next, data.statuses || {})
+        for (const id of chunk) {
+          if (!next[id]) next[id] = { status: 'none', friendshipId: null }
+        }
       }
       statusByUserId.value = next
     } catch (error) {

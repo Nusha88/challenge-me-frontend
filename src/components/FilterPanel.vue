@@ -192,6 +192,8 @@ const { mdAndUp } = useDisplay()
 
 const showAdvanced = ref(false)
 const users = ref([])
+let ownerOptionsLoading = false
+let ownerOptionsLoaded = false
 const selectMenuProps = { contentClass: 'filter-select-menu-home' }
 const isMobile = computed(() => !mdAndUp.value)
 
@@ -274,16 +276,33 @@ async function fetchUserIfNeeded(ownerId) {
   }
 }
 
-onMounted(async () => {
+async function loadOwnerOptions() {
+  if (ownerOptionsLoaded || ownerOptionsLoading) return
+  ownerOptionsLoading = true
   try {
     const resp = await userService.getAllUsers({ limit: 100 })
-    users.value = resp.data.users || []
-    if (props.modelValue.owner) {
-      await fetchUserIfNeeded(props.modelValue.owner)
+    const loaded = resp.data.users || []
+    const seen = new Set(users.value.map((user) => String(user.id || user._id)))
+    for (const user of loaded) {
+      const id = String(user.id || user._id)
+      if (!seen.has(id)) users.value.push(user)
     }
+    ownerOptionsLoaded = true
   } catch {
     // ignore
+  } finally {
+    ownerOptionsLoading = false
   }
+}
+
+onMounted(async () => {
+  if (props.modelValue.owner) {
+    await fetchUserIfNeeded(props.modelValue.owner)
+  }
+})
+
+watch(showAdvanced, (open) => {
+  if (open) loadOwnerOptions()
 })
 
 watch(
@@ -305,6 +324,13 @@ defineExpose({ hasActiveFilters, resetFilters })
   display: flex;
   align-items: center;
   gap: 12px;
+  position: sticky;
+  top: var(--v-layout-top, 64px);
+  z-index: 5;
+  margin: 0 -4px;
+  padding: 8px 4px;
+  background: rgba(13, 17, 28, 0.92);
+  backdrop-filter: blur(12px);
 }
 
 .filter-search {

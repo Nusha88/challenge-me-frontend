@@ -3,7 +3,7 @@
     <MyMissionsHeader />
 
     <MyMissionsStatusTabs
-      v-if="!loading && !listError && challenges.length > 0"
+      v-if="!listError && (loading || challenges.length > 0)"
       v-model="statusTab"
       :active-count="activeChallenges.length"
       :upcoming-count="upcomingChallenges.length"
@@ -70,7 +70,6 @@
             <MyMissionsEmptyState
               v-if="activeChallenges.length === 0"
               :text="t('myChallenges.empty.active')"
-              :show-actions="false"
             />
             <template v-else>
               <MyChallengeSection
@@ -81,7 +80,6 @@
                 flush-top
                 :current-user-id="currentUserId"
                 @challenge-click="handleChallengeClick"
-                @update="handleDialogUpdate"
               />
               <MyChallengeSection
                 :challenges="activeRituals"
@@ -91,7 +89,6 @@
                 :flush-top="activeQuests.length === 0"
                 :current-user-id="currentUserId"
                 @challenge-click="handleChallengeClick"
-                @update="handleDialogUpdate"
               />
             </template>
           </template>
@@ -100,7 +97,6 @@
             <MyMissionsEmptyState
               v-if="upcomingChallenges.length === 0"
               :text="t('myChallenges.empty.upcoming')"
-              :show-actions="false"
             />
             <template v-else>
               <MyChallengeSection
@@ -130,18 +126,30 @@
               :text="t('myChallenges.empty.archive')"
               :show-actions="false"
             />
-            <MyChallengeSection
-              v-else
-              :challenges="finishedChallenges"
-              layout="archive"
-              :title="t('myChallenges.sections.archive')"
-              icon="mdi-archive-outline"
-              flush-top
-              :current-user-id="currentUserId"
-              show-extend-button
-              @challenge-click="handleChallengeClick"
-              @extended="handleChallengeExtended"
-            />
+            <template v-else>
+              <MyChallengeSection
+                :challenges="finishedQuests"
+                layout="archive"
+                :title="t('myChallenges.sections.quests')"
+                icon="mdi-flag-checkered"
+                flush-top
+                :current-user-id="currentUserId"
+                show-extend-button
+                @challenge-click="handleChallengeClick"
+                @extended="handleChallengeExtended"
+              />
+              <MyChallengeSection
+                :challenges="finishedRituals"
+                layout="archive"
+                :title="t('myChallenges.sections.rituals')"
+                icon="mdi-fire"
+                :flush-top="finishedQuests.length === 0"
+                :current-user-id="currentUserId"
+                show-extend-button
+                @challenge-click="handleChallengeClick"
+                @extended="handleChallengeExtended"
+              />
+            </template>
           </template>
         </template>
       </template>
@@ -187,6 +195,8 @@ const {
   upcomingQuests,
   upcomingRituals,
   finishedChallenges,
+  finishedQuests,
+  finishedRituals,
   activeChallenges,
   clearListError,
   clearActionError,
@@ -227,11 +237,6 @@ async function retryFetch() {
   syncDefaultTab()
 }
 
-function handleDialogUpdate() {
-  // Card-level progress updates already patch via listeners; keep a safe refetch fallback.
-  fetchChallenges()
-}
-
 function handleChallengeExtended(updatedChallenge) {
   if (!updatedChallenge?._id) return
 
@@ -269,7 +274,11 @@ watch(
 )
 
 watch(() => route.query.challengeId, (newChallengeId) => {
-  consumeChallengeIdFromRoute(router, route, newChallengeId)
+  if (!newChallengeId) return
+  openMissionDetails({ challengeId: String(newChallengeId) })
+  const query = { ...route.query }
+  delete query.challengeId
+  router.replace({ path: '/missions/my', query })
 })
 </script>
 

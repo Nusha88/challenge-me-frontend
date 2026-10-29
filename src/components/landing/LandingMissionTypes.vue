@@ -39,11 +39,6 @@
               <span>{{ t(`home.landing.missions.${mission.id}.${key}`) }}</span>
             </p>
           </div>
-
-          <button type="button" class="mission-demo" @click="openGuide(mission.id)">
-            <v-icon size="19">mdi-play-circle-outline</v-icon>
-            {{ t(`home.landing.missions.${mission.id}.cta`) }}
-          </button>
         </article>
       </div>
 
@@ -67,17 +62,12 @@
         </div>
       </aside>
     </div>
-
-    <MissionGuideDialog v-model="guideOpen" :type="activeMission" />
   </section>
 </template>
 
 <script setup>
-import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import MissionGuideDialog from './MissionGuideDialog.vue'
 import { vSpotlight } from '../../composables/useSpotlight'
-import { GOALS, reachGoal } from '../../services/analytics'
 
 const { t } = useI18n()
 
@@ -99,15 +89,6 @@ const missions = [
     notes: ['reward', 'social']
   }
 ]
-
-const guideOpen = ref(false)
-const activeMission = ref('ritual')
-
-function openGuide(id) {
-  activeMission.value = id
-  guideOpen.value = true
-  reachGoal(GOALS.MISSION_CARD_OPEN, { type: id })
-}
 </script>
 
 <style scoped>
@@ -188,38 +169,6 @@ function openGuide(id) {
   opacity: 0.75;
   margin-top: 2px;
   flex-shrink: 0;
-}
-
-.mission-demo {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 18px;
-  padding: 11px 16px;
-  width: 100%;
-  border-radius: var(--lp-radius-sm);
-  border: 1px solid rgba(79, 209, 197, 0.28);
-  background: rgba(79, 209, 197, 0.07);
-  color: var(--lp-teal);
-  font-size: 0.85rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.3s var(--lp-ease), border-color 0.3s var(--lp-ease);
-}
-
-.mission-demo:hover {
-  background: rgba(79, 209, 197, 0.14);
-  border-color: rgba(79, 209, 197, 0.5);
-}
-
-.mission-demo:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(79, 209, 197, 0.3);
-}
-
-.mission-demo .v-icon {
-  color: var(--lp-teal) !important;
 }
 
 .steps-card {

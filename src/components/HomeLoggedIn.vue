@@ -1,9 +1,5 @@
 <template>
-  <div v-if="state.initialDataLoading" class="home-loading-container">
-    <IgniteLoader :loading-text="t('home.loggedIn.loading.initial', 'Channelling Power...')" />
-  </div>
-
-  <div v-else class="home-logged-in-container">
+  <div class="home-logged-in-container">
     <section class="home-hud">
       <HomeGreeting
         :user-name="state.userName"
@@ -101,6 +97,8 @@
           <TodayChallengesCard
             v-if="!firstDayQuestStore.isQuestActive"
             :challenges="todaysChallenges"
+            :loading="isTodayProgressLoading"
+            :active-quest-count="activeQuests.length"
             variant="today"
             :get-day-status="getTodayDayStatus"
             :get-completed-days="getChallengeCompletedDays"
@@ -125,12 +123,7 @@
         </div>
       </v-window-item>
 
-      <v-window-item value="tomorrow" eager :transition="false" :reverse-transition="false">
-        <TomorrowLoadoutCard
-          :mission-count="tomorrowsChallenges.length"
-          :step-count="tomorrowSteps.length"
-        />
-
+      <v-window-item value="tomorrow" :eager="false" :transition="false" :reverse-transition="false">
         <div class="todays-cards-wrapper">
           <TodayChallengesCard
             :challenges="tomorrowsChallenges"
@@ -173,21 +166,19 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onActivated, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { useDemoStore } from '../stores/demo'
 import { useFirstDayQuestStore } from '../stores/firstDayQuest'
 import { getDemoChecklistHistory, getDemoChecklistForDate, getDemoMissions } from '../services/demoStorage'
 import { migrateLeftoverDemoProgress } from '../services/demoMigration'
 import { DEMO_USER_ID } from '../constants/demo'
-import IgniteLoader from './IgniteLoader.vue'
 import HomeGreeting from './home/HomeGreeting.vue'
 import HomeDayTabs from './home/HomeDayTabs.vue'
 import TodayProgressCard from './home/TodayProgressCard.vue'
 import TodayChallengesCard from './home/TodayChallengesCard.vue'
 import TodayChecklistPanel from './home/TodayChecklistPanel.vue'
 import TomorrowStepsCard from './home/TomorrowStepsCard.vue'
-import TomorrowLoadoutCard from './home/TomorrowLoadoutCard.vue'
 import CompletionCelebrationDialog from './home/CompletionCelebrationDialog.vue'
 import { userService, challengeService } from '../services/api'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
@@ -212,7 +203,6 @@ import { useDemoAuthGate } from '../composables/useDemoAuthGate'
 import { getLevelFromXp } from '../utils/levelSystem'
 
 const { t, locale } = useI18n()
-const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const demoStore = useDemoStore()
@@ -251,7 +241,7 @@ const state = reactive({
   yesterdayStreakDays: 0,
   hasTodayCompletedTasks: false,
   checklistLoading: true,
-  initialDataLoading: true,
+  initialDataLoading: false,
   activeTab: 'today'
 })
 
@@ -260,6 +250,7 @@ const celebrationDialogRef = ref(null)
 const { stats: referralStats, loadReferralStats } = useReferralProgram()
 const hasLoadedTodayStepsOnce = ref(false)
 const completedDates = ref(new Set())
+const lastHomeFetchAt = ref(0)
 const refreshHomeDataRef = { current: async () => {} }
 
 const { dailyMotivationalMessage, dailyMotivationalMessageCompleted } = useHomeMotivationalMessage()
@@ -275,6 +266,7 @@ const {
   hasLoadedOnce: hasLoadedTodayMissionsOnce,
   todaysChallenges,
   tomorrowsChallenges,
+  activeQuests,
   loadTodaysChallenges,
   resetChallenges,
   updateChallengeInList,
@@ -287,7 +279,7 @@ const {
   getChallengeCompletedDays,
   getChallengeTotalDays
 } = useTodayChallenges({
-  onUpdated: () => refreshHomeDataRef.current()
+  onUpdated: () => syncLocalStreak()
 })
 
 const {
@@ -301,7 +293,7 @@ const {
   useSecondChance,
   freezeDay
 } = useSparksRitualActions({
-  onUpdated: () => refreshHomeDataRef.current(),
+  onUpdated: () => syncLocalStreak(),
   updateChallengeInList
 })
 
@@ -392,8 +384,13 @@ function navigateToChallenge(challenge) {
   openMissionDetails({ challenge })
 }
 
-useChallengeUpdatedListener(() => {
-  refreshHomeDataRef.current?.()
+useChallengeUpdatedListener(({ challenge }) => {
+  if (challenge) {
+    updateChallengeInList(challenge)
+    syncLocalStreak()
+    return
+  }
+  refreshHomeDataRef.current?.({ force: true })
 })
 
 const isTodayProgressLoading = computed(
@@ -405,6 +402,10 @@ let profileFetchInFlight = null
 async function updateUser() {
   if (demoStore.isDemoMode) {
     state.userName = t('demo.guestName')
+    return
+  }
+  if (userStore.userName) {
+    state.userName = userStore.userName
     return
   }
   if (profileFetchInFlight) return profileFetchInFlight
@@ -427,11 +428,7 @@ async function updateUser() {
   return profileFetchInFlight
 }
 
-function applyStreakFromData(checklists, allChallenges, userId) {
-  const habitChallenges = allChallenges.filter(
-    (challenge) => challenge.challengeType === CHALLENGE_TYPES.HABIT
-  )
-  const completedDatesSet = buildCompletedDateSet(checklists, habitChallenges, userId)
+function applyStreakFromDates(completedDatesSet) {
   completedDates.value = completedDatesSet
 
   const today = new Date()
@@ -443,6 +440,26 @@ function applyStreakFromData(checklists, allChallenges, userId) {
   const yesterday = new Date(today)
   yesterday.setDate(yesterday.getDate() - 1)
   state.yesterdayStreakDays = calculateStreakFromDate(yesterday, completedDatesSet)
+}
+
+function applyStreakFromData(checklists, allChallenges, userId) {
+  const habitChallenges = allChallenges.filter(
+    (challenge) => challenge.challengeType === CHALLENGE_TYPES.HABIT
+  )
+  applyStreakFromDates(buildCompletedDateSet(checklists, habitChallenges, userId))
+}
+
+function syncLocalStreak() {
+  const todayStr = toDateInputValue()
+  const ritualDone = todaysChallenges.value.some((challenge) => {
+    const status = getTodayDayStatus(challenge)
+    return status === 'completed' || status === 'protected'
+  })
+  const stepsDone = checklistCompletedSteps.value > 0
+  const next = new Set(completedDates.value)
+  if (ritualDone || stepsDone) next.add(todayStr)
+  else next.delete(todayStr)
+  applyStreakFromDates(next)
 }
 
 function resetStreakState() {
@@ -463,93 +480,111 @@ async function plantFirstDayStepIfNeeded({ hasMissions, isDemo, existingTasks })
   })
 }
 
-async function fetchHomeData() {
-  if (demoStore.isDemoMode) {
-    await plantFirstDayStepIfNeeded({
-      hasMissions: getDemoMissions().length > 0,
-      isDemo: true,
-      existingTasks: getDemoChecklistForDate().tasks
-    })
-    const missions = getDemoMissions()
-    state.userName = t('demo.guestName')
-    applyStreakFromData(getDemoChecklistHistory(), missions, DEMO_USER_ID)
-    loadTodaysChallenges(missions, DEMO_USER_ID)
-    firstDayQuestStore.syncFromToday({
-      hasCompletedToday: state.hasTodayCompletedTasks
-    })
-    loadingChallenges.value = false
-    state.initialDataLoading = false
-    hasLoadedTodayMissionsOnce.value = true
+let homeFetchPromise = null
+
+async function fetchHomeData({ force = false } = {}) {
+  if (homeFetchPromise) return homeFetchPromise
+
+  if (
+    !force
+    && hasLoadedTodayMissionsOnce.value
+    && Date.now() - lastHomeFetchAt.value < 15000
+  ) {
     return
   }
 
-  const userId = userStore.userId
-  const isLoggedIn = !!localStorage.getItem('token')
-
-  if (!userId || !isLoggedIn) {
-    resetStreakState()
-    resetChallenges()
-    state.initialDataLoading = false
-    return
-  }
-
-  loadingChallenges.value = true
-  try {
-    await migrateLeftoverDemoProgress(userId)
-
-    const [checklistResponse, challengesResponse] = await Promise.all([
-      userService.getChecklistHistory(),
-      challengeService.getChallengesByUser(userId, { excludePrivate: false })
-    ])
-
-    let checklists = checklistResponse.data?.checklists || []
-    const allChallenges = challengesResponse.data?.challenges || []
-
-    applyStreakFromData(checklists, allChallenges, userId)
-    firstDayQuestStore.reopenIfStale({
-      hasCompletedToday: state.hasTodayCompletedTasks
-    })
-
-    const todayTasks = checklists.find((item) => {
-      return toDateInputValue(item?.date) === toDateInputValue()
-    })?.tasks || []
-
-    const planted = await plantFirstDayStepIfNeeded({
-      hasMissions: allChallenges.length > 0,
-      isDemo: false,
-      existingTasks: todayTasks
-    })
-
-    if (planted) {
-      try {
-        const plantedChecklist = await userService.getChecklistHistory()
-        checklists = plantedChecklist.data?.checklists || checklists
-      } catch (error) {
-        if (import.meta.env.DEV) {
-          console.error('Failed to reload first-day step', error)
-        }
-      }
+  homeFetchPromise = (async () => {
+    if (demoStore.isDemoMode) {
+      await plantFirstDayStepIfNeeded({
+        hasMissions: getDemoMissions().length > 0,
+        isDemo: true,
+        existingTasks: getDemoChecklistForDate().tasks
+      })
+      const missions = getDemoMissions()
+      state.userName = t('demo.guestName')
+      applyStreakFromData(getDemoChecklistHistory(), missions, DEMO_USER_ID)
+      loadTodaysChallenges(missions, DEMO_USER_ID)
+      firstDayQuestStore.syncFromToday({
+        hasCompletedToday: state.hasTodayCompletedTasks
+      })
+      loadingChallenges.value = false
+      hasLoadedTodayMissionsOnce.value = true
+      lastHomeFetchAt.value = Date.now()
+      return
     }
 
-    applyStreakFromData(checklists, allChallenges, userId)
-    loadTodaysChallenges(allChallenges, userId)
-    firstDayQuestStore.syncFromToday({
-      hasCompletedToday: state.hasTodayCompletedTasks
-    })
-  } catch (error) {
-    console.error('Error refreshing home data:', error)
-    resetStreakState()
-    resetChallenges()
+    const userId = userStore.userId
+    const isLoggedIn = !!localStorage.getItem('token')
+
+    if (!userId || !isLoggedIn) {
+      resetStreakState()
+      resetChallenges()
+      return
+    }
+
+    loadingChallenges.value = true
+    try {
+      if (!hasLoadedTodayMissionsOnce.value) {
+        await migrateLeftoverDemoProgress(userId)
+      }
+
+      const [checklistResponse, challengesResponse] = await Promise.all([
+        userService.getChecklistHistory(),
+        challengeService.getChallengesByUser(userId, {
+          excludePrivate: false,
+          view: 'list'
+        })
+      ])
+
+      const checklists = checklistResponse.data?.checklists || []
+      const allChallenges = challengesResponse.data?.challenges || []
+
+      applyStreakFromData(checklists, allChallenges, userId)
+      firstDayQuestStore.reopenIfStale({
+        hasCompletedToday: state.hasTodayCompletedTasks
+      })
+
+      const todayTasks = checklists.find((item) => {
+        return toDateInputValue(item?.date) === toDateInputValue()
+      })?.tasks || []
+
+      const planted = await plantFirstDayStepIfNeeded({
+        hasMissions: allChallenges.length > 0,
+        isDemo: false,
+        existingTasks: todayTasks
+      })
+
+      if (planted) {
+        await nextTick()
+        getChecklistApi()?.loadTodaySteps?.()
+      }
+
+      applyStreakFromData(checklists, allChallenges, userId)
+      loadTodaysChallenges(allChallenges, userId)
+      firstDayQuestStore.syncFromToday({
+        hasCompletedToday: state.hasTodayCompletedTasks
+      })
+      lastHomeFetchAt.value = Date.now()
+    } catch (error) {
+      console.error('Error refreshing home data:', error)
+      resetStreakState()
+      resetChallenges()
+    } finally {
+      loadingChallenges.value = false
+      hasLoadedTodayMissionsOnce.value = true
+    }
+  })()
+
+  try {
+    await homeFetchPromise
   } finally {
-    loadingChallenges.value = false
-    state.initialDataLoading = false
-    hasLoadedTodayMissionsOnce.value = true
+    homeFetchPromise = null
   }
 }
 
 async function retryFirstDayPlant() {
   firstDayQuestStore.clearPlantError()
-  await refreshHomeData()
+  await refreshHomeData({ force: true })
 }
 
 async function handleToggleTodayCompletion(challenge, checked) {
@@ -695,12 +730,12 @@ const updateChecklistLoading = () => {
 async function refreshHomeData({
   reloadTomorrowSteps = false,
   waitForChecklist = false,
-  maxWaitAttempts = 15
+  maxWaitAttempts = 15,
+  force = false
 } = {}) {
-  await fetchHomeData()
+  await fetchHomeData({ force })
 
   await nextTick()
-  getChecklistApi()?.loadTodaySteps?.()
 
   if (reloadTomorrowSteps) loadTomorrowSteps()
 
@@ -718,23 +753,16 @@ async function refreshHomeData({
 refreshHomeDataRef.current = refreshHomeData
 
 async function handleChecklistUpdated() {
-  await refreshHomeData()
   await nextTick()
-
-  const api = getChecklistApi()
-  if (api && typeof api.loadTodaySteps === 'function') {
-    await api.loadTodaySteps()
-  }
-
   updateChecklistLoading()
+  syncLocalStreak()
 }
 
 useHomeWindowEvents({
   onAuthChanged: updateUser,
   onChecklistUpdated: handleChecklistUpdated,
-  onChallengeUpdated: refreshHomeData,
-  onChallengeCompleted: refreshHomeData,
-  onParticipantCompletedDaysUpdated: refreshHomeData
+  onChallengeCompleted: () => refreshHomeData({ force: true }),
+  onParticipantCompletedDaysUpdated: syncLocalStreak
 })
 
 watch(checklistPanelRef, () => {
@@ -773,22 +801,9 @@ onMounted(async () => {
 
 onActivated(async () => {
   await refreshHomeData({
-    reloadTomorrowSteps: true,
-    waitForChecklist: true
+    reloadTomorrowSteps: state.activeTab === 'tomorrow'
   })
 })
-
-watch(
-  () => route.path,
-  async (newPath) => {
-    if (newPath === '/' || newPath === '/today') {
-      await refreshHomeData({
-        reloadTomorrowSteps: true,
-        waitForChecklist: true
-      })
-    }
-  }
-)
 
 watch(
   () => state.activeTab,
@@ -799,14 +814,6 @@ watch(
 </script>
 
 <style scoped>
-.home-loading-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 60vh;
-  width: 100%;
-}
-
 .home-logged-in-container {
   width: 100%;
   max-width: 100%;

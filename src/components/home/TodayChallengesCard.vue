@@ -3,8 +3,19 @@
     <v-card-text>
       <div class="todays-challenges-section">
         <h3 class="home-section-title">{{ sectionTitle }}</h3>
+        <router-link
+          v-if="variant === 'today' && activeQuestCount > 0"
+          to="/missions/my"
+          class="active-quests-hint"
+        >
+          {{ t('home.loggedIn.activeQuestsHint') }}
+        </router-link>
 
-        <div v-if="challenges.length > 0" class="todays-challenges-list">
+        <div v-if="loading" class="todays-challenges-list" aria-hidden="true">
+          <div v-for="n in 3" :key="n" class="home-quest-row challenge-card is-skeleton" />
+        </div>
+
+        <div v-else-if="challenges.length > 0" class="todays-challenges-list">
           <div
             v-for="challenge in challenges"
             :key="challenge._id"
@@ -113,6 +124,8 @@ import treasureImage from '../../assets/home/treasure-280.webp'
 
 const props = defineProps({
   challenges: { type: Array, default: () => [] },
+  loading: { type: Boolean, default: false },
+  activeQuestCount: { type: Number, default: 0 },
   variant: {
     type: String,
     default: 'today',
@@ -176,10 +189,42 @@ function isRowCompleted(challenge) {
   }
 }
 
+.active-quests-hint {
+  display: inline-block;
+  margin: -4px 0 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--home-teal, #4fd1c5);
+  text-decoration: none;
+}
+
+.active-quests-hint:hover {
+  text-decoration: underline;
+}
+
 .todays-challenges-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.challenge-card.is-skeleton {
+  min-height: 52px;
+  pointer-events: none;
+  cursor: default;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(255, 255, 255, 0.08) 37%,
+    rgba(255, 255, 255, 0.04) 63%
+  );
+  background-size: 400% 100%;
+  animation: today-row-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes today-row-pulse {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
 }
 
 .challenge-card {

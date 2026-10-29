@@ -60,11 +60,16 @@
         />
 
         <template v-else-if="gridChallenges.length > 0 || hasMore">
+          <MissionSectionDivider
+            :label="t('allChallenges.sections.live')"
+            icon="mdi-earth"
+            :flush-top="!showUpcomingSection"
+          />
           <ChallengeGrid
             :challenges="gridChallenges"
             :current-user-id="currentUserId"
             @open="openDetails"
-            @update="() => fetchChallenges(currentPage.value || 1, false)"
+            @update="() => fetchChallenges(currentPage.value || 1, false, { silent: true })"
           />
 
           <ChallengeSkeletonGrid
@@ -99,6 +104,7 @@ import MissionTemplatesSection from './all-challenges/MissionTemplatesSection.vu
 import ChallengeGrid from './all-challenges/ChallengeGrid.vue'
 import UpcomingChallengesSection from './all-challenges/UpcomingChallengesSection.vue'
 import ExploreEmptyState from './all-challenges/ExploreEmptyState.vue'
+import MissionSectionDivider from './MissionSectionDivider.vue'
 import { useUserStore } from '../stores/user'
 import { useAllChallenges } from '../composables/useAllChallenges'
 import { useChallengeFilters } from '../composables/useChallengeFilters'
@@ -139,6 +145,7 @@ const {
   currentPage,
   hasMore,
   fetchChallenges,
+  updateChallengeInList,
   clearErrorMessage
 } = allChallengesState
 
@@ -146,7 +153,7 @@ const {
   showMainRitual,
   gridChallenges,
   upcomingChallenges
-} = useMainRitual(filters, challenges)
+} = useMainRitual(filters, challenges, currentUserId)
 
 const { launchTemplate } = useMissionTemplateLaunch()
 
@@ -215,7 +222,7 @@ async function openChallengeById(challengeId) {
   if (!challengeId) return
   if (isSocialGated.value && !isDemoMissionId(String(challengeId))) {
     requireAuthOrPrompt()
-    if (route.name === 'view-challenge') {
+    if (route.params.id) {
       router.replace({ path: '/missions', query: route.query })
     }
     return
@@ -239,16 +246,17 @@ async function openChallengeById(challengeId) {
   })
 }
 
-useChallengeUpdatedListener(() => {
-  fetchChallenges(currentPage.value || 1, false)
+useChallengeUpdatedListener(({ challenge }) => {
+  if (challenge && updateChallengeInList(challenge)) return
+  fetchChallenges(currentPage.value || 1, false, { silent: true })
 })
 
 watch(detailsDialogOpen, (open) => {
   // Only clear /missions/:id deep-link when still on the browse/view route.
   // Closing for edit/profile navigates away — don't yank back to /missions.
-  if (!open && route.name === 'view-challenge' && route.params.id) {
+  if (!open && route.params.id) {
     nextTick(() => {
-      if (route.name === 'view-challenge') {
+      if (route.params.id) {
         router.replace({ path: '/missions', query: route.query })
       }
     })

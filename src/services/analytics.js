@@ -12,7 +12,6 @@ export const GOALS = {
   LANDING_CTA_CLICK: 'landing_cta_click',
   LANDING_SCROLL_50: 'landing_scroll_50',
   LANDING_SECONDARY_CLICK: 'landing_secondary_click',
-  MISSION_CARD_OPEN: 'mission_card_open',
   FAQ_OPEN: 'faq_open',
   REGISTER_START: 'register_start',
   REGISTER_SUCCESS: 'register_success',

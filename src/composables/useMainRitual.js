@@ -1,11 +1,11 @@
 import { computed, unref } from 'vue'
-import { isChallengeUpcoming } from '../utils/challengeStatus'
+import { isChallengeOwner, isChallengeUpcoming } from '../utils/challengeStatus'
 
 function isTemplateMission(challenge) {
   return Boolean(challenge?.templateId)
 }
 
-export function useMainRitual(filters, challenges) {
+export function useMainRitual(filters, challenges, currentUserId) {
   const showMainRitual = computed(() => !unref(filters).owner)
 
   const catalogChallenges = computed(() => {
@@ -20,7 +20,11 @@ export function useMainRitual(filters, challenges) {
   })
 
   const upcomingChallenges = computed(() => {
-    return catalogChallenges.value.filter((c) => isChallengeUpcoming(c))
+    const userId = unref(currentUserId)
+    if (!userId) return []
+    return catalogChallenges.value.filter((challenge) => {
+      return isChallengeUpcoming(challenge) && isChallengeOwner(challenge, userId)
+    })
   })
 
   return {

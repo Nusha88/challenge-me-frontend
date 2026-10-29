@@ -13,6 +13,7 @@ export function useAllChallenges(filters, currentUserId) {
   const errorMessage = ref('')
   const currentPage = ref(1)
   const hasMore = ref(true)
+  const total = ref(0)
   let latestFetchId = 0
 
   function buildFilterParams(page) {
@@ -37,12 +38,31 @@ export function useAllChallenges(filters, currentUserId) {
     errorMessage.value = ''
   }
 
-  async function fetchChallenges(page = 1, append = false) {
+  function syncWatchedState(list) {
+    const userId = unref(currentUserId)
+    if (userId) {
+      watchedStore.syncIdsFromChallengeList(list)
+    }
+  }
+
+  function updateChallengeInList(challenge) {
+    if (!challenge?._id) return false
+    const id = String(challenge._id)
+    const index = challenges.value.findIndex((item) => String(item._id) === id)
+    if (index === -1) return false
+    const next = [...challenges.value]
+    next[index] = { ...next[index], ...challenge }
+    challenges.value = next
+    syncWatchedState(next)
+    return true
+  }
+
+  async function fetchChallenges(page = 1, append = false, { silent = false } = {}) {
     const fetchId = ++latestFetchId
 
     if (append) {
       loadingMore.value = true
-    } else {
+    } else if (!silent) {
       loading.value = true
       currentPage.value = 1
     }
@@ -63,11 +83,8 @@ export function useAllChallenges(filters, currentUserId) {
 
       hasMore.value = data?.pagination?.hasMore || false
       currentPage.value = page
-
-      const userId = unref(currentUserId)
-      if (userId) {
-        watchedStore.syncIdsFromChallengeList(challenges.value, userId)
-      }
+      total.value = data?.pagination?.total || 0
+      syncWatchedState(challenges.value)
     } catch (error) {
       if (fetchId === latestFetchId) {
         errorMessage.value = error.response?.data?.message || t('notifications.apiError')
@@ -90,7 +107,9 @@ export function useAllChallenges(filters, currentUserId) {
     errorMessage,
     currentPage,
     hasMore,
+    total,
     fetchChallenges,
+    updateChallengeInList,
     clearErrorMessage
   }
 }

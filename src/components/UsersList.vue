@@ -1,6 +1,6 @@
 <template>
   <div class="users-container">
-    <HeroesPageHeader :total-users="headerCount" />
+    <HeroesPageHeader />
 
     <v-alert
       v-if="error || squadError || friendError"
@@ -112,7 +112,7 @@
       />
 
       <div v-else-if="users.length > 0" class="hall-of-fame">
-        <template v-if="topThreeUsers.length > 0">
+        <template v-if="showPodium && topThreeUsers.length > 0">
           <MissionSectionDivider
             :label="t('users.sections.leaders')"
             icon="mdi-crown-outline"
@@ -159,7 +159,7 @@
               sm="6"
               lg="4"
               class="reveal-animation"
-              :style="{ '--i': index + 3 }"
+              :style="{ '--i': Math.min(index, 8) }"
             >
               <HeroListCard
                 :user="user"
@@ -236,6 +236,7 @@ const {
   sortBy,
   hasMore,
   hasLoadedOnce,
+  showPodium,
   topThreeUsers,
   remainingUsers,
   fetchUsers,
@@ -303,10 +304,6 @@ const squadEmptyText = computed(() =>
     : t('users.squad.empty')
 )
 
-const headerCount = computed(() =>
-  viewMode.value === 'squad' ? friends.value.length : totalUsers.value
-)
-
 function handleUserClick(user) {
   if (!requireAuthOrPrompt()) return
   const userId = user._id || user.id
@@ -332,7 +329,7 @@ async function retryFetch() {
     await loadSquad()
     return
   }
-  await fetchUsers(1, false)
+  await fetchUsers(1, false, { force: true })
 }
 
 function clearVisibleError() {

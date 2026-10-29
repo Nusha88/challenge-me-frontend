@@ -3,6 +3,7 @@ import { useUserStore } from '../stores/user'
 import { challengeService } from '../services/api'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 import { getScheduledDaysCount, normalizeDateKey, toDateInputValue } from '../utils/dateUtils'
+import { isChallengeFinished as isMissionFinished, isChallengeUpcoming } from '../utils/challengeStatus'
 import {
   findParticipantForUser,
   getDayProtectionSource,
@@ -62,6 +63,7 @@ export function useTodayChallenges({ onUpdated } = {}) {
 
   const challenges = ref([])
   const participantHabitChallenges = ref([])
+  const activeQuests = ref([])
   const loadingChallenges = ref(true)
   const hasLoadedOnce = ref(false)
 
@@ -199,24 +201,43 @@ export function useTodayChallenges({ onUpdated } = {}) {
     return getTodayDayStatus(challenge) === 'incomplete'
   }
 
+  function isActiveQuestForUser(challenge, userId) {
+    if (challenge.challengeType !== CHALLENGE_TYPES.RESULT) return false
+    if (isMissionFinished(challenge) || isChallengeUpcoming(challenge)) return false
+    if (!challenge.participants?.length) return false
+    return challenge.participants.some((p) => {
+      const pUserId = getParticipantUserId(p)
+      return pUserId && pUserId.toString() === userId.toString()
+    })
+  }
+
   function loadTodaysChallenges(allChallenges, userId) {
     const habits = allChallenges.filter((challenge) => isParticipantHabitChallenge(challenge, userId))
     participantHabitChallenges.value = habits
     challenges.value = habits.filter((challenge) => isTodayValidForChallenge(challenge))
+    activeQuests.value = allChallenges.filter((challenge) => isActiveQuestForUser(challenge, userId))
   }
 
   function resetChallenges() {
     challenges.value = []
     participantHabitChallenges.value = []
+    activeQuests.value = []
     loadingChallenges.value = false
     hasLoadedOnce.value = true
   }
 
+  function replaceChallenge(list, challenge) {
+    const index = list.findIndex((item) => String(item._id) === String(challenge._id))
+    if (index === -1) return list
+    const next = [...list]
+    next[index] = { ...list[index], ...challenge }
+    return next
+  }
+
   function updateChallengeInList(challenge) {
-    const index = challenges.value.findIndex((item) => item._id === challenge._id)
-    if (index !== -1) {
-      challenges.value[index] = challenge
-    }
+    if (!challenge?._id) return
+    challenges.value = replaceChallenge(challenges.value, challenge)
+    participantHabitChallenges.value = replaceChallenge(participantHabitChallenges.value, challenge)
   }
 
   const todaysChallenges = computed(() => challenges.value)
@@ -315,9 +336,15 @@ export function useTodayChallenges({ onUpdated } = {}) {
             participant.completedDays = updated.participants?.[0]?.completedDays || newCompletedDays
           }
         }
+        participant.completedDays = newCompletedDays
+        updateChallengeInList({
+          ...challenge,
+          participants: challenge.participants.map((item) => (
+            item === participant ? { ...item, completedDays: newCompletedDays } : item
+          ))
+        })
         if (onUpdated) await onUpdated()
         window.dispatchEvent(new Event('participant-completed-days-updated'))
-        window.dispatchEvent(new Event('challenge-updated'))
         return
       }
 
@@ -335,14 +362,16 @@ export function useTodayChallenges({ onUpdated } = {}) {
       )
       applyXpAwardResponse(response)
 
-      participant.completedDays = newCompletedDays
+      const nextParticipants = challenge.participants.map((item) => (
+        item === participant ? { ...item, completedDays: newCompletedDays } : item
+      ))
+      updateChallengeInList({ ...challenge, participants: nextParticipants })
 
       if (onUpdated) {
         await onUpdated()
       }
 
       window.dispatchEvent(new Event('participant-completed-days-updated'))
-      window.dispatchEvent(new Event('challenge-updated'))
     } catch (error) {
       console.error('Error toggling completion:', error)
     }
@@ -354,6 +383,7 @@ export function useTodayChallenges({ onUpdated } = {}) {
     hasLoadedOnce,
     todaysChallenges,
     tomorrowsChallenges,
+    activeQuests,
     loadTodaysChallenges,
     resetChallenges,
     updateChallengeInList,

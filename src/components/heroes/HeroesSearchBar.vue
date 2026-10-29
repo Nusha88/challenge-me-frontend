@@ -86,7 +86,13 @@ const sortOptions = computed(() => [
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: clamp(18px, 2.5vw, 28px);
+  position: sticky;
+  top: var(--v-layout-top, 64px);
+  z-index: 5;
+  margin: 0 -4px clamp(18px, 2.5vw, 28px);
+  padding: 8px 4px;
+  background: rgba(13, 17, 28, 0.92);
+  backdrop-filter: blur(12px);
 }
 
 .heroes-search {

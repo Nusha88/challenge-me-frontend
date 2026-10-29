@@ -2,6 +2,8 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { challengeService } from '../services/api'
 
+const LIST_TTL_MS = 15000
+
 function normalizeId(id) {
   if (id == null) return ''
   return String(id._id ?? id)
@@ -12,7 +14,7 @@ export const useWatchedChallengesStore = defineStore('watchedChallenges', () => 
   const challenges = ref([])
   const loading = ref(false)
   const loadedForUserId = ref(null)
-
+  let lastFetchAt = 0
   let inflightFetch = null
 
   const idSet = computed(() => new Set(ids.value.map(normalizeId).filter(Boolean)))
@@ -23,14 +25,30 @@ export const useWatchedChallengesStore = defineStore('watchedChallenges', () => 
     ids.value = items.map((c) => normalizeId(c._id)).filter(Boolean)
   }
 
-  /** Sync watched ids from challenge list that already includes isWatched flags. */
-  function syncIdsFromChallengeList(challengeList, userId) {
-    ids.value = (challengeList || [])
-      .filter((c) => c.isWatched)
-      .map((c) => normalizeId(c._id))
-      .filter(Boolean)
-    if (userId) {
-      loadedForUserId.value = userId
+  /** Merge isWatched flags from a partial catalog without wiping other ids. */
+  function syncIdsFromChallengeList(challengeList) {
+    const list = challengeList || []
+    if (!list.length) return
+
+    const next = new Set(ids.value.map(normalizeId).filter(Boolean))
+    const removed = []
+
+    for (const challenge of list) {
+      const id = normalizeId(challenge._id)
+      if (!id || !('isWatched' in challenge)) continue
+      if (challenge.isWatched) {
+        next.add(id)
+      } else if (next.delete(id)) {
+        removed.push(id)
+      }
+    }
+
+    ids.value = [...next]
+    if (removed.length) {
+      const removedSet = new Set(removed)
+      challenges.value = challenges.value.filter(
+        (challenge) => !removedSet.has(normalizeId(challenge._id))
+      )
     }
   }
 
@@ -62,10 +80,26 @@ export const useWatchedChallengesStore = defineStore('watchedChallenges', () => 
     const normalized = normalizeId(challenge._id)
     addId(normalized)
 
-    const exists = challenges.value.some((c) => normalizeId(c._id) === normalized)
-    if (!exists) {
+    const index = challenges.value.findIndex((c) => normalizeId(c._id) === normalized)
+    if (index === -1) {
       challenges.value = [challenge, ...challenges.value]
+      return
     }
+
+    const next = [...challenges.value]
+    next[index] = { ...next[index], ...challenge }
+    challenges.value = next
+  }
+
+  function patchChallenge(challenge) {
+    if (!challenge?._id) return false
+    const normalized = normalizeId(challenge._id)
+    const index = challenges.value.findIndex((c) => normalizeId(c._id) === normalized)
+    if (index === -1) return false
+    const next = [...challenges.value]
+    next[index] = { ...next[index], ...challenge }
+    challenges.value = next
+    return true
   }
 
   function isListStale() {
@@ -78,6 +112,7 @@ export const useWatchedChallengesStore = defineStore('watchedChallenges', () => 
 
   function invalidateCache() {
     loadedForUserId.value = null
+    lastFetchAt = 0
   }
 
   function removeId(id) {
@@ -93,6 +128,7 @@ export const useWatchedChallengesStore = defineStore('watchedChallenges', () => 
     challenges.value = []
     loadedForUserId.value = null
     inflightFetch = null
+    lastFetchAt = 0
     loading.value = false
   }
 
@@ -102,7 +138,10 @@ export const useWatchedChallengesStore = defineStore('watchedChallenges', () => 
       return []
     }
 
-    if (!force && loadedForUserId.value === userId && !isListStale()) {
+    const hasCache = loadedForUserId.value === userId && challenges.value.length > 0
+    const withinTtl = Date.now() - lastFetchAt < LIST_TTL_MS
+
+    if (!force && hasCache && !isListStale() && withinTtl) {
       return challenges.value
     }
 
@@ -110,13 +149,16 @@ export const useWatchedChallengesStore = defineStore('watchedChallenges', () => 
       return inflightFetch
     }
 
-    loading.value = true
+    const showLoader = !hasCache
+    if (showLoader) loading.value = true
+
     inflightFetch = (async () => {
       try {
         const { data } = await challengeService.getWatchedChallenges(userId)
         const list = data?.challenges || []
         setFromChallenges(list)
         loadedForUserId.value = userId
+        lastFetchAt = Date.now()
         return list
       } catch (err) {
         console.error('Error loading watched challenges:', err)
@@ -161,6 +203,7 @@ export const useWatchedChallengesStore = defineStore('watchedChallenges', () => 
     isWatched,
     addId,
     upsertChallenge,
+    patchChallenge,
     removeId,
     clear,
     invalidateCache,

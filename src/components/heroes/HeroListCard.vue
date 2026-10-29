@@ -49,16 +49,8 @@
             {{ user.challengeCount || 0 }}
           </span>
           <span>
-            <v-icon size="12" class="stat-icon">mdi-calendar-check</v-icon>
-            {{ t('users.daysShort', { count: user.daysOnSite || 0 }) }}
-          </span>
-          <span>
             <v-icon size="12" class="stat-icon">mdi-star-four-points</v-icon>
             {{ t('users.xpShort', { count: user.displayXp }) }}
-          </span>
-          <span class="sparks-stat">
-            <span class="spark-glyph" aria-hidden="true">✦</span>
-            {{ user.sparks ?? 0 }}
           </span>
         </div>
 
@@ -159,12 +151,6 @@ const { t } = useI18n()
 .stat-icon {
   color: rgba(79, 209, 197, 0.65);
   margin-right: 3px;
-}
-
-.spark-glyph {
-  color: var(--home-gold, #ffd700);
-  margin-right: 3px;
-  font-size: 11px;
 }
 
 @media (max-width: 480px) {

@@ -34,7 +34,16 @@
           {{ getMissionTypeLabel(challenge.challengeType) }}
         </span>
         <v-spacer></v-spacer>
-        <v-icon v-if="challenge.privacy === 'private'" size="14" class="privacy-icon">mdi-lock</v-icon>
+        <span v-if="challenge.inviteOnly" class="privacy-tag privacy-tag--squad">
+          {{ t('challenges.squad.cardTitle') }}
+        </span>
+        <v-icon
+          v-else-if="challenge.privacy === 'private'"
+          size="14"
+          class="privacy-icon"
+        >
+          mdi-lock
+        </v-icon>
       </div>
 
       <div class="body-content">
@@ -254,6 +263,12 @@
   line-height: 1.3;
 }
 
+.header-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 /* Теги */
 .type-tag {
   font-size: 9px;
@@ -265,6 +280,25 @@
 }
 .type-tag.habit { color: #7048E8; border: 1px solid rgba(112, 72, 232, 0.3); }
 .type-tag.result { color: #4FD1C5; border: 1px solid rgba(79, 209, 197, 0.3); }
+
+.privacy-tag {
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.8px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+}
+
+.privacy-tag--squad {
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.privacy-icon {
+  color: rgba(255, 255, 255, 0.5);
+}
 
 /* Мини-сетка 7 дней */
 .mini-history-grid {

@@ -9,9 +9,21 @@ const DEFAULT_FILTERS = {
   isCompleted: false
 }
 
+function filterQuerySignature(query) {
+  return JSON.stringify({
+    createdBy: query.createdBy || query.owner || '',
+    type: query.type || '',
+    popularity: query.popularity || '',
+    isCompleted: query.isCompleted || '',
+    title: query.title || '',
+    showUpcoming: query.showUpcoming || ''
+  })
+}
+
 export function useChallengeFilters(route, router) {
   const filters = ref({ ...DEFAULT_FILTERS })
   const isSyncingFromUrl = ref(false)
+  let syncingToUrl = false
 
   function syncFiltersFromUrl() {
     const query = route.query
@@ -86,7 +98,11 @@ export function useChallengeFilters(route, router) {
       delete query.showUpcoming
     }
 
+    syncingToUrl = true
     router.replace({ query })
+    nextTick(() => {
+      syncingToUrl = false
+    })
   }
 
   function setupFilterWatchers({ fetchChallenges, onOwnerFilterChange }) {
@@ -102,7 +118,7 @@ export function useChallengeFilters(route, router) {
           onOwnerFilterChange?.(current.owner)
         }
 
-        if (isSyncingFromUrl.value) return
+        if (isSyncingFromUrl.value || syncingToUrl) return
 
         syncFiltersToUrl()
         fetchChallenges(1, false)
@@ -112,34 +128,28 @@ export function useChallengeFilters(route, router) {
     watch(
       () => filters.value.showUpcoming,
       () => {
-        if (isSyncingFromUrl.value) return
+        if (isSyncingFromUrl.value || syncingToUrl) return
         syncFiltersToUrl()
       }
     )
 
     watch(
-      () => filters.value.title,
-      () => {
-        if (isSyncingFromUrl.value) return
-        syncFiltersToUrl()
-      }
-    )
-
-    watch(
-      () => route.query,
-      () => {
+      () => filterQuerySignature(route.query),
+      (next, prev) => {
+        if (syncingToUrl || isSyncingFromUrl.value) return
+        if (next === prev) return
         isSyncingFromUrl.value = true
         syncFiltersFromUrl()
         fetchChallenges(1, false)
         nextTick(() => {
           isSyncingFromUrl.value = false
         })
-      },
-      { deep: true }
+      }
     )
   }
 
   function handleFilterSearch(fetchChallenges) {
+    syncFiltersToUrl()
     fetchChallenges(1, false)
   }
 

@@ -17,9 +17,7 @@
         :show-join-button="showJoinButton"
         :show-extend-button="showExtendButton"
         :disabled="disabled"
-        show-habit-tracker
         @click="forwardChallengeClick"
-        @update="$emit('update')"
         @extended="forwardExtended"
       />
     </div>
@@ -74,7 +72,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['challenge-click', 'update', 'extended'])
+const emit = defineEmits(['challenge-click', 'extended'])
 
 function forwardChallengeClick(event) {
   if (props.disabled) return

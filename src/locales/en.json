@@ -199,8 +199,6 @@
         "title": "Pick the shape of your goal",
         "lead": "A ritual for a habit. A quest for a finish line. A squad when you want it with your people — invite-only.",
         "examplesLabel": "For example",
-        "guideCta": "Create a mission",
-        "guideLoading": "Loading the walkthrough",
         "ritual": {
           "title": "Daily Ritual",
           "tagline": "For habits you want to make automatic",
@@ -209,9 +207,7 @@
           "example2": "Walk 10,000 steps",
           "example3": "Do morning yoga",
           "example4": "Start the day with a glass of water",
-          "social": "Anyone can join a public ritual, so you compare notes and keep each other going.",
-          "cta": "See how a ritual works",
-          "guideTitle": "How to create a Ritual"
+          "social": "Anyone can join a public ritual, so you compare notes and keep each other going."
         },
         "quest": {
           "title": "Epic Quest",
@@ -221,13 +217,11 @@
           "example2": "Train for and run a marathon",
           "example3": "Learn to cook 20 new dishes",
           "social": "A quest is personal, so nobody joins it — but a public quest can be followed and cheered on.",
-          "reward": "Every quest has a day of triumph and a reward you promise yourself for finishing.",
-          "cta": "See how a quest works",
-          "guideTitle": "How to create a Quest"
+          "reward": "Every quest has a day of triumph and a reward you promise yourself for finishing."
         },
         "squad": {
           "title": "Or take it with a squad",
-          "description": "Invite people from My squad. They see the calendar, write in the squad thread, and nobody else gets in."
+          "description": "Invite friends. They see the calendar, write in the squad thread, and nobody else gets in."
         },
         "steps": {
           "title": "Plus a place for the small stuff",
@@ -321,6 +315,9 @@
       }
     },
     "loggedIn": {
+      "loading": {
+        "initial": "Channelling Power..."
+      },
       "greeting": "Hello, {name}",
       "motivational": "You're already closer to your goal than yesterday",
       "today": "Today",
@@ -335,6 +332,7 @@
         "launchFirstMission": "Launch First Mission",
         "explore": "Explore examples"
       },
+      "activeQuestsHint": "Active quests live in My Missions",
       "firstDayQuest": {
         "banner": "Day one. Check off the step to earn Sparks.",
         "stepTitle": "Open Ignite",
@@ -675,7 +673,6 @@
   },
   "users": {
     "title": "Heroes",
-    "subtitle": "Community",
     "description": "Find people shaping the world of missions.",
     "totalStrength": "Heroes",
     "active": "active",
@@ -708,20 +705,20 @@
     "noChallenges": "This user has no missions yet",
     "userNotFound": "User not found",
     "squad": {
-      "title": "My squad",
-      "tab": "My squad",
-      "incoming": "Squad requests",
-      "incomingLead": "Wants to join your squad",
-      "members": "Squadmates",
-      "empty": "Your squad is empty. Find heroes in the hall of fame.",
+      "title": "Friends",
+      "tab": "Friends",
+      "incoming": "Friend requests",
+      "incomingLead": "Wants to add you as a friend",
+      "members": "Circle",
+      "empty": "Your circle is empty. Find heroes in the hall of fame.",
       "findHeroes": "Back to heroes",
-      "add": "Add to squad",
+      "add": "Add friend",
       "sent": "Request sent",
-      "inSquad": "In squad",
+      "inSquad": "Friends",
       "accept": "Accept",
       "reject": "Reject",
       "cancel": "Cancel request",
-      "loadError": "Could not load your squad",
+      "loadError": "Could not load your friends",
       "actionError": "Could not update this request"
     }
   },
@@ -791,17 +788,17 @@
     "squad": {
       "title": "Squad",
       "cardTitle": "Squad",
-      "cardDesc": "Invite friends from My squad",
-      "invite": "Invite from squad",
+      "cardDesc": "Invite friends from the Heroes tab",
+      "invite": "Invite friends",
       "inviteHint": "They'll get a request to join this ritual",
       "waiting": "Waiting for a reply",
       "request": "invited you to a squad ritual",
       "limit": "You can invite up to {count} heroes besides yourself",
       "full": "Squad is full",
-      "notInSquad": "Only squadmates can be invited",
+      "notInSquad": "Only friends can be invited",
       "empty": "Your squad is empty. Add friends first.",
-      "findFriends": "Open My squad",
-      "add": "Add from squad",
+      "findFriends": "Open friends",
+      "add": "Add friends",
       "pendingBanner": "You're invited to this ritual",
       "accept": "Accept",
       "reject": "Decline",
@@ -1052,10 +1049,10 @@
     "newsFeed": "Feed",
     "feedEmpty": "No recent activity",
     "feed": {
-      "joined": "joined {mission}",
-      "progress": "made progress in {mission}",
-      "finished": "finished {mission}",
-      "commented": "commented in {mission}"
+      "joined": "joined “{mission}”",
+      "progress": "made progress in “{mission}”",
+      "finished": "finished “{mission}”",
+      "commented": "commented on “{mission}”"
     },
     "calendarDayHeroesActive": "Active: {active} of {total} heroes",
     "joinedHere": "Joined here",
@@ -1141,14 +1138,15 @@
 "allChallenges": {
     "title": "Explore",
     "subtitle": "World missions",
-    "description": "Browse the global catalog, open a mission, and join the ones that call you.",
+    "description": "Open a public mission and join in.",
     "retry": "Retry",
     "sections": {
-      "upcoming": "Upcoming"
+      "upcoming": "Upcoming",
+      "live": "Live missions"
     },
     "templates": {
       "title": "Mission templates",
-      "systemAuthor": "System",
+      "systemAuthor": "Ignite",
       "use": "Use template",
       "inUse": "Already in play",
       "durationDays": "{days} days",
@@ -1270,23 +1268,21 @@
   },
   "watched": {
     "title": "Following",
-    "subtitle": "Achievement radar",
-    "description": "Track missions you follow across the network.",
+    "description": "A feed of missions you follow.",
     "retry": "Retry",
     "sections": {
-      "following": "Following",
-      "topPerformers": "Top Performers",
-      "activityFeed": "Activity Feed"
+      "radar": "On your radar",
+      "activityFeed": "Subscription feed"
     },
     "empty": {
-      "text": "Nothing on your radar yet. Explore world missions or find heroes whose paths inspire you.",
+      "text": "Nothing on your radar yet. Follow world missions or find heroes — their activity will land here.",
       "explore": "Explore missions",
       "findHeroes": "Find Heroes"
     },
-    "feedEmpty": "No recent activity",
+    "feedEmpty": "No recent activity from followed missions",
     "ritual": "Ritual",
     "quest": "Quest",
-    "heroProgress": "Hero Result",
+    "heroProgress": "Hero progress",
     "unfollow": "Unfollow",
     "joinMission": "Join Mission"
   },

@@ -5,7 +5,20 @@ import { enrichUserForDisplay } from '../utils/userLevelDisplay'
 
 const PAGE_LIMIT = 21
 const SEARCH_DEBOUNCE_MS = 300
+const LIST_TTL_MS = 15000
 const SORT_VALUES = ['xp', 'missions', 'newest']
+
+const listCache = {
+  signature: '',
+  users: [],
+  totalUsers: 0,
+  hasMore: false,
+  fetchedAt: 0
+}
+
+function listSignature(sort, search) {
+  return `${sort}|${String(search || '').trim().toLowerCase()}`
+}
 
 export function useHeroesList() {
   const { t } = useI18n()
@@ -25,24 +38,67 @@ export function useHeroesList() {
   let searchDebounceTimer = null
   let skipNextSearchWatch = false
 
-  const topThreeUsers = computed(() => users.value.slice(0, 3))
-  const remainingUsers = computed(() => users.value.slice(3))
+  const showPodium = computed(
+    () => sortBy.value === 'xp' && !searchQuery.value.trim()
+  )
+  const topThreeUsers = computed(() =>
+    showPodium.value ? users.value.slice(0, 3) : []
+  )
+  const remainingUsers = computed(() =>
+    showPodium.value ? users.value.slice(3) : users.value
+  )
 
   function mapUsers(list) {
     return (list || []).map((user) => enrichUserForDisplay(user, t))
+  }
+
+  function currentSignature() {
+    return listSignature(
+      SORT_VALUES.includes(sortBy.value) ? sortBy.value : 'xp',
+      searchQuery.value
+    )
+  }
+
+  function applyPage(list, total, more, page) {
+    users.value = list
+    totalUsers.value = total
+    hasMore.value = more
+    currentPage.value = page
+    hasLoadedOnce.value = true
+  }
+
+  function hydrateFromCache() {
+    if (!listCache.fetchedAt) return false
+    if (listCache.signature !== currentSignature()) return false
+    if (Date.now() - listCache.fetchedAt >= LIST_TTL_MS) return false
+
+    applyPage(listCache.users, listCache.totalUsers, listCache.hasMore, 1)
+    return true
+  }
+
+  function writeCache() {
+    listCache.signature = currentSignature()
+    listCache.users = users.value
+    listCache.totalUsers = totalUsers.value
+    listCache.hasMore = hasMore.value
+    listCache.fetchedAt = Date.now()
   }
 
   function clearError() {
     error.value = ''
   }
 
-  async function fetchUsers(page = 1, append = false) {
+  async function fetchUsers(page = 1, append = false, { force = false } = {}) {
+    if (!append && page === 1 && !force && hydrateFromCache()) {
+      return
+    }
+
     const fetchId = ++latestFetchId
 
     if (append) {
       loadingMore.value = true
     } else {
-      loading.value = true
+      loading.value = !hasLoadedOnce.value
       currentPage.value = 1
     }
 
@@ -64,17 +120,19 @@ export function useHeroesList() {
       if (fetchId !== latestFetchId) return
 
       const usersWithDisplay = mapUsers(response.data.users)
+      const total = response.data.totalUsers || 0
+      const more = response.data.pagination?.hasMore || false
 
       if (append) {
         users.value = [...users.value, ...usersWithDisplay]
+        totalUsers.value = total
+        hasMore.value = more
+        currentPage.value = page
+        hasLoadedOnce.value = true
       } else {
-        users.value = usersWithDisplay
+        applyPage(usersWithDisplay, total, more, page)
+        writeCache()
       }
-
-      totalUsers.value = response.data.totalUsers || 0
-      hasMore.value = response.data.pagination?.hasMore || false
-      currentPage.value = page
-      hasLoadedOnce.value = true
     } catch (err) {
       if (fetchId !== latestFetchId) return
       error.value = err.response?.data?.message || t('notifications.usersError')
@@ -142,6 +200,7 @@ export function useHeroesList() {
     sortBy,
     hasMore,
     hasLoadedOnce,
+    showPodium,
     topThreeUsers,
     remainingUsers,
     fetchUsers,

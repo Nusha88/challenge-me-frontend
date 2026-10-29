@@ -25,7 +25,12 @@ export function useUserStreak() {
   const isLoggedIn = computed(() => userStore.isLoggedIn)
   const isDemoMode = computed(() => demoStore.isDemoMode)
 
+  let streakFetchPromise = null
+  let lastStreakFetchAt = 0
+  let lastCompletedDates = new Set()
+
   function applyStreakFromDates(completedDates) {
+    lastCompletedDates = completedDates
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
@@ -41,42 +46,58 @@ export function useUserStreak() {
     auraDimmed.value = isAuraDimmed(completedDates, today)
   }
 
-  async function calculateStreak() {
-    if (isDemoMode.value) {
-      const missions = getDemoMissions()
-      const habitChallenges = missions.filter(
-        (challenge) => challenge.challengeType === CHALLENGE_TYPES.HABIT
-      )
-      const completedDates = buildCompletedDateSet(
-        getDemoChecklistHistory(),
-        habitChallenges,
-        DEMO_USER_ID
-      )
-      applyStreakFromDates(completedDates)
+  async function calculateStreak(options) {
+    const force = options?.force === true
+    if (streakFetchPromise) return streakFetchPromise
+    if (!force && lastStreakFetchAt && Date.now() - lastStreakFetchAt < 15000) {
       return
     }
 
-    const userId = userStore.userId
-    if (!userId || !isLoggedIn.value) {
-      reset()
-      return
-    }
+    streakFetchPromise = (async () => {
+      if (isDemoMode.value) {
+        const missions = getDemoMissions()
+        const habitChallenges = missions.filter(
+          (challenge) => challenge.challengeType === CHALLENGE_TYPES.HABIT
+        )
+        const completedDates = buildCompletedDateSet(
+          getDemoChecklistHistory(),
+          habitChallenges,
+          DEMO_USER_ID
+        )
+        applyStreakFromDates(completedDates)
+        lastStreakFetchAt = Date.now()
+        return
+      }
+
+      const userId = userStore.userId
+      if (!userId || !isLoggedIn.value) {
+        reset()
+        return
+      }
+
+      try {
+        const [checklistResponse, challengesResponse] = await Promise.all([
+          userService.getChecklistHistory(),
+          challengeService.getChallengesByUser(userId, { excludePrivate: false, view: 'list' })
+        ])
+
+        const checklists = checklistResponse.data?.checklists || []
+        const habitChallenges = (challengesResponse.data?.challenges || [])
+          .filter((challenge) => challenge.challengeType === CHALLENGE_TYPES.HABIT)
+
+        const completedDates = buildCompletedDateSet(checklists, habitChallenges, userId)
+        applyStreakFromDates(completedDates)
+        lastStreakFetchAt = Date.now()
+      } catch (error) {
+        console.error('Error calculating streak:', error)
+        reset()
+      }
+    })()
 
     try {
-      const [checklistResponse, challengesResponse] = await Promise.all([
-        userService.getChecklistHistory(),
-        challengeService.getChallengesByUser(userId, { excludePrivate: false })
-      ])
-
-      const checklists = checklistResponse.data?.checklists || []
-      const habitChallenges = (challengesResponse.data?.challenges || [])
-        .filter((challenge) => challenge.challengeType === CHALLENGE_TYPES.HABIT)
-
-      const completedDates = buildCompletedDateSet(checklists, habitChallenges, userId)
-      applyStreakFromDates(completedDates)
-    } catch (error) {
-      console.error('Error calculating streak:', error)
-      reset()
+      await streakFetchPromise
+    } finally {
+      streakFetchPromise = null
     }
   }
 
@@ -130,10 +151,17 @@ export function useUserStreak() {
       || (!hasTodayCompletedTasks.value && yesterdayStreakDays.value > 0)
   })
 
+  function markTodayInStreak() {
+    if (!lastStreakFetchAt) return
+    const next = new Set(lastCompletedDates)
+    next.add(toDateInputValue())
+    applyStreakFromDates(next)
+  }
+
   useAppEventListeners([
-    { event: APP_EVENTS.CHECKLIST_UPDATED, handler: calculateStreak },
-    { event: APP_EVENTS.CHALLENGE_COMPLETED, handler: calculateStreak },
-    { event: APP_EVENTS.PARTICIPANT_COMPLETED_DAYS_UPDATED, handler: calculateStreak }
+    { event: APP_EVENTS.CHECKLIST_UPDATED, handler: markTodayInStreak },
+    { event: APP_EVENTS.CHALLENGE_COMPLETED, handler: () => calculateStreak({ force: true }) },
+    { event: APP_EVENTS.PARTICIPANT_COMPLETED_DAYS_UPDATED, handler: markTodayInStreak }
   ])
 
   watch(() => route.path, () => {

@@ -130,28 +130,37 @@ function buildDemoRewardResponse() {
   }
 }
 
+let loadTodayStepsPromise = null
+
 const loadTodaySteps = async () => {
+  if (loadTodayStepsPromise) return loadTodayStepsPromise
+
   loading.value = true
   error.value = ''
-  try {
-    if (isDemoMode.value) {
-      todaySteps.value = mapTasks(getDemoChecklistForDate().tasks)
-      return
-    }
+  loadTodayStepsPromise = (async () => {
+    try {
+      if (isDemoMode.value) {
+        todaySteps.value = mapTasks(getDemoChecklistForDate().tasks)
+        return
+      }
 
-    const response = await userService.getTodayChecklist()
-    if (response.data?.checklist?.tasks) {
-      todaySteps.value = mapTasks(response.data.checklist.tasks)
-    } else {
+      const response = await userService.getTodayChecklist()
+      if (response.data?.checklist?.tasks) {
+        todaySteps.value = mapTasks(response.data.checklist.tasks)
+      } else {
+        todaySteps.value = []
+      }
+    } catch (err) {
+      console.error('Error loading daily checklist:', err)
+      error.value = err.response?.data?.message || t('home.loggedIn.dailyChecklist.loadError')
       todaySteps.value = []
+    } finally {
+      loading.value = false
+      loadTodayStepsPromise = null
     }
-  } catch (err) {
-    console.error('Error loading daily checklist:', err)
-    error.value = err.response?.data?.message || t('home.loggedIn.dailyChecklist.loadError')
-    todaySteps.value = []
-  } finally {
-    loading.value = false
-  }
+  })()
+
+  return loadTodayStepsPromise
 }
 
 // Expose progress data and reload function to parent component

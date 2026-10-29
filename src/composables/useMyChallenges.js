@@ -91,6 +91,12 @@ export function useMyChallenges(currentUserId) {
     challengeGroups.value.upcoming.filter((c) => c.challengeType === CHALLENGE_TYPES.HABIT)
   )
   const finishedChallenges = computed(() => challengeGroups.value.finished)
+  const finishedQuests = computed(() =>
+    challengeGroups.value.finished.filter((c) => c.challengeType === CHALLENGE_TYPES.RESULT)
+  )
+  const finishedRituals = computed(() =>
+    challengeGroups.value.finished.filter((c) => c.challengeType === CHALLENGE_TYPES.HABIT)
+  )
   const activeChallenges = computed(() => [
     ...activeQuests.value,
     ...activeRituals.value
@@ -170,10 +176,11 @@ export function useMyChallenges(currentUserId) {
 
     try {
       const { data } = await challengeService.getChallengesByUser(userId, {
-        excludePrivate: false
+        excludePrivate: false,
+        view: 'list'
       })
       challenges.value = data?.challenges || []
-      watchedStore.syncIdsFromChallengeList(challenges.value, userId)
+      watchedStore.syncIdsFromChallengeList(challenges.value)
     } catch (err) {
       listError.value = err.response?.data?.message || t('notifications.apiError')
     } finally {
@@ -334,6 +341,8 @@ export function useMyChallenges(currentUserId) {
     upcomingQuests,
     upcomingRituals,
     finishedChallenges,
+    finishedQuests,
+    finishedRituals,
     activeChallenges,
     isWatched,
     clearListError,

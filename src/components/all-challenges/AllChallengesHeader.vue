@@ -1,14 +1,11 @@
 <template>
   <header class="explore-header">
-    <div class="explore-header-copy">
-      <div class="explore-header-title-row">
-        <v-icon color="#4FD1C5" size="36" class="explore-header-icon">mdi-compass-rose</v-icon>
-        <div>
-          <h1 class="explore-title">{{ t('allChallenges.title') }}</h1>
-          <p class="explore-subtitle">{{ t('allChallenges.subtitle') }}</p>
-        </div>
+    <div class="explore-header-title-row">
+      <v-icon color="#4FD1C5" size="36" class="explore-header-icon">mdi-compass-rose</v-icon>
+      <div>
+        <h1 class="explore-title">{{ t('allChallenges.title') }}</h1>
+        <p class="explore-lead">{{ t('allChallenges.description') }}</p>
       </div>
-      <p class="explore-lead">{{ t('allChallenges.description') }}</p>
     </div>
   </header>
 </template>
@@ -21,22 +18,18 @@ const { t } = useI18n()
 
 <style scoped>
 .explore-header {
-  margin-bottom: clamp(20px, 3vw, 32px);
-}
-
-.explore-header-copy {
-  min-width: 0;
+  margin-bottom: clamp(16px, 2.5vw, 24px);
 }
 
 .explore-header-title-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
-  margin-bottom: 8px;
 }
 
 .explore-header-icon {
   flex-shrink: 0;
+  margin-top: 2px;
   filter: drop-shadow(0 0 12px rgba(79, 209, 197, 0.35));
 }
 
@@ -49,20 +42,11 @@ const { t } = useI18n()
   line-height: 1.15;
 }
 
-.explore-subtitle {
-  margin: 4px 0 0;
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--home-teal, #4fd1c5);
-}
-
 .explore-lead {
-  margin: 0;
-  max-width: 54ch;
+  margin: 6px 0 0;
+  max-width: 46ch;
   color: var(--home-text-dim, #94a3b8);
-  font-size: 0.95rem;
-  line-height: 1.55;
+  font-size: 0.92rem;
+  line-height: 1.45;
 }
 </style>

@@ -1,14 +1,11 @@
 <template>
   <header class="watched-header">
-    <div class="watched-header-copy">
-      <div class="watched-header-title-row">
-        <v-icon color="#4FD1C5" size="36" class="watched-header-icon">mdi-radar</v-icon>
-        <div>
-          <h1 class="watched-title">{{ t('watched.title') }}</h1>
-          <p class="watched-subtitle">{{ t('watched.subtitle') }}</p>
-        </div>
+    <div class="watched-header-title-row">
+      <v-icon color="#4FD1C5" size="36" class="watched-header-icon">mdi-radar</v-icon>
+      <div>
+        <h1 class="watched-title">{{ t('watched.title') }}</h1>
+        <p class="watched-lead">{{ t('watched.description') }}</p>
       </div>
-      <p class="watched-lead">{{ t('watched.description') }}</p>
     </div>
   </header>
 </template>
@@ -21,24 +18,19 @@ const { t } = useI18n()
 
 <style scoped>
 .watched-header {
-  margin-bottom: clamp(20px, 3vw, 32px);
-}
-
-.watched-header-copy {
-  min-width: 0;
+  margin-bottom: clamp(16px, 2.5vw, 24px);
 }
 
 .watched-header-title-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
-  margin-bottom: 8px;
 }
 
 .watched-header-icon {
   flex-shrink: 0;
+  margin-top: 2px;
   filter: drop-shadow(0 0 12px rgba(79, 209, 197, 0.35));
-  animation: radar-pulse 4s infinite linear;
 }
 
 .watched-title {
@@ -50,32 +42,11 @@ const { t } = useI18n()
   line-height: 1.15;
 }
 
-.watched-subtitle {
-  margin: 4px 0 0;
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--home-teal, #4fd1c5);
-}
-
 .watched-lead {
-  margin: 0;
-  max-width: 54ch;
+  margin: 6px 0 0;
+  max-width: 46ch;
   color: var(--home-text-dim, #94a3b8);
-  font-size: 0.95rem;
-  line-height: 1.55;
-}
-
-@keyframes radar-pulse {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.75;
-    transform: scale(1.08);
-  }
+  font-size: 0.92rem;
+  line-height: 1.45;
 }
 </style>

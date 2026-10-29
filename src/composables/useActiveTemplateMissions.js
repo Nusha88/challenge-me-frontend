@@ -1,10 +1,16 @@
 import { computed, onMounted, ref } from 'vue'
-import { challengeService } from '../services/api'
 import { useUserStore } from '../stores/user'
 import { useDemoStore } from '../stores/demo'
 import { getDemoMissions } from '../services/demoStorage'
 import { indexActiveTemplateChallenges } from '../utils/templateMembership'
 import { useChallengeUpdatedListener } from './useChallengeUpdatedListener'
+import { useAppEventListeners } from './useAppEvents'
+import { APP_EVENTS } from '../utils/appEvents'
+import {
+  clearMyMissionsListCache,
+  loadMyMissionsList,
+  patchMyMissionsListCache
+} from './useMyMissionsListCache'
 
 export function useActiveTemplateMissions() {
   const userStore = useUserStore()
@@ -19,7 +25,7 @@ export function useActiveTemplateMissions() {
     return activeByTemplateId.value[String(templateId || '')] || null
   }
 
-  async function loadActiveTemplateMissions() {
+  async function loadActiveTemplateMissions({ force = false } = {}) {
     if (demoStore.isDemoMode) {
       activeByTemplateId.value = indexActiveTemplateChallenges(getDemoMissions())
       return
@@ -32,10 +38,8 @@ export function useActiveTemplateMissions() {
     }
 
     try {
-      const { data } = await challengeService.getChallengesByUser(userId, {
-        excludePrivate: false
-      })
-      activeByTemplateId.value = indexActiveTemplateChallenges(data?.challenges || [])
+      const challenges = await loadMyMissionsList(userId, { force })
+      activeByTemplateId.value = indexActiveTemplateChallenges(challenges)
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error loading active template missions:', error)
@@ -47,7 +51,23 @@ export function useActiveTemplateMissions() {
   const inUseTemplateIds = computed(() => Object.keys(activeByTemplateId.value))
 
   onMounted(loadActiveTemplateMissions)
-  useChallengeUpdatedListener(loadActiveTemplateMissions)
+
+  useChallengeUpdatedListener(({ challenge }) => {
+    if (challenge) {
+      patchMyMissionsListCache(challenge)
+    }
+    loadActiveTemplateMissions({ force: !challenge })
+  })
+
+  useAppEventListeners([
+    {
+      event: APP_EVENTS.AUTH_CHANGED,
+      handler: () => {
+        clearMyMissionsListCache()
+        loadActiveTemplateMissions({ force: true })
+      }
+    }
+  ])
 
   return {
     isTemplateInUse,
