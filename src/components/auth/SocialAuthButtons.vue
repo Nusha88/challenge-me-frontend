@@ -6,14 +6,16 @@
         type="button"
         variant="outlined"
         block
-        height="48"
+        height="44"
         class="social-auth-btn"
+        :aria-label="t('auth.continueWithGoogle')"
         :loading="loading === 'google'"
         :disabled="Boolean(loading)"
         @click="startGoogle"
       >
-        <v-icon start size="20">mdi-google</v-icon>
-        {{ t('auth.continueWithGoogle') }}
+        <v-icon start size="18">mdi-google</v-icon>
+        <span class="social-auth-label-full">{{ t('auth.continueWithGoogle') }}</span>
+        <span class="social-auth-label-short">Google</span>
       </v-btn>
 
       <v-btn
@@ -21,14 +23,16 @@
         type="button"
         variant="outlined"
         block
-        height="48"
+        height="44"
         class="social-auth-btn social-auth-btn--telegram"
+        :aria-label="mode === 'link' ? t('auth.linkTelegram') : t('auth.continueWithTelegram')"
         :loading="loading === 'telegram'"
         :disabled="Boolean(loading)"
         @click="startTelegram"
       >
-        <v-icon start size="20">mdi-send</v-icon>
-        {{ mode === 'link' ? t('auth.linkTelegram') : t('auth.continueWithTelegram') }}
+        <v-icon start size="18">mdi-send</v-icon>
+        <span class="social-auth-label-full">{{ mode === 'link' ? t('auth.linkTelegram') : t('auth.continueWithTelegram') }}</span>
+        <span class="social-auth-label-short">Telegram</span>
       </v-btn>
     </div>
 
@@ -190,6 +194,10 @@ async function startTelegram() {
   gap: 10px;
 }
 
+.social-auth-label-short {
+  display: none;
+}
+
 .social-auth-btn {
   border: 1px solid rgba(255, 255, 255, 0.16) !important;
   border-radius: 16px !important;
@@ -207,5 +215,36 @@ async function startTelegram() {
 .social-auth-btn--telegram:hover {
   border-color: rgba(56, 167, 222, 0.65) !important;
   background: rgba(56, 167, 222, 0.1) !important;
+}
+
+@media (max-width: 959px) {
+  .social-auth {
+    margin-bottom: 2px;
+  }
+
+  .social-auth-actions {
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  .social-auth-btn {
+    flex: 1;
+    min-width: 0;
+    height: 42px !important;
+    font-size: 0.82rem !important;
+  }
+
+  .social-auth-label-full {
+    display: none;
+  }
+
+  .social-auth-label-short {
+    display: inline;
+  }
+
+  .social-auth-divider {
+    margin: 8px 0 10px;
+    font-size: 0.7rem;
+  }
 }
 </style>

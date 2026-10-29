@@ -1,5 +1,5 @@
 <template>
-  <v-container fluid class="pa-0 fill-height registration-wrapper overflow-hidden">
+  <v-container fluid class="pa-0 fill-height registration-wrapper">
     <AuthBackLink />
 
     <v-row no-gutters class="fill-height">
@@ -30,16 +30,16 @@
         </div>
       </v-col>
 
-      <v-col cols="12" md="6" class="form-section d-flex align-center justify-center pa-6">
-        <div class="form-wrapper glass-card pa-8 pa-md-12 w-100 reveal-item" style="max-width: 500px;">
+      <v-col cols="12" md="6" class="form-section d-flex align-start align-md-center justify-center pa-4 pa-md-6">
+        <div class="form-wrapper glass-card pa-5 pa-md-12 w-100 reveal-item" style="max-width: 500px;">
 
-          <div class="text-center mb-8">
-            <div class="brand-image-wrapper mb-4">
+          <div class="text-center register-header">
+            <div class="brand-image-wrapper">
               <v-img :src="swardImage" width="100" height="100" class="mx-auto hero-image"></v-img>
               <div class="brand-glow-effect"></div>
             </div>
-            <h2 class="text-h4 text-md-h3 font-weight-bold text-white mb-2">{{ t('auth.registerPageTitle') }}</h2>
-            <p class="text-body-1 text-slate-400">{{ t('auth.registerSubtitle') }}</p>
+            <h2 class="register-title font-weight-bold text-white">{{ t('auth.registerPageTitle') }}</h2>
+            <p class="register-subtitle text-slate-400">{{ t('auth.registerSubtitle') }}</p>
           </div>
 
           <SocialAuthButtons :referral-code="referralCode" @error="error = $event" />
@@ -62,7 +62,9 @@
               prepend-inner-icon="mdi-account-outline"
               variant="outlined"
               rounded="xl"
-              class="mb-4 custom-field"
+              density="comfortable"
+              hide-details="auto"
+              class="register-field custom-field"
               :error-messages="errors.name"
               color="primary"
             ></v-text-field>
@@ -73,7 +75,9 @@
               prepend-inner-icon="mdi-email-outline"
               variant="outlined"
               rounded="xl"
-              class="mb-4 custom-field"
+              density="comfortable"
+              hide-details="auto"
+              class="register-field custom-field"
               :error-messages="errors.email"
               color="primary"
             ></v-text-field>
@@ -86,10 +90,11 @@
               prepend-inner-icon="mdi-lock-outline"
               variant="outlined"
               rounded="xl"
-              class="mb-2 custom-field"
+              density="comfortable"
+              hide-details="auto"
+              class="register-field custom-field"
               :error-messages="errors.password"
               :hint="t('auth.passwordLength')"
-              persistent-hint
               color="primary"
             >
               <template #append-inner>
@@ -109,10 +114,9 @@
             <v-btn
               type="submit"
               block
-              height="56"
               :loading="loading"
               :disabled="loading"
-              class="hero-gradient-btn"
+              class="hero-gradient-btn register-submit"
             >
               <span class="text-body-1 font-weight-bold uppercase tracking-wider">
                 {{ t('auth.submitRegister') }}
@@ -121,13 +125,16 @@
             </v-btn>
           </v-form>
 
-          <div class="text-center mt-5">
-            <p class="text-slate-400">
-              {{ t('auth.alreadyHaveAccount') }}
-              <v-btn variant="text" @click="router.replace('/login')" class="signup-text-btn px-1">
-                {{ t('auth.loginCta') }}
-              </v-btn>
-            </p>
+          <div class="login-callout">
+            <p class="login-callout-text">{{ t('auth.alreadyHaveAccount') }}</p>
+            <v-btn
+              variant="outlined"
+              block
+              class="login-outline-btn"
+              @click="router.replace('/login')"
+            >
+              {{ t('auth.loginCta') }}
+            </v-btn>
           </div>
         </div>
       </v-col>
@@ -642,14 +649,33 @@ function closeSuccessModal() {
   opacity: 0.6;
 }
 
-.signup-text-btn {
-  color: #4FD1C5 !important; /* Turquoise accent from gradient */
-  font-weight: 800 !important;
-  text-transform: none;
+.login-callout {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: center;
 }
 
-.signup-text-btn:hover {
-  text-shadow: 0 0 10px rgba(79, 209, 197, 0.5);
+.login-callout-text {
+  margin: 0 0 10px;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.login-outline-btn {
+  min-height: 44px;
+  border: 1px solid rgba(79, 209, 197, 0.45) !important;
+  border-radius: 16px !important;
+  color: #4FD1C5 !important;
+  font-weight: 800 !important;
+  text-transform: none !important;
+  letter-spacing: 0.5px;
+  transition: background 0.25s ease, border-color 0.25s ease;
+}
+
+.login-outline-btn:hover {
+  background: rgba(79, 209, 197, 0.08) !important;
+  border-color: rgba(79, 209, 197, 0.7) !important;
 }
 
 /* Цвет для текстов */
@@ -702,5 +728,118 @@ function closeSuccessModal() {
   --v-field-border-opacity: 1;
   color: #ff5252 !important;
   filter: drop-shadow(0 0 5px rgba(255, 82, 82, 0.2));
+}
+
+.register-header {
+  margin-bottom: 20px;
+}
+
+.register-title {
+  margin: 0;
+  font-size: 1.75rem;
+  line-height: 1.2;
+}
+
+.register-subtitle {
+  margin: 6px 0 0;
+  font-size: 0.9rem;
+}
+
+.brand-image-wrapper {
+  margin-bottom: 12px;
+}
+
+.register-field {
+  margin-bottom: 10px;
+}
+
+.register-submit {
+  min-height: 52px;
+  margin-top: 4px;
+}
+
+.form-section {
+  min-height: 100%;
+  padding-top: 64px !important;
+}
+
+@media (max-width: 959px) {
+  .form-section {
+    padding-top: 56px !important;
+    padding-bottom: 20px !important;
+  }
+
+  .register-header {
+    margin-bottom: 12px;
+  }
+
+  .brand-image-wrapper {
+    margin-bottom: 6px;
+  }
+
+  .brand-image-wrapper :deep(.v-img) {
+    width: 56px !important;
+    max-width: 56px;
+    height: 56px !important;
+  }
+
+  .register-title {
+    font-size: 1.45rem;
+  }
+
+  .register-subtitle {
+    display: none;
+  }
+
+  .register-field {
+    margin-bottom: 8px;
+  }
+
+  .register-submit {
+    min-height: 46px;
+  }
+
+  .login-callout {
+    margin-top: 12px;
+    padding-top: 12px;
+  }
+
+  .login-callout-text {
+    margin-bottom: 8px;
+  }
+
+  .login-outline-btn {
+    min-height: 42px;
+  }
+
+  .hero-image {
+    animation: none;
+  }
+
+  :deep(.social-auth) {
+    margin-bottom: 4px;
+  }
+
+  :deep(.social-auth-divider) {
+    margin: 10px 0 12px;
+  }
+
+  :deep(.social-auth-actions) {
+    gap: 8px;
+  }
+
+  :deep(.social-auth-btn) {
+    min-height: 42px;
+  }
+}
+
+@media (min-width: 960px) {
+  .form-section {
+    padding-top: 24px !important;
+  }
+
+  .register-title {
+    font-size: 2rem;
+  }
 }
 </style> 

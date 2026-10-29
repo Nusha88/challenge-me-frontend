@@ -487,6 +487,16 @@ watch(
   backface-visibility: hidden;
 }
 
+@media (max-width: 959px) {
+  .auth-layout {
+    height: auto !important;
+    min-height: 100vh !important;
+    min-height: 100dvh !important;
+    overflow-y: auto !important;
+    align-items: flex-start;
+  }
+}
+
 @media (max-height: 750px) {
   .auth-layout {
     overflow-y: auto !important;

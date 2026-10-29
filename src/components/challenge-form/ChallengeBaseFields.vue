@@ -86,20 +86,21 @@
         >
           {{ t('challenges.description') }}
         </div>
-        <p v-if="descriptionError" class="field-error-text mb-2">{{ descriptionError }}</p>
-        <div
-          v-if="!isEditingDescription"
-          class="description-display-box"
-          :class="{
-            'is-empty': !description,
-            'is-disabled': disabled,
-            'has-error': Boolean(descriptionError)
-          }"
-          @click="!disabled && (isEditingDescription = true)"
-        >
-          {{ description || t('challenges.descriptionPlaceholder') }}
-          <v-icon class="edit-corner-icon">mdi-plus-circle-outline</v-icon>
-        </div>
+        <template v-if="!isEditingDescription">
+          <div
+            class="description-display-box"
+            :class="{
+              'is-empty': !description,
+              'is-disabled': disabled,
+              'has-error': Boolean(descriptionError)
+            }"
+            @click="!disabled && (isEditingDescription = true)"
+          >
+            {{ description || t('challenges.descriptionPlaceholder') }}
+            <v-icon class="edit-corner-icon">mdi-plus-circle-outline</v-icon>
+          </div>
+          <p v-if="descriptionError" class="field-error-text mt-2 mb-0">{{ descriptionError }}</p>
+        </template>
         <v-textarea
           v-else
           :model-value="description"
@@ -108,6 +109,7 @@
           class="description-input-active"
           auto-grow
           autofocus
+          hide-details="auto"
           :error-messages="descriptionError"
           :disabled="disabled"
           @update:model-value="emit('update:description', $event)"

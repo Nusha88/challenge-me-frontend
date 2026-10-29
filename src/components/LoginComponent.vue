@@ -158,11 +158,11 @@ function closeSuccessModal() {
 
     <v-row no-gutters class="fill-height">
       
-      <v-col cols="12" md="6" class="form-section d-flex align-center justify-center pa-6">
-        <div class="form-wrapper glass-card pa-8 pa-md-12 w-100 reveal-item" style="max-width: 500px;">
+      <v-col cols="12" md="6" class="form-section d-flex align-start align-md-center justify-center pa-4 pa-md-6">
+        <div class="form-wrapper glass-card pa-5 pa-md-12 w-100 reveal-item" style="max-width: 500px;">
           
-          <div class="text-center mb-8">
-            <div class="brand-image-wrapper mb-4">
+          <div class="text-center login-header">
+            <div class="brand-image-wrapper">
               <v-img
                   :src="swardImage"
                   width="100"
@@ -171,8 +171,8 @@ function closeSuccessModal() {
               ></v-img>
               <div class="brand-glow-effect"></div>
             </div>
-            <h2 class="text-h3 font-weight-bold text-white mb-2">{{ t('auth.loginPageTitle') }}</h2>
-            <p class="text-body-1 text-slate-400">{{ t('auth.loginSubtitle') }}</p>
+            <h2 class="login-title font-weight-bold text-white">{{ t('auth.loginPageTitle') }}</h2>
+            <p class="login-subtitle text-slate-400">{{ t('auth.loginSubtitle') }}</p>
           </div>
 
           <SocialAuthButtons @error="error = $event" />
@@ -194,7 +194,9 @@ function closeSuccessModal() {
                 prepend-inner-icon="mdi-email-outline"
                 variant="outlined"
                 rounded="xl"
-                class="mb-4 custom-field"
+                density="comfortable"
+                hide-details="auto"
+                class="login-field custom-field"
                 :error-messages="errors.email"
                 color="primary"
             ></v-text-field>
@@ -207,7 +209,9 @@ function closeSuccessModal() {
                 prepend-inner-icon="mdi-lock-outline"
                 variant="outlined"
                 rounded="xl"
-                class="mb-2 custom-field"
+                density="comfortable"
+                hide-details="auto"
+                class="login-field custom-field"
                 :error-messages="errors.password"
                 color="primary"
             >
@@ -225,7 +229,7 @@ function closeSuccessModal() {
               </template>
             </v-text-field>
 
-            <div class="d-flex justify-end mb-6">
+            <div class="d-flex justify-end login-forgot">
               <a href="#" class="forgot-link" @click.prevent="handleForgotPassword">
                 {{ t('auth.forgotPassword') }}
               </a>
@@ -234,22 +238,20 @@ function closeSuccessModal() {
             <v-btn
                 type="submit"
                 block
-                height="56"
+                class="hero-gradient-btn login-submit"
                 :loading="loading"
                 :disabled="loading"
-                class="hero-gradient-btn"
             >
               <span class="text-body-1 font-weight-bold uppercase tracking-wider">{{ t('auth.submitLogin') }}</span>
               <v-icon end class="ml-2">mdi-arrow-right</v-icon>
             </v-btn>
           </v-form>
 
-          <div class="signup-callout mt-8">
+          <div class="signup-callout">
             <p class="signup-callout-text">{{ t('auth.noAccountYet') }}</p>
             <v-btn
               variant="outlined"
               block
-              height="48"
               class="signup-outline-btn"
               @click="goToRegister"
             >
@@ -302,7 +304,43 @@ function closeSuccessModal() {
   /* Фон берется из App.vue, тут оставляем прозрачность */
   position: relative;
   background: transparent;
-  min-height: 100vh;
+  min-height: 100%;
+}
+
+.login-header {
+  margin-bottom: 20px;
+}
+
+.login-title {
+  margin: 0;
+  font-size: 1.75rem;
+  line-height: 1.2;
+}
+
+.login-subtitle {
+  margin: 6px 0 0;
+  font-size: 0.9rem;
+}
+
+.brand-image-wrapper {
+  margin-bottom: 12px;
+}
+
+.login-field {
+  margin-bottom: 10px;
+}
+
+.login-forgot {
+  margin-bottom: 14px;
+}
+
+.login-submit {
+  min-height: 52px;
+}
+
+.form-section {
+  min-height: 100%;
+  padding-top: 64px !important;
 }
 
 /* Эффект стекла для формы */
@@ -376,18 +414,20 @@ function closeSuccessModal() {
 }
 
 .signup-callout {
-  padding-top: 20px;
+  margin-top: 16px;
+  padding-top: 14px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   text-align: center;
 }
 
 .signup-callout-text {
-  margin: 0 0 12px;
+  margin: 0 0 10px;
   font-size: 0.875rem;
   color: rgba(255, 255, 255, 0.6);
 }
 
 .signup-outline-btn {
+  min-height: 44px;
   border: 1px solid rgba(79, 209, 197, 0.45) !important;
   border-radius: 16px !important;
   color: #4FD1C5 !important;
@@ -601,5 +641,89 @@ h2.text-h3 {
   --v-field-border-opacity: 1;
   color: #ff5252 !important;
   filter: drop-shadow(0 0 5px rgba(255, 82, 82, 0.2));
+}
+
+@media (max-width: 959px) {
+  .form-section {
+    padding-top: 56px !important;
+    padding-bottom: 20px !important;
+  }
+
+  .login-header {
+    margin-bottom: 12px;
+  }
+
+  .brand-image-wrapper {
+    margin-bottom: 6px;
+  }
+
+  .brand-image-wrapper :deep(.v-img) {
+    width: 56px !important;
+    max-width: 56px;
+    height: 56px !important;
+  }
+
+  .login-title {
+    font-size: 1.45rem;
+  }
+
+  .login-subtitle {
+    display: none;
+  }
+
+  .login-field {
+    margin-bottom: 8px;
+  }
+
+  .login-forgot {
+    margin-bottom: 10px;
+  }
+
+  .login-submit {
+    min-height: 46px;
+  }
+
+  .signup-callout {
+    margin-top: 12px;
+    padding-top: 12px;
+  }
+
+  .signup-callout-text {
+    margin-bottom: 8px;
+  }
+
+  .signup-outline-btn {
+    min-height: 42px;
+  }
+
+  .hero-image {
+    animation: none;
+  }
+
+  :deep(.social-auth) {
+    margin-bottom: 4px;
+  }
+
+  :deep(.social-auth-divider) {
+    margin: 10px 0 12px;
+  }
+
+  :deep(.social-auth-actions) {
+    gap: 8px;
+  }
+
+  :deep(.social-auth-btn) {
+    min-height: 42px;
+  }
+}
+
+@media (min-width: 960px) {
+  .form-section {
+    padding-top: 24px !important;
+  }
+
+  .login-title {
+    font-size: 2rem;
+  }
 }
 </style>
