@@ -97,6 +97,7 @@
           <TodayChallengesCard
             v-if="!firstDayQuestStore.isQuestActive"
             :challenges="todaysChallenges"
+            :campaigns="campaigns"
             :loading="isTodayProgressLoading"
             :active-quest-count="activeQuests.length"
             variant="today"
@@ -127,6 +128,7 @@
         <div class="todays-cards-wrapper">
           <TodayChallengesCard
             :challenges="tomorrowsChallenges"
+            :campaigns="campaigns"
             variant="tomorrow"
           />
 
@@ -180,7 +182,7 @@ import TodayChallengesCard from './home/TodayChallengesCard.vue'
 import TodayChecklistPanel from './home/TodayChecklistPanel.vue'
 import TomorrowStepsCard from './home/TomorrowStepsCard.vue'
 import CompletionCelebrationDialog from './home/CompletionCelebrationDialog.vue'
-import { userService, challengeService } from '../services/api'
+import { userService, challengeService, campaignService } from '../services/api'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 import { toDateInputValue } from '../utils/dateUtils'
 import { buildCompletedDateSet, calculateStreakFromDate } from '../utils/streakUtils'
@@ -266,6 +268,8 @@ const {
   hasLoadedOnce: hasLoadedTodayMissionsOnce,
   todaysChallenges,
   tomorrowsChallenges,
+  campaigns,
+  setCampaigns,
   activeQuests,
   loadTodaysChallenges,
   resetChallenges,
@@ -504,6 +508,7 @@ async function fetchHomeData({ force = false } = {}) {
       state.userName = t('demo.guestName')
       applyStreakFromData(getDemoChecklistHistory(), missions, DEMO_USER_ID)
       loadTodaysChallenges(missions, DEMO_USER_ID)
+      setCampaigns([])
       firstDayQuestStore.syncFromToday({
         hasCompletedToday: state.hasTodayCompletedTasks
       })
@@ -528,12 +533,13 @@ async function fetchHomeData({ force = false } = {}) {
         await migrateLeftoverDemoProgress(userId)
       }
 
-      const [checklistResponse, challengesResponse] = await Promise.all([
+      const [checklistResponse, challengesResponse, campaignsResponse] = await Promise.all([
         userService.getChecklistHistory(),
         challengeService.getChallengesByUser(userId, {
           excludePrivate: false,
           view: 'list'
-        })
+        }),
+        campaignService.listCampaigns().catch(() => ({ data: { campaigns: [] } }))
       ])
 
       const checklists = checklistResponse.data?.checklists || []
@@ -561,6 +567,7 @@ async function fetchHomeData({ force = false } = {}) {
 
       applyStreakFromData(checklists, allChallenges, userId)
       loadTodaysChallenges(allChallenges, userId)
+      setCampaigns(campaignsResponse.data?.campaigns || [])
       firstDayQuestStore.syncFromToday({
         hasCompletedToday: state.hasTodayCompletedTasks
       })

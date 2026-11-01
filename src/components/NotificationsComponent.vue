@@ -7,7 +7,7 @@ import NotificationListItem from './notifications/NotificationListItem.vue'
 import { useNotificationsDrawer } from '../composables/useNotificationsDrawer'
 import { resolveNotificationNavigation } from '../utils/notificationNavigation'
 import { APP_EVENTS, dispatchAppEvent } from '../utils/appEvents'
-import { friendService, challengeService } from '../services/api'
+import { friendService, challengeService, campaignService } from '../services/api'
 
 const props = defineProps({
   modelValue: {
@@ -123,9 +123,36 @@ async function handleMissionInviteDecision(notification, kind) {
   }
 }
 
+async function handleCampaignInviteDecision(notification, kind) {
+  const campaignId = notification.campaignId?._id || notification.campaignId
+  if (!campaignId) return
+  actingNotificationId.value = notification._id
+  actingKind.value = kind
+  try {
+    if (kind === 'accept') {
+      await campaignService.acceptCampaignInvite(campaignId)
+    } else {
+      await campaignService.rejectCampaignInvite(campaignId)
+    }
+    removeNotificationLocally(notification)
+    dispatchAppEvent(APP_EVENTS.CHALLENGE_UPDATED, {
+      challengeId: String(campaignId)
+    })
+  } catch (error) {
+    console.error('Error updating campaign invite:', error)
+    errorMessage.value = t('notifications.campaignInviteActionError')
+  } finally {
+    actingNotificationId.value = null
+    actingKind.value = ''
+  }
+}
+
 function handleInviteDecision(notification, kind) {
   if (notification.type === 'mission_invite') {
     return handleMissionInviteDecision(notification, kind)
+  }
+  if (notification.type === 'campaign_invite') {
+    return handleCampaignInviteDecision(notification, kind)
   }
   return handleFriendDecision(notification, kind)
 }

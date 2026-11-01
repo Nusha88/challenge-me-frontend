@@ -14,6 +14,13 @@
       <router-link to="/missions/add" class="my-missions-empty-primary">
         {{ t('myChallenges.empty.launch') }}
       </router-link>
+      <router-link
+        v-if="!isDemoMode"
+        to="/missions/campaigns/new"
+        class="my-missions-empty-secondary"
+      >
+        {{ t('campaigns.createCta') }}
+      </router-link>
       <router-link to="/missions" class="my-missions-empty-secondary">
         {{ t('myChallenges.empty.explore') }}
       </router-link>
@@ -24,6 +31,7 @@
 <script setup>
 import { useI18n } from 'vue-i18n'
 import treasureImage from '../../assets/home/treasure-280.webp'
+import { useDemoMode } from '../../composables/useDemoMode'
 
 defineProps({
   text: {
@@ -37,6 +45,7 @@ defineProps({
 })
 
 const { t } = useI18n()
+const { isDemoMode } = useDemoMode()
 </script>
 
 <style scoped>

@@ -43,7 +43,7 @@
       </div>
     </div>
 
-    <div v-if="mode !== 'edit'" class="mt-8" data-validation-field="endDate">
+    <div v-if="mode !== 'edit' && !hideDeadline" class="mt-8" data-validation-field="endDate">
       <MissionDeadlinePicker
         v-model:end-date="endDate"
         :error-message="endDateError"
@@ -56,7 +56,7 @@
       <DifficultySelector v-model:difficulty="difficulty" :disabled="disabled" />
     </div>
 
-    <div class="mt-8">
+    <div v-if="!hidePrivacy" class="mt-8">
       <PrivacySelector
         v-model:privacy="privacy"
         v-model:allow-comments="allowComments"
@@ -105,7 +105,9 @@ defineProps({
   mode: { type: String, default: 'create' },
   endDateError: { type: String, default: '' },
   actionsError: { type: String, default: '' },
-  disabled: { type: Boolean, default: false }
+  disabled: { type: Boolean, default: false },
+  hidePrivacy: { type: Boolean, default: false },
+  hideDeadline: { type: Boolean, default: false }
 })
 
 defineEmits(['pick-start'])

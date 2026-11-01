@@ -5,9 +5,13 @@
     <div class="form-container">
       <v-form @submit.prevent="handleSubmit">
         <ChallengeTypeSelector
+          v-if="!campaignContext"
           :model-value="form.challengeType"
           @update:model-value="selectChallengeType"
         />
+        <p v-else class="campaign-slot-banner">
+          {{ campaignContext.slot === 'shared' ? t('campaigns.sharedSlotHint') : t('campaigns.personalSlotHint') }}
+        </p>
 
         <v-row>
           <v-col cols="12" md="8">
@@ -44,6 +48,8 @@
                 v-model:allow-comments="form.allowComments"
                 v-model:invite-user-ids="form.inviteUserIds"
                 :duration-error="errors.duration"
+                :hide-privacy="Boolean(campaignContext)"
+                :lock-duration="Boolean(campaignContext)"
               />
 
               <ResultSettingsSection
@@ -56,6 +62,8 @@
                 v-model:allow-comments="form.allowComments"
                 :end-date-error="errors.endDate"
                 :actions-error="errors.actions"
+                :hide-privacy="Boolean(campaignContext)"
+                :hide-deadline="Boolean(campaignContext)"
               />
 
               <v-alert
@@ -160,6 +168,7 @@ const {
   errorMessage,
   validationToastOpen,
   isHabit,
+  campaignContext,
   createButtonText,
   isFormValid,
   initFromRestartDraft,
@@ -186,6 +195,15 @@ onMounted(() => {
 
 .form-container {
   width: 100%;
+}
+
+.campaign-slot-banner {
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(79, 209, 197, 0.28);
+  color: var(--home-text-dim, #94a3b8);
+  font-size: 0.9rem;
 }
 
 .form-fields-wrapper {

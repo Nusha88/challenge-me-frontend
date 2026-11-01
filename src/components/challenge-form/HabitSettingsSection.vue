@@ -5,7 +5,7 @@
         v-model:duration="duration"
         v-model:custom-duration="customDuration"
         :duration-error="durationError"
-        :disabled="disabled"
+        :disabled="disabled || lockDuration"
         label-required
       />
 
@@ -60,7 +60,7 @@
       </div>
     </div>
 
-    <div v-else class="start-time-selector">
+    <div v-else-if="!lockDuration" class="start-time-selector">
       <p class="field-label">{{ t('challenges.start') }}</p>
 
       <div class="d-flex align-center gap-3">
@@ -98,7 +98,7 @@
       </v-dialog>
     </div>
 
-    <div class="mt-8">
+    <div v-if="!hidePrivacy" class="mt-8">
       <PrivacySelector
         v-model:privacy="privacy"
         v-model:allow-comments="allowComments"
@@ -135,7 +135,9 @@ const props = defineProps({
   frequencyError: { type: String, default: '' },
   disabled: { type: Boolean, default: false },
   menuProps: { type: Object, default: undefined },
-  inviteOnly: { type: Boolean, default: false }
+  inviteOnly: { type: Boolean, default: false },
+  hidePrivacy: { type: Boolean, default: false },
+  lockDuration: { type: Boolean, default: false }
 })
 
 defineEmits(['pick-start', 'pick-end'])

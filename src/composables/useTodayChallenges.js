@@ -61,6 +61,7 @@ export function useTodayChallenges({ onUpdated } = {}) {
   const { applyXpAwardResponse } = useXpAwardFeedback()
   const { completeHabitMission } = useMissionCompletionFlow()
 
+  const campaigns = ref([])
   const challenges = ref([])
   const participantHabitChallenges = ref([])
   const activeQuests = ref([])
@@ -215,11 +216,15 @@ export function useTodayChallenges({ onUpdated } = {}) {
     const habits = allChallenges.filter((challenge) => isParticipantHabitChallenge(challenge, userId))
     participantHabitChallenges.value = habits
     challenges.value = habits.filter((challenge) => isTodayValidForChallenge(challenge))
-    activeQuests.value = allChallenges.filter((challenge) => isActiveQuestForUser(challenge, userId))
+    activeQuests.value = allChallenges.filter((challenge) => (
+      challenge?.campaignRole !== 'personalTemplate'
+      && isActiveQuestForUser(challenge, userId)
+    ))
   }
 
   function resetChallenges() {
     challenges.value = []
+    campaigns.value = []
     participantHabitChallenges.value = []
     activeQuests.value = []
     loadingChallenges.value = false
@@ -379,6 +384,10 @@ export function useTodayChallenges({ onUpdated } = {}) {
 
   return {
     challenges,
+    campaigns,
+    setCampaigns: (list) => {
+      campaigns.value = Array.isArray(list) ? list : []
+    },
     loadingChallenges,
     hasLoadedOnce,
     todaysChallenges,

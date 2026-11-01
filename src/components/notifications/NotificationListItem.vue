@@ -73,7 +73,7 @@ function formatDate(dateString) {
       </div>
       <p class="message-text">{{ getNotificationText(notification, t) }}</p>
       <div
-        v-if="notification.type === 'friend_request' || notification.type === 'mission_invite'"
+        v-if="notification.type === 'friend_request' || notification.type === 'mission_invite' || notification.type === 'campaign_invite'"
         class="friend-request-actions"
         @click.stop
         @keydown.stop
@@ -85,7 +85,7 @@ function formatDate(dateString) {
           :disabled="Boolean(acting)"
           @click="$emit('accept', notification)"
         >
-          {{ notification.type === 'mission_invite' ? t('challenges.squad.accept') : t('notifications.friendAccept') }}
+          {{ notification.type === 'friend_request' ? t('notifications.friendAccept') : t('challenges.squad.accept') }}
         </v-btn>
         <v-btn
           class="friend-reject text-none"
@@ -95,7 +95,7 @@ function formatDate(dateString) {
           :disabled="Boolean(acting)"
           @click="$emit('reject', notification)"
         >
-          {{ notification.type === 'mission_invite' ? t('challenges.squad.reject') : t('notifications.friendReject') }}
+          {{ notification.type === 'friend_request' ? t('notifications.friendReject') : t('challenges.squad.reject') }}
         </v-btn>
       </div>
     </div>

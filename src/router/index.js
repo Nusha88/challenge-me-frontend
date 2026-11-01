@@ -92,6 +92,18 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/missions/campaigns/new',
+      name: 'campaign-new',
+      component: () => import('../components/campaigns/CampaignEditorPage.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/missions/campaigns/:id',
+      name: 'campaign-detail',
+      component: () => import('../components/campaigns/CampaignEditorPage.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/chronicle',
       name: 'chronicle',
       component: () => import('../components/chronicle/ChroniclePage.vue'),

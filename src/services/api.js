@@ -541,6 +541,21 @@ export const notificationService = {
   }
 }
 
+export const campaignService = {
+  listCampaigns: () => api.get('/campaigns'),
+  getCampaign: (id) => api.get(`/campaigns/${id}`),
+  createCampaign: (payload) => api.post('/campaigns', payload),
+  updateCampaign: (id, payload) => api.put(`/campaigns/${id}`, payload),
+  publishCampaign: (id) => api.post(`/campaigns/${id}/publish`, {}, {
+    headers: userService._clientDayHeaders()
+  }),
+  acceptCampaignInvite: (id) => api.post(`/campaigns/${id}/invites/accept`, {}, {
+    headers: userService._clientDayHeaders()
+  }),
+  rejectCampaignInvite: (id) => api.post(`/campaigns/${id}/invites/reject`),
+  leaveCampaign: (id) => api.post(`/campaigns/${id}/leave`)
+}
+
 // Happiness tracking service
 export const happinessService = {
   // Energy tracking

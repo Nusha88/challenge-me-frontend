@@ -61,32 +61,49 @@
         </v-alert>
 
         <MyMissionsEmptyState
-          v-if="challenges.length === 0"
+          v-if="challenges.length === 0 && draftCampaigns.length === 0"
           :text="t('myChallenges.empty.all')"
         />
 
         <template v-else>
           <template v-if="statusTab === 'active'">
             <MyMissionsEmptyState
-              v-if="activeChallenges.length === 0"
+              v-if="activeChallenges.length === 0 && draftCampaigns.length === 0"
               :text="t('myChallenges.empty.active')"
             />
             <template v-else>
+              <router-link
+                v-for="draft in draftCampaigns"
+                :key="draft._id"
+                class="draft-campaign-link"
+                :to="{ name: 'campaign-detail', params: { id: draft._id } }"
+              >
+                {{ t('campaigns.draftLabel', { title: draft.title }) }}
+              </router-link>
+              <CampaignFolder
+                v-for="(folder, index) in activeCampaignFolders"
+                :key="folder.campaign._id"
+                :campaign="folder.campaign"
+                :missions="folder.missions"
+                :current-user-id="currentUserId"
+                :flush-top="index === 0"
+                @challenge-click="handleChallengeClick"
+              />
               <MyChallengeSection
-                :challenges="activeQuests"
+                :challenges="visibleActiveQuests"
                 layout="quests"
                 :title="t('myChallenges.sections.quests')"
                 icon="mdi-flag-checkered"
-                flush-top
+                :flush-top="activeCampaignFolders.length === 0"
                 :current-user-id="currentUserId"
                 @challenge-click="handleChallengeClick"
               />
               <MyChallengeSection
-                :challenges="activeRituals"
+                :challenges="visibleActiveRituals"
                 layout="rituals"
                 :title="t('myChallenges.sections.rituals')"
                 icon="mdi-fire"
-                :flush-top="activeQuests.length === 0"
+                :flush-top="activeCampaignFolders.length === 0 && visibleActiveQuests.length === 0"
                 :current-user-id="currentUserId"
                 @challenge-click="handleChallengeClick"
               />
@@ -99,21 +116,30 @@
               :text="t('myChallenges.empty.upcoming')"
             />
             <template v-else>
+              <CampaignFolder
+                v-for="(folder, index) in upcomingCampaignFolders"
+                :key="folder.campaign._id"
+                :campaign="folder.campaign"
+                :missions="folder.missions"
+                :current-user-id="currentUserId"
+                :flush-top="index === 0"
+                @challenge-click="handleChallengeClick"
+              />
               <MyChallengeSection
-                :challenges="upcomingQuests"
+                :challenges="visibleUpcomingQuests"
                 layout="quests"
                 :title="t('myChallenges.sections.quests')"
                 icon="mdi-flag-checkered"
-                flush-top
+                :flush-top="upcomingCampaignFolders.length === 0"
                 :current-user-id="currentUserId"
                 @challenge-click="handleChallengeClick"
               />
               <MyChallengeSection
-                :challenges="upcomingRituals"
+                :challenges="visibleUpcomingRituals"
                 layout="rituals"
                 :title="t('myChallenges.sections.rituals')"
                 icon="mdi-fire"
-                :flush-top="upcomingQuests.length === 0"
+                :flush-top="upcomingCampaignFolders.length === 0 && visibleUpcomingQuests.length === 0"
                 :current-user-id="currentUserId"
                 @challenge-click="handleChallengeClick"
               />
@@ -127,23 +153,32 @@
               :show-actions="false"
             />
             <template v-else>
+              <CampaignFolder
+                v-for="(folder, index) in archiveCampaignFolders"
+                :key="folder.campaign._id"
+                :campaign="folder.campaign"
+                :missions="folder.missions"
+                :current-user-id="currentUserId"
+                :flush-top="index === 0"
+                @challenge-click="handleChallengeClick"
+              />
               <MyChallengeSection
-                :challenges="finishedQuests"
+                :challenges="visibleFinishedQuests"
                 layout="archive"
                 :title="t('myChallenges.sections.quests')"
                 icon="mdi-flag-checkered"
-                flush-top
+                :flush-top="archiveCampaignFolders.length === 0"
                 :current-user-id="currentUserId"
                 show-extend-button
                 @challenge-click="handleChallengeClick"
                 @extended="handleChallengeExtended"
               />
               <MyChallengeSection
-                :challenges="finishedRituals"
+                :challenges="visibleFinishedRituals"
                 layout="archive"
                 :title="t('myChallenges.sections.rituals')"
                 icon="mdi-fire"
-                :flush-top="finishedQuests.length === 0"
+                :flush-top="archiveCampaignFolders.length === 0 && visibleFinishedQuests.length === 0"
                 :current-user-id="currentUserId"
                 show-extend-button
                 @challenge-click="handleChallengeClick"
@@ -169,6 +204,7 @@ import ChallengeSkeletonGrid from './ChallengeSkeletonGrid.vue'
 import MyMissionsHeader from './my-missions/MyMissionsHeader.vue'
 import MyMissionsStatusTabs from './my-missions/MyMissionsStatusTabs.vue'
 import MyMissionsEmptyState from './my-missions/MyMissionsEmptyState.vue'
+import CampaignFolder from './campaigns/CampaignFolder.vue'
 import { useMyChallenges } from '../composables/useMyChallenges'
 import { openMissionDetails } from '../utils/openMissionDetails'
 import { useChallengeUpdatedListener } from '../composables/useChallengeUpdatedListener'
@@ -189,15 +225,19 @@ const {
   loading,
   listError,
   actionError,
-  activeQuests,
-  activeRituals,
   upcomingChallenges,
-  upcomingQuests,
-  upcomingRituals,
   finishedChallenges,
-  finishedQuests,
-  finishedRituals,
   activeChallenges,
+  visibleActiveQuests,
+  visibleActiveRituals,
+  visibleUpcomingQuests,
+  visibleUpcomingRituals,
+  visibleFinishedQuests,
+  visibleFinishedRituals,
+  draftCampaigns,
+  activeCampaignFolders,
+  upcomingCampaignFolders,
+  archiveCampaignFolders,
   clearListError,
   clearActionError,
   fetchChallenges,
@@ -327,6 +367,17 @@ watch(() => route.query.challengeId, (newChallengeId) => {
   .my-missions-skeleton-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+}
+
+.draft-campaign-link {
+  display: block;
+  margin-bottom: 12px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px dashed rgba(79, 209, 197, 0.35);
+  color: var(--home-teal, #4fd1c5);
+  text-decoration: none;
+  font-weight: 700;
 }
 
 </style>

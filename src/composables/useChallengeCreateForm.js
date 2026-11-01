@@ -1,13 +1,13 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
-import { challengeService } from '../services/api'
+import { campaignService, challengeService } from '../services/api'
 import { useUserStore } from '../stores/user'
 import { useDemoStore } from '../stores/demo'
 import { useDemoMissions } from './useDemoMissions'
 import { DEMO_USER_ID } from '../constants/demo'
 import { fireConfetti } from '../utils/confetti'
-import { toDateInputValue, addDays } from '../utils/dateUtils'
+import { toDateInputValue, addDays, getInclusiveDaysBetween } from '../utils/dateUtils'
 import { useRestartChallengeDraft } from './useRestartChallengeDraft'
 import { useXpAwardFeedback } from './useXpAwardFeedback'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
@@ -165,17 +165,19 @@ export function useChallengeCreateForm() {
   const loading = ref(false)
   const errorMessage = ref('')
   const validationToastOpen = ref(false)
+  const campaignContext = ref(null)
 
   const lastHabitState = ref(snapshotHabitState(form.value))
   const lastResultState = ref(snapshotResultState(form.value))
 
   const isHabit = computed(() => form.value.challengeType === CHALLENGE_TYPES.HABIT)
 
-  const createButtonText = computed(() =>
-    form.value.challengeType === CHALLENGE_TYPES.RESULT
+  const createButtonText = computed(() => {
+    if (campaignContext.value) return t('campaigns.addSlot')
+    return form.value.challengeType === CHALLENGE_TYPES.RESULT
       ? t('challenges.createResult')
       : t('challenges.createHabit')
-  )
+  })
 
   const isFormValid = computed(() => {
     const hasTitle = Boolean(form.value.title?.trim())
@@ -269,9 +271,52 @@ export function useChallengeCreateForm() {
     lastHabitState.value = snapshotHabitState(form.value)
   }
 
-  function initFromRestartDraft() {
+  function applyCampaignDates(campaign) {
+    const start = toDateInputValue(campaign.startDate)
+    const end = toDateInputValue(campaign.endDate)
+    const days = getInclusiveDaysBetween(campaign.startDate, campaign.endDate)
+    form.value.startDate = start
+    form.value.endDate = end
+    form.value.startOption = 'today'
+    if (days === 7 || days === 21) {
+      form.value.duration = String(days)
+      form.value.customDuration = ''
+    } else {
+      form.value.duration = 'custom'
+      form.value.customDuration = String(days || 14)
+    }
+  }
+
+  async function applyCampaignSlotFromQuery() {
+    const campaignId = typeof route.query.campaignId === 'string' ? route.query.campaignId.trim() : ''
+    const slot = route.query.slot
+    if (!campaignId || (slot !== 'shared' && slot !== 'personal')) return
+
+    const { data } = await campaignService.getCampaign(campaignId)
+    const campaign = data?.campaign
+    if (!campaign) return
+
+    campaignContext.value = { id: campaignId, slot, campaign }
+    applyCampaignDates(campaign)
+
+    if (slot === 'shared') {
+      form.value.challengeType = CHALLENGE_TYPES.HABIT
+      form.value.privacy = 'squad'
+      form.value.allowComments = true
+      form.value.inviteUserIds = []
+    } else {
+      form.value.challengeType = CHALLENGE_TYPES.RESULT
+      form.value.privacy = 'private'
+    }
+
+    lastHabitState.value = snapshotHabitState(form.value)
+    lastResultState.value = snapshotResultState(form.value)
+  }
+
+  async function initFromRestartDraft() {
     applyRestartDraft(loadRestartDraft())
     applySquadPrivacyFromQuery()
+    await applyCampaignSlotFromQuery()
   }
 
   function selectChallengeType(type) {
@@ -419,6 +464,17 @@ export function useChallengeCreateForm() {
       }
     }
 
+    if (campaignContext.value) {
+      payload.campaignId = campaignContext.value.id
+      payload.campaignRole = campaignContext.value.slot === 'shared' ? 'shared' : 'personalTemplate'
+      payload.startDate = toDateInputValue(campaignContext.value.campaign.startDate)
+      payload.endDate = toDateInputValue(campaignContext.value.campaign.endDate)
+      if (campaignContext.value.slot === 'shared') {
+        payload.inviteOnly = true
+        payload.inviteUserIds = []
+      }
+    }
+
     return payload
   }
 
@@ -451,6 +507,10 @@ export function useChallengeCreateForm() {
       createdChallengeId.value = challengeId
       triggerHapticFeedback([100, 50, 100])
       fireConfetti()
+    }
+    if (campaignContext.value?.id) {
+      router.push({ name: 'campaign-detail', params: { id: campaignContext.value.id } })
+      return
     }
     if (form.value.privacy === 'public') {
       await nextTick()
@@ -527,6 +587,7 @@ export function useChallengeCreateForm() {
     errorMessage,
     validationToastOpen,
     isHabit,
+    campaignContext,
     createButtonText,
     isFormValid,
     initFromRestartDraft,

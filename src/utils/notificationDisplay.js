@@ -8,6 +8,7 @@ export function getNotificationIcon(type) {
     referral_completed: 'mdi-gift',
     friend_request: 'mdi-account-plus',
     mission_invite: 'mdi-account-group',
+    campaign_invite: 'mdi-flag-checkered',
     cheer: 'mdi-fire'
   }
   return icons[type] || 'mdi-bell-ring-outline'
@@ -44,6 +45,10 @@ export function getNotificationText(notification, t) {
   }
   if (notification.type === 'mission_invite') {
     return notification.body || t('notifications.missionInvite')
+  }
+  if (notification.type === 'campaign_invite') {
+    const title = notification.campaignId?.title || t('campaigns.kicker')
+    return notification.body || t('notifications.campaignInvite', { title })
   }
   if (notification.type === 'cheer') {
     return t('notifications.cheer')

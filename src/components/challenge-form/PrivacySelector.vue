@@ -47,6 +47,14 @@
             <v-spacer />
             <v-radio :model-value="privacy" value="squad" color="#7048E8" :disabled="disabled" @click.prevent="selectPrivacy('squad')" />
           </div>
+          <router-link
+            v-if="!isDemoMode"
+            class="campaign-entry"
+            to="/missions/campaigns/new"
+            @click.stop
+          >
+            {{ t('campaigns.entryFromSquad') }}
+          </router-link>
         </v-col>
 
         <v-col cols="12" :sm="cardCols">
@@ -100,7 +108,7 @@ const privacy = defineModel('privacy', { type: String, default: 'private' })
 const allowComments = defineModel('allowComments', { type: Boolean, default: true })
 
 const { t } = useI18n()
-const { requireAuthOrPrompt } = useDemoMode()
+const { isDemoMode, requireAuthOrPrompt } = useDemoMode()
 
 const cardCols = computed(() => (props.showSquad ? 4 : 6))
 const showCommentsCheckbox = computed(() =>
@@ -135,5 +143,14 @@ function selectPrivacy(value) {
   font-weight: 600 !important;
   color: var(--home-text, #f1f5f9) !important;
   opacity: 1 !important;
+}
+
+.campaign-entry {
+  display: inline-block;
+  margin-top: 8px;
+  color: var(--home-teal, #4fd1c5);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
 }
 </style>

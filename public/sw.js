@@ -120,10 +120,13 @@ self.addEventListener('notificationclick', (event) => {
 
   const notificationData = event.notification.data || {};
   const challengeId = notificationData.challengeId;
+  const campaignId = notificationData.campaignId;
   const isDailyRecap = notificationData.type === 'daily-recap';
   const targetUrl = isDailyRecap
     ? '/today'
-    : (challengeId ? `/missions/${challengeId}` : '/');
+    : (campaignId
+      ? `/missions/campaigns/${campaignId}`
+      : (challengeId ? `/missions/${challengeId}` : '/'));
 
   if (event.action === 'close') {
     return;

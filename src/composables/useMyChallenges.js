@@ -1,9 +1,10 @@
 import { ref, computed, unref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { challengeService } from '../services/api'
+import { campaignService, challengeService } from '../services/api'
 import { useWatchedChallengesStore } from '../stores/watchedChallenges'
 import { isChallengeFinished, isChallengeUpcoming } from '../utils/challengeStatus'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
+import { excludePersonalTemplates, groupMissionsByCampaign } from '../utils/campaigns'
 import { useXpAwardFeedback } from './useXpAwardFeedback'
 import { useDemoStore } from '../stores/demo'
 import { getDemoMissions } from '../services/demoStorage'
@@ -15,6 +16,7 @@ export function useMyChallenges(currentUserId) {
   const demoStore = useDemoStore()
 
   const challenges = ref([])
+  const campaigns = ref([])
   const loading = ref(false)
   const listError = ref('')
   const actionError = ref('')
@@ -102,6 +104,51 @@ export function useMyChallenges(currentUserId) {
     ...activeRituals.value
   ])
 
+  const campaignMap = computed(() => {
+    const map = new Map()
+    for (const campaign of campaigns.value) {
+      map.set(String(campaign._id), campaign)
+    }
+    return map
+  })
+
+  function foldersFrom(list) {
+    const { standalone, groups } = groupMissionsByCampaign(list)
+    const folders = []
+    const loose = [...standalone]
+    for (const [id, missions] of groups) {
+      const campaign = campaignMap.value.get(id)
+      if (!campaign || campaign.status === 'draft') {
+        loose.push(...missions)
+        continue
+      }
+      folders.push({ campaign, missions })
+    }
+    return { folders, standalone: loose }
+  }
+
+  const activeBundle = computed(() => foldersFrom(activeChallenges.value))
+  const upcomingBundle = computed(() => foldersFrom(upcomingChallenges.value))
+  const archiveBundle = computed(() => foldersFrom(finishedChallenges.value))
+  const visibleActiveQuests = computed(() =>
+    activeBundle.value.standalone.filter((item) => item.challengeType === CHALLENGE_TYPES.RESULT)
+  )
+  const visibleActiveRituals = computed(() =>
+    activeBundle.value.standalone.filter((item) => item.challengeType === CHALLENGE_TYPES.HABIT)
+  )
+  const visibleUpcomingQuests = computed(() =>
+    upcomingBundle.value.standalone.filter((item) => item.challengeType === CHALLENGE_TYPES.RESULT)
+  )
+  const visibleUpcomingRituals = computed(() =>
+    upcomingBundle.value.standalone.filter((item) => item.challengeType === CHALLENGE_TYPES.HABIT)
+  )
+  const visibleFinishedQuests = computed(() =>
+    archiveBundle.value.standalone.filter((item) => item.challengeType === CHALLENGE_TYPES.RESULT)
+  )
+  const visibleFinishedRituals = computed(() =>
+    archiveBundle.value.standalone.filter((item) => item.challengeType === CHALLENGE_TYPES.HABIT)
+  )
+
   function isWatched(challenge) {
     return !!challenge?.isWatched
   }
@@ -161,6 +208,7 @@ export function useMyChallenges(currentUserId) {
       loading.value = true
       listError.value = ''
       challenges.value = getDemoMissions()
+      campaigns.value = []
       loading.value = false
       return
     }
@@ -175,11 +223,15 @@ export function useMyChallenges(currentUserId) {
     listError.value = ''
 
     try {
-      const { data } = await challengeService.getChallengesByUser(userId, {
-        excludePrivate: false,
-        view: 'list'
-      })
-      challenges.value = data?.challenges || []
+      const [{ data }, campaignResponse] = await Promise.all([
+        challengeService.getChallengesByUser(userId, {
+          excludePrivate: false,
+          view: 'list'
+        }),
+        campaignService.listCampaigns().catch(() => ({ data: { campaigns: [] } }))
+      ])
+      challenges.value = excludePersonalTemplates(data?.challenges || [])
+      campaigns.value = campaignResponse.data?.campaigns || []
       watchedStore.syncIdsFromChallengeList(challenges.value)
     } catch (err) {
       listError.value = err.response?.data?.message || t('notifications.apiError')
@@ -344,6 +396,16 @@ export function useMyChallenges(currentUserId) {
     finishedQuests,
     finishedRituals,
     activeChallenges,
+    visibleActiveQuests,
+    visibleActiveRituals,
+    visibleUpcomingQuests,
+    visibleUpcomingRituals,
+    visibleFinishedQuests,
+    visibleFinishedRituals,
+    draftCampaigns: computed(() => campaigns.value.filter((item) => item.status === 'draft')),
+    activeCampaignFolders: computed(() => activeBundle.value.folders),
+    upcomingCampaignFolders: computed(() => upcomingBundle.value.folders),
+    archiveCampaignFolders: computed(() => archiveBundle.value.folders),
     isWatched,
     clearListError,
     clearActionError,

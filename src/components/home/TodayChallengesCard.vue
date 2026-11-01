@@ -17,7 +17,70 @@
 
         <div v-else-if="challenges.length > 0" class="todays-challenges-list">
           <div
-            v-for="challenge in challenges"
+            v-for="group in campaignGroups"
+            :key="group.id"
+            class="today-campaign"
+          >
+            <button type="button" class="today-campaign-head" @click="toggleGroup(group.id)">
+              <span>{{ t('campaigns.todayTitle', { title: group.title, current: group.current, total: group.total }) }}</span>
+              <v-icon size="18">{{ openGroups[group.id] === false ? 'mdi-chevron-down' : 'mdi-chevron-up' }}</v-icon>
+            </button>
+            <template v-if="openGroups[group.id] !== false">
+              <div
+                v-for="challenge in group.missions"
+                :key="challenge._id"
+                class="home-quest-row challenge-card"
+                :class="{
+                  'is-completed': variant === 'today' && isRowCompleted(challenge),
+                  'challenge-card-disabled': variant === 'tomorrow'
+                }"
+                role="button"
+                :tabindex="variant === 'today' ? 0 : -1"
+                @click="variant === 'today' && $emit('navigate', challenge)"
+                @keydown.enter.prevent="variant === 'today' && $emit('navigate', challenge)"
+                @keydown.space.prevent="variant === 'today' && $emit('navigate', challenge)"
+              >
+                <button
+                  v-if="variant === 'today'"
+                  type="button"
+                  class="challenge-complete-btn"
+                  :class="{ 'is-done': isRowCompleted(challenge) }"
+                  :aria-label="
+                    isRowCompleted(challenge)
+                      ? t('home.loggedIn.dailyChecklist.stepCompleted')
+                      : t('home.loggedIn.dailyChecklist.markComplete')
+                  "
+                  :disabled="getDayStatus(challenge) !== 'incomplete'"
+                  @click.stop="$emit('toggle-completion', challenge, true)"
+                >
+                  <v-icon size="small" color="#7048e8">
+                    {{ isRowCompleted(challenge) ? 'mdi-check-circle' : 'mdi-flag' }}
+                  </v-icon>
+                </button>
+                <span v-else class="challenge-complete-btn is-disabled" aria-hidden="true">
+                  <v-icon size="small" color="#94A3B8">mdi-flag</v-icon>
+                </span>
+                <span
+                  class="challenge-text"
+                  :class="{
+                    completed: variant === 'today' && isRowCompleted(challenge),
+                    'challenge-text-disabled': variant === 'tomorrow'
+                  }"
+                >
+                  {{ challenge.title }}
+                </span>
+                <span
+                  v-if="variant === 'today'"
+                  class="challenge-progress"
+                  :class="{ completed: isRowCompleted(challenge) }"
+                >
+                  {{ getCompletedDays(challenge) }} / {{ getTotalDays(challenge) }}
+                </span>
+              </div>
+            </template>
+          </div>
+          <div
+            v-for="challenge in standaloneChallenges"
             :key="challenge._id"
             class="home-quest-row challenge-card"
             :class="{
@@ -117,10 +180,11 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
 import HomeEmptyState from './HomeEmptyState.vue'
 import treasureImage from '../../assets/home/treasure-280.webp'
+import { campaignDayLabel, groupMissionsByCampaign } from '../../utils/campaigns'
 
 const props = defineProps({
   challenges: { type: Array, default: () => [] },
@@ -141,12 +205,50 @@ const props = defineProps({
   canUseSecondChance: { type: Boolean, default: false },
   secondChanceLoadingId: { type: String, default: null },
   secondChanceCost: { type: Number, default: 30 },
-  secondChanceStock: { type: Number, default: 0 }
+  secondChanceStock: { type: Number, default: 0 },
+  campaigns: { type: Array, default: () => [] }
 })
 
 defineEmits(['navigate', 'toggle-completion', 'second-chance'])
 
 const { t } = useI18n()
+const openGroups = reactive({})
+
+const campaignMap = computed(() => {
+  const map = new Map()
+  for (const campaign of props.campaigns || []) {
+    map.set(String(campaign._id), campaign)
+  }
+  return map
+})
+
+const groupedToday = computed(() => {
+  const { standalone, groups } = groupMissionsByCampaign(props.challenges)
+  const loose = [...standalone]
+  const rows = []
+  for (const [id, missions] of groups) {
+    const campaign = campaignMap.value.get(id)
+    if (!campaign || campaign.status === 'draft') {
+      loose.push(...missions)
+      continue
+    }
+    const days = campaignDayLabel(campaign)
+    rows.push({
+      id,
+      title: campaign.title,
+      missions,
+      current: days?.current || 1,
+      total: days?.total || 1
+    })
+  }
+  return { rows, standalone: loose }
+})
+const standaloneChallenges = computed(() => groupedToday.value.standalone)
+const campaignGroups = computed(() => groupedToday.value.rows)
+
+function toggleGroup(id) {
+  openGroups[id] = openGroups[id] === false
+}
 
 const secondChanceLabel = computed(() => {
   if (props.secondChanceStock > 0) {
@@ -206,6 +308,32 @@ function isRowCompleted(challenge) {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.today-campaign {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 14px;
+  border: 1px solid rgba(79, 209, 197, 0.18);
+}
+
+.today-campaign-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 6px;
+  border: 0;
+  background: transparent;
+  color: var(--home-teal, #4fd1c5);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+  text-align: left;
 }
 
 .challenge-card.is-skeleton {

@@ -1,18 +1,39 @@
 <template>
   <header class="my-missions-header">
     <h1 class="my-missions-title">{{ t('myChallenges.title') }}</h1>
+    <router-link
+      v-if="!isDemoMode"
+      class="campaign-link"
+      to="/missions/campaigns/new"
+    >
+      {{ t('campaigns.createCta') }}
+    </router-link>
   </header>
 </template>
 
 <script setup>
 import { useI18n } from 'vue-i18n'
+import { useDemoMode } from '../../composables/useDemoMode'
 
 const { t } = useI18n()
+const { isDemoMode } = useDemoMode()
 </script>
 
 <style scoped>
 .my-missions-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   margin-bottom: clamp(16px, 2.5vw, 24px);
+}
+
+.campaign-link {
+  flex-shrink: 0;
+  color: var(--home-teal, #4fd1c5);
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-decoration: none;
 }
 
 .my-missions-title {
