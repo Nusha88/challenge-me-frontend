@@ -1,4 +1,15 @@
 export const MAX_CAMPAIGN_GUESTS = 7
+export const OWNED_BLOCKING_STATUSES = ['draft', 'open', 'active']
+
+export function isOwnedBlockingCampaign(campaign, userId) {
+  if (!campaign || !userId) return false
+  if (!OWNED_BLOCKING_STATUSES.includes(campaign.status)) return false
+  return campaignIdOf(campaign.owner) === String(userId)
+}
+
+export function findOwnedBlockingCampaign(campaigns, userId) {
+  return (campaigns || []).find((item) => isOwnedBlockingCampaign(item, userId)) || null
+}
 
 export function campaignIdOf(value) {
   if (!value) return ''
@@ -20,6 +31,10 @@ export function hasBothSlots(campaign) {
 
 export function isPersonalTemplate(challenge) {
   return challenge?.campaignRole === 'personalTemplate'
+}
+
+export function isPersonalClone(challenge) {
+  return challenge?.campaignRole === 'personalClone'
 }
 
 export function excludePersonalTemplates(list = []) {

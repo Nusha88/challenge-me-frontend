@@ -15,7 +15,7 @@
         {{ t('myChallenges.empty.launch') }}
       </router-link>
       <router-link
-        v-if="!isDemoMode"
+        v-if="canCreateCampaign"
         to="/missions/campaigns/new"
         class="my-missions-empty-secondary"
       >
@@ -31,7 +31,6 @@
 <script setup>
 import { useI18n } from 'vue-i18n'
 import treasureImage from '../../assets/home/treasure-280.webp'
-import { useDemoMode } from '../../composables/useDemoMode'
 
 defineProps({
   text: {
@@ -41,11 +40,14 @@ defineProps({
   showActions: {
     type: Boolean,
     default: true
+  },
+  canCreateCampaign: {
+    type: Boolean,
+    default: false
   }
 })
 
 const { t } = useI18n()
-const { isDemoMode } = useDemoMode()
 </script>
 
 <style scoped>

@@ -7,7 +7,7 @@
   >
     <div class="header-actions">
       <v-btn
-        v-if="isOwner && !isFinished"
+        v-if="canEdit"
         icon="mdi-pencil"
         variant="text"
         size="small"
@@ -97,6 +97,11 @@ defineEmits(['edit', 'invite', 'invite-squad', 'close'])
 const { t } = useI18n()
 const { smAndDown } = useDisplay()
 const isHabit = computed(() => props.challenge.challengeType === CHALLENGE_TYPES.HABIT)
+const canEdit = computed(() => (
+  props.isOwner
+  && !props.isFinished
+  && props.challenge?.campaignRole !== 'personalClone'
+))
 const coverHeight = computed(() => (smAndDown.value ? 160 : 280))
 const showInviteButton = computed(() =>
   !props.isFinished && (props.canInviteFriends || props.canInviteSquad)

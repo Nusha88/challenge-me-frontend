@@ -2,7 +2,7 @@
   <header class="my-missions-header">
     <h1 class="my-missions-title">{{ t('myChallenges.title') }}</h1>
     <router-link
-      v-if="!isDemoMode"
+      v-if="canCreateCampaign"
       class="campaign-link"
       to="/missions/campaigns/new"
     >
@@ -13,10 +13,12 @@
 
 <script setup>
 import { useI18n } from 'vue-i18n'
-import { useDemoMode } from '../../composables/useDemoMode'
+
+defineProps({
+  canCreateCampaign: { type: Boolean, default: false }
+})
 
 const { t } = useI18n()
-const { isDemoMode } = useDemoMode()
 </script>
 
 <style scoped>

@@ -6,11 +6,28 @@ export function isActiveTemplateChallenge(challenge, templateId) {
   return !isChallengeFinished(challenge)
 }
 
+export function isCurrentWeeklyRitualChallenge(challenge, weeklyTemplate) {
+  if (!challenge || !weeklyTemplate?.id || isChallengeFinished(challenge)) return false
+  if (String(challenge.templateId || '') === String(weeklyTemplate.id)) return true
+  const title = String(weeklyTemplate.title || '').trim()
+  return Boolean(title) && String(challenge.title || '').trim() === title
+}
+
 export function findActiveTemplateChallenge(challenges, templateId) {
   if (!templateId) return null
 
   const matches = (challenges || []).filter((challenge) => {
     return isActiveTemplateChallenge(challenge, templateId)
+  })
+
+  return matches.find((challenge) => !isChallengeUpcoming(challenge)) || matches[0] || null
+}
+
+export function findCurrentWeeklyRitualChallenge(challenges, weeklyTemplate) {
+  if (!weeklyTemplate?.id) return null
+
+  const matches = (challenges || []).filter((challenge) => {
+    return isCurrentWeeklyRitualChallenge(challenge, weeklyTemplate)
   })
 
   return matches.find((challenge) => !isChallengeUpcoming(challenge)) || matches[0] || null

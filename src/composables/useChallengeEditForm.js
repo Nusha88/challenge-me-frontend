@@ -14,6 +14,7 @@ import {
 import { applyDurationFieldsFromDayCount } from '../utils/durationUtils'
 import { isChallengeFinished } from '../utils/challengeStatus'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
+import { isPersonalClone } from '../utils/campaigns'
 import { useXpAwardFeedback } from './useXpAwardFeedback'
 
 const VALIDATION_FIELD_ORDER = ['title', 'description', 'actions', 'endDate', 'duration', 'frequency']
@@ -97,6 +98,10 @@ export function useChallengeEditForm() {
   const isDisabled = computed(() =>
     challenge.value ? isChallengeFinished(challenge.value) : false
   )
+  const isCampaignSlot = computed(() => {
+    const role = challenge.value?.campaignRole
+    return role === 'shared' || role === 'personalTemplate'
+  })
 
   const frequencyOptions = computed(() => [
     { title: t('challenges.frequencyOptions.daily'), value: 'daily' },
@@ -216,6 +221,11 @@ export function useChallengeEditForm() {
 
       if (!isCurrentUserOwner(data)) {
         setLoadError(t('challenges.notAuthorized'))
+        return
+      }
+
+      if (isPersonalClone(data)) {
+        navigateAway()
         return
       }
 
@@ -549,6 +559,7 @@ export function useChallengeEditForm() {
     isHabit,
     isResult,
     isDisabled,
+    isCampaignSlot,
     frequencyOptions,
     handleStartDatePick,
     handleEndDatePick,

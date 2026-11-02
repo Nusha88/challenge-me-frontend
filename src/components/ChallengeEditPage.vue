@@ -131,6 +131,8 @@
                   :frequency-error="errors.frequency"
                   :disabled="isDisabled"
                   :invite-only="Boolean(challenge?.inviteOnly)"
+                  :hide-privacy="isCampaignSlot"
+                  :lock-duration="isCampaignSlot"
                   :menu-props="tacticalSelectMenuProps"
                   @pick-start="openStartDatePicker"
                   @pick-end="openEndDatePicker"
@@ -149,6 +151,8 @@
                   :end-date-error="errors.endDate"
                   :actions-error="errors.actions"
                   :disabled="isDisabled"
+                  :hide-privacy="isCampaignSlot"
+                  :hide-deadline="isCampaignSlot"
                   @pick-start="openStartDatePicker"
                 />
 
@@ -172,6 +176,7 @@
                     {{ t('challenges.update') }}
                   </v-btn>
                   <v-btn
+                    v-if="!isCampaignSlot"
                     variant="outlined"
                     color="error"
                     class="footer-btn delete-btn"
@@ -203,6 +208,7 @@
           {{ t('challenges.update') }}
         </v-btn>
         <v-btn
+          v-if="!isCampaignSlot"
           variant="outlined"
           color="error"
           block
@@ -282,6 +288,7 @@ const {
   isHabit,
   isResult,
   isDisabled,
+  isCampaignSlot,
   handleStartDatePick,
   handleEndDatePick,
   goBack,

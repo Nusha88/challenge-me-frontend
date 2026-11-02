@@ -10,12 +10,12 @@
 
       <v-card-title class="d-flex align-center pt-6 px-6">
         <v-icon color="#FF5252" class="mr-3">mdi-alert-octagon-outline</v-icon>
-        <span class="dialog-title">{{ t('challenges.deleteConfirmTitle') }}</span>
+        <span class="dialog-title">{{ title || t('challenges.deleteConfirmTitle') }}</span>
       </v-card-title>
 
       <v-card-text class="px-6 py-4">
         <div class="dialog-message mb-4">
-          {{ t('challenges.deleteConfirmMessage') }}
+          {{ message || t('challenges.deleteConfirmMessage') }}
         </div>
 
         <v-alert
@@ -44,7 +44,7 @@
             :loading="loading"
             @click="emit('confirm')"
           >
-            {{ t('challenges.delete') }}
+            {{ confirmLabel || t('challenges.delete') }}
           </v-btn>
         </div>
       </v-card-actions>
@@ -57,7 +57,10 @@ import { useI18n } from 'vue-i18n'
 
 defineProps({
   loading: { type: Boolean, default: false },
-  error: { type: String, default: '' }
+  error: { type: String, default: '' },
+  title: { type: String, default: '' },
+  message: { type: String, default: '' },
+  confirmLabel: { type: String, default: '' }
 })
 
 const emit = defineEmits(['confirm'])

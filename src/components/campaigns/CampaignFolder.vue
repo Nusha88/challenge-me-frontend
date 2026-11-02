@@ -8,7 +8,7 @@
           {{ t('campaigns.dayProgress', { current: dayLabel.current, total: dayLabel.total }) }}
         </p>
       </div>
-      <v-icon>{{ open ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
+      <v-icon class="folder-toggle">{{ open ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
     </button>
 
     <div v-if="open" class="folder-body">
@@ -77,6 +77,10 @@ const dayLabel = computed(() => campaignDayLabel(props.campaign))
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--home-teal, #4fd1c5);
+}
+
+.folder-toggle {
+  color: var(--home-text, #f1f5f9) !important;
 }
 
 .folder-title {

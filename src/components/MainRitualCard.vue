@@ -30,46 +30,44 @@
 
         <div class="actions-wrapper">
           <div
-            class="social-panel d-flex align-center py-2 px-6"
+            class="social-panel"
             :class="{ 'social-panel--joined': isJoined }"
           >
-            <div class="reward-block text-left">
-              <div class="stats-count">
-                <span class="sparks-icon">✦</span>
-                {{ rewardSparks }}
-                {{ t('navigation.sparksLabel') }}
+            <div class="panel-metrics">
+              <div class="reward-block">
+                <div class="stats-count">
+                  <span class="sparks-icon">✦</span>
+                  {{ rewardSparks }}
+                  {{ t('navigation.sparksLabel') }}
+                </div>
+                <div class="stats-label">{{ t('allChallenges.weeklyRitual.boostedHint') }}</div>
               </div>
-              <div class="stats-label">{{ t('allChallenges.weeklyRitual.boostedHint') }}</div>
+
+              <div class="panel-rule" aria-hidden="true"></div>
+
+              <div class="meta-block">
+                <div class="stats-count">{{ durationLabel }}</div>
+                <div class="stats-label">{{ t('challenges.duration') }}</div>
+              </div>
             </div>
 
-            <v-divider vertical class="mx-6 my-2" color="rgba(255,255,255,0.2)"></v-divider>
-
-            <div class="meta-block text-left">
-              <div class="stats-count">{{ durationLabel }}</div>
-              <div class="stats-label">{{ t('challenges.duration') }}</div>
-            </div>
-
-            <v-divider vertical class="mx-6 my-2" color="rgba(255,255,255,0.2)"></v-divider>
+            <div class="panel-rule panel-rule--action" aria-hidden="true"></div>
 
             <div v-if="isJoined" class="status-block" @click.stop>
-              <div class="status-personal">
-                <button
-                  v-if="canCheckIn"
-                  type="button"
-                  class="check-in-btn"
-                  :disabled="checkingIn"
-                  @click="$emit('check-in')"
-                >
-                  {{ t('allChallenges.weeklyRitual.checkIn') }}
-                </button>
-                <p v-else class="in-game-status">
-                  {{ t('allChallenges.weeklyRitual.inGame', { current: currentDay, total: totalDays }) }}
-                </p>
-              </div>
+              <button
+                v-if="canCheckIn"
+                type="button"
+                class="check-in-btn"
+                :disabled="checkingIn"
+                @click="$emit('check-in')"
+              >
+                {{ t('allChallenges.weeklyRitual.checkIn') }}
+              </button>
+              <p v-else class="in-game-status">
+                {{ t('allChallenges.weeklyRitual.inGame', { current: currentDay, total: totalDays }) }}
+              </p>
 
-              <div class="status-rule" aria-hidden="true"></div>
-
-              <div class="status-social">
+              <div v-if="companionsCount > 0" class="status-social">
                 <p class="together-text">
                   {{ togetherLabel }}
                 </p>
@@ -103,7 +101,7 @@
             <v-btn
               v-else
               color="teal-accent-3"
-              height="54"
+              height="48"
               rounded="xl"
               class="join-btn px-8"
               @click.stop="handleUse"
@@ -125,10 +123,6 @@
   position: relative;
   cursor: pointer;
   transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.main-ritual-hero.is-joined {
-  height: 540px !important;
 }
 
 .main-ritual-hero:hover {
@@ -212,12 +206,44 @@
   font-weight: 500;
 }
 
+.actions-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
 .social-panel {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 16px 20px;
+  width: auto;
+  max-width: 100%;
+  padding: 10px 12px 10px 22px;
   background: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 60px;
+  border-radius: 999px;
   box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+}
+
+.panel-metrics {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 0 0 auto;
+}
+
+.panel-rule {
+  width: 1px;
+  align-self: stretch;
+  min-height: 28px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.reward-block,
+.meta-block {
+  text-align: left;
 }
 
 .stats-count {
@@ -253,28 +279,18 @@
   box-shadow: 0 15px 30px rgba(20, 255, 236, 0.5) !important;
 }
 
-.social-panel--joined {
-  border-radius: 28px;
-  gap: 8px;
-}
-
 .status-block {
   display: flex;
   align-items: center;
-  gap: 16px;
-  min-width: 0;
-  text-align: left;
+  gap: 12px;
+  flex: 0 0 auto;
 }
 
-.status-personal,
 .status-social {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   min-width: 0;
-}
-
-.status-rule {
-  width: 1px;
-  align-self: stretch;
-  background: rgba(255, 255, 255, 0.16);
 }
 
 .in-game-status,
@@ -289,7 +305,8 @@
 .together-text {
   color: rgba(255, 255, 255, 0.88);
   font-size: 13px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
+  overflow-wrap: anywhere;
 }
 
 .check-in-btn {
@@ -359,37 +376,47 @@
 
 @media (max-width: 960px) {
   .ritual-title { font-size: 2.4rem !important; }
-  .social-panel { flex-wrap: wrap; border-radius: 24px; justify-content: center; }
-  .status-block { width: 100%; justify-content: space-between; }
 }
 
-@media (max-width: 600px) {
-  .main-ritual-hero,
-  .main-ritual-hero.is-joined { height: auto !important; min-height: 360px; }
-  .ritual-title { font-size: 1.6rem !important; letter-spacing: -1px !important; }
-  .ritual-description { font-size: 0.9rem; }
+@media (max-width: 720px) {
+  .main-ritual-hero { height: auto !important; min-height: 0; }
+  .hero-image-wrapper { min-height: 320px; }
+  .hero-content { padding: 28px 16px 20px !important; }
+  .ritual-badge-container { margin-bottom: 16px !important; }
+  .ritual-title { font-size: 1.6rem !important; letter-spacing: -1px !important; margin-bottom: 10px !important; }
+  .ritual-description { font-size: 0.9rem; margin-bottom: 16px !important; }
   .social-panel {
-    padding: 12px !important;
+    display: flex;
     flex-direction: column;
     width: 100%;
-    text-align: center;
+    padding: 12px;
+    gap: 10px;
+    border-radius: 20px;
   }
-  .reward-block,
-  .meta-block { text-align: center !important; }
-  .v-divider { display: none; }
-  .join-btn { width: 100%; }
-  .status-block {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 12px;
+  .panel-metrics {
+    width: 100%;
+    justify-content: space-evenly;
+    gap: 8px;
   }
-  .status-rule {
+  .panel-rule { min-height: 32px; }
+  .panel-rule--action {
     width: 48px;
     height: 1px;
+    min-height: 0;
+    align-self: center;
   }
-  .check-in-btn { width: 100%; }
-  .together-text { margin-bottom: 10px; }
+  .reward-block,
+  .meta-block { text-align: center; }
+  .join-btn,
+  .check-in-btn,
+  .status-block { width: 100%; }
+  .status-block {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .status-social { align-items: center; }
+  .together-text { margin-bottom: 8px; text-align: center; }
   .avatar-stack { justify-content: center; }
 }
 </style>

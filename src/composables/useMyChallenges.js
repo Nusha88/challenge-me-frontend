@@ -4,7 +4,11 @@ import { campaignService, challengeService } from '../services/api'
 import { useWatchedChallengesStore } from '../stores/watchedChallenges'
 import { isChallengeFinished, isChallengeUpcoming } from '../utils/challengeStatus'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
-import { excludePersonalTemplates, groupMissionsByCampaign } from '../utils/campaigns'
+import {
+  excludePersonalTemplates,
+  findOwnedBlockingCampaign,
+  groupMissionsByCampaign
+} from '../utils/campaigns'
 import { useXpAwardFeedback } from './useXpAwardFeedback'
 import { useDemoStore } from '../stores/demo'
 import { getDemoMissions } from '../services/demoStorage'
@@ -403,6 +407,10 @@ export function useMyChallenges(currentUserId) {
     visibleFinishedQuests,
     visibleFinishedRituals,
     draftCampaigns: computed(() => campaigns.value.filter((item) => item.status === 'draft')),
+    canCreateCampaign: computed(() => (
+      !demoStore.isDemoMode
+      && !findOwnedBlockingCampaign(campaigns.value, unref(currentUserId))
+    )),
     activeCampaignFolders: computed(() => activeBundle.value.folders),
     upcomingCampaignFolders: computed(() => upcomingBundle.value.folders),
     archiveCampaignFolders: computed(() => archiveBundle.value.folders),

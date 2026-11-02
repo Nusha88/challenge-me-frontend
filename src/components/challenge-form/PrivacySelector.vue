@@ -48,7 +48,7 @@
             <v-radio :model-value="privacy" value="squad" color="#7048E8" :disabled="disabled" @click.prevent="selectPrivacy('squad')" />
           </div>
           <router-link
-            v-if="!isDemoMode"
+            v-if="canCreateCampaign"
             class="campaign-entry"
             to="/missions/campaigns/new"
             @click.stop
@@ -91,8 +91,11 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { campaignService } from '../../services/api'
+import { useUserStore } from '../../stores/user'
+import { findOwnedBlockingCampaign } from '../../utils/campaigns'
 import { useDemoMode } from '../../composables/useDemoMode'
 
 const props = defineProps({
@@ -109,6 +112,22 @@ const allowComments = defineModel('allowComments', { type: Boolean, default: tru
 
 const { t } = useI18n()
 const { isDemoMode, requireAuthOrPrompt } = useDemoMode()
+const userStore = useUserStore()
+const campaigns = ref([])
+const canCreateCampaign = computed(() => (
+  !isDemoMode.value
+  && !findOwnedBlockingCampaign(campaigns.value, userStore.userId)
+))
+
+onMounted(async () => {
+  if (isDemoMode.value || props.variant === 'compact' || !props.showSquad) return
+  try {
+    const { data } = await campaignService.listCampaigns()
+    campaigns.value = data?.campaigns || []
+  } catch {
+    campaigns.value = []
+  }
+})
 
 const cardCols = computed(() => (props.showSquad ? 4 : 6))
 const showCommentsCheckbox = computed(() =>

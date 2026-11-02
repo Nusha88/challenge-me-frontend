@@ -546,6 +546,7 @@ export const campaignService = {
   getCampaign: (id) => api.get(`/campaigns/${id}`),
   createCampaign: (payload) => api.post('/campaigns', payload),
   updateCampaign: (id, payload) => api.put(`/campaigns/${id}`, payload),
+  deleteCampaign: (id) => api.delete(`/campaigns/${id}`),
   publishCampaign: (id) => api.post(`/campaigns/${id}/publish`, {}, {
     headers: userService._clientDayHeaders()
   }),

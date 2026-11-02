@@ -11,8 +11,17 @@ import { toDateInputValue, addDays, getInclusiveDaysBetween } from '../utils/dat
 import { useRestartChallengeDraft } from './useRestartChallengeDraft'
 import { useXpAwardFeedback } from './useXpAwardFeedback'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
+import { APP_EVENTS, dispatchAppEvent } from '../utils/appEvents'
+import { clearMyMissionsListCache } from './useMyMissionsListCache'
 
 const VALIDATION_FIELD_ORDER = ['title', 'description', 'actions', 'endDate', 'duration', 'frequency']
+
+function campaignContextFromQuery(query) {
+  const campaignId = typeof query?.campaignId === 'string' ? query.campaignId.trim() : ''
+  const slot = query?.slot
+  if (!campaignId || (slot !== 'shared' && slot !== 'personal')) return null
+  return { id: campaignId, slot, campaign: null }
+}
 
 function emptyAction() {
   return { text: '', checked: false, children: [] }
@@ -165,7 +174,7 @@ export function useChallengeCreateForm() {
   const loading = ref(false)
   const errorMessage = ref('')
   const validationToastOpen = ref(false)
-  const campaignContext = ref(null)
+  const campaignContext = ref(campaignContextFromQuery(route.query))
 
   const lastHabitState = ref(snapshotHabitState(form.value))
   const lastResultState = ref(snapshotResultState(form.value))
@@ -173,13 +182,15 @@ export function useChallengeCreateForm() {
   const isHabit = computed(() => form.value.challengeType === CHALLENGE_TYPES.HABIT)
 
   const createButtonText = computed(() => {
-    if (campaignContext.value) return t('campaigns.addSlot')
+    if (campaignContext.value?.slot === 'shared') return t('campaigns.addShared')
+    if (campaignContext.value?.slot === 'personal') return t('campaigns.addPersonal')
     return form.value.challengeType === CHALLENGE_TYPES.RESULT
       ? t('challenges.createResult')
       : t('challenges.createHabit')
   })
 
   const isFormValid = computed(() => {
+    if (campaignContext.value && !campaignContext.value.campaign) return false
     const hasTitle = Boolean(form.value.title?.trim())
     const hasValidDuration = form.value.duration !== 'custom'
       ? Boolean(form.value.duration)
@@ -287,28 +298,38 @@ export function useChallengeCreateForm() {
     }
   }
 
-  async function applyCampaignSlotFromQuery() {
-    const campaignId = typeof route.query.campaignId === 'string' ? route.query.campaignId.trim() : ''
-    const slot = route.query.slot
-    if (!campaignId || (slot !== 'shared' && slot !== 'personal')) return
-
-    const { data } = await campaignService.getCampaign(campaignId)
-    const campaign = data?.campaign
-    if (!campaign) return
-
-    campaignContext.value = { id: campaignId, slot, campaign }
-    applyCampaignDates(campaign)
-
+  function applyCampaignSlotDefaults(slot) {
     if (slot === 'shared') {
       form.value.challengeType = CHALLENGE_TYPES.HABIT
       form.value.privacy = 'squad'
       form.value.allowComments = true
       form.value.inviteUserIds = []
-    } else {
-      form.value.challengeType = CHALLENGE_TYPES.RESULT
-      form.value.privacy = 'private'
+      return
+    }
+    form.value.challengeType = CHALLENGE_TYPES.RESULT
+    form.value.privacy = 'private'
+  }
+
+  if (campaignContext.value) {
+    applyCampaignSlotDefaults(campaignContext.value.slot)
+  }
+
+  async function applyCampaignSlotFromQuery() {
+    const next = campaignContextFromQuery(route.query)
+    if (!next) {
+      campaignContext.value = null
+      return
     }
 
+    campaignContext.value = next
+    applyCampaignSlotDefaults(next.slot)
+
+    const { data } = await campaignService.getCampaign(next.id)
+    const campaign = data?.campaign
+    if (!campaign) return
+
+    campaignContext.value = { ...next, campaign }
+    applyCampaignDates(campaign)
     lastHabitState.value = snapshotHabitState(form.value)
     lastResultState.value = snapshotResultState(form.value)
   }
@@ -507,6 +528,17 @@ export function useChallengeCreateForm() {
       createdChallengeId.value = challengeId
       triggerHapticFeedback([100, 50, 100])
       fireConfetti()
+    }
+    const created = response.data?.challenge || (response.data?._id ? response.data : null)
+    clearMyMissionsListCache()
+    if (created?._id) {
+      dispatchAppEvent(APP_EVENTS.CHALLENGE_UPDATED, {
+        challengeId: String(created._id),
+        challenge: {
+          ...created,
+          templateId: created.templateId || form.value.templateId || ''
+        }
+      })
     }
     if (campaignContext.value?.id) {
       router.push({ name: 'campaign-detail', params: { id: campaignContext.value.id } })

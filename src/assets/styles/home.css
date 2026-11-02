@@ -65,6 +65,14 @@
   background: transparent !important;
 }
 
+.app-cta-primary:disabled,
+.app-cta-primary.v-btn--disabled {
+  opacity: 0.4 !important;
+  box-shadow: none !important;
+  filter: grayscale(0.2);
+  transform: none !important;
+}
+
 /* Secondary / outline CTA (sidebar invite) */
 .app-cta-secondary {
   background: transparent !important;

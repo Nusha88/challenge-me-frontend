@@ -1,6 +1,6 @@
 <template>
   <div class="add-challenge mission-form">
-    <LaunchHeader />
+    <LaunchHeader :campaign-context="campaignContext" />
 
     <div class="form-container">
       <v-form @submit.prevent="handleSubmit">
@@ -9,9 +9,6 @@
           :model-value="form.challengeType"
           @update:model-value="selectChallengeType"
         />
-        <p v-else class="campaign-slot-banner">
-          {{ campaignContext.slot === 'shared' ? t('campaigns.sharedSlotHint') : t('campaigns.personalSlotHint') }}
-        </p>
 
         <v-row>
           <v-col cols="12" md="8">
@@ -195,15 +192,6 @@ onMounted(() => {
 
 .form-container {
   width: 100%;
-}
-
-.campaign-slot-banner {
-  margin: 0 0 18px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(79, 209, 197, 0.28);
-  color: var(--home-text-dim, #94a3b8);
-  font-size: 0.9rem;
 }
 
 .form-fields-wrapper {

@@ -1,7 +1,7 @@
 <template>
   <div>
     <div
-      v-if="mode === 'edit'"
+      v-if="mode === 'edit' && !hideDeadline"
       class="mission-dates-grid mt-6 mb-6"
     >
       <div class="date-info-box date-info-box--editable">

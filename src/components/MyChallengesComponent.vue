@@ -1,6 +1,6 @@
 <template>
   <div class="my-missions">
-    <MyMissionsHeader />
+    <MyMissionsHeader :can-create-campaign="canCreateCampaign" />
 
     <MyMissionsStatusTabs
       v-if="!listError && (loading || challenges.length > 0)"
@@ -63,6 +63,7 @@
         <MyMissionsEmptyState
           v-if="challenges.length === 0 && draftCampaigns.length === 0"
           :text="t('myChallenges.empty.all')"
+          :can-create-campaign="canCreateCampaign"
         />
 
         <template v-else>
@@ -70,6 +71,7 @@
             <MyMissionsEmptyState
               v-if="activeChallenges.length === 0 && draftCampaigns.length === 0"
               :text="t('myChallenges.empty.active')"
+              :can-create-campaign="canCreateCampaign"
             />
             <template v-else>
               <router-link
@@ -114,6 +116,7 @@
             <MyMissionsEmptyState
               v-if="upcomingChallenges.length === 0"
               :text="t('myChallenges.empty.upcoming')"
+              :can-create-campaign="canCreateCampaign"
             />
             <template v-else>
               <CampaignFolder
@@ -235,6 +238,7 @@ const {
   visibleFinishedQuests,
   visibleFinishedRituals,
   draftCampaigns,
+  canCreateCampaign,
   activeCampaignFolders,
   upcomingCampaignFolders,
   archiveCampaignFolders,

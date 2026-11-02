@@ -16,7 +16,7 @@
     </header>
 
     <v-progress-linear
-      v-if="loading && !isNew"
+      v-if="loading"
       indeterminate
       color="#4FD1C5"
       class="mb-4"
@@ -48,7 +48,7 @@
       </router-link>
     </v-alert>
 
-    <div class="campaign-card">
+    <div v-if="!justPublished && !(isNew && loading)" class="campaign-card">
       <label class="field-label field-label--required">{{ t('challenges.title') }}</label>
       <v-text-field
         v-model="form.title"
@@ -68,28 +68,62 @@
         :placeholder="t('campaigns.descriptionPlaceholder')"
       />
 
-      <p class="field-label field-label--required">{{ t('campaigns.duration') }}</p>
+      <p class="field-label">{{ t('challenges.duration') }}</p>
       <v-btn-toggle
         v-model="form.duration"
         mandatory
-        class="duration-toggle"
+        class="custom-chips-group"
         :disabled="!canEditShell"
       >
-        <v-btn value="7">{{ t('campaigns.days', { count: 7 }) }}</v-btn>
-        <v-btn value="14">{{ t('campaigns.days', { count: 14 }) }}</v-btn>
-        <v-btn value="21">{{ t('campaigns.days', { count: 21 }) }}</v-btn>
+        <v-btn value="7" class="chip-btn">
+          <span>{{ t('challenges.durationOptions.7days') }}</span>
+        </v-btn>
+        <v-btn value="14" class="chip-btn">
+          <span>{{ t('challenges.durationOptions.14days') }}</span>
+        </v-btn>
+        <v-btn value="21" class="chip-btn">
+          <v-icon left size="18">mdi-fire</v-icon>
+          <span>{{ t('challenges.durationOptions.21days') }}</span>
+        </v-btn>
       </v-btn-toggle>
 
-      <p class="field-label">{{ t('challenges.start') }}</p>
-      <v-btn-toggle
-        v-model="form.startOption"
-        mandatory
-        class="duration-toggle"
-        :disabled="!canEditShell"
-      >
-        <v-btn value="today">{{ t('challenges.startOptions.today') }}</v-btn>
-        <v-btn value="tomorrow">{{ t('challenges.startOptions.tomorrow') }}</v-btn>
-      </v-btn-toggle>
+      <div class="start-time-selector">
+        <p class="field-label">{{ t('challenges.start') }}</p>
+        <div class="start-row">
+          <v-btn-toggle
+            v-model="form.startOption"
+            mandatory
+            class="custom-toggle-group"
+            :disabled="!canEditShell"
+          >
+            <v-btn value="today" class="toggle-btn">
+              <span>{{ t('challenges.startOptions.today') }}</span>
+            </v-btn>
+            <v-btn value="tomorrow" class="toggle-btn">
+              <span>{{ t('challenges.startOptions.tomorrow') }}</span>
+            </v-btn>
+          </v-btn-toggle>
+
+          <v-btn
+            :class="['calendar-btn', { 'is-active': isCustomDate }]"
+            variant="outlined"
+            :disabled="!canEditShell"
+            @click="showDatePicker = true"
+          >
+            <v-icon size="20">mdi-calendar-month-outline</v-icon>
+            <span v-if="isCustomDate" class="ml-2">{{ formattedStartDate }}</span>
+            <span v-else class="ml-2">{{ t('challenges.pickDate') }}</span>
+          </v-btn>
+        </div>
+
+        <v-dialog v-model="showDatePicker" max-width="400">
+          <v-date-picker
+            :model-value="form.startDate"
+            :min="toDateInputValue(new Date())"
+            @update:model-value="handleDatePick"
+          />
+        </v-dialog>
+      </div>
 
       <SquadInvitePicker
         v-if="canEditShell"
@@ -98,8 +132,12 @@
       />
     </div>
 
-    <div v-if="!isNew" class="campaign-slots">
-      <div class="slot-card">
+    <div v-if="!justPublished && !isNew" class="campaign-slots">
+      <div
+        class="slot-card"
+        :class="{ 'slot-card--link': sharedEditTo }"
+        @click="openSlot(sharedEditTo)"
+      >
         <div>
           <p class="slot-label">{{ t('campaigns.sharedSlot') }}</p>
           <p class="slot-copy">{{ sharedTitle || t('campaigns.sharedSlotHint') }}</p>
@@ -108,13 +146,21 @@
           v-if="canEditShell && !sharedTitle"
           class="app-cta-primary text-none"
           :to="{ path: '/missions/add', query: { campaignId: campaignId, slot: 'shared' } }"
+          @click.stop
         >
           {{ t('campaigns.addShared') }}
         </v-btn>
-        <v-icon v-else-if="sharedTitle" color="#4FD1C5">mdi-check-circle</v-icon>
+        <div v-else-if="sharedTitle" class="slot-status">
+          <v-icon color="#4FD1C5">mdi-check-circle</v-icon>
+          <v-icon v-if="sharedEditTo" size="20">mdi-chevron-right</v-icon>
+        </div>
       </div>
 
-      <div class="slot-card">
+      <div
+        class="slot-card"
+        :class="{ 'slot-card--link': personalEditTo }"
+        @click="openSlot(personalEditTo)"
+      >
         <div>
           <p class="slot-label">{{ t('campaigns.personalSlot') }}</p>
           <p class="slot-copy">{{ personalTitle || t('campaigns.personalSlotHint') }}</p>
@@ -123,33 +169,49 @@
           v-if="canEditShell && !personalTitle"
           class="app-cta-primary text-none"
           :to="{ path: '/missions/add', query: { campaignId: campaignId, slot: 'personal' } }"
+          @click.stop
         >
           {{ t('campaigns.addPersonal') }}
         </v-btn>
-        <v-icon v-else-if="personalTitle" color="#4FD1C5">mdi-check-circle</v-icon>
+        <div v-else-if="personalTitle" class="slot-status">
+          <v-icon color="#4FD1C5">mdi-check-circle</v-icon>
+          <v-icon v-if="personalEditTo" size="20">mdi-chevron-right</v-icon>
+        </div>
       </div>
     </div>
 
-    <div class="campaign-actions">
+    <div v-if="!justPublished && !(isNew && loading)" class="campaign-actions">
       <v-btn
         v-if="canEditShell"
         class="app-cta-primary text-none"
         :loading="saving"
-        :disabled="!form.title.trim() || saving"
+        :disabled="!form.title.trim() || saving || deleting"
         @click="saveShell"
       >
         {{ isNew ? t('campaigns.saveDraft') : t('campaigns.saveChanges') }}
+      </v-btn>
+      <v-btn
+        v-if="canEditShell && !isNew"
+        variant="outlined"
+        color="error"
+        class="text-none delete-draft-btn"
+        :disabled="saving || publishing || deleting"
+        @click="deleteConfirmOpen = true"
+      >
+        {{ t('campaigns.delete') }}
       </v-btn>
       <div v-if="canPublish" class="publish-block">
         <v-btn
           class="publish-btn text-none"
           :loading="publishing"
-          :disabled="publishing"
+          :disabled="publishing || !hasInvites"
           @click="publish"
         >
           {{ t('campaigns.publish') }}
         </v-btn>
-        <p class="publish-hint">{{ t('campaigns.publishHint') }}</p>
+        <p class="publish-hint">
+          {{ hasInvites ? t('campaigns.publishHint') : t('campaigns.publishNeedsInvite') }}
+        </p>
       </div>
       <template v-if="isInvited">
         <v-btn
@@ -171,20 +233,42 @@
         </v-btn>
       </template>
     </div>
+
+    <DeleteChallengeDialog
+      v-model="deleteConfirmOpen"
+      :loading="deleting"
+      :error="deleteError"
+      :title="t('campaigns.deleteConfirmTitle')"
+      :message="t('campaigns.deleteConfirmMessage')"
+      :confirm-label="t('campaigns.delete')"
+      @confirm="confirmDelete"
+    />
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import SquadInvitePicker from '../challenge-form/SquadInvitePicker.vue'
+import DeleteChallengeDialog from '../challenge-form/DeleteChallengeDialog.vue'
 import { campaignService } from '../../services/api'
+import { clearMyMissionsListCache } from '../../composables/useMyMissionsListCache'
 import { useUserStore } from '../../stores/user'
-import { addDays, getInclusiveDaysBetween, toDateInputValue } from '../../utils/dateUtils'
-import { MAX_CAMPAIGN_GUESTS, campaignIdOf, hasBothSlots } from '../../utils/campaigns'
+import {
+  addDays,
+  formatDateForLocale,
+  getInclusiveDaysBetween,
+  toDateInputValue
+} from '../../utils/dateUtils'
+import {
+  MAX_CAMPAIGN_GUESTS,
+  campaignIdOf,
+  findOwnedBlockingCampaign,
+  hasBothSlots
+} from '../../utils/campaigns'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
@@ -192,6 +276,9 @@ const userStore = useUserStore()
 const loading = ref(false)
 const saving = ref(false)
 const publishing = ref(false)
+const deleting = ref(false)
+const deleteConfirmOpen = ref(false)
+const deleteError = ref('')
 const deciding = ref('')
 const justPublished = ref(false)
 const errorMessage = ref('')
@@ -202,8 +289,10 @@ const form = reactive({
   description: '',
   duration: '14',
   startOption: 'today',
+  startDate: toDateInputValue(new Date()),
   inviteUserIds: []
 })
+const showDatePicker = ref(false)
 
 const isNew = computed(() => route.name === 'campaign-new' || route.params.id === 'new')
 const campaignId = computed(() => (isNew.value ? '' : String(route.params.id || '')))
@@ -213,8 +302,31 @@ const canEditShell = computed(() => (
   isNew.value || (campaign.value?.status === 'draft' && isOwner.value)
 ))
 const canPublish = computed(() => campaign.value?.status === 'draft' && hasBothSlots(campaign.value))
+const hasInvites = computed(() => form.inviteUserIds.length > 0)
 const sharedTitle = computed(() => campaign.value?.sharedChallengeId?.title || '')
 const personalTitle = computed(() => campaign.value?.personalTemplate?.title || '')
+const campaignEditFrom = computed(() => (
+  campaignId.value ? `/missions/campaigns/${campaignId.value}` : ''
+))
+const sharedEditTo = computed(() => slotEditTo(campaignIdOf(campaign.value?.sharedChallengeId)))
+const personalEditTo = computed(() => slotEditTo(
+  campaignIdOf(campaign.value?.personalTemplateChallengeId)
+  || campaignIdOf(campaign.value?.personalTemplate?.challengeId)
+))
+
+function slotEditTo(challengeId) {
+  if (!canEditShell.value || !challengeId) return null
+  return {
+    name: 'edit-challenge',
+    params: { id: challengeId },
+    query: { from: campaignEditFrom.value }
+  }
+}
+
+function openSlot(to) {
+  if (!to) return
+  router.push(to)
+}
 const inviteCount = computed(() => (campaign.value?.invites || []).length)
 const isInvited = computed(() => {
   const userId = currentUserId.value
@@ -224,11 +336,38 @@ const isInvited = computed(() => {
   return invited && !member
 })
 
+const isCustomDate = computed(() => {
+  if (!form.startDate) return false
+  const todayStr = toDateInputValue(new Date())
+  const tomorrowStr = toDateInputValue(addDays(new Date(), 1))
+  return form.startDate !== todayStr && form.startDate !== tomorrowStr
+})
+
+const formattedStartDate = computed(() => formatDateForLocale(form.startDate, locale.value))
+
 function startDateFromOption() {
-  return form.startOption === 'tomorrow'
-    ? toDateInputValue(addDays(new Date(), 1))
-    : toDateInputValue(new Date())
+  if (form.startOption === 'custom' && form.startDate) return form.startDate
+  if (form.startOption === 'tomorrow') return toDateInputValue(addDays(new Date(), 1))
+  return toDateInputValue(new Date())
 }
+
+function handleDatePick(date) {
+  if (date) {
+    form.startDate = toDateInputValue(date)
+    form.startOption = 'custom'
+  }
+  showDatePicker.value = false
+}
+
+watch(
+  () => form.startOption,
+  (value) => {
+    if (value === 'custom') return
+    form.startDate = value === 'tomorrow'
+      ? toDateInputValue(addDays(new Date(), 1))
+      : toDateInputValue(new Date())
+  }
+)
 
 function buildPayload() {
   const startDate = startDateFromOption()
@@ -248,20 +387,44 @@ function applyCampaign(next) {
   form.description = next.description || ''
   const days = getInclusiveDaysBetween(next.startDate, next.endDate)
   form.duration = ['7', '14', '21'].includes(String(days)) ? String(days) : '14'
+  form.startDate = toDateInputValue(next.startDate)
+  const todayStr = toDateInputValue(new Date())
+  const tomorrowStr = toDateInputValue(addDays(new Date(), 1))
+  if (form.startDate === tomorrowStr) form.startOption = 'tomorrow'
+  else if (form.startDate === todayStr) form.startOption = 'today'
+  else form.startOption = 'custom'
   form.inviteUserIds = (next.invites || [])
     .map((row) => String(row.userId?._id || row.userId || ''))
     .filter(Boolean)
 }
 
+function campaignErrorMessage(error, fallbackKey) {
+  if (error.response?.data?.reason === 'campaign_limit') return t('campaigns.limitError')
+  return error.response?.data?.message || t(fallbackKey)
+}
+
+async function redirectToOwnedBlockingCampaign() {
+  const { data } = await campaignService.listCampaigns()
+  const existing = findOwnedBlockingCampaign(data?.campaigns || [], currentUserId.value)
+  if (existing?._id) {
+    await router.replace({ name: 'campaign-detail', params: { id: existing._id } })
+    return true
+  }
+  return false
+}
+
 async function loadCampaign() {
-  if (isNew.value) return
   loading.value = true
   errorMessage.value = ''
   try {
+    if (isNew.value) {
+      await redirectToOwnedBlockingCampaign()
+      return
+    }
     const { data } = await campaignService.getCampaign(campaignId.value)
     applyCampaign(data.campaign)
   } catch (error) {
-    errorMessage.value = error.response?.data?.message || t('campaigns.loadError')
+    errorMessage.value = campaignErrorMessage(error, 'campaigns.loadError')
   } finally {
     loading.value = false
   }
@@ -282,16 +445,28 @@ async function saveShell() {
       applyCampaign(data.campaign)
     }
   } catch (error) {
-    errorMessage.value = error.response?.data?.message || t('campaigns.saveError')
+    if (error.response?.data?.reason === 'campaign_limit') {
+      try {
+        if (await redirectToOwnedBlockingCampaign()) return
+      } catch {
+        // fall through to the error message
+      }
+    }
+    errorMessage.value = campaignErrorMessage(error, 'campaigns.saveError')
   } finally {
     saving.value = false
   }
 }
 
 async function publish() {
+  if (!hasInvites.value) return
   publishing.value = true
   errorMessage.value = ''
   try {
+    if (canEditShell.value) {
+      const { data: saved } = await campaignService.updateCampaign(campaignId.value, buildPayload())
+      applyCampaign(saved.campaign)
+    }
     const { data } = await campaignService.publishCampaign(campaignId.value)
     applyCampaign(data.campaign)
     justPublished.value = true
@@ -299,6 +474,22 @@ async function publish() {
     errorMessage.value = error.response?.data?.message || t('campaigns.publishError')
   } finally {
     publishing.value = false
+  }
+}
+
+async function confirmDelete() {
+  if (!campaignId.value) return
+  deleting.value = true
+  deleteError.value = ''
+  try {
+    await campaignService.deleteCampaign(campaignId.value)
+    clearMyMissionsListCache()
+    deleteConfirmOpen.value = false
+    await router.push('/missions/my')
+  } catch (error) {
+    deleteError.value = error.response?.data?.message || t('campaigns.deleteError')
+  } finally {
+    deleting.value = false
   }
 }
 
@@ -392,8 +583,95 @@ onMounted(loadCampaign)
   opacity: 1;
 }
 
-.duration-toggle {
-  margin-bottom: 16px;
+.start-time-selector {
+  margin: 20px 0 8px;
+}
+
+.start-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.custom-chips-group {
+  display: flex;
+  gap: 12px;
+  background: transparent !important;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.custom-chips-group .chip-btn {
+  background: var(--home-surface-soft, rgba(255, 255, 255, 0.05)) !important;
+  border: 1px solid var(--home-border, rgba(255, 255, 255, 0.1)) !important;
+  color: var(--home-text-dim, rgba(255, 255, 255, 0.7)) !important;
+  border-radius: 12px !important;
+  height: 48px !important;
+  text-transform: none !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+  padding: 0 20px !important;
+  box-shadow: none !important;
+}
+
+.custom-chips-group .chip-btn.v-btn--active {
+  background: var(--home-purple, #7048e8) !important;
+  color: #fff !important;
+}
+
+.custom-toggle-group {
+  background: var(--home-surface-soft, rgba(255, 255, 255, 0.05)) !important;
+  border-radius: 12px !important;
+  padding: 4px !important;
+  height: 44px !important;
+  display: flex;
+  border: 1px solid var(--home-border, rgba(255, 255, 255, 0.1)) !important;
+}
+
+.custom-toggle-group .toggle-btn {
+  border: none !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  color: var(--home-text-dim, rgba(255, 255, 255, 0.4)) !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+  flex: 1;
+}
+
+.custom-toggle-group .toggle-btn.v-btn--active {
+  background: var(--home-purple, #7048e8) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 12px rgba(112, 72, 232, 0.35) !important;
+}
+
+.calendar-btn {
+  height: 44px !important;
+  border: 1px solid var(--home-border, rgba(255, 255, 255, 0.1)) !important;
+  border-radius: 12px !important;
+  color: var(--home-text-dim, rgba(255, 255, 255, 0.6)) !important;
+  background: var(--home-surface-soft, rgba(255, 255, 255, 0.03)) !important;
+  text-transform: none !important;
+  font-weight: 600 !important;
+}
+
+.calendar-btn.is-active {
+  border-color: var(--home-purple, #7048e8) !important;
+  color: var(--home-purple, #7048e8) !important;
+  background: rgba(112, 72, 232, 0.1) !important;
+}
+
+@media (max-width: 600px) {
+  .start-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .custom-toggle-group,
+  .calendar-btn,
+  .custom-chips-group .chip-btn {
+    width: 100%;
+  }
 }
 
 .campaign-slots {
@@ -407,6 +685,24 @@ onMounted(loadCampaign)
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.slot-card--link {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.slot-card--link:hover {
+  border-color: var(--home-teal, #4fd1c5);
+}
+
+.slot-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--home-text-dim, #94a3b8);
 }
 
 .slot-label {
@@ -436,6 +732,11 @@ onMounted(loadCampaign)
 .publish-btn {
   background: rgba(79, 209, 197, 0.16) !important;
   color: #4fd1c5 !important;
+}
+
+.publish-btn:disabled,
+.publish-btn.v-btn--disabled {
+  opacity: 0.4 !important;
 }
 
 .publish-hint,

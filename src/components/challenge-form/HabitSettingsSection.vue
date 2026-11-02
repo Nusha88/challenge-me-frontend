@@ -1,11 +1,15 @@
 <template>
   <div>
-    <div class="duration-frequency-row">
+    <div
+      class="duration-frequency-row"
+      :class="{ 'duration-frequency-row--frequency-only': lockDuration }"
+    >
       <DurationSelector
+        v-if="!lockDuration"
         v-model:duration="duration"
         v-model:custom-duration="customDuration"
         :duration-error="durationError"
-        :disabled="disabled || lockDuration"
+        :disabled="disabled"
         label-required
       />
 
@@ -30,7 +34,7 @@
       </div>
     </div>
 
-    <div v-if="mode === 'edit'" class="mission-dates-grid mt-4 mb-4">
+    <div v-if="mode === 'edit' && !lockDuration" class="mission-dates-grid mt-4 mb-4">
       <div class="date-info-box date-info-box--editable">
         <span class="label mb-3">{{ t('challenges.startDate') }}</span>
         <v-btn
@@ -210,6 +214,14 @@ watch(startOption, (newValue) => {
   margin: 0;
   width: auto;
   max-width: 100%;
+}
+
+.duration-frequency-row--frequency-only {
+  margin-top: 0;
+}
+
+.duration-frequency-row--frequency-only .frequency-selector {
+  flex: 1 1 auto;
 }
 
 .frequency-toggle-wrapper {

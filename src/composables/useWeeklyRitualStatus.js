@@ -1,4 +1,4 @@
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { challengeService } from '../services/api'
 import {
   clearMyMissionsListCache,
@@ -16,7 +16,10 @@ import { useMissionCompletionFlow } from './useMissionCompletionFlow'
 import { useAppEventListeners } from './useAppEvents'
 import { APP_EVENTS, dispatchAppEvent } from '../utils/appEvents'
 import { getDemoMissions } from '../services/demoStorage'
-import { findActiveTemplateChallenge } from '../utils/templateMembership'
+import {
+  findCurrentWeeklyRitualChallenge,
+  isCurrentWeeklyRitualChallenge
+} from '../utils/templateMembership'
 import { getChallengeTotalDays } from '../utils/challengeProgress'
 import {
   findParticipantForUser,
@@ -46,6 +49,7 @@ export function useWeeklyRitualStatus() {
   const checkingIn = ref(false)
 
   const templateId = computed(() => weeklyRitualStore.currentWeeklyRitualId)
+  const weeklyTemplate = computed(() => getMissionTemplateById(templateId.value))
   const currentUserId = computed(() => getEffectiveUserId())
 
   const isJoined = computed(() => Boolean(joinedChallenge.value))
@@ -100,7 +104,10 @@ export function useWeeklyRitualStatus() {
     }
 
     if (demoStore.isDemoMode) {
-      joinedChallenge.value = findActiveTemplateChallenge(getDemoMissions(), id)
+      joinedChallenge.value = findCurrentWeeklyRitualChallenge(
+        getDemoMissions(),
+        weeklyTemplate.value
+      )
       return
     }
 
@@ -112,7 +119,10 @@ export function useWeeklyRitualStatus() {
 
     try {
       const challenges = await loadMyMissionsList(userId, { force })
-      joinedChallenge.value = findActiveTemplateChallenge(challenges, id)
+      joinedChallenge.value = findCurrentWeeklyRitualChallenge(
+        challenges,
+        weeklyTemplate.value
+      )
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error loading weekly ritual membership:', error)
@@ -184,7 +194,11 @@ export function useWeeklyRitualStatus() {
     }
   }
 
-  onMounted(loadJoinedChallenge)
+  onMounted(() => loadJoinedChallenge({ force: true }))
+
+  watch(currentUserId, () => {
+    loadJoinedChallenge({ force: true })
+  })
 
   useAppEventListeners([
     {
@@ -198,6 +212,13 @@ export function useWeeklyRitualStatus() {
       event: APP_EVENTS.CHALLENGE_UPDATED,
       handler: (event) => {
         const challenge = event?.detail?.challenge
+        if (challenge && isCurrentWeeklyRitualChallenge(challenge, weeklyTemplate.value)) {
+          patchMyMissionsListCache(challenge)
+          joinedChallenge.value = joinedChallenge.value
+            ? { ...joinedChallenge.value, ...challenge }
+            : challenge
+          return
+        }
         if (challenge && String(challenge._id) === String(joinedChallenge.value?._id)) {
           patchMyMissionsListCache(challenge)
           joinedChallenge.value = { ...joinedChallenge.value, ...challenge }
@@ -205,8 +226,6 @@ export function useWeeklyRitualStatus() {
         }
         if (challenge) {
           patchMyMissionsListCache(challenge)
-          loadJoinedChallenge()
-          return
         }
         loadJoinedChallenge({ force: true })
       }

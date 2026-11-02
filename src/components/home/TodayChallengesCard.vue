@@ -23,7 +23,7 @@
           >
             <button type="button" class="today-campaign-head" @click="toggleGroup(group.id)">
               <span>{{ t('campaigns.todayTitle', { title: group.title, current: group.current, total: group.total }) }}</span>
-              <v-icon size="18">{{ openGroups[group.id] === false ? 'mdi-chevron-down' : 'mdi-chevron-up' }}</v-icon>
+              <v-icon size="18" class="today-campaign-toggle">{{ openGroups[group.id] === false ? 'mdi-chevron-down' : 'mdi-chevron-up' }}</v-icon>
             </button>
             <template v-if="openGroups[group.id] !== false">
               <div
@@ -334,6 +334,10 @@ function isRowCompleted(challenge) {
   font-weight: 800;
   cursor: pointer;
   text-align: left;
+}
+
+.today-campaign-toggle {
+  color: var(--home-text, #f1f5f9) !important;
 }
 
 .challenge-card.is-skeleton {

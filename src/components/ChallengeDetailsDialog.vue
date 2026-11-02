@@ -1207,7 +1207,7 @@ import { useMissionInvite } from '../composables/useMissionInvite'
 import { openMissionDetails } from '../utils/openMissionDetails'
 import { fireConfettiFromElement } from '../utils/confetti'
 import { getPaceStatus } from '../utils/challengePace'
-import { isChallengeEnded, areActionsCompleted } from '../utils/challengeStatus'
+import { isChallengeEnded, isChallengeUpcoming, areActionsCompleted } from '../utils/challengeStatus'
 import { getScheduledDaysCount, normalizeDateKey, toDateInputValue } from '../utils/dateUtils'
 import {
   findParticipantForUser,
@@ -2417,7 +2417,8 @@ function handleMainActionClick() {
 const canConfirmQuestActions = computed(() =>
   props.isOwner &&
   props.challenge?.challengeType === CHALLENGE_TYPES.RESULT &&
-  !isFinished.value
+  !isFinished.value &&
+  !isChallengeUpcoming(props.challenge)
 )
 
 const persistQuestQueued = ref(false)
