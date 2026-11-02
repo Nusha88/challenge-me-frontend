@@ -668,9 +668,32 @@ onMounted(loadCampaign)
   }
 
   .custom-toggle-group,
-  .calendar-btn,
-  .custom-chips-group .chip-btn {
+  .calendar-btn {
     width: 100%;
+  }
+
+  .custom-chips-group {
+    display: flex !important;
+    width: 100%;
+    flex-wrap: nowrap;
+    gap: 6px;
+    overflow: visible;
+  }
+
+  .custom-chips-group .chip-btn {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    width: auto !important;
+    max-width: none !important;
+    height: 40px !important;
+    padding: 0 8px !important;
+    font-size: 0.8rem !important;
+    border-radius: 10px !important;
+  }
+
+  .custom-chips-group .chip-btn :deep(.v-btn__content) {
+    min-width: 0;
+    white-space: nowrap;
   }
 }
 

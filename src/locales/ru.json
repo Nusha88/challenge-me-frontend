@@ -626,8 +626,18 @@
     "title": "Статистика",
     "usersTab": "Пользователи",
     "missionsTab": "Миссии",
+    "campaignsTab": "Челленджи",
+    "searchUsers": "Имя или email",
+    "searchMissions": "Название миссии",
+    "searchCampaigns": "Название челленджа",
+    "filterAll": "Все",
+    "statusActive": "Активен",
+    "statusDisabled": "Выключен",
+    "visibleInWorld": "В мире",
     "loadError": "Не удалось загрузить пользователей",
     "missionsLoadError": "Не удалось загрузить миссии",
+    "campaignsLoadError": "Не удалось загрузить челленджи",
+    "overviewLoadError": "Не удалось загрузить сводку",
     "statusUpdateError": "Не удалось обновить статус пользователя",
     "visibilityUpdateError": "Не удалось обновить видимость миссии",
     "deleteError": "Не удалось удалить пользователя",
@@ -638,6 +648,21 @@
     "missionDeleteConfirmTitle": "Удалить миссию?",
     "missionDeleteConfirmMessage": "Это навсегда удалит «{title}» из системы. Действие нельзя отменить.",
     "missionDeleteConfirmAction": "Удалить",
+    "emptyUsers": "Пользователи не найдены",
+    "emptyMissions": "Миссии не найдены",
+    "emptyCampaigns": "Челленджи не найдены",
+    "kpi": {
+      "heroes": "Герои",
+      "new7d": "Новые за 7 дней",
+      "disabled": "Выключены",
+      "missionsActive": "Активные миссии",
+      "publicVisible": "В мире миссий",
+      "campaignsLive": "Челленджи"
+    },
+    "identity": {
+      "telegram": "Telegram",
+      "google": "Google"
+    },
     "type": {
       "ritual": "Ритуал",
       "quest": "Квест"
@@ -651,9 +676,20 @@
       "archived": "Архив",
       "upcoming": "Предстоящая"
     },
+    "campaignStatus": {
+      "draft": "Черновик",
+      "open": "Набор",
+      "active": "Идёт",
+      "finished": "Завершён"
+    },
+    "campaignRole": {
+      "shared": "Общий ритуал",
+      "personalClone": "Личный квест"
+    },
     "columns": {
       "name": "Имя",
       "email": "Email",
+      "joined": "С нами с",
       "level": "Уровень",
       "xp": "XP",
       "sparks": "Искры",
@@ -668,7 +704,9 @@
       "ownerName": "Владелец",
       "visibility": "Видимость",
       "missionStatus": "Статус",
-      "lastActivity": "Последняя активность"
+      "updated": "Обновлено",
+      "members": "Состав",
+      "dates": "Сроки"
     }
   },
   "users": {

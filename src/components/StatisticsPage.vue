@@ -4,9 +4,48 @@
       <h1 class="statistic-title">{{ t('statistic.title') }}</h1>
     </header>
 
+    <v-alert
+      v-if="overviewError"
+      type="error"
+      variant="tonal"
+      class="mb-4"
+      closable
+      @click:close="overviewError = ''"
+    >
+      {{ overviewError === 'overview' ? t('statistic.overviewLoadError') : overviewError }}
+    </v-alert>
+
+    <section v-if="overview" class="kpi-grid">
+      <article class="kpi-card">
+        <p class="kpi-label">{{ t('statistic.kpi.heroes') }}</p>
+        <p class="kpi-value">{{ overview.usersTotal }}</p>
+      </article>
+      <article class="kpi-card">
+        <p class="kpi-label">{{ t('statistic.kpi.new7d') }}</p>
+        <p class="kpi-value">{{ overview.usersNew7d }}</p>
+      </article>
+      <article class="kpi-card">
+        <p class="kpi-label">{{ t('statistic.kpi.disabled') }}</p>
+        <p class="kpi-value">{{ overview.usersDisabled }}</p>
+      </article>
+      <article class="kpi-card">
+        <p class="kpi-label">{{ t('statistic.kpi.missionsActive') }}</p>
+        <p class="kpi-value">{{ overview.missionsActive }}</p>
+      </article>
+      <article class="kpi-card">
+        <p class="kpi-label">{{ t('statistic.kpi.publicVisible') }}</p>
+        <p class="kpi-value">{{ overview.missionsPublicVisible }}</p>
+      </article>
+      <article class="kpi-card">
+        <p class="kpi-label">{{ t('statistic.kpi.campaignsLive') }}</p>
+        <p class="kpi-value">{{ overview.campaignsLive }}</p>
+      </article>
+    </section>
+
     <v-tabs v-model="tab" color="primary" class="statistic-tabs mb-4">
       <v-tab value="users">{{ t('statistic.usersTab') }}</v-tab>
       <v-tab value="missions">{{ t('statistic.missionsTab') }}</v-tab>
+      <v-tab value="campaigns">{{ t('statistic.campaignsTab') }}</v-tab>
     </v-tabs>
 
     <v-window v-model="tab">
@@ -19,20 +58,65 @@
           closable
           @click:close="usersError = ''"
         >
-          {{ usersError }}
+          {{ localizedError(usersError, 'statistic.loadError') }}
         </v-alert>
 
+        <div class="table-toolbar">
+          <v-text-field
+            v-model="usersSearchInput"
+            :placeholder="t('statistic.searchUsers')"
+            variant="outlined"
+            density="comfortable"
+            hide-details
+            class="table-search"
+            clearable
+          >
+            <template #prepend-inner>
+              <v-icon color="#4FD1C5" size="20">mdi-magnify</v-icon>
+            </template>
+          </v-text-field>
+          <v-select
+            v-model="usersStatus"
+            :items="userStatusFilters"
+            variant="outlined"
+            density="comfortable"
+            hide-details
+            class="table-filter"
+          />
+        </div>
+
         <v-data-table
+          v-model:page="usersPage"
+          v-model:items-per-page="usersPerPage"
           :headers="userHeaders"
           :items="users"
+          :items-length="usersTotal"
           :loading="usersLoading"
+          :items-per-page-options="pageSizeOptions"
+          :no-data-text="t('statistic.emptyUsers')"
           item-value="id"
           class="statistic-table"
           density="comfortable"
+          @update:options="handleUsersOptions"
         >
+          <template #item.name="{ item }">
+            <router-link class="table-link" :to="{ name: 'user-profile', params: { id: item.id } }">
+              {{ item.name }}
+            </router-link>
+          </template>
+
+          <template #item.email="{ item }">
+            {{ item.email || identityLabel(item.identity) }}
+          </template>
+
+          <template #item.createdAt="{ item }">
+            {{ formatDate(item.createdAt) }}
+          </template>
+
           <template #item.status="{ item }">
-            <v-checkbox
+            <v-switch
               :model-value="item.status === 'active'"
+              :label="t('statistic.statusActive')"
               :disabled="isUserRowLocked(item) || updatingUserIds.has(item.id)"
               :aria-label="t('statistic.columns.status')"
               hide-details
@@ -67,17 +151,74 @@
           closable
           @click:close="missionsError = ''"
         >
-          {{ missionsError }}
+          {{ localizedError(missionsError, 'statistic.missionsLoadError') }}
         </v-alert>
 
+        <div class="table-toolbar">
+          <v-text-field
+            v-model="missionsSearchInput"
+            :placeholder="t('statistic.searchMissions')"
+            variant="outlined"
+            density="comfortable"
+            hide-details
+            class="table-search"
+            clearable
+          >
+            <template #prepend-inner>
+              <v-icon color="#4FD1C5" size="20">mdi-magnify</v-icon>
+            </template>
+          </v-text-field>
+          <v-select
+            v-model="missionsType"
+            :items="missionTypeFilters"
+            variant="outlined"
+            density="comfortable"
+            hide-details
+            class="table-filter"
+          />
+          <v-select
+            v-model="missionsPrivacy"
+            :items="missionPrivacyFilters"
+            variant="outlined"
+            density="comfortable"
+            hide-details
+            class="table-filter"
+          />
+          <v-select
+            v-model="missionsStatus"
+            :items="missionStatusFilters"
+            variant="outlined"
+            density="comfortable"
+            hide-details
+            class="table-filter"
+          />
+        </div>
+
         <v-data-table
+          v-model:page="missionsPage"
+          v-model:items-per-page="missionsPerPage"
           :headers="missionHeaders"
           :items="missions"
+          :items-length="missionsTotal"
           :loading="missionsLoading"
+          :items-per-page-options="pageSizeOptions"
+          :no-data-text="t('statistic.emptyMissions')"
           item-value="id"
           class="statistic-table"
           density="comfortable"
+          @update:options="handleMissionsOptions"
         >
+          <template #item.title="{ item }">
+            <div class="title-cell">
+              <button type="button" class="table-link table-link-btn" @click="openMission(item.id)">
+                {{ item.title }}
+              </button>
+              <span v-if="item.campaignRole" class="role-chip">
+                {{ formatCampaignRole(item.campaignRole) }}
+              </span>
+            </div>
+          </template>
+
           <template #item.challengeType="{ item }">
             {{ formatMissionType(item.challengeType) }}
           </template>
@@ -86,9 +227,21 @@
             {{ formatPrivacy(item.privacy) }}
           </template>
 
+          <template #item.ownerName="{ item }">
+            <router-link
+              v-if="item.ownerId"
+              class="table-link"
+              :to="{ name: 'user-profile', params: { id: item.ownerId } }"
+            >
+              {{ item.ownerName || t('challenges.unknownHero') }}
+            </router-link>
+            <span v-else>{{ item.ownerName || '—' }}</span>
+          </template>
+
           <template #item.visibility="{ item }">
-            <v-checkbox
+            <v-switch
               :model-value="item.visibility !== false"
+              :label="t('statistic.visibleInWorld')"
               :disabled="updatingMissionIds.has(item.id)"
               :aria-label="t('statistic.columns.visibility')"
               hide-details
@@ -103,7 +256,7 @@
           </template>
 
           <template #item.lastActivityAt="{ item }">
-            {{ formatLastActivity(item.lastActivityAt) }}
+            {{ formatDateTime(item.lastActivityAt) }}
           </template>
 
           <template #item.actions="{ item }">
@@ -118,6 +271,81 @@
             >
               <v-icon size="20">mdi-trash-can-outline</v-icon>
             </v-btn>
+          </template>
+        </v-data-table>
+      </v-window-item>
+
+      <v-window-item value="campaigns">
+        <v-alert
+          v-if="campaignsError"
+          type="error"
+          variant="tonal"
+          class="mb-4"
+          closable
+          @click:close="campaignsError = ''"
+        >
+          {{ localizedError(campaignsError, 'statistic.campaignsLoadError') }}
+        </v-alert>
+
+        <div class="table-toolbar">
+          <v-text-field
+            v-model="campaignsSearchInput"
+            :placeholder="t('statistic.searchCampaigns')"
+            variant="outlined"
+            density="comfortable"
+            hide-details
+            class="table-search"
+            clearable
+          >
+            <template #prepend-inner>
+              <v-icon color="#4FD1C5" size="20">mdi-magnify</v-icon>
+            </template>
+          </v-text-field>
+        </div>
+
+        <v-data-table
+          v-model:page="campaignsPage"
+          v-model:items-per-page="campaignsPerPage"
+          :headers="campaignHeaders"
+          :items="campaigns"
+          :items-length="campaignsTotal"
+          :loading="campaignsLoading"
+          :items-per-page-options="pageSizeOptions"
+          :no-data-text="t('statistic.emptyCampaigns')"
+          item-value="id"
+          class="statistic-table"
+          density="comfortable"
+          @update:options="handleCampaignsOptions"
+        >
+          <template #item.title="{ item }">
+            <button
+              v-if="item.sharedChallengeId"
+              type="button"
+              class="table-link table-link-btn"
+              @click="openMission(item.sharedChallengeId)"
+            >
+              {{ item.title }}
+            </button>
+            <span v-else>{{ item.title }}</span>
+          </template>
+
+          <template #item.status="{ item }">
+            {{ formatCampaignStatus(item.status) }}
+          </template>
+
+          <template #item.ownerName="{ item }">
+            <router-link
+              v-if="item.ownerId"
+              class="table-link"
+              :to="{ name: 'user-profile', params: { id: item.ownerId } }"
+            >
+              {{ item.ownerName || t('challenges.unknownHero') }}
+            </router-link>
+            <span v-else>{{ item.ownerName || '—' }}</span>
+          </template>
+
+          <template #item.dates="{ item }">
+            {{ formatDateRange(item.startDate, item.endDate) }}
           </template>
         </v-data-table>
       </v-window-item>
@@ -136,7 +364,7 @@
           <v-btn variant="text" :disabled="deletingUser" @click="closeUserDeleteConfirm">
             {{ t('common.cancel') }}
           </v-btn>
-          <v-btn color="error" variant="flat" :loading="deletingUser" @click="confirmDeleteUser">
+          <v-btn color="error" variant="flat" :loading="deletingUser" @click="confirmDeleteUserAction">
             {{ t('statistic.deleteConfirmAction') }}
           </v-btn>
         </v-card-actions>
@@ -156,7 +384,7 @@
           <v-btn variant="text" :disabled="deletingMission" @click="closeMissionDeleteConfirm">
             {{ t('common.cancel') }}
           </v-btn>
-          <v-btn color="error" variant="flat" :loading="deletingMission" @click="confirmDeleteMission">
+          <v-btn color="error" variant="flat" :loading="deletingMission" @click="confirmDeleteMissionAction">
             {{ t('statistic.missionDeleteConfirmAction') }}
           </v-btn>
         </v-card-actions>
@@ -166,58 +394,167 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { userService } from '../services/api'
-import { isSuperAdminUserId } from '../constants/superAdmin'
+import { useDisplay } from 'vuetify'
+import { useAdminStatistics } from '../composables/useAdminStatistics'
+import { openMissionDetails } from '../utils/openMissionDetails'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const { smAndDown } = useDisplay()
+const {
+  tab,
+  overview,
+  overviewError,
+  users,
+  usersTotal,
+  usersPage,
+  usersPerPage,
+  usersSearchInput,
+  usersStatus,
+  usersLoading,
+  usersError,
+  updatingUserIds,
+  deletingUser,
+  missions,
+  missionsTotal,
+  missionsPage,
+  missionsPerPage,
+  missionsSearchInput,
+  missionsType,
+  missionsPrivacy,
+  missionsStatus,
+  missionsLoading,
+  missionsError,
+  updatingMissionIds,
+  deletingMission,
+  campaigns,
+  campaignsTotal,
+  campaignsPage,
+  campaignsPerPage,
+  campaignsSearchInput,
+  campaignsLoading,
+  campaignsError,
+  isUserRowLocked,
+  handleUsersOptions,
+  handleMissionsOptions,
+  handleCampaignsOptions,
+  handleStatusToggle,
+  handleVisibilityToggle,
+  confirmDeleteUser,
+  confirmDeleteMission
+} = useAdminStatistics()
 
-const tab = ref('users')
-
-const users = ref([])
-const usersLoading = ref(false)
-const usersError = ref('')
-const updatingUserIds = ref(new Set())
 const userDeleteConfirmOpen = ref(false)
 const userPendingDelete = ref(null)
-const deletingUser = ref(false)
-
-const missions = ref([])
-const missionsLoading = ref(false)
-const missionsError = ref('')
-const missionsLoaded = ref(false)
-const updatingMissionIds = ref(new Set())
 const missionDeleteConfirmOpen = ref(false)
 const missionPendingDelete = ref(null)
-const deletingMission = ref(false)
 
-const userHeaders = computed(() => [
-  { title: t('statistic.columns.name'), key: 'name', sortable: true },
-  { title: t('statistic.columns.email'), key: 'email', sortable: true },
-  { title: t('statistic.columns.level'), key: 'level', sortable: true },
-  { title: t('statistic.columns.xp'), key: 'xp', sortable: true },
-  { title: t('statistic.columns.sparks'), key: 'sparks', sortable: true },
-  { title: t('statistic.columns.missions'), key: 'missionsTotal', sortable: true },
-  { title: t('statistic.columns.activeMissions'), key: 'missionsActive', sortable: true },
-  { title: t('statistic.columns.status'), key: 'status', sortable: false },
-  { title: t('statistic.columns.actions'), key: 'actions', sortable: false, align: 'end', width: 64 }
+const pageSizeOptions = [10, 25, 50]
+
+const userStatusFilters = computed(() => [
+  { title: t('statistic.filterAll'), value: 'all' },
+  { title: t('statistic.statusActive'), value: 'active' },
+  { title: t('statistic.statusDisabled'), value: 'disabled' }
 ])
 
-const missionHeaders = computed(() => [
-  { title: t('statistic.columns.title'), key: 'title', sortable: true },
-  { title: t('statistic.columns.type'), key: 'challengeType', sortable: true },
-  { title: t('statistic.columns.privacy'), key: 'privacy', sortable: true },
-  { title: t('statistic.columns.participants'), key: 'participantsCount', sortable: true },
-  { title: t('statistic.columns.ownerName'), key: 'ownerName', sortable: true },
-  { title: t('statistic.columns.visibility'), key: 'visibility', sortable: false },
-  { title: t('statistic.columns.missionStatus'), key: 'status', sortable: true },
-  { title: t('statistic.columns.lastActivity'), key: 'lastActivityAt', sortable: true },
-  { title: t('statistic.columns.actions'), key: 'actions', sortable: false, align: 'end', width: 64 }
+const missionTypeFilters = computed(() => [
+  { title: t('statistic.filterAll'), value: 'all' },
+  { title: t('statistic.type.ritual'), value: 'habit' },
+  { title: t('statistic.type.quest'), value: 'result' }
 ])
 
-function isUserRowLocked(item) {
-  return isSuperAdminUserId(item.id)
+const missionPrivacyFilters = computed(() => [
+  { title: t('statistic.filterAll'), value: 'all' },
+  { title: t('statistic.privacy.public'), value: 'public' },
+  { title: t('statistic.privacy.private'), value: 'private' }
+])
+
+const missionStatusFilters = computed(() => [
+  { title: t('statistic.filterAll'), value: 'all' },
+  { title: t('statistic.missionStatus.active'), value: 'active' },
+  { title: t('statistic.missionStatus.upcoming'), value: 'upcoming' },
+  { title: t('statistic.missionStatus.archived'), value: 'archived' }
+])
+
+const userHeaders = computed(() => {
+  const compact = smAndDown.value
+  const headers = [
+    { title: t('statistic.columns.name'), key: 'name', sortable: false },
+    { title: t('statistic.columns.email'), key: 'email', sortable: false },
+    { title: t('statistic.columns.joined'), key: 'createdAt', sortable: false }
+  ]
+  if (!compact) {
+    headers.push(
+      { title: t('statistic.columns.level'), key: 'level', sortable: false },
+      { title: t('statistic.columns.xp'), key: 'xp', sortable: false },
+      { title: t('statistic.columns.sparks'), key: 'sparks', sortable: false },
+      { title: t('statistic.columns.missions'), key: 'missionsTotal', sortable: false },
+      { title: t('statistic.columns.activeMissions'), key: 'missionsActive', sortable: false }
+    )
+  }
+  headers.push(
+    { title: t('statistic.columns.status'), key: 'status', sortable: false },
+    { title: t('statistic.columns.actions'), key: 'actions', sortable: false, align: 'end', width: 64 }
+  )
+  return headers
+})
+
+const missionHeaders = computed(() => {
+  const compact = smAndDown.value
+  const headers = [
+    { title: t('statistic.columns.title'), key: 'title', sortable: false }
+  ]
+  if (!compact) {
+    headers.push(
+      { title: t('statistic.columns.type'), key: 'challengeType', sortable: false },
+      { title: t('statistic.columns.privacy'), key: 'privacy', sortable: false },
+      { title: t('statistic.columns.participants'), key: 'participantsCount', sortable: false }
+    )
+  }
+  headers.push(
+    { title: t('statistic.columns.ownerName'), key: 'ownerName', sortable: false },
+    { title: t('statistic.columns.visibility'), key: 'visibility', sortable: false },
+    { title: t('statistic.columns.missionStatus'), key: 'status', sortable: false }
+  )
+  if (!compact) {
+    headers.push({ title: t('statistic.columns.updated'), key: 'lastActivityAt', sortable: false })
+  }
+  headers.push(
+    { title: t('statistic.columns.actions'), key: 'actions', sortable: false, align: 'end', width: 64 }
+  )
+  return headers
+})
+
+const campaignHeaders = computed(() => {
+  const compact = smAndDown.value
+  const headers = [
+    { title: t('statistic.columns.title'), key: 'title', sortable: false },
+    { title: t('statistic.columns.missionStatus'), key: 'status', sortable: false }
+  ]
+  if (!compact) {
+    headers.push({ title: t('statistic.columns.members'), key: 'membersCount', sortable: false })
+  }
+  headers.push({ title: t('statistic.columns.ownerName'), key: 'ownerName', sortable: false })
+  if (!compact) {
+    headers.push({ title: t('statistic.columns.dates'), key: 'dates', sortable: false })
+  }
+  return headers
+})
+
+function localizedError(message, fallbackKey) {
+  if (!message || message === 'users' || message === 'missions' || message === 'campaigns'
+    || message === 'status' || message === 'visibility' || message === 'delete'
+    || message === 'delete-mission' || message === 'overview') {
+    return t(fallbackKey)
+  }
+  return message
+}
+
+function identityLabel(identity) {
+  if (identity === 'telegram') return t('statistic.identity.telegram')
+  if (identity === 'google') return t('statistic.identity.google')
+  return '—'
 }
 
 function formatMissionType(challengeType) {
@@ -238,11 +575,35 @@ function formatMissionStatus(status) {
   return t('statistic.missionStatus.active')
 }
 
-function formatLastActivity(value) {
+function formatCampaignStatus(status) {
+  if (status === 'draft') return t('statistic.campaignStatus.draft')
+  if (status === 'open') return t('statistic.campaignStatus.open')
+  if (status === 'finished') return t('statistic.campaignStatus.finished')
+  return t('statistic.campaignStatus.active')
+}
+
+function formatCampaignRole(role) {
+  if (role === 'personalClone') return t('statistic.campaignRole.personalClone')
+  if (role === 'shared') return t('statistic.campaignRole.shared')
+  return ''
+}
+
+function formatDate(value) {
   if (!value) return '—'
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return '—'
-  return date.toLocaleString(undefined, {
+  return date.toLocaleDateString(locale.value, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  })
+}
+
+function formatDateTime(value) {
+  if (!value) return '—'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '—'
+  return date.toLocaleString(locale.value, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -251,83 +612,13 @@ function formatLastActivity(value) {
   })
 }
 
-async function loadUsers() {
-  usersLoading.value = true
-  usersError.value = ''
-  try {
-    const { data } = await userService.getAdminUsers({ limit: 200 })
-    users.value = Array.isArray(data?.users) ? data.users : []
-  } catch (err) {
-    console.error('Failed to load admin users:', err)
-    usersError.value = err.response?.data?.message || t('statistic.loadError')
-    users.value = []
-  } finally {
-    usersLoading.value = false
-  }
+function formatDateRange(start, end) {
+  if (!start && !end) return '—'
+  return `${formatDate(start)} – ${formatDate(end)}`
 }
 
-async function loadMissions({ force = false } = {}) {
-  if (missionsLoaded.value && !force) return
-
-  missionsLoading.value = true
-  missionsError.value = ''
-  try {
-    const { data } = await userService.getAdminMissions({ limit: 200 })
-    missions.value = Array.isArray(data?.missions) ? data.missions : []
-    missionsLoaded.value = true
-  } catch (err) {
-    console.error('Failed to load admin missions:', err)
-    missionsError.value = err.response?.data?.message || t('statistic.missionsLoadError')
-    missions.value = []
-  } finally {
-    missionsLoading.value = false
-  }
-}
-
-async function handleStatusToggle(item, checked) {
-  if (isUserRowLocked(item) || updatingUserIds.value.has(item.id)) return
-
-  const nextStatus = checked ? 'active' : 'disabled'
-  const previousStatus = item.status
-
-  item.status = nextStatus
-  updatingUserIds.value = new Set([...updatingUserIds.value, item.id])
-
-  try {
-    const { data } = await userService.updateUserStatus(item.id, nextStatus)
-    item.status = data?.status === 'disabled' ? 'disabled' : 'active'
-  } catch (err) {
-    console.error('Failed to update user status:', err)
-    item.status = previousStatus
-    usersError.value = err.response?.data?.message || t('statistic.statusUpdateError')
-  } finally {
-    const next = new Set(updatingUserIds.value)
-    next.delete(item.id)
-    updatingUserIds.value = next
-  }
-}
-
-async function handleVisibilityToggle(item, checked) {
-  if (updatingMissionIds.value.has(item.id)) return
-
-  const nextVisibility = Boolean(checked)
-  const previousVisibility = item.visibility !== false
-
-  item.visibility = nextVisibility
-  updatingMissionIds.value = new Set([...updatingMissionIds.value, item.id])
-
-  try {
-    const { data } = await userService.updateMissionVisibility(item.id, nextVisibility)
-    item.visibility = data?.visibility !== false
-  } catch (err) {
-    console.error('Failed to update mission visibility:', err)
-    item.visibility = previousVisibility
-    missionsError.value = err.response?.data?.message || t('statistic.visibilityUpdateError')
-  } finally {
-    const next = new Set(updatingMissionIds.value)
-    next.delete(item.id)
-    updatingMissionIds.value = next
-  }
+function openMission(challengeId) {
+  openMissionDetails({ challengeId })
 }
 
 function openUserDeleteConfirm(item) {
@@ -342,23 +633,10 @@ function closeUserDeleteConfirm() {
   userPendingDelete.value = null
 }
 
-async function confirmDeleteUser() {
+async function confirmDeleteUserAction() {
   const item = userPendingDelete.value
-  if (!item || isUserRowLocked(item)) return
-
-  deletingUser.value = true
-  usersError.value = ''
-  try {
-    await userService.deleteAdminUser(item.id)
-    users.value = users.value.filter((user) => user.id !== item.id)
-    userDeleteConfirmOpen.value = false
-    userPendingDelete.value = null
-  } catch (err) {
-    console.error('Failed to delete user:', err)
-    usersError.value = err.response?.data?.message || t('statistic.deleteError')
-  } finally {
-    deletingUser.value = false
-  }
+  const ok = await confirmDeleteUser(item)
+  if (ok) closeUserDeleteConfirm()
 }
 
 function openMissionDeleteConfirm(item) {
@@ -373,34 +651,11 @@ function closeMissionDeleteConfirm() {
   missionPendingDelete.value = null
 }
 
-async function confirmDeleteMission() {
+async function confirmDeleteMissionAction() {
   const item = missionPendingDelete.value
-  if (!item) return
-
-  deletingMission.value = true
-  missionsError.value = ''
-  try {
-    await userService.deleteAdminMission(item.id)
-    missions.value = missions.value.filter((mission) => mission.id !== item.id)
-    missionDeleteConfirmOpen.value = false
-    missionPendingDelete.value = null
-  } catch (err) {
-    console.error('Failed to delete mission:', err)
-    missionsError.value = err.response?.data?.message || t('statistic.missionDeleteError')
-  } finally {
-    deletingMission.value = false
-  }
+  const ok = await confirmDeleteMission(item)
+  if (ok) closeMissionDeleteConfirm()
 }
-
-watch(tab, (nextTab) => {
-  if (nextTab === 'missions') {
-    loadMissions()
-  }
-})
-
-onMounted(() => {
-  loadUsers()
-})
 </script>
 
 <style scoped>
@@ -422,14 +677,67 @@ onMounted(() => {
   color: var(--home-text, #f1f5f9);
 }
 
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.kpi-card {
+  background: var(--home-surface, rgba(22, 27, 40, 0.55));
+  border: 1px solid var(--home-border, rgba(255, 255, 255, 0.08));
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+.kpi-label {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--home-text-dim, #94a3b8);
+}
+
+.kpi-value {
+  margin: 6px 0 0;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--home-text, #f1f5f9);
+}
+
 .statistic-tabs {
   border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.table-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.table-search {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.table-filter {
+  flex: 0 1 160px;
+  min-width: 140px;
+}
+
+.table-search :deep(.v-field),
+.table-filter :deep(.v-field) {
+  background: var(--home-surface-soft, rgba(255, 255, 255, 0.03)) !important;
+  color: var(--home-text, #f1f5f9) !important;
 }
 
 .statistic-table {
   background: var(--home-surface, rgba(22, 27, 40, 0.55));
   border-radius: 14px;
-  overflow: hidden;
+  overflow: auto;
   color: #fff;
 }
 
@@ -451,6 +759,41 @@ onMounted(() => {
   color: #fff !important;
 }
 
+.table-link {
+  color: var(--home-teal, #4fd1c5);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.table-link:hover {
+  text-decoration: underline;
+}
+
+.table-link-btn {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.title-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.role-chip {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--home-text-dim, #94a3b8);
+}
+
 .delete-confirm-card {
   background: var(--home-surface, #161b28);
   color: var(--home-text, #f1f5f9);
@@ -462,5 +805,17 @@ onMounted(() => {
 
 .delete-confirm-text {
   color: var(--home-text-dim, #94a3b8);
+}
+
+@media (max-width: 900px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .table-filter {
+    flex: 1 1 100%;
+  }
 }
 </style>

@@ -626,8 +626,18 @@
     "title": "Statistic",
     "usersTab": "Users",
     "missionsTab": "Missions",
+    "campaignsTab": "Challenges",
+    "searchUsers": "Name or email",
+    "searchMissions": "Mission title",
+    "searchCampaigns": "Challenge title",
+    "filterAll": "All",
+    "statusActive": "Active",
+    "statusDisabled": "Disabled",
+    "visibleInWorld": "In Explore",
     "loadError": "Failed to load users",
     "missionsLoadError": "Failed to load missions",
+    "campaignsLoadError": "Failed to load challenges",
+    "overviewLoadError": "Failed to load overview",
     "statusUpdateError": "Failed to update user status",
     "visibilityUpdateError": "Failed to update mission visibility",
     "deleteError": "Failed to delete user",
@@ -638,6 +648,21 @@
     "missionDeleteConfirmTitle": "Delete mission?",
     "missionDeleteConfirmMessage": "This will permanently remove \"{title}\" from the system. This cannot be undone.",
     "missionDeleteConfirmAction": "Delete",
+    "emptyUsers": "No users found",
+    "emptyMissions": "No missions found",
+    "emptyCampaigns": "No challenges found",
+    "kpi": {
+      "heroes": "Heroes",
+      "new7d": "New in 7 days",
+      "disabled": "Disabled",
+      "missionsActive": "Active missions",
+      "publicVisible": "In Explore",
+      "campaignsLive": "Challenges"
+    },
+    "identity": {
+      "telegram": "Telegram",
+      "google": "Google"
+    },
     "type": {
       "ritual": "Ritual",
       "quest": "Quest"
@@ -651,9 +676,20 @@
       "archived": "Archived",
       "upcoming": "Upcoming"
     },
+    "campaignStatus": {
+      "draft": "Draft",
+      "open": "Open",
+      "active": "Live",
+      "finished": "Finished"
+    },
+    "campaignRole": {
+      "shared": "Shared ritual",
+      "personalClone": "Personal quest"
+    },
     "columns": {
       "name": "User name",
       "email": "Email",
+      "joined": "Joined",
       "level": "Level",
       "xp": "XP",
       "sparks": "Sparks",
@@ -668,7 +704,9 @@
       "ownerName": "Owner",
       "visibility": "Visibility",
       "missionStatus": "Status",
-      "lastActivity": "Last activity"
+      "updated": "Updated",
+      "members": "Members",
+      "dates": "Dates"
     }
   },
   "users": {

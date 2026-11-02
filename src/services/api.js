@@ -190,8 +190,14 @@ export const userService = {
   getUserById: (userId) => {
     return api.get(`/auth/users/${userId}`)
   },
+  getAdminOverview: () => {
+    return api.get('/admin/overview')
+  },
   getAdminUsers: (params = {}) => {
     return api.get('/admin/users', { params })
+  },
+  getAdminCampaigns: (params = {}) => {
+    return api.get('/admin/campaigns', { params })
   },
   updateUserStatus: (userId, status) => {
     return api.patch(`/admin/users/${userId}/status`, { status })
