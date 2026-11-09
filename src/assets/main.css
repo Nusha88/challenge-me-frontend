@@ -47,11 +47,19 @@ html {
     max-width: 100%;
   }
 
-  .v-app-bar.app-bar-custom {
+  .v-app-bar.app-bar-custom,
+  .v-app-bar.app-bar-custom .v-toolbar__content {
     background: #0b0d12 !important;
+    background-color: #0b0d12 !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     filter: none !important;
+    opacity: 1 !important;
+  }
+
+  .v-app-bar.app-bar-custom .v-toolbar__overlay,
+  .v-app-bar.app-bar-custom .v-toolbar__underlay {
+    opacity: 0 !important;
   }
 }
 

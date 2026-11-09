@@ -271,18 +271,20 @@ onBeforeUnmount(() => {
 <style scoped>
 .app-bar-custom {
   --app-header-height: 64px;
+  --v-theme-overlay-multiplier: 0;
   background: #0b0d12 !important;
-  /* Frosted glass + isolate/filter on this bar paints Login/Sign Up soft in Chromium PWAs. */
+  background-color: #0b0d12 !important;
+  /* Safari Add to Dock frosts a translucent status bar over the toolbar. */
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   isolation: auto;
+  opacity: 1 !important;
   filter: none !important;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   border-bottom: 1px solid var(--home-border, rgba(255, 255, 255, 0.08)) !important;
   color: var(--home-text, #f1f5f9) !important;
   max-width: 100% !important;
-  /* Standalone PWA / iOS home screen: black-translucent draws under the status bar. */
   padding-top: var(--safe-top, 0px) !important;
   height: calc(var(--app-header-height) + var(--safe-top, 0px)) !important;
   min-height: calc(var(--app-header-height) + var(--safe-top, 0px)) !important;

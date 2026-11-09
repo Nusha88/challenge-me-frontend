@@ -37,6 +37,10 @@
   --safe-top: 0px;
   --safe-top: constant(safe-area-inset-top);
   --safe-top: env(safe-area-inset-top, 0px);
+  --safe-top: max(
+    env(safe-area-inset-top, 0px),
+    env(titlebar-area-height, 0px)
+  );
   --safe-bottom: 0px;
   --safe-bottom: constant(safe-area-inset-bottom);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
