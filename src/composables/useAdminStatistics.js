@@ -65,6 +65,15 @@ export function useAdminStatistics() {
   const campaignsLoading = ref(false)
   const campaignsError = ref('')
 
+  const visits = ref([])
+  const visitsTotal = ref(0)
+  const visitsPage = ref(1)
+  const visitsPerPage = ref(DEFAULT_PAGE_SIZE)
+  const visitsConverted = ref('lurkers')
+  const visitsDays = ref('7')
+  const visitsLoading = ref(false)
+  const visitsError = ref('')
+
   function isUserRowLocked(item) {
     return isSuperAdminUserId(item?.id)
   }
@@ -127,6 +136,28 @@ export function useAdminStatistics() {
     }
   }
 
+  async function loadVisits() {
+    visitsLoading.value = true
+    visitsError.value = ''
+    try {
+      const { data } = await userService.getAdminVisits(compactParams({
+        page: visitsPage.value,
+        limit: visitsPerPage.value,
+        converted: visitsConverted.value,
+        days: visitsDays.value
+      }))
+      visits.value = Array.isArray(data?.visits) ? data.visits : []
+      visitsTotal.value = Number(data?.pagination?.total || 0)
+    } catch (err) {
+      console.error('Failed to load admin visits:', err)
+      visitsError.value = err.response?.data?.message || 'visits'
+      visits.value = []
+      visitsTotal.value = 0
+    } finally {
+      visitsLoading.value = false
+    }
+  }
+
   async function loadCampaigns() {
     campaignsLoading.value = true
     campaignsError.value = ''
@@ -171,6 +202,15 @@ export function useAdminStatistics() {
     loadMissions()
   }
 
+  function handleVisitsOptions({ page, itemsPerPage }) {
+    const nextPage = page || 1
+    const nextPerPage = normalizePageSize(itemsPerPage)
+    if (nextPage === visitsPage.value && nextPerPage === visitsPerPage.value) return
+    visitsPage.value = nextPage
+    visitsPerPage.value = nextPerPage
+    loadVisits()
+  }
+
   function handleCampaignsOptions({ page, itemsPerPage }) {
     const nextPage = page || 1
     const nextPerPage = normalizePageSize(itemsPerPage)
@@ -212,9 +252,16 @@ export function useAdminStatistics() {
     loadMissions()
   })
 
+  watch([visitsConverted, visitsDays], () => {
+    if (tab.value !== 'visits') return
+    visitsPage.value = 1
+    loadVisits()
+  })
+
   watch(tab, (nextTab) => {
     if (nextTab === 'missions') loadMissions()
     if (nextTab === 'campaigns') loadCampaigns()
+    if (nextTab === 'visits') loadVisits()
   })
 
   async function handleStatusToggle(item, checked) {
@@ -345,10 +392,19 @@ export function useAdminStatistics() {
     campaignsSearchInput,
     campaignsLoading,
     campaignsError,
+    visits,
+    visitsTotal,
+    visitsPage,
+    visitsPerPage,
+    visitsConverted,
+    visitsDays,
+    visitsLoading,
+    visitsError,
     isUserRowLocked,
     handleUsersOptions,
     handleMissionsOptions,
     handleCampaignsOptions,
+    handleVisitsOptions,
     handleStatusToggle,
     handleVisibilityToggle,
     confirmDeleteUser,

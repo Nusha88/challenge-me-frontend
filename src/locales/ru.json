@@ -630,6 +630,17 @@
     "usersTab": "Пользователи",
     "missionsTab": "Миссии",
     "campaignsTab": "Челленджи",
+    "visitsTab": "Визиты",
+    "visitsHint": "Гости лендинга и публичных страниц — даже если не зарегистрировались. Это наш счётчик, не Метрика.",
+    "visitsLoadError": "Не удалось загрузить визиты",
+    "emptyVisits": "Визитов пока нет",
+    "visitFilterLurkers": "Только смотрели",
+    "visitFilterConverted": "Зарегистрировались",
+    "visitDays7": "7 дней",
+    "visitDays30": "30 дней",
+    "visitDirect": "напрямую",
+    "visitConvertedYes": "да",
+    "visitConvertedNo": "нет",
     "searchUsers": "Имя или email",
     "searchMissions": "Название миссии",
     "searchCampaigns": "Название челленджа",
@@ -661,7 +672,27 @@
       "disabled": "Выключены",
       "missionsActive": "Активные миссии",
       "publicVisible": "В мире миссий",
-      "campaignsLive": "Челленджи"
+      "campaignsLive": "Челленджи",
+      "visitorsToday": "Визиты сегодня",
+      "visitors7d": "Визиты за 7 дней",
+      "lurkers7d": "Только смотрели, 7 дней",
+      "converted7d": "Регистрации с визита, 7 дней"
+    },
+    "device": {
+      "mobile": "телефон",
+      "tablet": "планшет",
+      "desktop": "десктоп",
+      "unknown": "неизвестно"
+    },
+    "events": {
+      "pageview": "просмотр",
+      "landing_cta_click": "CTA лендинга",
+      "landing_scroll_50": "скролл 50%",
+      "landing_secondary_click": "вторичная кнопка",
+      "faq_open": "FAQ",
+      "register_start": "начало регистрации",
+      "register_success": "регистрация",
+      "login_success": "вход"
     },
     "identity": {
       "telegram": "Telegram",
@@ -710,7 +741,18 @@
       "missionStatus": "Статус",
       "updated": "Обновлено",
       "members": "Состав",
-      "dates": "Сроки"
+      "dates": "Сроки",
+      "lastSeen": "Был",
+      "place": "Где",
+      "device": "Устройство",
+      "landedPath": "Зашёл на",
+      "referrer": "Откуда",
+      "utm": "UTM",
+      "locale": "Язык",
+      "pageviews": "Просмотры",
+      "lastEvent": "Последнее",
+      "converted": "Рег.",
+      "visitor": "ID"
     }
   },
   "users": {

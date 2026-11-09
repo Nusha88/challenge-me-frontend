@@ -43,6 +43,9 @@ userStore.initializeFromStorage()
 
 app.mount('#app')
 
+import { startVisitTracking } from './services/visitBeacon'
+startVisitTracking(router)
+
 // Initialize push notifications when app starts
 if ('serviceWorker' in navigator) {
   import('./utils/pushNotifications').then(({ initializePushNotifications }) => {

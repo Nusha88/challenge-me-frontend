@@ -42,10 +42,31 @@
       </article>
     </section>
 
+    <p v-if="overview" class="kpi-section-label">{{ t('statistic.visitsHint') }}</p>
+    <section v-if="overview" class="kpi-grid kpi-grid--visits">
+      <article class="kpi-card">
+        <p class="kpi-label">{{ t('statistic.kpi.visitorsToday') }}</p>
+        <p class="kpi-value">{{ overview.visitorsToday || 0 }}</p>
+      </article>
+      <article class="kpi-card">
+        <p class="kpi-label">{{ t('statistic.kpi.visitors7d') }}</p>
+        <p class="kpi-value">{{ overview.visitors7d || 0 }}</p>
+      </article>
+      <article class="kpi-card">
+        <p class="kpi-label">{{ t('statistic.kpi.lurkers7d') }}</p>
+        <p class="kpi-value">{{ overview.lurkers7d || 0 }}</p>
+      </article>
+      <article class="kpi-card">
+        <p class="kpi-label">{{ t('statistic.kpi.converted7d') }}</p>
+        <p class="kpi-value">{{ overview.converted7d || 0 }}</p>
+      </article>
+    </section>
+
     <v-tabs v-model="tab" color="#4FD1C5" class="statistic-tabs mb-4">
       <v-tab value="users">{{ t('statistic.usersTab') }}</v-tab>
       <v-tab value="missions">{{ t('statistic.missionsTab') }}</v-tab>
       <v-tab value="campaigns">{{ t('statistic.campaignsTab') }}</v-tab>
+      <v-tab value="visits">{{ t('statistic.visitsTab') }}</v-tab>
     </v-tabs>
 
     <v-window v-model="tab">
@@ -362,6 +383,79 @@
           </template>
         </v-data-table>
       </v-window-item>
+
+      <v-window-item value="visits">
+        <v-alert
+          v-if="visitsError"
+          type="error"
+          variant="tonal"
+          class="mb-4"
+          closable
+          @click:close="visitsError = ''"
+        >
+          {{ localizedError(visitsError, 'statistic.visitsLoadError') }}
+        </v-alert>
+
+        <div class="table-toolbar">
+          <v-select
+            v-model="visitsConverted"
+            :items="visitConvertedFilters"
+            variant="outlined"
+            density="comfortable"
+            hide-details
+            class="table-filter"
+          />
+          <v-select
+            v-model="visitsDays"
+            :items="visitDaysFilters"
+            variant="outlined"
+            density="comfortable"
+            hide-details
+            class="table-filter"
+          />
+        </div>
+
+        <v-data-table
+          v-model:page="visitsPage"
+          v-model:items-per-page="visitsPerPage"
+          :headers="visitHeaders"
+          :items="visits"
+          :items-length="visitsTotal"
+          :loading="visitsLoading"
+          :items-per-page-options="pageSizeOptions"
+          :no-data-text="t('statistic.emptyVisits')"
+          item-value="id"
+          class="statistic-table"
+          density="comfortable"
+          @update:options="handleVisitsOptions"
+        >
+          <template #item.lastSeenAt="{ item }">
+            {{ formatDateTime(item.lastSeenAt) }}
+          </template>
+
+          <template #item.place="{ item }">
+            <span class="place-cell">
+              <span v-if="countryFlag(item.countryCode)" class="place-flag" aria-hidden="true">{{ countryFlag(item.countryCode) }}</span>
+              {{ formatVisitPlace(item) }}
+            </span>
+          </template>
+
+          <template #item.device="{ item }">
+            {{ formatVisitDevice(item.device) }}
+            <span v-if="item.viewportW && item.viewportH" class="role-chip">
+              {{ item.viewportW }}×{{ item.viewportH }}
+            </span>
+          </template>
+
+          <template #item.referrerHost="{ item }">
+            {{ item.referrerHost || t('statistic.visitDirect') }}
+          </template>
+
+          <template #item.utmSource="{ item }">
+            {{ formatUtm(item) }}
+          </template>
+        </v-data-table>
+      </v-window-item>
     </v-window>
 
     <v-dialog v-model="userDeleteConfirmOpen" max-width="420">
@@ -448,10 +542,19 @@ const {
   campaignsSearchInput,
   campaignsLoading,
   campaignsError,
+  visits,
+  visitsTotal,
+  visitsPage,
+  visitsPerPage,
+  visitsConverted,
+  visitsDays,
+  visitsLoading,
+  visitsError,
   isUserRowLocked,
   handleUsersOptions,
   handleMissionsOptions,
   handleCampaignsOptions,
+  handleVisitsOptions,
   handleStatusToggle,
   handleVisibilityToggle,
   confirmDeleteUser,
@@ -539,6 +642,39 @@ const missionHeaders = computed(() => {
   return headers
 })
 
+const visitConvertedFilters = computed(() => [
+  { title: t('statistic.visitFilterLurkers'), value: 'lurkers' },
+  { title: t('statistic.visitFilterConverted'), value: 'converted' },
+  { title: t('statistic.filterAll'), value: 'all' }
+])
+
+const visitDaysFilters = computed(() => [
+  { title: t('statistic.visitDays7'), value: '7' },
+  { title: t('statistic.visitDays30'), value: '30' },
+  { title: t('statistic.filterAll'), value: 'all' }
+])
+
+const visitHeaders = computed(() => {
+  const compact = smAndDown.value
+  const headers = [
+    { title: t('statistic.columns.lastSeen'), key: 'lastSeenAt', sortable: false },
+    { title: t('statistic.columns.place'), key: 'place', sortable: false },
+    { title: t('statistic.columns.device'), key: 'device', sortable: false }
+  ]
+  if (!compact) {
+    headers.push(
+      { title: t('statistic.columns.landedPath'), key: 'landedPath', sortable: false },
+      { title: t('statistic.columns.referrer'), key: 'referrerHost', sortable: false },
+      { title: t('statistic.columns.utm'), key: 'utmSource', sortable: false },
+      { title: t('statistic.columns.locale'), key: 'locale', sortable: false }
+    )
+  }
+  headers.push(
+    { title: t('statistic.columns.pageviews'), key: 'pageviews', sortable: false }
+  )
+  return headers
+})
+
 const campaignHeaders = computed(() => {
   const compact = smAndDown.value
   const headers = [
@@ -557,7 +693,7 @@ const campaignHeaders = computed(() => {
 
 function localizedError(message, fallbackKey) {
   if (!message || message === 'users' || message === 'missions' || message === 'campaigns'
-    || message === 'status' || message === 'visibility' || message === 'delete'
+    || message === 'visits' || message === 'status' || message === 'visibility' || message === 'delete'
     || message === 'delete-mission' || message === 'overview') {
     return t(fallbackKey)
   }
@@ -593,6 +729,39 @@ function formatCampaignStatus(status) {
   if (status === 'open') return t('statistic.campaignStatus.open')
   if (status === 'finished') return t('statistic.campaignStatus.finished')
   return t('statistic.campaignStatus.active')
+}
+
+function countryFlag(countryCode) {
+  const code = String(countryCode || '').trim().toUpperCase()
+  if (!/^[A-Z]{2}$/.test(code)) return ''
+  return String.fromCodePoint(...[...code].map((char) => 127397 + char.charCodeAt(0)))
+}
+
+function formatVisitPlace(item) {
+  const code = String(item?.countryCode || '').trim()
+  let country = item?.country || ''
+  if (code) {
+    try {
+      country = new Intl.DisplayNames([locale.value], { type: 'region' }).of(code) || country || code
+    } catch {
+      country = country || code
+    }
+  }
+  const city = String(item?.city || '').trim()
+  if (city && country) return `${city}, ${country}`
+  return city || country || '—'
+}
+
+function formatVisitDevice(device) {
+  if (device === 'mobile') return t('statistic.device.mobile')
+  if (device === 'tablet') return t('statistic.device.tablet')
+  if (device === 'desktop') return t('statistic.device.desktop')
+  return t('statistic.device.unknown')
+}
+
+function formatUtm(item) {
+  const parts = [item?.utmSource, item?.utmMedium, item?.utmCampaign].filter(Boolean)
+  return parts.length ? parts.join(' / ') : '—'
 }
 
 function formatCampaignRole(role) {
@@ -690,11 +859,21 @@ async function confirmDeleteMissionAction() {
   color: var(--home-text, #f1f5f9);
 }
 
+.kpi-section-label {
+  margin: 4px 0 10px;
+  font-size: 0.78rem;
+  color: var(--home-text-dim, #94a3b8);
+}
+
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 20px;
+}
+
+.kpi-grid--visits {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .kpi-card {
@@ -828,6 +1007,18 @@ async function confirmDeleteMissionAction() {
   flex-direction: column;
   align-items: flex-start;
   gap: 4px;
+}
+
+.place-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.place-flag {
+  flex: none;
+  font-size: 1.1em;
+  line-height: 1;
 }
 
 .role-chip {

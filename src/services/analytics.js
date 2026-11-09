@@ -23,7 +23,26 @@ export const GOALS = {
   COMPLETION_DIALOG_DISMISS: 'completion_dialog_dismiss'
 }
 
+const FIRST_PARTY_GOALS = new Set([
+  GOALS.LANDING_CTA_CLICK,
+  GOALS.LANDING_SCROLL_50,
+  GOALS.LANDING_SECONDARY_CLICK,
+  GOALS.FAQ_OPEN,
+  GOALS.REGISTER_START,
+  GOALS.REGISTER_SUCCESS,
+  GOALS.LOGIN_SUCCESS
+])
+
+function trackFirstParty(goal, params) {
+  if (!FIRST_PARTY_GOALS.has(goal)) return
+  import('./visitBeacon')
+    .then((module) => module.trackVisitEvent(goal, params))
+    .catch(() => {})
+}
+
 export function reachGoal(goal, params) {
+  trackFirstParty(goal, params)
+
   if (typeof window === 'undefined' || typeof window.ym !== 'function') return
 
   try {

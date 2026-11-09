@@ -23,7 +23,7 @@ function resolveDefaultBaseUrl() {
 
 const DEFAULT_API_BASE_URL = resolveDefaultBaseUrl()
 const envBaseUrl = import.meta.env.VITE_API_BASE_URL
-const apiBaseUrl = (envBaseUrl || DEFAULT_API_BASE_URL).replace(/\/$/, '')
+export const apiBaseUrl = (envBaseUrl || DEFAULT_API_BASE_URL).replace(/\/$/, '')
 const envHealthcheck = import.meta.env.VITE_API_HEALTHCHECK_URL
 const apiHealthcheckUrl = envHealthcheck
   ? envHealthcheck
@@ -207,6 +207,9 @@ export const userService = {
   },
   getAdminMissions: (params = {}) => {
     return api.get('/admin/missions', { params })
+  },
+  getAdminVisits: (params = {}) => {
+    return api.get('/admin/visits', { params })
   },
   updateMissionVisibility: (missionId, visibility) => {
     return api.patch(`/admin/missions/${missionId}/visibility`, { visibility })

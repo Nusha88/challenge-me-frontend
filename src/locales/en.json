@@ -630,6 +630,17 @@
     "usersTab": "Users",
     "missionsTab": "Missions",
     "campaignsTab": "Challenges",
+    "visitsTab": "Visits",
+    "visitsHint": "Landing and public-page guests — including people who never signed up. First-party counts, not Metrika.",
+    "visitsLoadError": "Failed to load visits",
+    "emptyVisits": "No visits yet",
+    "visitFilterLurkers": "Looked only",
+    "visitFilterConverted": "Signed up",
+    "visitDays7": "7 days",
+    "visitDays30": "30 days",
+    "visitDirect": "direct",
+    "visitConvertedYes": "yes",
+    "visitConvertedNo": "no",
     "searchUsers": "Name or email",
     "searchMissions": "Mission title",
     "searchCampaigns": "Challenge title",
@@ -661,7 +672,27 @@
       "disabled": "Disabled",
       "missionsActive": "Active missions",
       "publicVisible": "In Explore",
-      "campaignsLive": "Challenges"
+      "campaignsLive": "Challenges",
+      "visitorsToday": "Visitors today",
+      "visitors7d": "Visitors in 7 days",
+      "lurkers7d": "Looked only, 7 days",
+      "converted7d": "Signed up from a visit, 7 days"
+    },
+    "device": {
+      "mobile": "phone",
+      "tablet": "tablet",
+      "desktop": "desktop",
+      "unknown": "unknown"
+    },
+    "events": {
+      "pageview": "pageview",
+      "landing_cta_click": "landing CTA",
+      "landing_scroll_50": "scroll 50%",
+      "landing_secondary_click": "secondary click",
+      "faq_open": "FAQ",
+      "register_start": "started register",
+      "register_success": "registered",
+      "login_success": "logged in"
     },
     "identity": {
       "telegram": "Telegram",
@@ -710,7 +741,18 @@
       "missionStatus": "Status",
       "updated": "Updated",
       "members": "Members",
-      "dates": "Dates"
+      "dates": "Dates",
+      "lastSeen": "Last seen",
+      "place": "Where",
+      "device": "Device",
+      "landedPath": "Landed",
+      "referrer": "From",
+      "utm": "UTM",
+      "locale": "Locale",
+      "pageviews": "Views",
+      "lastEvent": "Last event",
+      "converted": "Signed up",
+      "visitor": "ID"
     }
   },
   "users": {
