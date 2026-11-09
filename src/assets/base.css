@@ -64,7 +64,8 @@ body {
   min-height: 100vh;
   min-height: 100dvh;
   color: #E2E8F0;
-  width: 100vw;
+  width: 100%;
+  max-width: 100%;
   font-family:
     'Plus Jakarta Sans',
     -apple-system,

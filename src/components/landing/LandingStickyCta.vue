@@ -74,6 +74,8 @@ onBeforeUnmount(() => {
   position: fixed;
   left: 0;
   right: 0;
+  width: 100%;
+  max-width: 100%;
   bottom: 0;
   z-index: 1200;
   padding: 10px 12px calc(10px + env(safe-area-inset-bottom));

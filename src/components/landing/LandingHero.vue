@@ -113,6 +113,8 @@ function trackBrowse() {
   grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
   gap: clamp(24px, 5vw, 56px);
   align-items: center;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .hero-badge {
@@ -250,6 +252,7 @@ function trackBrowse() {
 .hero-screen {
   display: block;
   width: 100%;
+  max-width: 100%;
   height: auto;
   border-radius: 26px;
 }

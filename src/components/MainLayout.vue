@@ -449,7 +449,6 @@ watch(
 .v-application {
   background-color: transparent !important;
   max-width: 100%;
-  overflow-x: clip;
 }
 
 /*
@@ -503,6 +502,8 @@ watch(
 :deep(.v-application__wrap) {
   min-height: 100vh !important;
   min-height: 100dvh !important;
+  max-width: 100%;
+  min-width: 0;
   backface-visibility: hidden;
 }
 

@@ -40,7 +40,6 @@ body::before {
   z-index: 1;
   width: 100%;
   max-width: 100%;
-  overflow-x: clip;
 }
 
 @media (min-width: 960px) {

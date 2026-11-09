@@ -252,6 +252,20 @@ onBeforeUnmount(() => {
   color: var(--home-text, #f1f5f9) !important;
 }
 
+/*
+ * Vuetify writes an inline pixel width when the bar is `fixed`. After a shrink
+ * that value can stay at the old desktop size, so Login / the menu icon sit
+ * off-screen. Pin the bar to the viewport instead of the overflowing layout.
+ */
+@media (max-width: 959px) {
+  .app-bar-custom {
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
 .header-content-wrapper {
   display: flex;
   align-items: center;
