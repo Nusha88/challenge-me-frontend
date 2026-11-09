@@ -22,30 +22,6 @@ export function downloadImage(dataUrl, fileName) {
   link.remove()
 }
 
-export function openImagePreview(dataUrl) {
-  const preview = window.open('', '_blank')
-  if (!preview) return false
-
-  preview.document.write(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Ignite triumph</title>
-        <style>
-          body { margin: 0; background: #0f172a; display: flex; justify-content: center; }
-          img { width: 100%; max-width: 540px; height: auto; display: block; }
-        </style>
-      </head>
-      <body>
-        <img src="${dataUrl}" alt="Ignite triumph" />
-      </body>
-    </html>
-  `)
-  preview.document.close()
-  return true
-}
-
 /**
  * Build share text that always carries a deep link when provided.
  * (Many browsers reject `files` + `url` together, so the URL goes in `text`.)
@@ -163,7 +139,7 @@ export function waitForPaint() {
   })
 }
 
-function paintImageCover(ctx, width, height, image) {
+export function paintImageCover(ctx, width, height, image) {
   if (!ctx) return
 
   const imgRatio = image.naturalWidth / image.naturalHeight
@@ -245,7 +221,8 @@ export async function rasterizeImageToPngDataUrl(src, size = 320) {
   const canvas = document.createElement('canvas')
   canvas.width = safeSize
   canvas.height = safeSize
-  canvas.getContext('2d').drawImage(image, 0, 0, safeSize, safeSize)
+  const ctx = canvas.getContext('2d')
+  paintImageCover(ctx, safeSize, safeSize, image)
   return canvas.toDataURL('image/png')
 }
 

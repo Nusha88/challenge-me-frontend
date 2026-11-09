@@ -59,24 +59,11 @@
           class="share-primary text-none"
           elevation="0"
           :loading="sharing"
-          :disabled="sharing || saving"
+          :disabled="sharing"
           @click="emit('share')"
         >
           <v-icon start size="20">mdi-share-variant</v-icon>
-          {{ t('home.loggedIn.completionDialog.shareWin') }}
-        </v-btn>
-
-        <v-btn
-          block
-          class="secondary-btn text-none"
-          variant="outlined"
-          height="44"
-          :loading="saving"
-          :disabled="saving || sharing"
-          @click="emit('save')"
-        >
-          <v-icon start size="18">mdi-download</v-icon>
-          {{ t('home.loggedIn.completionDialog.saveImage') }}
+          {{ t('home.loggedIn.shareTriumph') }}
         </v-btn>
 
         <p v-if="statusMessage" class="status-msg" :class="{ success: sparksClaimed }">
@@ -102,7 +89,6 @@ import VictoryHeroCard from './VictoryHeroCard.vue'
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
   sharing: { type: Boolean, default: false },
-  saving: { type: Boolean, default: false },
   shareError: { type: String, default: '' },
   statusMessage: { type: String, default: '' },
   sparksClaimed: { type: Boolean, default: false },
@@ -115,8 +101,7 @@ const props = defineProps({
 const emit = defineEmits([
   'update:modelValue',
   'close',
-  'share',
-  'save'
+  'share'
 ])
 
 const { t } = useI18n()
@@ -227,15 +212,6 @@ defineExpose({
 
 .share-primary:hover:not(.v-btn--disabled) {
   filter: brightness(1.06);
-}
-
-.secondary-btn {
-  border-color: rgba(79, 209, 197, 0.45) !important;
-  color: #e5e7eb !important;
-  border-radius: 12px !important;
-  font-weight: 700 !important;
-  font-size: 0.85rem !important;
-  margin-bottom: 8px;
 }
 
 .status-msg {

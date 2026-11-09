@@ -1,10 +1,9 @@
 import {
   captureElementToPng,
   waitForPaint,
-  dataUrlToFile,
-  downloadImage,
   shareOrDownloadImage,
-  rasterizeImageToPngDataUrl
+  rasterizeImageToPngDataUrl,
+  paintImageCover
 } from './shareImage'
 
 const CARD_WIDTH = 540
@@ -66,7 +65,13 @@ async function bakeAvatarForCapture(root) {
   canvas.style.height = '100%'
   canvas.style.display = 'block'
   canvas.style.borderRadius = '50%'
-  canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height)
+  const ctx = canvas.getContext('2d')
+  ctx.scale(pixelRatio, pixelRatio)
+  ctx.beginPath()
+  ctx.arc(cssSize / 2, cssSize / 2, cssSize / 2, 0, Math.PI * 2)
+  ctx.closePath()
+  ctx.clip()
+  paintImageCover(ctx, cssSize, cssSize, image)
   img.replaceWith(canvas)
 }
 
@@ -100,6 +105,9 @@ export async function captureVictoryCard(element) {
   document.body.appendChild(host)
 
   try {
+    if (document.fonts?.ready) {
+      await document.fonts.ready
+    }
     await bakeAvatarForCapture(clone)
     await waitForImages(clone)
     await waitForPaint()
@@ -113,15 +121,6 @@ export async function captureVictoryCard(element) {
   }
 }
 
-export function buildVictoryShareFile(dataUrl, fileName) {
-  return dataUrlToFile(dataUrl, fileName)
-}
-
 export async function shareVictoryImage(dataUrl, fileName, shareOptions = {}) {
   return shareOrDownloadImage(dataUrl, fileName, shareOptions)
-}
-
-export async function downloadVictoryImage(dataUrl, fileName) {
-  downloadImage(dataUrl, fileName)
-  return 'downloaded'
 }

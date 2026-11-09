@@ -153,14 +153,12 @@
       ref="celebrationDialogRef"
       v-model="showCompletionDialog"
       :sharing="generatingImage"
-      :saving="savingImage"
       :share-error="shareError"
       :status-message="statusMessage"
       :sparks-claimed="sparksClaimed"
       :payload="victorySharePayload"
       @close="closeCompletionDialog"
       @share="shareVictory"
-      @save="saveImage"
     />
   </div>
 </template>
@@ -668,14 +666,12 @@ const victorySharePayload = computed(() => {
 const {
   showCompletionDialog,
   generatingImage,
-  savingImage,
   shareError,
   statusMessage,
   sparksClaimed,
   closeCompletionDialog,
   openCompletionShare,
-  shareVictory,
-  saveImage
+  shareVictory
 } = useCompletionCelebration({
   isAllCompleted,
   getCompletionImageData: () => victorySharePayload.value,

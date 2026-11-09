@@ -1,12 +1,11 @@
-import { ref, computed, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUserStore } from '../stores/user'
 import { userService } from '../services/api'
 import { useXpAwardFeedback } from './useXpAwardFeedback'
 import {
   captureVictoryCard,
-  shareVictoryImage,
-  downloadVictoryImage
+  shareVictoryImage
 } from '../utils/imageGenerator'
 import { GOALS, reachGoal } from '../services/analytics'
 
@@ -16,10 +15,6 @@ const SHARE_FORMAT = 'story'
 function getDailyBonusKey() {
   const todayStr = new Date().toISOString().slice(0, 10)
   return `xp_daily_bonus_${todayStr}`
-}
-
-function canUseNativeShare() {
-  return typeof navigator !== 'undefined' && typeof navigator.share === 'function'
 }
 
 export function useCompletionCelebration({
@@ -33,14 +28,9 @@ export function useCompletionCelebration({
 
   const showCompletionDialog = ref(false)
   const generatingImage = ref(false)
-  const savingImage = ref(false)
-  const copyingCaption = ref(false)
   const shareError = ref('')
   const statusMessage = ref('')
   const sparksClaimed = ref(false)
-
-  const shareCaption = computed(() => buildShareCaption())
-  const canNativeShare = computed(() => canUseNativeShare())
 
   function getShareLink() {
     const { referralLink } = getCompletionImageData() || {}
@@ -179,56 +169,6 @@ export function useCompletionCelebration({
     }
   }
 
-  async function saveImage() {
-    savingImage.value = true
-    shareError.value = ''
-    statusMessage.value = ''
-
-    reachGoal(GOALS.COMPLETION_SHARE_CLICK, {
-      format: SHARE_FORMAT,
-      method: 'save'
-    })
-
-    try {
-      const dataUrl = await capturePoster()
-      const fileName = `ignite-victory-${SHARE_FORMAT}-${new Date().toISOString().split('T')[0]}.png`
-      await downloadVictoryImage(dataUrl, fileName)
-
-      reachGoal(GOALS.COMPLETION_SHARE_SUCCESS, {
-        format: SHARE_FORMAT,
-        method: 'save'
-      })
-
-      statusMessage.value = t('home.loggedIn.completionDialog.desktopCoach')
-      await awardVictorySparks()
-      finishSuccessAndClose(1400)
-    } catch (error) {
-      console.error('Save failed', error)
-      shareError.value = t('home.loggedIn.completionDialog.shareUnavailable')
-    } finally {
-      savingImage.value = false
-    }
-  }
-
-  async function copyCaption() {
-    copyingCaption.value = true
-    shareError.value = ''
-
-    try {
-      const caption = buildShareCaption()
-      if (!navigator?.clipboard?.writeText) {
-        throw new Error('Clipboard unavailable')
-      }
-      await navigator.clipboard.writeText(caption)
-      statusMessage.value = t('home.loggedIn.completionDialog.captionCopied')
-    } catch (error) {
-      console.warn('Copy caption failed', error)
-      shareError.value = t('home.loggedIn.completionDialog.copyFailed')
-    } finally {
-      copyingCaption.value = false
-    }
-  }
-
   watch(isAllCompleted, (val) => {
     if (val) {
       tryAwardDailyBonusXp()
@@ -242,17 +182,11 @@ export function useCompletionCelebration({
   return {
     showCompletionDialog,
     generatingImage,
-    savingImage,
-    copyingCaption,
     shareError,
     statusMessage,
-    shareCaption,
     sparksClaimed,
-    canNativeShare,
     closeCompletionDialog,
     openCompletionShare,
-    shareVictory,
-    saveImage,
-    copyCaption
+    shareVictory
   }
 }

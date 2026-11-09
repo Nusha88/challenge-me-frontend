@@ -383,7 +383,6 @@
         "summaryLine": "Миссии и шаги сегодня: {done} / {total}",
         "rankLine": "Ранг {rank}: {title}"
       },
-      "generateCompletionImage": "Создать изображение",
       "shareTriumph": "Поделиться триумфом",
       "progressRemaining": "Осталось {count}",
       "completionDialog": {
@@ -398,15 +397,10 @@
         "formatPost": "Пост",
         "previewAlt": "Карточка победы «День покорён»",
         "previewEmpty": "Выбери хотя бы одну миссию или шаг для превью",
-        "shareWin": "Поделиться победой",
-        "saveImage": "Сохранить",
-        "copyCaption": "Копировать текст",
         "customize": "Что включить",
         "chooseShare": "Выбери, чем поделиться",
         "captureTriumph": "Запечатлеть триумф",
         "desktopCoach": "Открой Instagram → добавь в сторис.",
-        "captionCopied": "Текст скопирован — вставь его вместе с картинкой.",
-        "copyFailed": "Не удалось скопировать текст. Попробуй ещё раз.",
         "sparksClaimed": "Искры получены!",
         "captionLine": "{name} · День покорён · {streak} день подряд{mission} | {name} · День покорён · {streak} дня подряд{mission} | {name} · День покорён · {streak} дней подряд{mission}",
         "captionHashtags": "#IgniteMe #DayConquered #ДеньПокорён",
@@ -1147,14 +1141,6 @@
       "streakBadge": "Стрик",
       "triumphBadge": "Триумф миссии"
     },
-    "questSuccess": {
-      "title": "Отметить успех?",
-      "justCheck": "Просто отметить",
-      "justCheckReward": "+1 искра",
-      "addReport": "Добавить отчёт",
-      "addReportReward": "+3 искры",
-      "confirm": "Зафиксировать успех"
-    },
     "shareCard": {
       "header": "ШАГ В КВЕСТЕ ВЫПОЛНЕН!",
       "finalHeader": "МИССИЯ ВЫПОЛНЕНА!",
@@ -1333,34 +1319,6 @@
     "step2Alt": "Инструкция с пунктом На экран Домой",
     "next": "Далее",
     "gotIt": "Понятно"
-  },
-  "onboarding": {
-    "nextBtnText": "Далее",
-    "prevBtnText": "Назад",
-    "doneBtnText": "Начать миссию",
-    "closeBtnText": "Закрыть",
-    "mobile": {
-      "title": "Добро пожаловать, агент",
-      "description": "Твой центр управления миссиями готов. Сфокусируйся на целях и раскрой свой потенциал уже сегодня."
-    },
-    "steps": {
-      "startMission": {
-        "title": "Запуск миссии",
-        "description": "Здесь начинается твой путь. Активируй свою первую миссию и преврати дисциплину в результат."
-      },
-      "myMissions": {
-        "title": "Активные операции",
-        "description": "Твой личный центр управления всеми текущими миссиями. Отслеживай каждый шаг к цели."
-      },
-      "achievementRadar": {
-        "title": "Радар достижений",
-        "description": "Наблюдай за лучшими. Анализируй тактику лидеров сообщества и вдохновляйся их успехом."
-      },
-      "settings": {
-        "title": "Синхронизация системы",
-        "description": "Настрой уведомления и \"Итоги дня\", чтобы система поддерживала твой фокус на максимуме."
-      }
-    }
   },
   "validation": {
     "titleRequired": "Название обязательно",

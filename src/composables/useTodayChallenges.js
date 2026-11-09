@@ -3,7 +3,7 @@ import { useUserStore } from '../stores/user'
 import { challengeService } from '../services/api'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 import { getScheduledDaysCount, normalizeDateKey, toDateInputValue } from '../utils/dateUtils'
-import { isChallengeFinished as isMissionFinished, isChallengeUpcoming } from '../utils/challengeStatus'
+import { isChallengeFinished, isChallengeUpcoming } from '../utils/challengeStatus'
 import {
   findParticipantForUser,
   getDayProtectionSource,
@@ -20,38 +20,6 @@ import { DEMO_USER_ID } from '../constants/demo'
 
 function getParticipantUserId(participant) {
   return participant?.userId?._id || participant?.userId || participant?._id
-}
-
-function isChallengeFinished(challenge) {
-  if (challenge.endDate) {
-    try {
-      const endDate = new Date(challenge.endDate)
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      endDate.setHours(0, 0, 0, 0)
-      if (endDate < today) {
-        return true
-      }
-    } catch {
-      // Continue to check other conditions
-    }
-  }
-
-  if (challenge.challengeType === CHALLENGE_TYPES.RESULT) {
-    if (!challenge.actions || !Array.isArray(challenge.actions) || challenge.actions.length === 0) {
-      return false
-    }
-
-    return challenge.actions.every((action) => {
-      if (!action.checked) return false
-      if (action.children && Array.isArray(action.children) && action.children.length > 0) {
-        return action.children.every((child) => child.checked)
-      }
-      return true
-    })
-  }
-
-  return false
 }
 
 export function useTodayChallenges({ onUpdated } = {}) {
@@ -204,7 +172,7 @@ export function useTodayChallenges({ onUpdated } = {}) {
 
   function isActiveQuestForUser(challenge, userId) {
     if (challenge.challengeType !== CHALLENGE_TYPES.RESULT) return false
-    if (isMissionFinished(challenge) || isChallengeUpcoming(challenge)) return false
+    if (isChallengeFinished(challenge) || isChallengeUpcoming(challenge)) return false
     if (!challenge.participants?.length) return false
     return challenge.participants.some((p) => {
       const pUserId = getParticipantUserId(p)
