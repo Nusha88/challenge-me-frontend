@@ -33,6 +33,28 @@ html {
   max-width: min(100%, 100dvw);
 }
 
+/*
+ * Installed PWA windows: never let dvw (sometimes the screen, sometimes a
+ * fraction of a pixel off) scale the UI — that is what makes the header look
+ * slightly soft. Phone Safari still needs the min() cap above.
+ */
+@media (display-mode: standalone),
+       (display-mode: fullscreen),
+       (display-mode: minimal-ui) {
+  html,
+  .v-application,
+  .v-application__wrap {
+    max-width: 100%;
+  }
+
+  .v-app-bar.app-bar-custom {
+    background: #0b0d12 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    filter: none !important;
+  }
+}
+
 #app {
   font-weight: normal;
 }

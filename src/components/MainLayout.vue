@@ -504,7 +504,15 @@ watch(
   min-height: 100dvh !important;
   max-width: 100%;
   min-width: 0;
-  backface-visibility: hidden;
+}
+
+@media (display-mode: standalone),
+       (display-mode: fullscreen),
+       (display-mode: minimal-ui) {
+  :deep(.v-application__wrap) {
+    backface-visibility: visible;
+    transform: none;
+  }
 }
 
 @media (max-width: 959px) {

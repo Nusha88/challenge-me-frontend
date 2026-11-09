@@ -1,7 +1,6 @@
 <template>
   <v-app-bar
     class="app-bar-custom"
-    :class="{ 'app-bar-custom--installed': installedPwa }"
     elevation="0"
     :fixed="isMobileHeader"
     :height="barHeight"
@@ -144,7 +143,6 @@ import { useDemoStore } from '../../stores/demo'
 import { setLocale, SUPPORTED_LOCALES } from '../../i18n'
 import { APP_EVENTS, addAppEventListener, removeAppEventListener } from '../../utils/appEvents'
 import brandLogo from '../../assets/landing/brand-256.webp'
-import { isInstalledPwa } from '../../utils/appBadge'
 import StreakBadge from './StreakBadge.vue'
 import SparksShopDialog from './SparksShopDialog.vue'
 
@@ -181,7 +179,6 @@ const gainedDelta = ref('')
 
 /** Below md: fixed bar so Vuetify reserves top space on v-main. */
 const isMobileHeader = computed(() => !mdAndUp.value)
-const installedPwa = ref(false)
 const safeTop = ref(0)
 const barHeight = computed(() => (mdAndUp.value ? 64 : 56) + safeTop.value)
 
@@ -256,7 +253,6 @@ onMounted(() => {
   showShopHint.value = !hasOpenedShop()
   addAppEventListener(APP_EVENTS.SPARKS_SPENT, handleSparksSpent)
   addAppEventListener(APP_EVENTS.SPARKS_AWARDED, handleSparksAwarded)
-  installedPwa.value = isInstalledPwa()
   measureSafeTop()
   window.visualViewport?.addEventListener('resize', measureSafeTop)
   window.addEventListener('resize', measureSafeTop)
@@ -275,59 +271,31 @@ onBeforeUnmount(() => {
 <style scoped>
 .app-bar-custom {
   --app-header-height: 64px;
-  position: relative;
-  isolation: isolate;
-  background: rgba(11, 13, 18, 0.92) !important;
-  /* Blur lives on ::before so Login / Sign Up are not part of the filtered layer.
-     Chromium PWAs otherwise paint the toolbar text slightly soft. */
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
+  background: #0b0d12 !important;
+  /* Frosted glass + isolate/filter on this bar paints Login/Sign Up soft in Chromium PWAs. */
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  isolation: auto;
+  filter: none !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   border-bottom: 1px solid var(--home-border, rgba(255, 255, 255, 0.08)) !important;
   color: var(--home-text, #f1f5f9) !important;
-  max-width: min(100%, 100dvw) !important;
+  max-width: 100% !important;
   /* Standalone PWA / iOS home screen: black-translucent draws under the status bar. */
   padding-top: var(--safe-top, 0px) !important;
   height: calc(var(--app-header-height) + var(--safe-top, 0px)) !important;
   min-height: calc(var(--app-header-height) + var(--safe-top, 0px)) !important;
 }
 
-.app-bar-custom::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-}
-
 .app-bar-custom :deep(.v-toolbar__content) {
-  position: relative;
-  z-index: 1;
   height: var(--app-header-height) !important;
   min-height: var(--app-header-height) !important;
 }
 
-.app-bar-custom--installed,
-.app-bar-custom--installed::before {
-  background: #0b0d12 !important;
-}
-
-.app-bar-custom--installed::before {
-  content: none;
-}
-
-@media (display-mode: standalone),
-       (display-mode: fullscreen),
-       (display-mode: minimal-ui) {
-  .app-bar-custom,
-  .app-bar-custom::before {
-    background: #0b0d12 !important;
-  }
-
-  .app-bar-custom::before {
-    content: none;
-  }
+.app-bar-custom :deep(.v-toolbar__overlay),
+.app-bar-custom :deep(.v-toolbar__underlay) {
+  opacity: 0 !important;
 }
 
 /*
@@ -425,8 +393,8 @@ onBeforeUnmount(() => {
 
 .brand-logo {
   height: 40px;
-  filter: drop-shadow(0 0 10px rgba(112, 72, 232, 0.4));
-  transition: transform 0.3s ease;
+  width: 40px;
+  filter: none;
   display: block;
   object-fit: contain;
 }
@@ -708,6 +676,7 @@ onBeforeUnmount(() => {
 
   .brand-logo {
     height: 32px;
+    width: 32px;
   }
 
   .sign-up-button,
@@ -760,6 +729,7 @@ onBeforeUnmount(() => {
 
   .brand-logo {
     height: 28px;
+    width: 28px;
   }
 
   .sign-up-button,
