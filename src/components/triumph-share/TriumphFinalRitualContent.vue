@@ -17,7 +17,11 @@
       </div>
     </div>
 
-    <div ref="reflectionCardRef" class="sc-text-card sc-text-card--ritual-reflection">
+    <div
+      v-if="reflectionText"
+      ref="reflectionCardRef"
+      class="sc-text-card sc-text-card--ritual-reflection"
+    >
       <p ref="reflectionTextRef" class="sc-handwritten sc-handwritten--ritual">{{ reflectionText }}</p>
     </div>
 

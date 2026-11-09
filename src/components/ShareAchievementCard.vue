@@ -49,6 +49,7 @@
           :steps-display="stepsDisplay"
           :mission-dates="missionDates"
           :reflection-text="fittedFinalReflection"
+          :cover-image="displayUserImage"
           @bind-refs="onFinalReflectionRefs"
         />
 
@@ -85,15 +86,6 @@
       {{ t('challenges.shareCard.shareButton') }}
     </v-btn>
 
-    <v-btn
-      v-if="showInviteSecondary"
-      class="sc-invite-secondary mt-2"
-      block
-      variant="text"
-      @click="$emit('invite-mission')"
-    >
-      {{ t('challenges.inviteCard.inviteFriendsSecondary') }}
-    </v-btn>
   </div>
 </template>
 
@@ -137,8 +129,6 @@ const props = defineProps({
   totalDays: { type: Number, default: 0 },
   completionTier: { type: String, default: '' }
 })
-
-defineEmits(['invite-mission'])
 
 const data = computed(() => {
   const p = props.payload || {}
@@ -187,10 +177,6 @@ const missionType = computed(() => data.value.missionType)
 const completedDays = computed(() => data.value.completedDays)
 const totalDays = computed(() => data.value.totalDays)
 const completionTier = computed(() => data.value.completionTier)
-
-const showInviteSecondary = computed(
-  () => Boolean(isFinal.value && data.value.challengeId)
-)
 
 const { t } = useI18n()
 
@@ -263,11 +249,7 @@ const largeTextFallback = computed(() =>
     : ''
 )
 
-const reflectionSource = computed(() => {
-  const custom = String(userText.value || '').trim()
-  if (custom) return custom
-  return t('challenges.shareCard.defaultTriumphQuote')
-})
+const reflectionSource = computed(() => String(userText.value || '').trim())
 
 const finalReflectionFallback = computed(() =>
   truncateWithEllipsis(
@@ -551,12 +533,18 @@ function paintImageCover(canvas, image) {
 }
 
 function getPhotoFrameSize(frame) {
-  const isLarge = frame.classList.contains('sc-photo-frame--large')
-  if (!isLarge) {
+  const rect = frame.getBoundingClientRect()
+  if (frame.classList.contains('sc-photo-frame--cover')) {
+    return {
+      width: Math.max(Math.round(rect.width), 280),
+      height: Math.max(Math.round(rect.height), 160)
+    }
+  }
+
+  if (!frame.classList.contains('sc-photo-frame--large')) {
     return { width: 100, height: 100 }
   }
 
-  const rect = frame.getBoundingClientRect()
   return {
     width: Math.max(Math.round(rect.width), 280),
     height: Math.max(Math.round(rect.height), 220)
@@ -597,7 +585,8 @@ async function preparePhotoFramesForExport(root, fallbackSrc = '', pixelRatio = 
       frame.innerHTML = ''
       frame.style.setProperty('background', 'none', 'important')
       frame.style.setProperty('box-shadow', 'none', 'important')
-      frame.style.setProperty('border', '3px solid #4FD1C5', 'important')
+      const borderColor = root.classList.contains('share-card--final') ? '#fbbf24' : '#4FD1C5'
+      frame.style.setProperty('border', `3px solid ${borderColor}`, 'important')
       frame.style.setProperty('overflow', 'hidden', 'important')
       frame.appendChild(canvas)
     } catch (error) {
@@ -701,7 +690,7 @@ defineExpose({ shareCard })
 .share-card {
   position: relative;
   width: 100%;
-  aspect-ratio: 9 / 16;
+  aspect-ratio: auto;
   border-radius: 20px;
   overflow: hidden;
   background: linear-gradient(160deg, #131320 0%, #0F172A 55%, #1A1A3A 100%);
@@ -885,13 +874,6 @@ defineExpose({ shareCard })
   flex-shrink: 0;
 }
 
-.sc-invite-secondary {
-  color: rgba(79, 209, 197, 0.95) !important;
-  font-weight: 700 !important;
-  text-transform: none !important;
-  letter-spacing: 0.02em;
-}
-
 .sc-footer {
   position: relative;
   text-align: center;
@@ -1020,6 +1002,8 @@ defineExpose({ shareCard })
 }
 
 .share-card--final {
+  justify-content: flex-start;
+  gap: 10px;
   background: linear-gradient(160deg, #1a1030 0%, #0f172a 48%, #2a1505 100%);
   border-color: rgba(245, 158, 11, 0.45);
   box-shadow:
@@ -1116,10 +1100,32 @@ defineExpose({ shareCard })
 }
 
 .sc-text-card--final-reflection {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-height: 0;
   background: rgba(42, 21, 5, 0.45);
   border-color: rgba(251, 191, 36, 0.2);
+}
+
+.sc-photo-frame.sc-photo-frame--cover {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 10;
+  max-height: 180px;
+  border-radius: 16px;
+  flex: 0 0 auto;
+}
+
+.sc-quest-hero {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 0;
+  flex: 0 0 auto;
+}
+
+.sc-quest-hero-icon {
+  color: #fbbf24;
+  filter: drop-shadow(0 0 16px rgba(251, 191, 36, 0.45));
 }
 
 .sc-handwritten--final {
@@ -1272,12 +1278,18 @@ defineExpose({ shareCard })
   }
 }
 
-.share-card--final .sc-photo-frame {
+.share-card--final .sc-photo-frame:not(.sc-photo-frame--cover) {
   width: 88px;
   height: 88px;
   background: linear-gradient(#120818, #120818) padding-box,
     linear-gradient(135deg, #fbbf24, #f59e0b) border-box;
   box-shadow: 0 0 22px rgba(251, 191, 36, 0.35), 0 0 36px rgba(245, 158, 11, 0.2);
+}
+
+.share-card--final .sc-photo-frame--cover {
+  background: linear-gradient(#120818, #120818) padding-box,
+    linear-gradient(135deg, #fbbf24, #f59e0b) border-box;
+  box-shadow: 0 0 22px rgba(251, 191, 36, 0.28);
 }
 
 .share-card--final .sc-text-card {
@@ -1300,6 +1312,22 @@ defineExpose({ shareCard })
   background: rgba(0, 0, 0, 0.32);
 }
 
+
+.share-card--export,
+.share-card--export-final {
+  aspect-ratio: 9 / 16;
+}
+
+.share-card--export-final {
+  justify-content: space-between;
+}
+
+.share-card--export-final .sc-photo-frame--cover {
+  flex: 1 1 auto;
+  max-height: none;
+  min-height: 0;
+  aspect-ratio: auto;
+}
 
 .share-card--export-final .sc-headline--final {
   background: none !important;

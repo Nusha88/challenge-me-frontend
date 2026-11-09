@@ -7,8 +7,6 @@
 @import './styles/home.css';
 
 #app {
-  max-width: 1280px;
-  margin: 0 auto;
   font-weight: normal;
 }
 

@@ -34,6 +34,8 @@
   --color-text: var(--vt-c-text-light-1);
 
   --section-gap: 160px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -60,6 +62,7 @@
 
 body {
   min-height: 100vh;
+  min-height: 100dvh;
   color: #E2E8F0;
   width: 100vw;
   font-family:

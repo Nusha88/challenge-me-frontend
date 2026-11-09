@@ -38,9 +38,9 @@ body::before {
 }
 
 @media (min-width: 960px) {
-  #app {
-    /* Ограничиваем ширину для ультра-широких мониторов, чтобы контент не разъезжался */
-    max-width: 1600px; 
+  /* Cap the logged-in shell on ultrawide screens. Guest pages stay full-bleed. */
+  .app-chrome {
+    max-width: 1600px;
     margin-left: auto;
     margin-right: auto;
   }

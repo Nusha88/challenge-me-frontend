@@ -1,351 +1,172 @@
 <template>
-  <div class="diary-component">
-    <div class="diary-header d-flex align-center mb-6">
-      <div class="diary-icon-glow mr-3">
-        <v-icon color="#4FD1C5" size="small">mdi-message-text-clock-outline</v-icon>
-      </div>
-      <h3 class="text-h6 font-weight-bold text-white mb-0">{{ t('challenges.community.title') }}</h3>
-      <v-chip v-if="state.comments.length > 0" size="x-small" color="#4FD1C5" class="ml-3 tactical-count-chip">
-        {{ state.comments.length }}
-      </v-chip>
+  <div class="diary-component" :class="{ 'diary-component--phone': isPhone }">
+    <div v-if="commentCount > 0 || previousRunId" class="community-meta">
+      <span v-if="commentCount > 0" class="community-count">{{ commentCount }}</span>
+      <button
+        v-if="previousRunId"
+        type="button"
+        class="previous-run-link"
+        @click="emit('open-previous-run', previousRunId)"
+      >
+        <v-icon size="16" class="mr-1">mdi-history</v-icon>
+        {{ t('challenges.community.viewPreviousRun') }}
+      </button>
     </div>
 
-    <button
-      v-if="previousRunId"
-      type="button"
-      class="previous-run-link mb-6"
-      @click="emit('open-previous-run', previousRunId)"
-    >
-      <v-icon size="16" class="mr-1">mdi-history</v-icon>
-      {{ t('challenges.community.viewPreviousRun') }}
-    </button>
-
-    <div v-if="canComment" class="add-comment-container mb-8">
-      <CommentComposer
-        ref="composerRef"
-        v-model:text="state.newCommentText"
-        v-model:image-url="state.newCommentImageUrl"
-        :placeholder="commentPlaceholder"
-        :loading="state.addingComment"
-        @uploading="state.uploadingImage = $event"
-        @submit="addComment"
-      />
+    <div v-if="state.loading" class="feed-status">
+      <v-progress-linear indeterminate color="#4FD1C5" height="2" />
     </div>
 
-    <div v-else-if="!isCurrentUserParticipant && props.currentUserId && props.challengeType === CHALLENGE_TYPES.HABIT" class="join-mission-card pa-6 text-center mb-8">
-      <v-icon color="rgba(255,255,255,0.2)" size="48" class="mb-3">mdi-shield-lock-outline</v-icon>
-      <p class="text-body-2 text-white opacity-70 mb-4">{{ t('challenges.comments.joinPrompt') }}</p>
-      <v-btn color="#4FD1C5" variant="outlined" class="rounded-lg" @click="emitJoin">
-        {{ t('challenges.joinMission') }}
+    <div v-else-if="state.loadError" class="feed-status state-block">
+      <p class="state-text">{{ state.loadError }}</p>
+      <v-btn variant="text" color="#4FD1C5" class="text-none mt-2" @click="loadComments">
+        {{ t('challenges.comments.retry') }}
       </v-btn>
     </div>
 
-    <div v-if="feedItems.length > 0" class="comments-feed">
+    <div v-else-if="feedItems.length === 0 && props.allowComments !== false" class="feed-status state-block">
+      <p class="state-text">{{ t('challenges.comments.noComments') }}</p>
+    </div>
+
+    <div v-else ref="feedRef" class="comments-feed">
+      <p v-if="state.actionError" class="action-error">{{ state.actionError }}</p>
       <div
         v-for="item in feedItems"
-        :key="item._id || item.createdAt"
-        class="feed-item-container"
-        :class="item.type === 'system' ? 'system-log' : 'user-comment'"
+        :key="item._id"
+        class="comment-block mb-6"
+        :class="{ 'comment-highlight': highlightId === item._id }"
+        :id="item._id ? `comment-${item._id}` : undefined"
       >
-        <div v-if="item.type === 'system'" class="system-log-entry text-center py-2 px-4 mb-4">
-          <span class="log-text">{{ item.text }}</span>
+        <div v-if="shouldShowDayLabel(item)" class="tactical-day-label mb-3">
+          <span class="label-text">{{ getDayLabel(item) }}</span>
         </div>
 
-        <div v-else class="comment-block mb-6" :id="item._id ? `comment-${item._id}` : undefined">
-          <div v-if="shouldShowDayLabel(item)" class="tactical-day-label mb-3">
-            <span class="label-text">{{ getDayLabel(item) }}</span>
-          </div>
+        <div class="d-flex align-start">
+          <div class="comment-main flex-grow-1">
+            <div class="d-flex align-center mb-1">
+              <v-avatar size="28" class="comment-avatar mr-2" @click.stop="navigateToUser(item.userId)">
+                <v-img v-if="getCommentAvatar(item)" :src="getCommentAvatar(item)" cover></v-img>
+                <span v-else>{{ getCommentInitial(item) }}</span>
+              </v-avatar>
+              <span class="author-name font-weight-bold" @click.stop="navigateToUser(item.userId)">
+                {{ getCommentName(item) }}
+              </span>
+              <span v-if="getParticipantStreak(item.userId?._id || item.userId) > 0" class="streak-indicator ml-2">
+                <v-icon size="12" color="#F4A782">mdi-fire</v-icon>
+                {{ getParticipantStreak(item.userId?._id || item.userId) }}
+              </span>
+              <span class="post-time ml-3">{{ formatDate(item.createdAt) }}</span>
+              <v-spacer></v-spacer>
+              <v-btn
+                v-if="canDeleteComment(item)"
+                icon="mdi-delete-outline"
+                size="small"
+                variant="text"
+                color="rgba(255,255,255,0.3)"
+                :aria-label="t('challenges.delete')"
+                @click="askDelete({ kind: 'comment', comment: item })"
+              />
+            </div>
 
-          <div class="d-flex align-start">
-            <div class="comment-main flex-grow-1">
-              <div class="d-flex align-center mb-1">
-                <v-avatar size="28" class="comment-avatar mr-2" @click.stop="navigateToUser(item.userId)">
-                  <v-img v-if="getCommentAvatar(item)" :src="getCommentAvatar(item)" cover></v-img>
-                  <span v-else>{{ getCommentInitial(item) }}</span>
-                </v-avatar>
-                <span class="author-name font-weight-bold" @click.stop="navigateToUser(item.userId)">
-                  {{ getCommentName(item) }}
-                </span>
-                <span v-if="getParticipantStreak(item.userId?._id || item.userId) > 0" class="streak-indicator ml-2">
-                  <v-icon size="12" color="#F4A782">mdi-fire</v-icon>
-                  {{ getParticipantStreak(item.userId?._id || item.userId) }}
-                </span>
-                <span class="post-time ml-3">{{ formatDate(item.createdAt) }}</span>
-                
-                <v-spacer></v-spacer>
-                
-                <v-btn v-if="canDeleteComment(item)" icon="mdi-delete-outline" size="x-small" variant="text" color="rgba(255,255,255,0.3)" @click="deleteComment(item)"></v-btn>
+            <div class="comment-body pa-3" :class="{ 'comment-body--triumph': item.isTriumph }">
+              <div v-if="item.isTriumph" class="comment-triumph-badge mb-2">
+                <v-icon size="13" color="#FBBF24" class="mr-1">mdi-trophy</v-icon>
+                {{ t('challenges.comments.triumphBadge') }}
               </div>
+              <div v-else-if="item.actionTitle" class="comment-action-title mb-2">
+                <v-icon size="13" color="#4FD1C5" class="mr-1">mdi-target-variant</v-icon>
+                {{ item.actionTitle }}
+              </div>
+              <p v-if="item.text" class="text-content mb-0">{{ item.text }}</p>
+              <button
+                v-if="item.imageUrl"
+                type="button"
+                class="comment-image-btn"
+                @click="previewImageUrl = item.imageUrl"
+              >
+                <v-img :src="item.imageUrl" max-height="350" class="rounded-lg mt-3 border-accent"></v-img>
+              </button>
 
-              <div class="comment-body pa-3" :class="{ 'comment-body--triumph': item.isTriumph }">
-                <div v-if="item.isTriumph" class="comment-triumph-badge mb-2">
-                  <v-icon size="13" color="#FBBF24" class="mr-1">mdi-trophy</v-icon>
-                  {{ t('challenges.comments.triumphBadge') }}
-                </div>
-                <div v-else-if="item.actionTitle" class="comment-action-title mb-2">
-                  <v-icon size="13" color="#4FD1C5" class="mr-1">mdi-target-variant</v-icon>
-                  {{ item.actionTitle }}
-                </div>
-                <p v-if="item.text" class="text-content mb-0">{{ item.text }}</p>
-                <v-img v-if="item.imageUrl" :src="item.imageUrl" max-height="350" class="rounded-lg mt-3 border-accent"></v-img>
-                
-                <div class="d-flex align-center mt-3 gap-2">
-                  <div class="reactions-row d-flex">
-                    <div
-                      v-for="emoji in ['😂','👏', '🔥', '💪', '😢']"
-                      :key="emoji"
-                      class="reaction-capsule"
-                      :class="{ 'active': hasUserReacted(item, emoji) }"
-                      @click="toggleReaction(item, emoji, 'comment')"
-                    >
-                      <span class="emoji">{{ emoji }}</span>
-                      <span v-if="getReactionCount(item, emoji) > 0" class="count ml-1">{{ getReactionCount(item, emoji) }}</span>
-                    </div>
-                  </div>
-                  <v-btn 
-                    v-if="state.replyingToCommentId !== item._id"
-                    size="x-small" 
-                    variant="text" 
-                    color="#4FD1C5" 
-                    class="ml-2 font-weight-bold" 
-                    @click="startReply(item)"
+              <div class="d-flex align-center mt-3 comment-actions">
+                <ReactionRow
+                  :item="item"
+                  :current-user-id="currentUserId"
+                  @toggle="toggleReaction(item, $event, 'comment')"
+                />
+                <v-btn
+                  v-if="canComment"
+                  size="small"
+                  variant="text"
+                  color="#4FD1C5"
+                  class="ml-2 font-weight-bold reply-btn"
+                  @click="startReply(item)"
+                >
+                  {{ t('challenges.comments.reply') }}
+                </v-btn>
+              </div>
+            </div>
+
+            <div v-if="flatReplies(item).length > 0" class="replies-thread mt-3">
+              <div
+                v-for="reply in flatReplies(item)"
+                :key="reply._id"
+                class="reply-entry pl-4 mb-3 border-left-tactical"
+                :class="{ 'comment-highlight': highlightId === reply._id }"
+                :id="replyAnchorId(item, reply)"
+              >
+                <div class="d-flex align-center mb-1">
+                  <v-avatar size="22" class="comment-avatar mr-2" @click.stop="navigateToUser(reply.userId)">
+                    <v-img v-if="getCommentAvatar(reply)" :src="getCommentAvatar(reply)" cover></v-img>
+                    <span v-else>{{ getCommentInitial(reply) }}</span>
+                  </v-avatar>
+                  <span class="reply-author text-caption font-weight-bold" @click.stop="navigateToUser(reply.userId)">
+                    {{ getReplyName(reply) }}
+                  </span>
+                  <span class="post-time ml-3">{{ formatDate(reply.createdAt) }}</span>
+                  <v-spacer></v-spacer>
+                  <v-btn
+                    v-if="canComment"
+                    size="small"
+                    variant="text"
+                    color="#4FD1C5"
+                    class="font-weight-bold reply-btn"
+                    @click="startReplyToThread(item, reply)"
                   >
                     {{ t('challenges.comments.reply') }}
                   </v-btn>
+                  <v-btn
+                    v-if="canDeleteThreadReply(item, reply)"
+                    icon="mdi-delete-outline"
+                    size="small"
+                    variant="text"
+                    color="rgba(255,255,255,0.3)"
+                    :aria-label="t('challenges.delete')"
+                    @click="askDelete({ kind: reply.nestedReplyId ? 'nested' : 'reply', comment: item, reply })"
+                  />
                 </div>
-              </div>
 
-              <!-- Reply Input Section -->
-              <div v-if="state.replyingToCommentId === item._id" class="reply-input-container ml-6 mt-3 mb-3">
-                <div class="tactical-input-wrapper">
-                  <v-textarea
-                    v-model="state.replyTexts[item._id]"
-                    :placeholder="t('challenges.comments.replyPlaceholder', { name: getCommentName(item) })"
-                    auto-grow
-                    rows="1"
-                    max-rows="4"
-                    variant="plain"
-                    class="comment-field px-4 pt-3"
-                    hide-details
-                    :disabled="state.replyingCommentId === item._id"
-                  ></v-textarea>
-
-                  <div v-if="state.replyImagePreviews[item._id]" class="px-4 pb-3">
-                    <div class="preview-frame">
-                      <v-img :src="state.replyImagePreviews[item._id]" max-height="180" cover class="rounded-lg border-accent">
-                        <v-btn icon="mdi-close" size="x-small" color="error" class="remove-img-btn" @click="removeImagePreview('reply', item._id)"></v-btn>
-                      </v-img>
-                    </div>
-                  </div>
-
-                  <div class="input-footer d-flex align-center pa-2">
-                    <input 
-                      :ref="el => replyFileInputs[item._id] = el" 
-                      type="file" 
-                      accept="image/*" 
-                      class="d-none" 
-                      @change="handleImageSelect($event, 'reply', item._id)" 
+                <div class="reply-body text-caption opacity-90">
+                  <div v-if="reply.text">{{ reply.text }}</div>
+                  <button
+                    v-if="reply.imageUrl"
+                    type="button"
+                    class="comment-image-btn"
+                    @click="previewImageUrl = reply.imageUrl"
+                  >
+                    <v-img :src="reply.imageUrl" max-height="260" class="rounded-lg mt-2 border-accent"></v-img>
+                  </button>
+                  <div class="mt-2">
+                    <ReactionRow
+                      :item="reply"
+                      :current-user-id="currentUserId"
+                      @toggle="toggleReaction(
+                        reply,
+                        $event,
+                        reply.nestedReplyId ? 'nestedReply' : 'reply',
+                        item._id,
+                        reply.threadReplyId
+                      )"
                     />
-                    <v-btn 
-                      icon="mdi-camera-plus-outline" 
-                      variant="text" 
-                      color="rgba(255,255,255,0.5)" 
-                      size="small" 
-                      @click="replyFileInputs[item._id]?.click()"
-                    ></v-btn>
-                    
-                    <v-spacer></v-spacer>
-                    
-                    <v-btn
-                      size="x-small"
-                      variant="text"
-                      color="rgba(255,255,255,0.5)"
-                      class="mr-2"
-                      @click="cancelReply(item._id)"
-                    >
-                      {{ t('common.cancel') }}
-                    </v-btn>
-                    
-                    <v-btn
-                      color="#4FD1C5"
-                      variant="flat"
-                      size="small"
-                      class="post-btn px-4 font-weight-black"
-                      :loading="state.replyingCommentId === item._id || state.uploadingReplyImages[item._id]"
-                      :disabled="(!state.replyTexts[item._id]?.trim() && !state.replyImageUrls[item._id]) || state.uploadingReplyImages[item._id]"
-                      @click="submitReply(item)"
-                    >
-                      {{ t('challenges.comments.post') }}
-                    </v-btn>
-                  </div>
-                </div>
-              </div>
-
-              <div v-if="item.replies && item.replies.length > 0" class="replies-thread ml-6 mt-3">
-                <div
-                  v-for="reply in item.replies"
-                  :key="reply._id"
-                  class="reply-entry pl-4 mb-3 border-left-tactical"
-                  :id="reply._id ? `comment-${item._id}-${reply._id}` : undefined"
-                >
-                  <div class="d-flex align-center mb-1">
-                    <span class="reply-author text-caption font-weight-bold" @click.stop="navigateToUser(reply.userId)">{{ getReplyName(reply) }}</span>
-                    <v-icon size="10" class="mx-1 opacity-50 text-white">mdi-chevron-right</v-icon>
-                    <span v-if="reply.mentionedUserId" class="mention text-caption">@{{ getMentionedName(reply) }}</span>
-
-                    <v-spacer></v-spacer>
-
-                    <v-btn
-                      size="x-small"
-                      variant="text"
-                      color="#4FD1C5"
-                      class="font-weight-bold"
-                      @click="startReplyToReply(item, reply)"
-                    >
-                      {{ t('challenges.comments.reply') }}
-                    </v-btn>
-
-                    <v-btn
-                      v-if="canDeleteReply(item, reply)"
-                      icon="mdi-delete-outline"
-                      size="x-small"
-                      variant="text"
-                      color="rgba(255,255,255,0.3)"
-                      @click="deleteReply(item, reply)"
-                    ></v-btn>
-                  </div>
-
-                  <div class="reply-body text-caption opacity-90">
-                    <div v-if="reply.text">{{ reply.text }}</div>
-                    <v-img v-if="reply.imageUrl" :src="reply.imageUrl" max-height="260" class="rounded-lg mt-2 border-accent"></v-img>
-
-                    <div class="d-flex align-center mt-2 gap-2">
-                      <div class="reactions-row d-flex">
-                        <div
-                          v-for="emoji in ['😂','👏', '🔥', '💪', '😢']"
-                          :key="emoji"
-                          class="reaction-capsule"
-                          :class="{ 'active': hasUserReacted(reply, emoji) }"
-                          @click="toggleReaction(reply, emoji, 'reply', item._id, reply._id)"
-                        >
-                          <span class="emoji">{{ emoji }}</span>
-                          <span v-if="getReactionCount(reply, emoji) > 0" class="count ml-1">{{ getReactionCount(reply, emoji) }}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Nested Reply Input (Reply to Reply) -->
-                  <div v-if="state.replyingToReplyId === reply._id" class="reply-input-container ml-6 mt-3 mb-3">
-                    <div class="tactical-input-wrapper">
-                      <v-textarea
-                        v-model="state.replyToReplyTexts[reply._id]"
-                        :placeholder="t('challenges.comments.replyPlaceholder', { name: getReplyName(reply) })"
-                        auto-grow
-                        rows="1"
-                        max-rows="4"
-                        variant="plain"
-                        class="comment-field px-4 pt-3"
-                        hide-details
-                        :disabled="state.replyingToReplySubmittingId === reply._id"
-                      ></v-textarea>
-
-                      <div v-if="state.replyToReplyImagePreviews[reply._id]" class="px-4 pb-3">
-                        <div class="preview-frame">
-                          <v-img :src="state.replyToReplyImagePreviews[reply._id]" max-height="180" cover class="rounded-lg border-accent">
-                            <v-btn icon="mdi-close" size="x-small" color="error" class="remove-img-btn" @click="removeImagePreview('nestedReply', null, reply._id)"></v-btn>
-                          </v-img>
-                        </div>
-                      </div>
-
-                      <div class="input-footer d-flex align-center pa-2">
-                        <input
-                          :ref="el => nestedReplyFileInputs[reply._id] = el"
-                          type="file"
-                          accept="image/*"
-                          class="d-none"
-                          @change="handleImageSelect($event, 'nestedReply', item._id, reply._id)"
-                        />
-                        <v-btn
-                          icon="mdi-camera-plus-outline"
-                          variant="text"
-                          color="rgba(255,255,255,0.5)"
-                          size="small"
-                          @click="nestedReplyFileInputs[reply._id]?.click()"
-                        ></v-btn>
-
-                        <v-spacer></v-spacer>
-
-                        <v-btn
-                          size="x-small"
-                          variant="text"
-                          color="rgba(255,255,255,0.5)"
-                          class="mr-2"
-                          @click="cancelReplyToReply(reply._id)"
-                        >
-                          {{ t('common.cancel') }}
-                        </v-btn>
-
-                        <v-btn
-                          color="#4FD1C5"
-                          variant="flat"
-                          size="small"
-                          class="post-btn px-4 font-weight-black"
-                          :loading="state.replyingToReplySubmittingId === reply._id || state.uploadingReplyToReplyImages[reply._id]"
-                          :disabled="(!state.replyToReplyTexts[reply._id]?.trim() && !state.replyToReplyImageUrls[reply._id]) || state.uploadingReplyToReplyImages[reply._id]"
-                          @click="submitReplyToReply(item, reply)"
-                        >
-                          {{ t('challenges.comments.post') }}
-                        </v-btn>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Nested replies list -->
-                  <div v-if="reply.replies && reply.replies.length > 0" class="nested-replies-thread ml-6 mt-3">
-                    <div
-                      v-for="nestedReply in reply.replies"
-                      :key="nestedReply._id"
-                      class="reply-entry pl-4 mb-3 border-left-tactical"
-                      :id="nestedReply._id ? `comment-${item._id}-${reply._id}-${nestedReply._id}` : undefined"
-                    >
-                      <div class="d-flex align-center mb-1">
-                        <span class="reply-author text-caption font-weight-bold" @click.stop="navigateToUser(nestedReply.userId)">{{ getReplyName(nestedReply) }}</span>
-                        <v-icon size="10" class="mx-1 opacity-50 text-white">mdi-chevron-right</v-icon>
-                        <span v-if="nestedReply.mentionedUserId" class="mention text-caption">@{{ getMentionedName(nestedReply) }}</span>
-
-                        <v-spacer></v-spacer>
-
-                        <v-btn
-                          v-if="canDeleteNestedReply(nestedReply)"
-                          icon="mdi-delete-outline"
-                          size="x-small"
-                          variant="text"
-                          color="rgba(255,255,255,0.3)"
-                          @click="deleteNestedReply(item, reply, nestedReply)"
-                        ></v-btn>
-                      </div>
-
-                      <div class="reply-body text-caption opacity-90">
-                        <div v-if="nestedReply.text">{{ nestedReply.text }}</div>
-                        <v-img v-if="nestedReply.imageUrl" :src="nestedReply.imageUrl" max-height="260" class="rounded-lg mt-2 border-accent"></v-img>
-
-                        <div class="d-flex align-center mt-2 gap-2">
-                          <div class="reactions-row d-flex">
-                            <div
-                              v-for="emoji in ['👏', '🔥', '💪', '😢']"
-                              :key="emoji"
-                              class="reaction-capsule"
-                              :class="{ 'active': hasUserReacted(nestedReply, emoji) }"
-                              @click="toggleReaction(nestedReply, emoji, 'nestedReply', item._id, reply._id)"
-                            >
-                              <span class="emoji">{{ emoji }}</span>
-                              <span v-if="getReactionCount(nestedReply, emoji) > 0" class="count ml-1">{{ getReactionCount(nestedReply, emoji) }}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -354,65 +175,185 @@
         </div>
       </div>
     </div>
+
+    <div
+      v-if="canComment"
+      class="add-comment-container"
+      :class="isPhone ? 'add-comment-container--docked' : 'mb-8'"
+    >
+      <p v-if="state.actionError && feedItems.length === 0" class="action-error mb-2">{{ state.actionError }}</p>
+      <CommentComposer
+        ref="composerRef"
+        v-model:text="state.newCommentText"
+        v-model:image-url="state.newCommentImageUrl"
+        :placeholder="activePlaceholder"
+        :loading="composerLoading"
+        :reply-name="replyTarget?.name || ''"
+        @uploading="state.uploadingImage = $event"
+        @cancel-reply="cancelReplyTarget"
+        @submit="submitComposer"
+      />
+    </div>
+
+    <div
+      v-else-if="!props.currentUserId && props.allowComments !== false && !props.isFinished"
+      class="join-mission-card pa-6 text-center"
+      :class="isPhone ? 'join-mission-card--docked' : 'mb-8'"
+    >
+      <v-icon color="rgba(255,255,255,0.2)" size="48" class="mb-3">mdi-account-lock-outline</v-icon>
+      <p class="text-body-2 text-white opacity-70 mb-4">{{ t('challenges.comments.loginPrompt') }}</p>
+      <v-btn color="#4FD1C5" variant="outlined" class="rounded-lg" @click="goToLogin">
+        {{ t('navigation.login') }}
+      </v-btn>
+    </div>
+
+    <div
+      v-else-if="!isCurrentUserParticipant && props.currentUserId && props.challengeType === CHALLENGE_TYPES.HABIT && props.allowComments !== false"
+      class="join-mission-card pa-6 text-center"
+      :class="isPhone ? 'join-mission-card--docked' : 'mb-8'"
+    >
+      <v-icon color="rgba(255,255,255,0.2)" size="48" class="mb-3">mdi-shield-lock-outline</v-icon>
+      <p class="text-body-2 text-white opacity-70 mb-4">{{ t('challenges.comments.joinPrompt') }}</p>
+      <v-btn color="#4FD1C5" variant="outlined" class="rounded-lg" @click="emitJoin">
+        {{ t('challenges.joinMission') }}
+      </v-btn>
+    </div>
+
+    <div
+      v-else-if="props.allowComments === false"
+      class="join-mission-card pa-6 text-center"
+      :class="isPhone ? 'join-mission-card--docked' : 'mb-8'"
+    >
+      <p class="text-body-2 text-white opacity-70 mb-0">{{ t('challenges.comments.disabled') }}</p>
+    </div>
+
+    <DeleteChallengeDialog
+      v-model="deleteDialogOpen"
+      :loading="Boolean(state.deletingCommentId || state.deletingReplyId)"
+      :error="state.deleteError"
+      :title="t('challenges.delete')"
+      :message="deleteDialogMessage"
+      @confirm="confirmDelete"
+    />
+
+    <v-dialog
+      :model-value="Boolean(previewImageUrl)"
+      max-width="720"
+      @update:model-value="onPreviewToggle"
+    >
+      <v-card class="image-preview-card">
+        <v-btn
+          icon="mdi-close"
+          variant="text"
+          class="image-preview-close"
+          :aria-label="t('common.close')"
+          @click="previewImageUrl = null"
+        />
+        <v-img v-if="previewImageUrl" :src="previewImageUrl" />
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
 <style scoped>
-/* --- BASE THEME (Command Post Dark) --- */
-.diary-component { color: #ffffff; }
+.diary-component {
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+}
 
-.diary-icon-glow {
-  background: rgba(79, 209, 197, 0.1);
-  border: 1px solid rgba(79, 209, 197, 0.3);
-  width: 36px;
-  height: 36px;
+.diary-component:not(.diary-component--phone) .add-comment-container,
+.diary-component:not(.diary-component--phone) .join-mission-card {
+  order: 1;
+}
+
+.diary-component:not(.diary-component--phone) .comments-feed,
+.diary-component:not(.diary-component--phone) .feed-status {
+  order: 2;
+}
+
+.diary-component--phone {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+}
+
+.diary-component--phone .community-meta {
+  order: 0;
+  flex-shrink: 0;
+}
+
+.diary-component--phone .comments-feed,
+.diary-component--phone .feed-status {
+  order: 1;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 12px;
+}
+
+.diary-component--phone .add-comment-container--docked,
+.diary-component--phone .join-mission-card--docked {
+  order: 2;
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  flex-shrink: 0;
+  margin-top: auto;
+  background: var(--home-bg, #0b0d12);
+  border-top: 1px solid var(--home-border, rgba(255, 255, 255, 0.08));
+}
+
+.diary-component--phone .add-comment-container--docked {
+  padding-top: 10px;
+  padding-bottom: var(--safe-bottom, 0px);
+}
+
+.diary-component--phone .join-mission-card--docked {
+  margin-bottom: 0;
+  padding-bottom: calc(24px + var(--safe-bottom, 0px));
+}
+
+.community-meta {
   display: flex;
   align-items: center;
-  justify-content: center;
-  border-radius: 10px;
-  box-shadow: 0 0 10px rgba(79, 209, 197, 0.1);
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
 }
 
-.tactical-count-chip {
-  background: rgba(79, 209, 197, 0.2) !important;
-  border: 1px solid #4FD1C5 !important;
+.community-count {
+  font-size: 0.72rem;
   font-weight: 800;
-  font-family: 'Montserrat', sans-serif;
+  letter-spacing: 0.04em;
+  color: var(--home-teal, #4fd1c5);
 }
 
-/* --- INPUT FIELD (Tactical Glass) --- */
-.tactical-input-wrapper {
-  background: var(--home-surface, rgba(22, 27, 40, 0.55));
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  overflow: hidden;
-  transition: 0.3s;
+.feed-status {
+  min-height: 48px;
 }
 
-.tactical-input-wrapper:focus-within {
-  border-color: #4FD1C5;
-  box-shadow: 0 0 15px rgba(79, 209, 197, 0.2);
+.state-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  text-align: center;
 }
 
-.comment-field :deep(textarea) {
-  color: #fff !important;
-  font-size: 0.95rem;
-  line-height: 1.5;
+.state-text {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--home-text-dim, #94a3b8);
 }
 
-.input-footer {
-  background: var(--home-bg, #0b0d12);
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+.action-error {
+  margin: 0 0 12px;
+  font-size: 0.85rem;
+  color: #f87171;
 }
 
-.post-btn {
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  border-radius: 8px !important;
-  box-shadow: 0 4px 12px rgba(79, 209, 197, 0.3) !important;
-}
-
-/* --- COMMENT BLOCKS --- */
 .comment-body {
   background: rgba(255, 255, 255, 0.03);
   border-radius: 12px;
@@ -424,20 +365,7 @@
   background: rgba(245, 158, 11, 0.06);
 }
 
-.comment-triumph-badge {
-  display: inline-flex;
-  align-items: center;
-  font-size: 0.72rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #fbbf24;
-  background: rgba(245, 158, 11, 0.12);
-  border: 1px solid rgba(251, 191, 36, 0.35);
-  border-radius: 8px;
-  padding: 3px 10px;
-}
-
+.comment-triumph-badge,
 .comment-action-title {
   display: inline-flex;
   align-items: center;
@@ -445,14 +373,24 @@
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #4FD1C5;
-  background: rgba(79, 209, 197, 0.1);
-  border: 1px solid rgba(79, 209, 197, 0.25);
   border-radius: 8px;
   padding: 3px 10px;
 }
 
-.author-name {
+.comment-triumph-badge {
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+}
+
+.comment-action-title {
+  color: #4FD1C5;
+  background: rgba(79, 209, 197, 0.1);
+  border: 1px solid rgba(79, 209, 197, 0.25);
+}
+
+.author-name,
+.reply-author {
   color: #4FD1C5;
   font-size: 0.9rem;
   cursor: pointer;
@@ -465,6 +403,7 @@
   font-weight: 700;
   font-size: 12px;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .post-time {
@@ -479,48 +418,33 @@
   color: rgba(255, 255, 255, 0.9);
 }
 
-/* --- REACTIONS --- */
-.reaction-capsule {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 2px 10px;
-  border-radius: 50px;
-  cursor: pointer;
-  transition: 0.2s;
-  display: flex;
-  align-items: center;
+.comment-image-btn {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: zoom-in;
+  text-align: left;
 }
 
-.reaction-capsule:hover {
-  background: rgba(255, 255, 255, 0.1);
+.comment-actions {
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
-.reaction-capsule.active {
-  background: rgba(79, 209, 197, 0.2);
-  border-color: #4FD1C5;
-  color: #4FD1C5;
+.reply-btn {
+  min-height: 36px;
 }
 
-.reaction-capsule .count {
-  font-size: 0.75rem;
-  font-weight: 700;
+.comment-highlight {
+  background-color: rgba(79, 209, 197, 0.15);
+  border-radius: 12px;
+  transition: background-color 0.4s ease;
 }
 
-/* --- THREADS & LOGS --- */
 .border-left-tactical {
   border-left: 1px solid rgba(79, 209, 197, 0.3);
-}
-
-.system-log-entry {
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 8px;
-  border: 1px dashed rgba(255, 255, 255, 0.1);
-}
-
-.log-text {
-  font-size: 0.75rem;
-  font-style: italic;
-  opacity: 0.5;
 }
 
 .tactical-day-label {
@@ -572,39 +496,36 @@
   border: 1px solid rgba(79, 209, 197, 0.2);
 }
 
-.reply-input-container {
-  margin-left: 24px;
-}
-
-.reply-input-container .tactical-input-wrapper {
-  background: var(--home-surface, rgba(22, 27, 40, 0.45));
-  border: 1px solid rgba(79, 209, 197, 0.2);
-}
-
-.preview-frame {
+.image-preview-card {
+  background: #0b0d12 !important;
   position: relative;
-  display: inline-block;
 }
 
-.remove-img-btn {
+.image-preview-close {
   position: absolute;
   top: 8px;
   right: 8px;
-  z-index: 1;
+  z-index: 2;
+  color: #f1f5f9 !important;
 }
 </style>
+
 <script setup>
 import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import { challengeService, uploadService } from '../services/api'
-import { prepareImageForUpload } from '../utils/imageUpload'
+import { useDisplay } from 'vuetify'
+import { challengeService } from '../services/api'
 import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
 import { useI18n } from 'vue-i18n'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 import { normalizeDateKey, toDateInputValue } from '../utils/dateUtils'
 import CommentComposer from './CommentComposer.vue'
+import DeleteChallengeDialog from './challenge-form/DeleteChallengeDialog.vue'
+import ReactionRow from './comments/ReactionRow.vue'
 
 const router = useRouter()
+const { smAndDown } = useDisplay()
+const isPhone = smAndDown
 const { applyRewardResponse } = useXpAwardFeedback()
 
 const props = defineProps({
@@ -662,7 +583,6 @@ const emit = defineEmits(['comment-added', 'comment-deleted', 'user-navigated', 
 
 const { t, locale } = useI18n()
 
-// Dynamic placeholder for comment input
 const commentPlaceholder = computed(() => {
   if (!isCurrentUserParticipant.value) {
     return t('challenges.comments.placeholder5')
@@ -677,178 +597,17 @@ const commentPlaceholder = computed(() => {
   return placeholders[state.selectedPlaceholderIndex]
 })
 
-async function uploadImage(file) {
-  state.uploadingImage = true
-  try {
-    const base64 = await prepareImageForUpload(file, { maxSizeMb: 5 })
-    // Upload via the backend proxy (ImgBB key stays server-side).
-    const response = await uploadService.uploadImageBase64(base64)
-    const imageUrl = response?.data?.url
-    if (!imageUrl) {
-      throw new Error('Upload did not return an image URL')
-    }
-
-    return imageUrl
-  } finally {
-    state.uploadingImage = false
+const activePlaceholder = computed(() => {
+  if (replyTarget.value?.name) {
+    return t('challenges.comments.replyPlaceholder', { name: replyTarget.value.name })
   }
-}
+  return commentPlaceholder.value
+})
 
-async function handleImageSelect(event, type = 'comment', commentId = null, replyId = null) {
-  const files = event.target.files
-  if (!files || files.length === 0) return
-
-  const file = files[0]
-  if (!file.type.startsWith('image/')) {
-    alert(t('challenges.uploadInvalidType'))
-    return
-  }
-
-  const maxSizeMb = 5
-
-  // Set uploading state
-  if (type === 'reply') {
-    state.uploadingReplyImages[commentId] = true
-  } else if (type === 'nestedReply') {
-    state.uploadingReplyToReplyImages[replyId] = true
-  }
-
-  // Show preview and store filename
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    if (type === 'comment') {
-      state.newCommentImagePreview = e.target.result
-      state.newCommentImageName = file.name
-    } else if (type === 'reply') {
-      state.replyImagePreviews[commentId] = e.target.result
-    } else if (type === 'nestedReply') {
-      state.replyToReplyImagePreviews[replyId] = e.target.result
-    }
-  }
-  reader.readAsDataURL(file)
-
-  // Upload image
-  try {
-    const imageUrl = await uploadImage(file)
-    if (type === 'comment') {
-      state.newCommentImageUrl = imageUrl
-    } else if (type === 'reply') {
-      state.replyImageUrls[commentId] = imageUrl
-      state.uploadingReplyImages[commentId] = false
-    } else if (type === 'nestedReply') {
-      state.replyToReplyImageUrls[replyId] = imageUrl
-      state.uploadingReplyToReplyImages[replyId] = false
-    }
-  } catch (error) {
-    if (error.message?.includes('exceeds')) {
-      alert(t('challenges.uploadTooLarge', { size: maxSizeMb }))
-    } else {
-      alert(error.message || t('challenges.uploadError'))
-    }
-    if (type === 'comment') {
-      state.newCommentImagePreview = null
-      state.newCommentImageName = null
-      state.newCommentImageUrl = null
-    } else if (type === 'reply') {
-      state.replyImagePreviews[commentId] = null
-      state.replyImageUrls[commentId] = null
-      state.uploadingReplyImages[commentId] = false
-    } else if (type === 'nestedReply') {
-      state.replyToReplyImagePreviews[replyId] = null
-      state.replyToReplyImageUrls[replyId] = null
-      state.uploadingReplyToReplyImages[replyId] = false
-    }
-  }
-}
-
-function removeImagePreview(type = 'comment', commentId = null, replyId = null) {
-  if (type === 'comment') {
-    state.newCommentImageUrl = null
-    state.newCommentImagePreview = null
-    state.newCommentImageName = null
-  } else if (type === 'reply') {
-    state.replyImageUrls[commentId] = null
-    state.replyImagePreviews[commentId] = null
-  } else if (type === 'nestedReply') {
-    state.replyToReplyImageUrls[replyId] = null
-    state.replyToReplyImagePreviews[replyId] = null
-  }
-}
-
-// System events generation
-function generateSystemEvents() {
-  const events = []
-  if (!props.challengeParticipants || !props.challengeStartDate) return events
-
-  const participants = props.challengeParticipants || []
-  const startDate = new Date(props.challengeStartDate)
-  const endDate = props.challengeEndDate ? new Date(props.challengeEndDate) : null
-
-  // Generate join events - approximate join time as when they first completed a day
-  // For simplicity, we'll use the first completed day as join time
-  participants.forEach(participant => {
-    if (participant.completedDays && participant.completedDays.length > 0) {
-      const firstCompletedDay = participant.completedDays
-        .map((day) => {
-          const dateKey = normalizeDateKey(day)
-          return dateKey ? new Date(`${dateKey}T00:00:00`) : null
-        })
-        .filter(Boolean)
-        .sort((a, b) => a - b)[0]
-
-      if (firstCompletedDay) {
-        const user = participant.userId
-        const userName = user?.name || t('common.unknown')
-        events.push({
-          _id: `system-join-${participant.userId?._id || participant.userId}`,
-          type: 'system',
-          eventType: 'join',
-          text: t('challenges.diary.heroJoined', { name: userName }),
-          createdAt: firstCompletedDay,
-          userId: participant.userId
-        })
-      }
-    }
-  })
-
-  // Generate progress milestones for habit challenges
-  if (props.challengeType === CHALLENGE_TYPES.HABIT && endDate) {
-    const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24))
-    const milestones = [25, 50, 75, 100]
-
-    participants.forEach(participant => {
-      if (participant.completedDays && participant.completedDays.length > 0) {
-        const completedCount = participant.completedDays.length
-        const progress = Math.round((completedCount / totalDays) * 100)
-
-        milestones.forEach(milestone => {
-          if (progress >= milestone) {
-            // Approximate milestone date based on progress
-            const milestoneDate = new Date(startDate)
-            milestoneDate.setDate(startDate.getDate() + Math.floor((totalDays * milestone) / 100))
-
-            events.push({
-              _id: `system-milestone-${participant.userId?._id || participant.userId}-${milestone}`,
-              type: 'system',
-              eventType: 'milestone',
-              text: t('challenges.diary.missionProgress', { percent: milestone }),
-              createdAt: milestoneDate,
-              userId: participant.userId
-            })
-          }
-        })
-      }
-    })
-  }
-
-  return events
-}
-
-// Calculate streak for a participant
 function getParticipantStreak(userId) {
   if (!userId || !props.challengeParticipants || props.challengeType !== CHALLENGE_TYPES.HABIT) return 0
 
-  const participant = props.challengeParticipants.find(p => {
+  const participant = props.challengeParticipants.find((p) => {
     const pUserId = p.userId?._id || p.userId || p._id
     return pUserId && pUserId.toString() === userId.toString()
   })
@@ -888,88 +647,144 @@ function getParticipantStreak(userId) {
   return streak
 }
 
-// Combined feed with system events
 const feedItems = computed(() => {
-  const systemEvents = generateSystemEvents()
-  const allItems = [...state.comments, ...systemEvents]
-  
-  return allItems.sort((a, b) => {
-    const dateA = new Date(a.createdAt)
-    const dateB = new Date(b.createdAt)
-    return dateB - dateA // Newest first
+  return [...state.comments].sort((a, b) => {
+    return new Date(b.createdAt) - new Date(a.createdAt)
   })
+})
+
+const commentCount = computed(() => {
+  return state.comments.reduce((total, comment) => {
+    const replies = (comment.replies || []).reduce(
+      (sum, reply) => sum + 1 + (reply.replies?.length || 0),
+      0
+    )
+    return total + 1 + replies
+  }, 0)
 })
 
 const state = reactive({
   comments: [],
   loading: false,
+  loadError: '',
+  actionError: '',
+  deleteError: '',
   addingComment: false,
   deletingCommentId: null,
+  deletingReplyId: null,
   newCommentText: '',
   newCommentImageUrl: null,
-  newCommentImagePreview: null,
-  newCommentImageName: null,
   uploadingImage: false,
-  replyingToCommentId: null,
-  replyTexts: {},
-  replyImageUrls: {},
-  replyImagePreviews: {},
-  uploadingReplyImages: {},
-  replyingCommentId: null,
-  deletingReplyId: null,
-  replyingToReplyId: null,
-  replyToReplyTexts: {},
-  replyToReplyImageUrls: {},
-  replyToReplyImagePreviews: {},
-  uploadingReplyToReplyImages: {},
-  replyingToReplySubmittingId: null,
-  reactingCommentId: null,
-  reactingReplyId: null,
-  reactingNestedReplyId: null,
+  reactingId: null,
   selectedPlaceholderIndex: Math.floor(Math.random() * 5)
 })
 
-const fileInputRef = ref(null)
 const composerRef = ref(null)
-const replyFileInputs = ref({})
-const nestedReplyFileInputs = ref({})
+const feedRef = ref(null)
+const replyTarget = ref(null)
+const highlightId = ref(null)
+const previewImageUrl = ref(null)
+const deleteDialogOpen = ref(false)
+const pendingDelete = ref(null)
+
+const composerLoading = computed(() => (
+  state.addingComment || state.uploadingImage
+))
+
+const deleteDialogMessage = computed(() => {
+  if (pendingDelete.value?.kind === 'comment') return t('challenges.comments.deleteConfirm')
+  return t('challenges.comments.deleteReplyConfirm')
+})
+
+function flatReplies(comment) {
+  const list = []
+  for (const reply of comment.replies || []) {
+    list.push({
+      ...reply,
+      threadReplyId: reply._id,
+      nestedReplyId: null
+    })
+    for (const nested of reply.replies || []) {
+      list.push({
+        ...nested,
+        threadReplyId: reply._id,
+        nestedReplyId: nested._id
+      })
+    }
+  }
+  return list
+}
+
+function replyAnchorId(comment, reply) {
+  if (reply.nestedReplyId) {
+    return `comment-${comment._id}-${reply.threadReplyId}-${reply.nestedReplyId}`
+  }
+  return `comment-${comment._id}-${reply._id}`
+}
 
 async function loadComments() {
   if (!props.challengeId || props.allowComments === false) return
 
   state.loading = true
+  state.loadError = ''
   try {
     const { data } = await challengeService.getComments(props.challengeId)
     state.comments = data.comments || []
   } catch (error) {
+    console.error('Error loading comments:', error)
+    state.comments = []
+    state.loadError = t('challenges.comments.loadError')
   } finally {
     state.loading = false
   }
 }
 
+function cancelReplyTarget() {
+  replyTarget.value = null
+}
+
+async function startReply(comment) {
+  replyTarget.value = {
+    commentId: comment._id,
+    threadReplyId: null,
+    mentionedUserId: comment.userId?._id || comment.userId,
+    name: getCommentName(comment)
+  }
+  await composerRef.value?.focus?.()
+}
+
+async function startReplyToThread(comment, reply) {
+  replyTarget.value = {
+    commentId: comment._id,
+    threadReplyId: reply.threadReplyId,
+    mentionedUserId: reply.userId?._id || reply.userId,
+    name: getReplyName(reply)
+  }
+  await composerRef.value?.focus?.()
+}
+
+async function submitComposer() {
+  if (replyTarget.value) {
+    await submitReplyFromComposer()
+    return
+  }
+  await addComment()
+}
+
 async function addComment() {
   if ((!state.newCommentText.trim() && !state.newCommentImageUrl) || !props.currentUserId || state.addingComment) return
 
-  // Wait for image upload to complete if preview exists but URL doesn't
-  if (state.newCommentImagePreview && !state.newCommentImageUrl && state.uploadingImage) {
-    // Image is still uploading, wait a bit
-    await new Promise(resolve => setTimeout(resolve, 500))
-    if (!state.newCommentImageUrl) {
-      alert(t('challenges.uploadInProgress'))
-      return
-    }
+  if (state.uploadingImage && !state.newCommentImageUrl) {
+    state.actionError = t('challenges.uploadInProgress')
+    return
   }
 
   state.addingComment = true
+  state.actionError = ''
   try {
     const commentText = state.newCommentText.trim() || (state.newCommentImageUrl ? ' ' : '')
     const imageUrl = state.newCommentImageUrl ? String(state.newCommentImageUrl).trim() : null
-    
-    if (!commentText && !imageUrl) {
-      state.addingComment = false
-      return
-    }
-    
+
     const response = await challengeService.addComment(
       props.challengeId,
       props.currentUserId,
@@ -980,19 +795,105 @@ async function addComment() {
     const { data } = response
     state.newCommentText = ''
     state.newCommentImageUrl = null
-    state.newCommentImagePreview = null
-    state.newCommentImageName = null
     composerRef.value?.reset()
     await loadComments()
     emit('comment-added', data.comment)
+    const newId = data.comment?._id
+    if (newId) scrollToComment(String(newId))
+  } catch (error) {
+    console.error('Error adding comment:', error)
+    state.actionError = t('challenges.comments.addError')
   } finally {
     state.addingComment = false
   }
 }
 
-async function deleteComment(comment) {
-  if (!confirm(t('challenges.comments.deleteConfirm'))) return
+async function submitReplyFromComposer() {
+  const target = replyTarget.value
+  if (!target || !props.currentUserId || state.addingComment) return
+  if (!state.newCommentText.trim() && !state.newCommentImageUrl) return
 
+  if (state.uploadingImage && !state.newCommentImageUrl) {
+    state.actionError = t('challenges.uploadInProgress')
+    return
+  }
+
+  state.addingComment = true
+  state.actionError = ''
+  const mentioned = target.mentionedUserId
+    && String(target.mentionedUserId) !== String(props.currentUserId)
+    ? target.mentionedUserId
+    : null
+  const replyText = state.newCommentText.trim() || (state.newCommentImageUrl ? ' ' : '')
+  const imageUrl = state.newCommentImageUrl ? String(state.newCommentImageUrl).trim() : null
+
+  try {
+    let response
+    if (target.threadReplyId) {
+      response = await challengeService.replyToReply(
+        props.challengeId,
+        target.commentId,
+        target.threadReplyId,
+        props.currentUserId,
+        replyText,
+        mentioned,
+        imageUrl
+      )
+    } else {
+      response = await challengeService.replyToComment(
+        props.challengeId,
+        target.commentId,
+        props.currentUserId,
+        replyText,
+        mentioned,
+        imageUrl
+      )
+    }
+    applyRewardResponse(response)
+    const newReplyId = response?.data?.reply?._id
+    state.newCommentText = ''
+    state.newCommentImageUrl = null
+    composerRef.value?.reset()
+    cancelReplyTarget()
+    await loadComments()
+    if (newReplyId) {
+      scrollToComment(String(target.commentId), String(target.threadReplyId || newReplyId), target.threadReplyId ? String(newReplyId) : null)
+    }
+  } catch (error) {
+    console.error('Error adding reply:', error)
+    state.actionError = t('challenges.comments.replyError')
+  } finally {
+    state.addingComment = false
+  }
+}
+
+function askDelete(payload) {
+  pendingDelete.value = payload
+  state.deleteError = ''
+  deleteDialogOpen.value = true
+}
+
+async function confirmDelete() {
+  const pending = pendingDelete.value
+  if (!pending) return
+  try {
+    if (pending.kind === 'comment') {
+      await deleteComment(pending.comment)
+    } else if (pending.kind === 'nested') {
+      await deleteNestedReply(pending.comment, pending.reply)
+    } else {
+      await deleteReply(pending.comment, pending.reply)
+    }
+    deleteDialogOpen.value = false
+    pendingDelete.value = null
+  } catch (error) {
+    state.deleteError = pending.kind === 'comment'
+      ? t('challenges.comments.deleteError')
+      : t('challenges.comments.deleteReplyError')
+  }
+}
+
+async function deleteComment(comment) {
   state.deletingCommentId = comment._id
   try {
     await challengeService.deleteComment(props.challengeId, comment._id, props.currentUserId)
@@ -1021,7 +922,7 @@ function formatDate(dateString) {
   if (!dateString) return ''
   const date = new Date(dateString)
   if (Number.isNaN(date.getTime())) return dateString
-  
+
   try {
     const now = new Date()
     const diffMs = now - date
@@ -1047,24 +948,21 @@ function formatDate(dateString) {
   }
 }
 
-// Check if current user is a participant
 const isCurrentUserParticipant = computed(() => {
   if (!props.currentUserId || !props.challengeParticipants || !Array.isArray(props.challengeParticipants)) {
     return false
   }
-  
+
   const currentUserIdStr = props.currentUserId.toString()
-  
-  // Check if user is the owner
+
   if (props.challengeOwner) {
     const ownerId = props.challengeOwner._id || props.challengeOwner.id || props.challengeOwner
     if (ownerId && ownerId.toString() === currentUserIdStr) {
       return true
     }
   }
-  
-  // Check if user is in participants list
-  return props.challengeParticipants.some(participant => {
+
+  return props.challengeParticipants.some((participant) => {
     const userId = participant.userId?._id
       || participant.userId?.id
       || participant.userId
@@ -1079,13 +977,9 @@ const canComment = computed(() => {
   if (props.allowComments === false || !props.currentUserId || props.isFinished) {
     return false
   }
-  
-  // For quest (result) challenges, any logged-in user can comment
   if (props.challengeType === CHALLENGE_TYPES.RESULT) {
     return true
   }
-  
-  // For habit challenges, only participants can comment
   return isCurrentUserParticipant.value
 })
 
@@ -1113,49 +1007,45 @@ function canDeleteNestedReply(nestedReply) {
   return props.isOwner || (nestedReplyUserId && nestedReplyUserId.toString() === props.currentUserId.toString())
 }
 
-// Check if comment author is the challenge owner or a participant
+function canDeleteThreadReply(comment, reply) {
+  if (reply.nestedReplyId) return canDeleteNestedReply(reply)
+  return canDeleteReply(comment, reply)
+}
+
 function isCommentAuthorOwnerOrParticipant(comment) {
   if (!comment || !comment.userId) return false
-  
+
   const commentUserId = comment.userId._id || comment.userId
-  
-  // Check if comment author is the challenge owner
+
   if (props.challengeOwner) {
     const ownerId = props.challengeOwner._id || props.challengeOwner
     if (ownerId && ownerId.toString() === commentUserId.toString()) {
       return true
     }
   }
-  
-  // Check if comment author is a participant
+
   if (props.challengeParticipants && Array.isArray(props.challengeParticipants)) {
-    return props.challengeParticipants.some(participant => {
+    return props.challengeParticipants.some((participant) => {
       const userId = participant.userId?._id || participant.userId || participant._id || participant
       return userId && userId.toString() === commentUserId.toString()
     })
   }
-  
+
   return false
 }
 
-// Calculate day number from challenge start date to comment date.
-// Returns null when the comment is outside the current cycle (e.g. left over
-// from before an extend, when startDate was reset and day would be ≤ 0).
 function calculateDayNumber(commentDate) {
   if (!props.challengeStartDate || !commentDate) return null
-  
+
   try {
     const startDate = new Date(props.challengeStartDate)
     const commentDateObj = new Date(commentDate)
-    
-    // Set both dates to midnight for accurate day calculation
+
     startDate.setHours(0, 0, 0, 0)
     commentDateObj.setHours(0, 0, 0, 0)
-    
+
     const diffTime = commentDateObj - startDate
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-    
-    // Day 0 is the start date, so add 1 to get day number
     const dayNumber = diffDays + 1
     if (dayNumber < 1) return null
     return dayNumber
@@ -1164,176 +1054,18 @@ function calculateDayNumber(commentDate) {
   }
 }
 
-// Get day label text
 function getDayLabel(comment) {
   const dayNumber = calculateDayNumber(comment.createdAt)
   if (dayNumber === null) return ''
-  
-  if (locale.value === 'ru') {
-    // Russian: always use "день" regardless of number
-    return `${dayNumber} день`
-  } else {
-    // English
-    return dayNumber === 1 ? `${dayNumber} day` : `${dayNumber} days`
-  }
+  return t('challenges.comments.dayLabel', { n: dayNumber })
 }
 
-// Check if day label should be shown
 function shouldShowDayLabel(comment) {
   return isCommentAuthorOwnerOrParticipant(comment) && calculateDayNumber(comment.createdAt) !== null
 }
 
-function startReply(comment) {
-  state.replyingToCommentId = comment._id
-  const commentName = getCommentName(comment)
-  // Pre-fill with @mention
-  state.replyTexts[comment._id] = `@${commentName} `
-  state.replyImageUrls[comment._id] = null
-  state.replyImagePreviews[comment._id] = null
-}
-
-function cancelReply(commentId) {
-  state.replyingToCommentId = null
-  state.replyTexts[commentId] = ''
-  state.replyImageUrls[commentId] = null
-  state.replyImagePreviews[commentId] = null
-}
-
-function startReplyToReply(comment, parentReply) {
-  if (!comment?._id || !parentReply?._id) return
-  state.replyingToReplyId = parentReply._id
-
-  const name = getReplyName(parentReply)
-  state.replyToReplyTexts[parentReply._id] = `@${name} `
-  state.replyToReplyImageUrls[parentReply._id] = null
-  state.replyToReplyImagePreviews[parentReply._id] = null
-}
-
-function cancelReplyToReply(parentReplyId) {
-  state.replyingToReplyId = null
-  state.replyingToReplySubmittingId = null
-  state.replyToReplyTexts[parentReplyId] = ''
-  state.replyToReplyImageUrls[parentReplyId] = null
-  state.replyToReplyImagePreviews[parentReplyId] = null
-}
-
-async function submitReply(comment) {
-  if ((!state.replyTexts[comment._id]?.trim() && !state.replyImageUrls[comment._id]) || !props.currentUserId || state.replyingCommentId) return
-
-  // Wait for image upload to complete if preview exists but URL doesn't
-  if (state.replyImagePreviews[comment._id] && !state.replyImageUrls[comment._id] && state.uploadingReplyImages[comment._id]) {
-    // Image is still uploading, wait a bit
-    await new Promise(resolve => setTimeout(resolve, 500))
-    if (!state.replyImageUrls[comment._id]) {
-      alert(t('challenges.uploadInProgress'))
-      return
-    }
-  }
-
-  state.replyingCommentId = comment._id
-  const commentUserId = comment.userId?._id || comment.userId
-  
-  try {
-    const replyText = state.replyTexts[comment._id]?.trim() || (state.replyImageUrls[comment._id] ? ' ' : '')
-    const imageUrl = state.replyImageUrls[comment._id] ? String(state.replyImageUrls[comment._id]).trim() : null
-    
-    if (!replyText && !imageUrl) {
-      state.replyingCommentId = null
-      return
-    }
-    
-    const response = await challengeService.replyToComment(
-      props.challengeId,
-      comment._id,
-      props.currentUserId,
-      replyText,
-      commentUserId.toString() === props.currentUserId.toString() ? null : commentUserId,
-      imageUrl
-    )
-    applyRewardResponse(response)
-    state.replyTexts[comment._id] = ''
-    state.replyImageUrls[comment._id] = null
-    state.replyImagePreviews[comment._id] = null
-    state.replyingToCommentId = null
-    await loadComments()
-  } finally {
-    state.replyingCommentId = null
-  }
-}
-
-async function submitReplyToReply(comment, parentReply) {
-  if (!comment?._id || !parentReply?._id) return
-  if (!props.currentUserId) return
-
-  const parentReplyId = parentReply._id
-
-  if (
-    (!state.replyToReplyTexts[parentReplyId]?.trim() && !state.replyToReplyImageUrls[parentReplyId]) ||
-    state.replyingToReplySubmittingId
-  ) {
-    return
-  }
-
-  // Wait for image upload to complete if preview exists but URL doesn't
-  if (
-    state.replyToReplyImagePreviews[parentReplyId] &&
-    !state.replyToReplyImageUrls[parentReplyId] &&
-    state.uploadingReplyToReplyImages[parentReplyId]
-  ) {
-    await new Promise(resolve => setTimeout(resolve, 500))
-    if (!state.replyToReplyImageUrls[parentReplyId]) {
-      alert(t('challenges.uploadInProgress'))
-      return
-    }
-  }
-
-  state.replyingToReplySubmittingId = parentReplyId
-
-  const parentReplyUserId = parentReply.userId?._id || parentReply.userId
-  try {
-    const replyText = state.replyToReplyTexts[parentReplyId]?.trim() || (state.replyToReplyImageUrls[parentReplyId] ? ' ' : '')
-    const imageUrl = state.replyToReplyImageUrls[parentReplyId] ? String(state.replyToReplyImageUrls[parentReplyId]).trim() : null
-
-    if (!replyText && !imageUrl) {
-      state.replyingToReplySubmittingId = null
-      return
-    }
-
-    const response = await challengeService.replyToReply(
-      props.challengeId,
-      comment._id,
-      parentReplyId,
-      props.currentUserId,
-      replyText,
-      parentReplyUserId && parentReplyUserId.toString() === props.currentUserId.toString() ? null : parentReplyUserId,
-      imageUrl
-    )
-    applyRewardResponse(response)
-    const { data } = response
-
-    cancelReplyToReply(parentReplyId)
-    // Prefer immediate UI update using the API response, then refresh as fallback.
-    if (data?.comment?._id) {
-      const idx = state.comments.findIndex(c => (c?._id || '').toString() === data.comment._id.toString())
-      if (idx !== -1) {
-        state.comments.splice(idx, 1, data.comment)
-      } else {
-        state.comments.unshift(data.comment)
-      }
-    }
-
-    // Refresh to ensure nested reply user population and ordering are correct
-    await loadComments()
-  } finally {
-    state.replyingToReplySubmittingId = null
-  }
-}
-
 async function deleteReply(comment, reply) {
   if (!comment?._id || !reply?._id) return
-  if (!props.currentUserId) return
-  if (!confirm(t('challenges.comments.deleteConfirm'))) return
-
   state.deletingReplyId = reply._id
   try {
     await challengeService.deleteReply(props.challengeId, comment._id, reply._id, props.currentUserId)
@@ -1343,14 +1075,17 @@ async function deleteReply(comment, reply) {
   }
 }
 
-async function deleteNestedReply(comment, parentReply, nestedReply) {
-  if (!comment?._id || !parentReply?._id || !nestedReply?._id) return
-  if (!props.currentUserId) return
-  if (!confirm(t('challenges.comments.deleteConfirm'))) return
-
-  state.deletingReplyId = nestedReply._id
+async function deleteNestedReply(comment, reply) {
+  if (!comment?._id || !reply?.threadReplyId || !reply?._id) return
+  state.deletingReplyId = reply._id
   try {
-    await challengeService.deleteNestedReply(props.challengeId, comment._id, parentReply._id, nestedReply._id, props.currentUserId)
+    await challengeService.deleteNestedReply(
+      props.challengeId,
+      comment._id,
+      reply.threadReplyId,
+      reply._id,
+      props.currentUserId
+    )
     await loadComments()
   } finally {
     state.deletingReplyId = null
@@ -1361,75 +1096,57 @@ function getReplyName(reply) {
   return reply.userId?.name || t('common.unknown')
 }
 
-function getMentionedName(reply) {
-  return reply.mentionedUserId?.name || t('common.unknown')
-}
-
 function navigateToUser(userId) {
   if (!userId) return
-  
-  // Get user ID - handle both populated object and ID string
   const id = userId._id || userId
-  
   if (!id) return
-  
-  // Emit event to notify parent component (e.g., dialog should close)
   emit('user-navigated')
-  
   router.push(`/heroes/${id}`)
+}
+
+function goToLogin() {
+  emit('user-navigated')
+  router.push('/login')
 }
 
 function emitJoin() {
   emit('join')
 }
 
-// Reaction handling
+function onPreviewToggle(open) {
+  if (!open) previewImageUrl.value = null
+}
+
 async function toggleReaction(item, emoji, type = 'comment', commentId = null, replyId = null) {
-  if (!props.currentUserId || state.reactingCommentId) return
+  if (!props.currentUserId || state.reactingId) return
 
   const itemId = item._id
-  const reactions = item.reactions || new Map()
-  
-  // Convert Map to object if needed
-  const reactionsObj = reactions instanceof Map 
-    ? Object.fromEntries(reactions) 
+  const reactions = item.reactions || {}
+  const reactionsObj = reactions instanceof Map
+    ? Object.fromEntries(reactions)
     : (reactions || {})
 
   const emojiReactions = reactionsObj[emoji] || []
   const userIdStr = props.currentUserId.toString()
-  const hasReacted = emojiReactions.some(r => {
+  const hasReacted = emojiReactions.some((r) => {
     const rUserId = r.userId?._id || r.userId
     return rUserId && rUserId.toString() === userIdStr
   })
 
-  // Optimistic update
-  if (!reactionsObj[emoji]) {
-    reactionsObj[emoji] = []
-  }
-  
+  if (!reactionsObj[emoji]) reactionsObj[emoji] = []
+
   if (hasReacted) {
-    reactionsObj[emoji] = emojiReactions.filter(r => {
+    reactionsObj[emoji] = emojiReactions.filter((r) => {
       const rUserId = r.userId?._id || r.userId
       return !rUserId || rUserId.toString() !== userIdStr
     })
-    if (reactionsObj[emoji].length === 0) {
-      delete reactionsObj[emoji]
-    }
+    if (reactionsObj[emoji].length === 0) delete reactionsObj[emoji]
   } else {
     reactionsObj[emoji].push({ userId: props.currentUserId })
   }
 
-  // Update local state
-  if (type === 'comment') {
-    item.reactions = reactionsObj
-    state.reactingCommentId = itemId
-  } else if (type === 'reply') {
-    item.reactions = reactionsObj
-    state.reactingReplyId = itemId
-  } else if (type === 'nestedReply') {
-    item.reactions = reactionsObj
-    state.reactingNestedReplyId = itemId
-  }
+  item.reactions = reactionsObj
+  state.reactingId = itemId
 
   try {
     await challengeService.addReaction(
@@ -1441,51 +1158,39 @@ async function toggleReaction(item, emoji, type = 'comment', commentId = null, r
       type === 'nestedReply' ? itemId : null
     )
     await loadComments()
+  } catch (error) {
+    console.error('Error toggling reaction:', error)
   } finally {
-    if (type === 'comment') {
-      state.reactingCommentId = null
-    } else if (type === 'reply') {
-      state.reactingReplyId = null
-    } else if (type === 'nestedReply') {
-      state.reactingNestedReplyId = null
-    }
+    state.reactingId = null
   }
 }
 
-function getReactionCount(item, emoji) {
-  if (!item.reactions) return 0
-  const reactions = item.reactions instanceof Map 
-    ? Object.fromEntries(item.reactions) 
-    : (item.reactions || {})
-  return (reactions[emoji] || []).length
+function findCommentElement(commentId, replyId, nestedReplyId) {
+  if (nestedReplyId && replyId) {
+    const nested = document.getElementById(`comment-${commentId}-${replyId}-${nestedReplyId}`)
+    if (nested) return nested
+  }
+  if (replyId) {
+    const reply = document.getElementById(`comment-${commentId}-${replyId}`)
+    if (reply) return reply
+    const nestedMatch = document.querySelector(`[id^="comment-${commentId}-"][id$="-${replyId}"]`)
+    if (nestedMatch) return nestedMatch
+  }
+  return document.getElementById(`comment-${commentId}`)
 }
 
-function hasUserReacted(item, emoji) {
-  if (!item.reactions || !props.currentUserId) return false
-  const reactions = item.reactions instanceof Map 
-    ? Object.fromEntries(item.reactions) 
-    : (item.reactions || {})
-  const emojiReactions = reactions[emoji] || []
-  const userIdStr = props.currentUserId.toString()
-  return emojiReactions.some(r => {
-    const rUserId = r.userId?._id || r.userId
-    return rUserId && rUserId.toString() === userIdStr
-  })
-}
-
-function scrollToComment(commentId, replyId) {
+function scrollToComment(commentId, replyId, nestedReplyId) {
   if (!commentId) return
 
-  const elementId = replyId ? `comment-${commentId}-${replyId}` : `comment-${commentId}`
-
   const tryScroll = () => {
-    const element = document.getElementById(elementId)
+    const element = findCommentElement(commentId, replyId, nestedReplyId)
     if (!element) return false
 
     element.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    element.style.backgroundColor = 'rgba(25, 118, 210, 0.1)'
+    const id = nestedReplyId || replyId || commentId
+    highlightId.value = String(id)
     setTimeout(() => {
-      element.style.backgroundColor = ''
+      if (highlightId.value === String(id)) highlightId.value = null
     }, 2000)
     return true
   }
@@ -1507,7 +1212,8 @@ function resolveScrollTargetFromHash() {
 
   return {
     commentId: parts[1],
-    replyId: parts.length >= 3 ? parts[2] : null
+    replyId: parts.length >= 3 ? parts[2] : null,
+    nestedReplyId: parts.length >= 4 ? parts[3] : null
   }
 }
 
@@ -1521,7 +1227,7 @@ function getActiveScrollTarget() {
 function maybeScrollToTarget() {
   const target = getActiveScrollTarget()
   if (!target?.commentId || state.comments.length === 0) return
-  scrollToComment(target.commentId, target.replyId)
+  scrollToComment(target.commentId, target.replyId, target.nestedReplyId)
 }
 
 watch(() => props.challengeId, () => {
@@ -1559,5 +1265,3 @@ onMounted(() => {
   }
 })
 </script>
-
-

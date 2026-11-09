@@ -1,6 +1,18 @@
 <template>
   <div class="tactical-input-wrapper">
+    <div v-if="replyName" class="reply-chip-row">
+      <span class="reply-chip-label">{{ t('challenges.comments.replyingTo', { name: replyName }) }}</span>
+      <v-btn
+        icon="mdi-close"
+        size="x-small"
+        variant="text"
+        class="reply-chip-close"
+        :aria-label="t('common.cancel')"
+        @click="$emit('cancel-reply')"
+      />
+    </div>
     <v-textarea
+      ref="textareaRef"
       :model-value="text"
       :placeholder="placeholder"
       auto-grow
@@ -70,7 +82,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useImgbbUpload } from '../composables/useImgbbUpload'
 
@@ -82,7 +94,8 @@ const props = defineProps({
   placeholder: { type: String, default: '' },
   submitLabel: { type: String, default: '' },
   loading: { type: Boolean, default: false },
-  hideSubmit: { type: Boolean, default: false }
+  hideSubmit: { type: Boolean, default: false },
+  replyName: { type: String, default: '' }
 })
 
 const emit = defineEmits([
@@ -90,13 +103,15 @@ const emit = defineEmits([
   'update:imageUrl',
   'update:shareToCommunity',
   'submit',
-  'uploading'
+  'uploading',
+  'cancel-reply'
 ])
 
 const { t } = useI18n()
 const { uploadingImage, uploadImage } = useImgbbUpload()
 
 const fileInputRef = ref(null)
+const textareaRef = ref(null)
 const imagePreview = ref(null)
 
 const submitDisabled = computed(() => {
@@ -162,7 +177,17 @@ function getImagePreview() {
   return imagePreview.value
 }
 
-defineExpose({ reset, getImagePreview })
+async function focus() {
+  await nextTick()
+  const field = textareaRef.value
+  if (typeof field?.focus === 'function') {
+    field.focus()
+    return
+  }
+  field?.$el?.querySelector?.('textarea')?.focus()
+}
+
+defineExpose({ reset, getImagePreview, focus })
 </script>
 
 <style scoped>
@@ -181,8 +206,31 @@ defineExpose({ reset, getImagePreview })
 
 .comment-field :deep(textarea) {
   color: #fff !important;
-  font-size: 0.95rem;
+  font-size: 16px !important;
   line-height: 1.5;
+}
+
+.reply-chip-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px 0;
+}
+
+.reply-chip-label {
+  min-width: 0;
+  flex: 1;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--home-teal, #4fd1c5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reply-chip-close {
+  color: var(--home-text-dim, #94a3b8) !important;
 }
 
 .input-footer {

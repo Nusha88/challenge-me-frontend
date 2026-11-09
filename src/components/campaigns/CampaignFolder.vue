@@ -8,7 +8,17 @@
           {{ t('campaigns.dayProgress', { current: dayLabel.current, total: dayLabel.total }) }}
         </p>
       </div>
-      <v-icon class="folder-toggle">{{ open ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
+      <div class="folder-head-actions">
+        <router-link
+          v-if="campaignId"
+          class="folder-open"
+          :to="{ path: `/missions/campaigns/${campaignId}` }"
+          @click.stop
+        >
+          {{ t('campaigns.open') }}
+        </router-link>
+        <v-icon class="folder-toggle">{{ open ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
+      </div>
     </button>
 
     <div v-if="open" class="folder-body">
@@ -42,6 +52,7 @@ defineEmits(['challenge-click'])
 const { t } = useI18n()
 const open = ref(true)
 const dayLabel = computed(() => campaignDayLabel(props.campaign))
+const campaignId = computed(() => String(props.campaign?._id || props.campaign?.id || ''))
 </script>
 
 <style scoped>
@@ -77,6 +88,20 @@ const dayLabel = computed(() => campaignDayLabel(props.campaign))
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--home-teal, #4fd1c5);
+}
+
+.folder-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.folder-open {
+  color: var(--home-teal, #4fd1c5);
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-decoration: none;
 }
 
 .folder-toggle {

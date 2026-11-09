@@ -42,7 +42,7 @@
       </article>
     </section>
 
-    <v-tabs v-model="tab" color="primary" class="statistic-tabs mb-4">
+    <v-tabs v-model="tab" color="#4FD1C5" class="statistic-tabs mb-4">
       <v-tab value="users">{{ t('statistic.usersTab') }}</v-tab>
       <v-tab value="missions">{{ t('statistic.missionsTab') }}</v-tab>
       <v-tab value="campaigns">{{ t('statistic.campaignsTab') }}</v-tab>
@@ -113,15 +113,18 @@
             {{ formatDate(item.createdAt) }}
           </template>
 
+          <template #item.missionsCount="{ item }">
+            {{ item.missionsActive }}/{{ item.missionsTotal }}
+          </template>
+
           <template #item.status="{ item }">
             <v-switch
               :model-value="item.status === 'active'"
-              :label="t('statistic.statusActive')"
               :disabled="isUserRowLocked(item) || updatingUserIds.has(item.id)"
               :aria-label="t('statistic.columns.status')"
               hide-details
               density="compact"
-              color="primary"
+              color="#4FD1C5"
               @update:model-value="(checked) => handleStatusToggle(item, checked)"
             />
           </template>
@@ -168,30 +171,41 @@
               <v-icon color="#4FD1C5" size="20">mdi-magnify</v-icon>
             </template>
           </v-text-field>
-          <v-select
-            v-model="missionsType"
-            :items="missionTypeFilters"
+          <v-btn
+            v-if="smAndDown"
             variant="outlined"
-            density="comfortable"
-            hide-details
-            class="table-filter"
-          />
-          <v-select
-            v-model="missionsPrivacy"
-            :items="missionPrivacyFilters"
-            variant="outlined"
-            density="comfortable"
-            hide-details
-            class="table-filter"
-          />
-          <v-select
-            v-model="missionsStatus"
-            :items="missionStatusFilters"
-            variant="outlined"
-            density="comfortable"
-            hide-details
-            class="table-filter"
-          />
+            class="text-none filters-toggle"
+            :class="{ 'is-open': missionFiltersOpen }"
+            @click="missionFiltersOpen = !missionFiltersOpen"
+          >
+            {{ t('statistic.filters') }}
+          </v-btn>
+          <template v-if="!smAndDown || missionFiltersOpen">
+            <v-select
+              v-model="missionsType"
+              :items="missionTypeFilters"
+              variant="outlined"
+              density="comfortable"
+              hide-details
+              class="table-filter"
+            />
+            <v-select
+              v-model="missionsPrivacy"
+              :items="missionPrivacyFilters"
+              variant="outlined"
+              density="comfortable"
+              hide-details
+              class="table-filter"
+            />
+            <v-select
+              v-model="missionsStatus"
+              :items="missionStatusFilters"
+              variant="outlined"
+              density="comfortable"
+              hide-details
+              class="table-filter"
+            />
+          </template>
         </div>
 
         <v-data-table
@@ -241,12 +255,11 @@
           <template #item.visibility="{ item }">
             <v-switch
               :model-value="item.visibility !== false"
-              :label="t('statistic.visibleInWorld')"
               :disabled="updatingMissionIds.has(item.id)"
               :aria-label="t('statistic.columns.visibility')"
               hide-details
               density="compact"
-              color="primary"
+              color="#4FD1C5"
               @update:model-value="(checked) => handleVisibilityToggle(item, checked)"
             />
           </template>
@@ -451,6 +464,7 @@ const missionDeleteConfirmOpen = ref(false)
 const missionPendingDelete = ref(null)
 
 const pageSizeOptions = [10, 25, 50]
+const missionFiltersOpen = ref(false)
 
 const userStatusFilters = computed(() => [
   { title: t('statistic.filterAll'), value: 'all' },
@@ -481,19 +495,18 @@ const userHeaders = computed(() => {
   const compact = smAndDown.value
   const headers = [
     { title: t('statistic.columns.name'), key: 'name', sortable: false },
-    { title: t('statistic.columns.email'), key: 'email', sortable: false },
-    { title: t('statistic.columns.joined'), key: 'createdAt', sortable: false }
+    { title: t('statistic.columns.email'), key: 'email', sortable: false }
   ]
   if (!compact) {
     headers.push(
+      { title: t('statistic.columns.joined'), key: 'createdAt', sortable: false },
       { title: t('statistic.columns.level'), key: 'level', sortable: false },
       { title: t('statistic.columns.xp'), key: 'xp', sortable: false },
-      { title: t('statistic.columns.sparks'), key: 'sparks', sortable: false },
-      { title: t('statistic.columns.missions'), key: 'missionsTotal', sortable: false },
-      { title: t('statistic.columns.activeMissions'), key: 'missionsActive', sortable: false }
+      { title: t('statistic.columns.sparks'), key: 'sparks', sortable: false }
     )
   }
   headers.push(
+    { title: t('statistic.columns.missions'), key: 'missionsCount', sortable: false },
     { title: t('statistic.columns.status'), key: 'status', sortable: false },
     { title: t('statistic.columns.actions'), key: 'actions', sortable: false, align: 'end', width: 64 }
   )
@@ -509,11 +522,11 @@ const missionHeaders = computed(() => {
     headers.push(
       { title: t('statistic.columns.type'), key: 'challengeType', sortable: false },
       { title: t('statistic.columns.privacy'), key: 'privacy', sortable: false },
-      { title: t('statistic.columns.participants'), key: 'participantsCount', sortable: false }
+      { title: t('statistic.columns.participants'), key: 'participantsCount', sortable: false },
+      { title: t('statistic.columns.ownerName'), key: 'ownerName', sortable: false }
     )
   }
   headers.push(
-    { title: t('statistic.columns.ownerName'), key: 'ownerName', sortable: false },
     { title: t('statistic.columns.visibility'), key: 'visibility', sortable: false },
     { title: t('statistic.columns.missionStatus'), key: 'status', sortable: false }
   )
@@ -711,6 +724,25 @@ async function confirmDeleteMissionAction() {
   border-bottom: 1px solid rgba(148, 163, 184, 0.18);
 }
 
+.statistic-tabs :deep(.v-tab) {
+  color: rgba(241, 245, 249, 0.55) !important;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+
+.statistic-tabs :deep(.v-btn__content) {
+  color: inherit !important;
+}
+
+.statistic-tabs :deep(.v-tab--selected) {
+  color: var(--home-teal, #4fd1c5) !important;
+}
+
+.statistic-tabs :deep(.v-tab__slider) {
+  background: var(--home-teal, #4fd1c5) !important;
+}
+
 .table-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -726,6 +758,18 @@ async function confirmDeleteMissionAction() {
 .table-filter {
   flex: 0 1 160px;
   min-width: 140px;
+}
+
+.filters-toggle {
+  flex-shrink: 0;
+  color: var(--home-text, #f1f5f9) !important;
+  border-color: rgba(148, 163, 184, 0.35) !important;
+  font-weight: 700;
+}
+
+.filters-toggle.is-open {
+  color: var(--home-teal, #4fd1c5) !important;
+  border-color: rgba(79, 209, 197, 0.55) !important;
 }
 
 .table-search :deep(.v-field),
@@ -816,6 +860,10 @@ async function confirmDeleteMissionAction() {
 @media (max-width: 600px) {
   .table-filter {
     flex: 1 1 100%;
+  }
+
+  .statistic-table :deep(.v-data-table-footer__items-per-page) {
+    display: none;
   }
 }
 </style>

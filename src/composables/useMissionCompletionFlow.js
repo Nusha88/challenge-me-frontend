@@ -7,11 +7,12 @@ import { fireEpicConfetti } from '../utils/confetti'
 import { normalizeDateKey, toDateInputValue } from '../utils/dateUtils'
 import {
   getSuggestedSoloEndDate,
-  getRemainingSoloDays
+  getRemainingSoloDays,
+  MISSION_TIERS
 } from '../utils/missionParticipation'
 import { findParticipantForUser } from '../utils/participantDays'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
-import { getLevelFromXp, getLevelInfo } from '../utils/levelSystem'
+import { getLevelFromXp, getLevelName } from '../utils/levelSystem'
 import { APP_EVENTS, dispatchAppEvent } from '../utils/appEvents'
 import {
   createEmptyTriumphSharePayload,
@@ -40,11 +41,18 @@ const missionAccomplishedData = reactive({
 
 const shareCardData = reactive(createEmptyTriumphSharePayload())
 
+function maybeOpenSoloContinuation() {
+  if (!missionAccomplishedData.needsSoloContinuation) return
+  soloContinuationOpen.value = true
+  missionAccomplishedData.needsSoloContinuation = false
+}
+
 watch(missionAccomplishedOpen, (open, wasOpen) => {
-  if (wasOpen && !open && missionAccomplishedData.needsSoloContinuation) {
-    soloContinuationOpen.value = true
-    missionAccomplishedData.needsSoloContinuation = false
-  }
+  if (wasOpen && !open) maybeOpenSoloContinuation()
+})
+
+watch(shareCardOpen, (open, wasOpen) => {
+  if (wasOpen && !open) maybeOpenSoloContinuation()
 })
 
 function countResultActionNodes(actions) {
@@ -130,90 +138,14 @@ export function useMissionCompletionFlow() {
 
   const userLevel = computed(() => getLevelFromXp(Number(userStore.user?.xp || 0)))
 
-  const userRankTitle = computed(() => getLevelInfo(userLevel.value).title)
+  const userRankTitle = computed(() => getLevelName(userLevel.value, locale.value))
 
-  async function completeHabitMission(challenge, completedDays, { onUpdate, closeDialog } = {}) {
-    if (!challenge?._id || habitMissionCompleteLoading.value) return false
-
-    const normalizedDays = [...completedDays]
-      .map(normalizeDateKey)
-      .filter(Boolean)
-      .sort()
-
-    habitMissionCompleteLoading.value = true
-
-    try {
-      const response = await challengeService.endHabitMission(challenge._id, normalizedDays)
-      applyXpAwardResponse(response)
-
-      activeChallenge.value = challenge
-      populateMissionSummary(challenge, response.data?.missionRewardsSummary || {})
-
-      if (onUpdate) await onUpdate()
-      notifyMissionUpdated()
-
-      if (closeDialog) closeDialog()
-
-      fireEpicConfetti()
-      await nextTick()
-      missionAccomplishedOpen.value = true
-      return true
-    } finally {
-      habitMissionCompleteLoading.value = false
-    }
-  }
-
-  async function completeQuestMission(challenge, { onUpdate, closeDialog } = {}) {
-    if (!challenge?._id || habitMissionCompleteLoading.value) return false
-
-    habitMissionCompleteLoading.value = true
-
-    try {
-      const response = await challengeService.endResultMission(challenge._id)
-      applyXpAwardResponse(response)
-
-      activeChallenge.value = challenge
-      populateMissionSummary(challenge, response.data?.missionRewardsSummary || {})
-      missionAccomplishedData.needsSoloContinuation = false
-
-      if (onUpdate) await onUpdate()
-      notifyMissionUpdated()
-
-      if (closeDialog) closeDialog()
-
-      fireEpicConfetti()
-      await nextTick()
-      missionAccomplishedOpen.value = true
-      return true
-    } finally {
-      habitMissionCompleteLoading.value = false
-    }
-  }
-
-  async function openFinalShareCard(payload = {}) {
-    const challenge = activeChallenge.value
+  function openShareForChallenge(challenge, reflection = '') {
     if (!challenge) return
 
-    const reflection = (payload.userReflection || '').trim()
     const isHabitMission = challenge.challengeType === CHALLENGE_TYPES.HABIT
     const actions = challenge.actions || []
     const totalSteps = countResultActionNodes(actions)
-
-    if (reflection && challenge._id && currentUserId.value) {
-      try {
-        await challengeService.addDiaryEntry(
-          challenge._id,
-          currentUserId.value,
-          reflection,
-          null,
-          true,
-          { isTriumph: true, actionTitle: challenge.title || '' }
-        )
-        dispatchAppEvent(APP_EVENTS.CHECKLIST_UPDATED)
-      } catch (error) {
-        console.error('Failed to save triumph reflection:', error)
-      }
-    }
 
     assignTriumphSharePayload(
       shareCardData,
@@ -244,9 +176,105 @@ export function useMissionCompletionFlow() {
       })
     )
 
+    shareCardOpen.value = true
+  }
+
+  async function saveTriumphReflection(text) {
+    const reflection = String(text || '').trim()
+    const challenge = activeChallenge.value
+    if (!reflection || !challenge?._id || !currentUserId.value) return
+
+    try {
+      await challengeService.addDiaryEntry(
+        challenge._id,
+        currentUserId.value,
+        reflection,
+        null,
+        true,
+        { isTriumph: true, actionTitle: challenge.title || '' }
+      )
+      dispatchAppEvent(APP_EVENTS.CHECKLIST_UPDATED)
+    } catch (error) {
+      console.error('Failed to save triumph reflection:', error)
+    }
+  }
+
+  async function handleShareModalDismiss(text) {
+    await saveTriumphReflection(text)
+  }
+
+  async function completeHabitMission(challenge, completedDays, { onUpdate, closeDialog } = {}) {
+    if (!challenge?._id || habitMissionCompleteLoading.value) return false
+
+    const normalizedDays = [...completedDays]
+      .map(normalizeDateKey)
+      .filter(Boolean)
+      .sort()
+
+    habitMissionCompleteLoading.value = true
+
+    try {
+      const response = await challengeService.endHabitMission(challenge._id, normalizedDays)
+      applyXpAwardResponse(response)
+
+      activeChallenge.value = challenge
+      populateMissionSummary(challenge, response.data?.missionRewardsSummary || {})
+
+      if (onUpdate) await onUpdate()
+      notifyMissionUpdated()
+
+      if (closeDialog) closeDialog()
+
+      fireEpicConfetti()
+      await nextTick()
+      const summary = response.data?.missionRewardsSummary || {}
+      if (summary.tier === MISSION_TIERS.EXTINGUISHED) {
+        missionAccomplishedOpen.value = true
+      } else {
+        openShareForChallenge(challenge)
+      }
+      return true
+    } finally {
+      habitMissionCompleteLoading.value = false
+    }
+  }
+
+  async function completeQuestMission(challenge, { onUpdate, closeDialog } = {}) {
+    if (!challenge?._id || habitMissionCompleteLoading.value) return false
+
+    habitMissionCompleteLoading.value = true
+
+    try {
+      const response = await challengeService.endResultMission(challenge._id)
+      applyXpAwardResponse(response)
+
+      activeChallenge.value = challenge
+      populateMissionSummary(challenge, response.data?.missionRewardsSummary || {})
+      missionAccomplishedData.needsSoloContinuation = false
+
+      if (onUpdate) await onUpdate()
+      notifyMissionUpdated()
+
+      if (closeDialog) closeDialog()
+
+      fireEpicConfetti()
+      await nextTick()
+      openShareForChallenge(challenge)
+      return true
+    } finally {
+      habitMissionCompleteLoading.value = false
+    }
+  }
+
+  async function openFinalShareCard(payload = {}) {
+    const challenge = activeChallenge.value
+    if (!challenge) return
+
+    const reflection = (payload.userReflection || '').trim()
+    await saveTriumphReflection(reflection)
     missionAccomplishedOpen.value = false
     await nextTick()
-    shareCardOpen.value = true
+    openShareForChallenge(challenge, reflection)
   }
 
   async function handleSoloContinuation({ customEndDate }) {
@@ -285,6 +313,7 @@ export function useMissionCompletionFlow() {
     completeHabitMission,
     completeQuestMission,
     openFinalShareCard,
+    handleShareModalDismiss,
     handleSoloContinuation
   }
 }

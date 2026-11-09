@@ -54,7 +54,7 @@
                   :class="{ 'strikethrough': action.checked && !hideProgressChecks, 'non-clickable-text': readonly || simplifiedView || lockStructure }"
                   @click="canEditActionText && startEditingAction(index)"
                 >
-                  {{ action.text || t('challenges.actionPlaceholder') }}
+                  {{ action.text || (canEditActionText ? t('challenges.actionPlaceholder') : '') }}
                 </div>
                 <v-text-field
                   v-else
@@ -104,7 +104,7 @@
               @click="canEditActionText && startEditingChildAction(index, childIndex)"
             >
               <span v-if="!editingChildActions[`${index}-${childIndex}`]" :class="{ 'strikethrough': child.checked && !hideProgressChecks }">
-                {{ child.text || '...' }}
+                {{ child.text || (canEditActionText ? '...' : '') }}
               </span>
               <v-text-field
                 v-else
@@ -336,25 +336,24 @@ const editingActions = ref({})
 const editingChildActions = ref({})
 
 // Инициализация локального состояния
-const localActions = ref(
-  props.modelValue?.length > 0 
-    ? props.modelValue.map(a => ({ 
-        _id: a._id,
-        text: a.text || '', 
-        checked: !!a.checked,
-        children: Array.isArray(a.children) 
-          ? a.children.map(c => ({ _id: c._id, text: c.text || '', checked: !!c.checked })) 
-          : []
-      }))
-    : [{ text: '', checked: false, children: [] }]
-)
+function cloneActions(value) {
+  if (value?.length > 0) {
+    return JSON.parse(JSON.stringify(value))
+  }
+  if (props.lockStructure || props.readonly || props.hideAddButton) {
+    return []
+  }
+  return [{ text: '', checked: false, children: [] }]
+}
+
+const localActions = ref(cloneActions(props.modelValue))
 
 let isInternalUpdate = false
 
 // Синхронизация с родителем
 watch(() => props.modelValue, (val) => {
   if (isInternalUpdate) return (isInternalUpdate = false)
-  localActions.value = val?.length > 0 ? JSON.parse(JSON.stringify(val)) : [{ text: '', checked: false, children: [] }]
+  localActions.value = cloneActions(val)
 }, { deep: true })
 
 watch(localActions, (val) => {

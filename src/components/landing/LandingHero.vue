@@ -72,12 +72,12 @@ import LandingPrimaryCta from './LandingPrimaryCta.vue'
 import { BROWSE_MISSIONS_ROUTE } from './landingLinks'
 import { GOALS, reachGoal } from '../../services/analytics'
 import { useDemoMode } from '../../composables/useDemoMode'
-import screenRu from '../../assets/landing/screen-today-ru-420.webp'
-import screenEn from '../../assets/landing/screen-today-en-420.webp'
+import screenRu from '../../assets/landing/today.png'
+import screenEn from '../../assets/landing/today-eng.png'
 
 const SCREENSHOTS = {
-  ru: { src: screenRu, width: 420, height: 799 },
-  en: { src: screenEn, width: 420, height: 823 }
+  ru: { src: screenRu, width: 440, height: 949 },
+  en: { src: screenEn, width: 440, height: 950 }
 }
 
 const { t, locale } = useI18n()

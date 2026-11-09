@@ -4,7 +4,7 @@
     max-width="440"
     scrollable
     transition="dialog-bottom-transition"
-    @update:model-value="$emit('update:modelValue', $event)"
+    @update:model-value="onModelUpdate"
   >
     <v-card class="share-modal-card" :class="{ 'share-modal-card--final': isFinal }">
       <div class="sm-header">
@@ -13,17 +13,40 @@
       </div>
 
       <v-card-text class="sm-body">
-        <ShareAchievementCard
-          :payload="normalizedPayload"
-          @invite-mission="$emit('invite-mission')"
+        <v-textarea
+          v-if="isFinal"
+          v-model="reflection"
+          class="sm-reflection"
+          :placeholder="t('challenges.missionAccomplished.reflectionPlaceholder')"
+          :hint="t('challenges.shareCard.reflectionHint')"
+          persistent-hint
+          variant="solo-filled"
+          flat
+          rows="2"
+          auto-grow
+          maxlength="150"
+          counter
+          hide-details="auto"
         />
+
+        <ShareAchievementCard :payload="payloadWithReflection" />
+
+        <v-btn
+          v-if="isFinal"
+          class="sm-done mt-2"
+          block
+          variant="text"
+          @click="close"
+        >
+          {{ t('challenges.shareCard.done') }}
+        </v-btn>
       </v-card-text>
     </v-card>
   </v-dialog>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ShareAchievementCard from './ShareAchievementCard.vue'
 import { createEmptyTriumphSharePayload } from '../utils/triumphSharePayload'
@@ -36,13 +59,19 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:modelValue', 'invite-mission'])
+const emit = defineEmits(['update:modelValue', 'dismiss'])
 
 const { t } = useI18n()
+const reflection = ref('')
 
 const normalizedPayload = computed(() => ({
   ...createEmptyTriumphSharePayload(),
   ...(props.payload || {})
+}))
+
+const payloadWithReflection = computed(() => ({
+  ...normalizedPayload.value,
+  userText: reflection.value
 }))
 
 const isFinal = computed(() => Boolean(normalizedPayload.value.isFinal))
@@ -53,8 +82,20 @@ const modalTitle = computed(() =>
     : t('challenges.shareCard.modalTitle')
 )
 
+watch(
+  () => props.modelValue,
+  (open) => {
+    if (open) reflection.value = String(props.payload?.userText || '')
+  }
+)
+
 function close() {
   emit('update:modelValue', false)
+}
+
+function onModelUpdate(value) {
+  if (!value) emit('dismiss', reflection.value.trim())
+  emit('update:modelValue', value)
 }
 </script>
 
@@ -90,5 +131,30 @@ function close() {
 
 .sm-body {
   padding: 12px 22px 22px !important;
+}
+
+.sm-reflection {
+  margin-bottom: 12px;
+}
+
+.sm-reflection :deep(.v-field) {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-radius: 14px !important;
+}
+
+.sm-reflection :deep(textarea) {
+  color: #fff !important;
+}
+
+.sm-reflection :deep(.v-messages),
+.sm-reflection :deep(.v-counter) {
+  color: rgba(255, 255, 255, 0.45) !important;
+}
+
+.sm-done {
+  color: rgba(255, 255, 255, 0.72) !important;
+  text-transform: none !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.02em;
 }
 </style>

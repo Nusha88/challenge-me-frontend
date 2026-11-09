@@ -21,6 +21,14 @@
         </v-btn>
         <v-spacer />
         <v-btn
+          variant="text"
+          class="demo-gate-login"
+          :to="loginTo"
+          @click="closeAuthGate"
+        >
+          {{ t('demo.login') }}
+        </v-btn>
+        <v-btn
           variant="flat"
           class="demo-gate-register"
           :to="registerTo"
@@ -42,6 +50,7 @@ const { t } = useI18n()
 const { authGateOpen, authGateRedirect, closeAuthGate } = useDemoAuthGate()
 
 const registerTo = computed(() => authGateRedirect.value || '/register?from=demo')
+const loginTo = '/login'
 
 function onVisibility(open) {
   if (!open) closeAuthGate()
@@ -78,5 +87,11 @@ function onVisibility(open) {
 .demo-gate-continue {
   text-transform: none;
   color: rgba(255, 255, 255, 0.78) !important;
+}
+
+.demo-gate-login {
+  text-transform: none;
+  color: #4FD1C5 !important;
+  font-weight: 700;
 }
 </style>

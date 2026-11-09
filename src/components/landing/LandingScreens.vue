@@ -15,15 +15,8 @@
         <picture>
           <source
             media="(min-width: 640px)"
-            type="image/webp"
-            :srcset="`${demoWebp800} 800w, ${demoWebp1600} 1600w`"
-            sizes="(max-width: 900px) 92vw, 1100px"
-          />
-          <source
-            media="(min-width: 640px)"
-            type="image/jpeg"
-            :srcset="`${demoJpg1600} 1600w`"
-            sizes="(max-width: 900px) 92vw, 1100px"
+            type="image/png"
+            :srcset="screenshot.src"
           />
           <!--
             Tiny placeholder so phones do not download the desktop screenshot when
@@ -33,8 +26,8 @@
             src="data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA="
             :alt="t('home.landing.screens.alt')"
             class="screens-image"
-            width="1600"
-            height="915"
+            :width="screenshot.width"
+            :height="screenshot.height"
             loading="lazy"
             decoding="async"
           />
@@ -45,12 +38,18 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import demoWebp800 from '../../assets/landing/demo-800.webp'
-import demoWebp1600 from '../../assets/landing/demo-1600.webp'
-import demoJpg1600 from '../../assets/landing/demo-1600.jpg'
+import howRu from '../../assets/landing/how-ru.png'
+import howEn from '../../assets/landing/how-en.png'
 
-const { t } = useI18n()
+const SCREENSHOTS = {
+  ru: { src: howRu, width: 1920, height: 1095 },
+  en: { src: howEn, width: 1920, height: 1092 }
+}
+
+const { t, locale } = useI18n()
+const screenshot = computed(() => SCREENSHOTS[locale.value] ?? SCREENSHOTS.en)
 </script>
 
 <style scoped>

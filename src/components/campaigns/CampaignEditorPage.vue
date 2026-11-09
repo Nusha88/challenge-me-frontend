@@ -12,6 +12,7 @@
         <h1 class="campaign-title">
           {{ isNew ? t('campaigns.createTitle') : (form.title || t('campaigns.createTitle')) }}
         </h1>
+        <p v-if="statusLabel" class="campaign-status">{{ statusLabel }}</p>
       </div>
     </header>
 
@@ -135,8 +136,8 @@
     <div v-if="!justPublished && !isNew" class="campaign-slots">
       <div
         class="slot-card"
-        :class="{ 'slot-card--link': sharedEditTo }"
-        @click="openSlot(sharedEditTo)"
+        :class="{ 'slot-card--link': sharedSlotClickable }"
+        @click="openSharedSlot"
       >
         <div>
           <p class="slot-label">{{ t('campaigns.sharedSlot') }}</p>
@@ -152,14 +153,14 @@
         </v-btn>
         <div v-else-if="sharedTitle" class="slot-status">
           <v-icon color="#4FD1C5">mdi-check-circle</v-icon>
-          <v-icon v-if="sharedEditTo" size="20">mdi-chevron-right</v-icon>
+          <v-icon v-if="sharedSlotClickable" size="20">mdi-chevron-right</v-icon>
         </div>
       </div>
 
       <div
         class="slot-card"
-        :class="{ 'slot-card--link': personalEditTo }"
-        @click="openSlot(personalEditTo)"
+        :class="{ 'slot-card--link': personalSlotClickable }"
+        @click="openPersonalSlot"
       >
         <div>
           <p class="slot-label">{{ t('campaigns.personalSlot') }}</p>
@@ -175,7 +176,7 @@
         </v-btn>
         <div v-else-if="personalTitle" class="slot-status">
           <v-icon color="#4FD1C5">mdi-check-circle</v-icon>
-          <v-icon v-if="personalEditTo" size="20">mdi-chevron-right</v-icon>
+          <v-icon v-if="personalSlotClickable" size="20">mdi-chevron-right</v-icon>
         </div>
       </div>
     </div>
@@ -232,6 +233,17 @@
           {{ t('campaigns.reject') }}
         </v-btn>
       </template>
+      <v-btn
+        v-if="canLeave"
+        variant="outlined"
+        color="error"
+        class="text-none"
+        :loading="leaving"
+        :disabled="leaving"
+        @click="leaveConfirmOpen = true"
+      >
+        {{ t('campaigns.leave') }}
+      </v-btn>
     </div>
 
     <DeleteChallengeDialog
@@ -242,6 +254,16 @@
       :message="t('campaigns.deleteConfirmMessage')"
       :confirm-label="t('campaigns.delete')"
       @confirm="confirmDelete"
+    />
+
+    <DeleteChallengeDialog
+      v-model="leaveConfirmOpen"
+      :loading="leaving"
+      :error="leaveError"
+      :title="t('campaigns.leaveConfirmTitle')"
+      :message="t('campaigns.leaveConfirmMessage')"
+      :confirm-label="t('campaigns.leave')"
+      @confirm="confirmLeave"
     />
   </div>
 </template>
@@ -254,6 +276,7 @@ import SquadInvitePicker from '../challenge-form/SquadInvitePicker.vue'
 import DeleteChallengeDialog from '../challenge-form/DeleteChallengeDialog.vue'
 import { campaignService } from '../../services/api'
 import { clearMyMissionsListCache } from '../../composables/useMyMissionsListCache'
+import { openMissionDetails } from '../../utils/openMissionDetails'
 import { useUserStore } from '../../stores/user'
 import {
   addDays,
@@ -280,6 +303,9 @@ const deleting = ref(false)
 const deleteConfirmOpen = ref(false)
 const deleteError = ref('')
 const deciding = ref('')
+const leaving = ref(false)
+const leaveConfirmOpen = ref(false)
+const leaveError = ref('')
 const justPublished = ref(false)
 const errorMessage = ref('')
 const campaign = ref(null)
@@ -308,10 +334,40 @@ const personalTitle = computed(() => campaign.value?.personalTemplate?.title || 
 const campaignEditFrom = computed(() => (
   campaignId.value ? `/missions/campaigns/${campaignId.value}` : ''
 ))
-const sharedEditTo = computed(() => slotEditTo(campaignIdOf(campaign.value?.sharedChallengeId)))
-const personalEditTo = computed(() => slotEditTo(
-  campaignIdOf(campaign.value?.personalTemplateChallengeId)
-  || campaignIdOf(campaign.value?.personalTemplate?.challengeId)
+const isLaunched = computed(() => Boolean(campaign.value && campaign.value.status !== 'draft'))
+const statusLabel = computed(() => {
+  const status = campaign.value?.status
+  if (!status || isNew.value) return ''
+  if (status === 'draft') return t('campaigns.statusDraft')
+  if (status === 'open') return t('campaigns.statusOpen')
+  if (status === 'finished') return t('campaigns.statusFinished')
+  return t('campaigns.statusActive')
+})
+const isMember = computed(() => {
+  if (isOwner.value) return true
+  const userId = currentUserId.value
+  if (!userId || !campaign.value) return false
+  return (campaign.value.members || []).some((row) => campaignIdOf(row.userId) === userId)
+})
+const canLeave = computed(() => (
+  isLaunched.value && isMember.value && !isOwner.value && !isInvited.value
+))
+const sharedMissionId = computed(() => campaignIdOf(campaign.value?.sharedChallengeId))
+const personalMissionId = computed(() => {
+  const clones = campaign.value?.personalClones || []
+  const mine = clones.find((row) => campaignIdOf(row.userId) === currentUserId.value)
+  if (mine) return campaignIdOf(mine.challengeId)
+  if (isOwner.value) {
+    return campaignIdOf(campaign.value?.personalTemplateChallengeId)
+      || campaignIdOf(campaign.value?.personalTemplate?.challengeId)
+  }
+  return ''
+})
+const sharedSlotClickable = computed(() => Boolean(
+  sharedMissionId.value && (canEditShell.value || isLaunched.value)
+))
+const personalSlotClickable = computed(() => Boolean(
+  personalMissionId.value && (canEditShell.value || isLaunched.value)
 ))
 
 function slotEditTo(challengeId) {
@@ -323,9 +379,24 @@ function slotEditTo(challengeId) {
   }
 }
 
-function openSlot(to) {
-  if (!to) return
-  router.push(to)
+function openSharedSlot() {
+  const id = sharedMissionId.value
+  if (!id) return
+  if (canEditShell.value) {
+    router.push(slotEditTo(id))
+    return
+  }
+  if (isLaunched.value) openMissionDetails({ challengeId: id })
+}
+
+function openPersonalSlot() {
+  const id = personalMissionId.value
+  if (!id) return
+  if (canEditShell.value) {
+    router.push(slotEditTo(id))
+    return
+  }
+  if (isLaunched.value) openMissionDetails({ challengeId: id })
 }
 const inviteCount = computed(() => (campaign.value?.invites || []).length)
 const isInvited = computed(() => {
@@ -399,7 +470,10 @@ function applyCampaign(next) {
 }
 
 function campaignErrorMessage(error, fallbackKey) {
-  if (error.response?.data?.reason === 'campaign_limit') return t('campaigns.limitError')
+  const reason = error.response?.data?.reason
+  if (reason === 'campaign_limit') return t('campaigns.limitError')
+  if (reason === 'owner_cannot_leave') return t('campaigns.ownerCannotLeave')
+  if (reason === 'not_a_member') return t('campaigns.notAMember')
   return error.response?.data?.message || t(fallbackKey)
 }
 
@@ -493,6 +567,22 @@ async function confirmDelete() {
   }
 }
 
+async function confirmLeave() {
+  if (!campaignId.value) return
+  leaving.value = true
+  leaveError.value = ''
+  try {
+    await campaignService.leaveCampaign(campaignId.value)
+    clearMyMissionsListCache()
+    leaveConfirmOpen.value = false
+    await router.push('/missions/my')
+  } catch (error) {
+    leaveError.value = campaignErrorMessage(error, 'campaigns.leaveError')
+  } finally {
+    leaving.value = false
+  }
+}
+
 async function decideInvite(kind) {
   deciding.value = kind
   errorMessage.value = ''
@@ -547,6 +637,15 @@ onMounted(loadCampaign)
   font-size: 1.6rem;
   font-weight: 800;
   color: var(--home-text, #f1f5f9);
+}
+
+.campaign-status {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--home-text-dim, #94a3b8);
 }
 
 .campaign-card,

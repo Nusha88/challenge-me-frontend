@@ -45,6 +45,13 @@
             {{ typeLabel }}
           </v-chip>
           <v-chip
+            v-if="isUpcoming"
+            size="x-small"
+            class="chip-upcoming font-weight-black text-uppercase px-3"
+          >
+            {{ upcomingChipLabel }}
+          </v-chip>
+          <v-chip
             v-if="challenge.inviteOnly"
             size="x-small"
             class="chip-squad font-weight-black text-uppercase px-3"
@@ -80,6 +87,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useDisplay } from 'vuetify'
 import { CHALLENGE_TYPES } from '../../constants/challengeTypes'
+import { isChallengeUpcoming } from '../../utils/challengeStatus'
 
 const props = defineProps({
   challenge: { type: Object, required: true },
@@ -97,6 +105,10 @@ defineEmits(['edit', 'invite', 'invite-squad', 'close'])
 const { t } = useI18n()
 const { smAndDown } = useDisplay()
 const isHabit = computed(() => props.challenge.challengeType === CHALLENGE_TYPES.HABIT)
+const isUpcoming = computed(() => isChallengeUpcoming(props.challenge))
+const upcomingChipLabel = computed(() =>
+  t('challenges.upcomingStarts', { date: props.startLabel || t('challenges.upcoming') })
+)
 const canEdit = computed(() => (
   props.isOwner
   && !props.isFinished
@@ -151,6 +163,10 @@ const inviteAriaLabel = computed(() =>
 .chip-squad {
   background-color: rgba(112, 72, 232, 0.92) !important;
   color: #ffffff !important;
+}
+.chip-upcoming {
+  background-color: rgba(251, 191, 36, 0.92) !important;
+  color: #0b0d12 !important;
 }
 
 @media (max-width: 600px) {

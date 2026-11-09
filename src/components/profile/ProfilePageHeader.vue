@@ -32,25 +32,29 @@
         @change="$emit('file-change', $event)"
       />
 
-      <div class="identity-avatar">
+      <div class="identity-avatar" :class="{ 'is-uploading': uploading }">
         <v-hover v-slot="{ isHovering, props: hoverProps }">
-          <RankedAvatar
-            v-bind="hoverProps"
-            :avatar-url="user.avatarUrl"
-            :seed="user._id || user.id"
-            :initials="user.initials"
-            :level="user.displayLevel"
-            :dimmed="dimmed"
-            :size="112"
-            clickable
-            :alt="user.name || ''"
-            @click="$emit('trigger-upload')"
-          >
-            <template v-if="isHovering || uploading" #overlay>
-              <v-progress-circular v-if="uploading" indeterminate color="white" size="28" />
-              <v-icon v-else color="white" size="28">mdi-camera-plus</v-icon>
-            </template>
-          </RankedAvatar>
+          <div class="identity-avatar-frame" :class="{ 'is-hovering': isHovering }">
+            <RankedAvatar
+              v-bind="hoverProps"
+              :avatar-url="user.avatarUrl"
+              :seed="user._id || user.id"
+              :initials="user.initials"
+              :level="user.displayLevel"
+              :dimmed="dimmed"
+              :size="112"
+              clickable
+              :alt="user.name || ''"
+              @click="$emit('trigger-upload')"
+            >
+              <template v-if="uploading" #overlay>
+                <v-progress-circular indeterminate color="white" size="28" />
+              </template>
+            </RankedAvatar>
+            <span class="avatar-camera-badge" aria-hidden="true">
+              <v-icon size="14">mdi-camera-plus</v-icon>
+            </span>
+          </div>
         </v-hover>
 
         <button
@@ -223,6 +227,36 @@ watch(fileInputRef, (el) => {
   align-items: center;
   gap: 10px;
   flex-shrink: 0;
+}
+
+.identity-avatar-frame {
+  position: relative;
+}
+
+.avatar-camera-badge {
+  position: absolute;
+  right: 2px;
+  bottom: 22px;
+  z-index: 2;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(79, 209, 197, 0.45);
+  color: #4fd1c5;
+  pointer-events: none;
+}
+
+.identity-avatar-frame.is-hovering .avatar-camera-badge {
+  border-color: #4fd1c5;
+  box-shadow: 0 0 10px rgba(79, 209, 197, 0.35);
+}
+
+.identity-avatar.is-uploading .avatar-camera-badge {
+  opacity: 0;
 }
 
 .remove-avatar-btn {

@@ -407,6 +407,7 @@ export function useMyChallenges(currentUserId) {
     visibleFinishedQuests,
     visibleFinishedRituals,
     draftCampaigns: computed(() => campaigns.value.filter((item) => item.status === 'draft')),
+    blockingCampaign: computed(() => findOwnedBlockingCampaign(campaigns.value, unref(currentUserId))),
     canCreateCampaign: computed(() => (
       !demoStore.isDemoMode
       && !findOwnedBlockingCampaign(campaigns.value, unref(currentUserId))

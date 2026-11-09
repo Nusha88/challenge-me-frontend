@@ -8,6 +8,13 @@
     >
       {{ t('campaigns.createCta') }}
     </router-link>
+    <router-link
+      v-else-if="openCampaignId"
+      class="campaign-link"
+      :to="{ path: `/missions/campaigns/${openCampaignId}` }"
+    >
+      {{ t('campaigns.openCta') }}
+    </router-link>
   </header>
 </template>
 
@@ -15,7 +22,8 @@
 import { useI18n } from 'vue-i18n'
 
 defineProps({
-  canCreateCampaign: { type: Boolean, default: false }
+  canCreateCampaign: { type: Boolean, default: false },
+  openCampaignId: { type: String, default: '' }
 })
 
 const { t } = useI18n()

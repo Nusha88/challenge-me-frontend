@@ -76,6 +76,7 @@ export function buildFinalTriumphPayload({
     ...createEmptyTriumphSharePayload(),
     questTitle: challenge?.title || '',
     userText: reflection,
+    userImage: challenge?.imageUrl || '',
     userLevel,
     userRankTitle,
     isFinal: true,

@@ -144,16 +144,46 @@
       />
     </div>
 
+    <div v-if="!weeklyChronicleHasEmail" class="setting-row setting-row--stack">
+      <div class="setting-copy">
+        <span class="setting-label">{{ t('profile.email') }}</span>
+        <span class="setting-hint">{{ t('profile.weeklyChronicleNoEmailHint') }}</span>
+      </div>
+      <div class="email-add-row">
+        <v-text-field
+          v-model="emailDraft"
+          type="email"
+          variant="outlined"
+          density="compact"
+          hide-details="auto"
+          :placeholder="t('profile.emailPlaceholder')"
+          :disabled="emailSaving"
+          class="email-add-field"
+        />
+        <v-btn
+          variant="flat"
+          color="#4FD1C5"
+          size="small"
+          class="text-none recap-save-btn"
+          :loading="emailSaving"
+          :disabled="emailSaving || !emailDraft.trim()"
+          @click="saveProfileEmail"
+        >
+          {{ t('profile.emailSave') }}
+        </v-btn>
+      </div>
+    </div>
+
     <div class="setting-row">
       <div class="setting-copy">
         <span class="setting-label">{{ t('profile.weeklyChronicle') }}</span>
-        <span class="setting-hint">{{ t('profile.weeklyChronicleHint') }}</span>
+        <span class="setting-hint">{{ weeklyChronicleHint }}</span>
       </div>
       <v-switch
         :model-value="weeklyChronicleEnabled"
         color="#4FD1C5"
         hide-details
-        :disabled="weeklyChronicleSaving"
+        :disabled="isWeeklyChronicleToggleDisabled"
         @update:model-value="handleWeeklyChronicleToggle"
       />
     </div>
@@ -203,6 +233,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { SUPPORTED_LOCALES, setLocale } from '../../i18n'
 import { userService, pushService, authService } from '../../services/api'
+import { useUserStore } from '../../stores/user'
 import SocialAuthButtons from '../auth/SocialAuthButtons.vue'
 import {
   getNotificationPermission,
@@ -213,6 +244,7 @@ import {
 import InstallAppInstructionModal from '../InstallAppInstructionModal.vue'
 
 const { t, locale } = useI18n()
+const userStore = useUserStore()
 const availableLocales = SUPPORTED_LOCALES
 
 const currentLocale = computed(() => locale.value)
@@ -231,9 +263,14 @@ const dailyRecapSaving = ref(false)
 const dailyRecapError = ref('')
 const dailyRecapSuccess = ref('')
 const weeklyChronicleEnabled = ref(false)
+const weeklyChronicleHasEmail = ref(!!String(userStore.userEmail || '').trim())
 const weeklyChronicleSaving = ref(false)
 const weeklyChronicleError = ref('')
 const weeklyChronicleSuccess = ref('')
+const emailDraft = ref('')
+const emailSaving = ref(false)
+const emailError = ref('')
+const emailSuccess = ref('')
 const installInstructionOpen = ref(false)
 const recapTimeInputRef = ref(null)
 const telegramAvailable = ref(false)
@@ -274,8 +311,34 @@ const isPushToggleDisabled = computed(
     pushNotificationStatus.value === 'unsupported'
 )
 
+const isWeeklyChronicleToggleDisabled = computed(
+  () => weeklyChronicleSaving.value || !weeklyChronicleHasEmail.value
+)
+
+const weeklyChronicleHint = computed(() =>
+  weeklyChronicleHasEmail.value
+    ? t('profile.weeklyChronicleHint')
+    : t('profile.weeklyChronicleNoEmailHint')
+)
+
 const statusAlerts = computed(() => {
   const alerts = []
+  if (emailError.value) {
+    alerts.push({
+      key: 'email-err',
+      type: 'error',
+      message: emailError.value,
+      clear: () => { emailError.value = '' }
+    })
+  }
+  if (emailSuccess.value) {
+    alerts.push({
+      key: 'email-ok',
+      type: 'success',
+      message: emailSuccess.value,
+      clear: () => { emailSuccess.value = '' }
+    })
+  }
   if (weeklyChronicleError.value) {
     alerts.push({
       key: 'wc-err',
@@ -387,11 +450,40 @@ async function handleDailyRecapToggle(value) {
   await saveDailyRecapSettings()
 }
 
+async function saveProfileEmail() {
+  const email = emailDraft.value.trim()
+  if (!email) return
+  emailSaving.value = true
+  emailError.value = ''
+  emailSuccess.value = ''
+  try {
+    const response = await userService.updateProfile({ email })
+    const nextEmail = response.data?.user?.email || email
+    userStore.updateUser({ email: nextEmail })
+    weeklyChronicleHasEmail.value = true
+    emailDraft.value = ''
+    emailSuccess.value = t('profile.emailSaved')
+    await loadWeeklyChronicleSettings()
+  } catch (error) {
+    if (error?.response?.status === 409) {
+      emailError.value = t('auth.emailAlreadyExists')
+    } else if (error?.response?.status === 400) {
+      emailError.value = t('profile.emailInvalid')
+    } else {
+      emailError.value = t('profile.emailError')
+    }
+  } finally {
+    emailSaving.value = false
+  }
+}
+
 async function loadWeeklyChronicleSettings() {
   weeklyChronicleError.value = ''
   try {
     const response = await userService.getWeeklyChronicleSettings()
-    weeklyChronicleEnabled.value = !!response.data?.weeklyChronicleEmailEnabled
+    weeklyChronicleHasEmail.value = response.data?.hasEmail !== false
+    weeklyChronicleEnabled.value = weeklyChronicleHasEmail.value
+      && !!response.data?.weeklyChronicleEmailEnabled
   } catch {
     weeklyChronicleError.value = t('profile.weeklyChronicleError')
   }
@@ -402,19 +494,31 @@ async function saveWeeklyChronicleSettings() {
   weeklyChronicleError.value = ''
   weeklyChronicleSuccess.value = ''
   try {
-    await userService.updateWeeklyChronicleSettings({
+    const response = await userService.updateWeeklyChronicleSettings({
       weeklyChronicleEmailEnabled: !!weeklyChronicleEnabled.value,
       language: getRecapLanguageCode()
     })
+    weeklyChronicleHasEmail.value = response.data?.hasEmail !== false
+    weeklyChronicleEnabled.value = weeklyChronicleHasEmail.value
+      && !!response.data?.weeklyChronicleEmailEnabled
     weeklyChronicleSuccess.value = t('profile.weeklyChronicleSaved')
-  } catch {
-    weeklyChronicleError.value = t('profile.weeklyChronicleError')
+  } catch (error) {
+    const noEmail = error?.response?.data?.hasEmail === false
+      || error?.response?.data?.message === 'Email is required to enable weekly chronicle'
+    if (noEmail) {
+      weeklyChronicleHasEmail.value = false
+      weeklyChronicleEnabled.value = false
+      weeklyChronicleError.value = t('profile.weeklyChronicleNoEmailHint')
+    } else {
+      weeklyChronicleError.value = t('profile.weeklyChronicleError')
+    }
   } finally {
     weeklyChronicleSaving.value = false
   }
 }
 
 async function handleWeeklyChronicleToggle(value) {
+  if (!weeklyChronicleHasEmail.value) return
   weeklyChronicleEnabled.value = !!value
   await saveWeeklyChronicleSettings()
 }
@@ -600,6 +704,27 @@ onMounted(() => {
   font-size: 0.75rem;
   color: var(--home-text-dim, #94a3b8);
   line-height: 1.4;
+}
+
+.email-add-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.email-add-field {
+  flex: 1;
+  min-width: 180px;
+}
+
+.email-add-field :deep(.v-field) {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.email-add-field :deep(.v-field__input) {
+  color: var(--home-text, #f1f5f9) !important;
 }
 
 .recap-time-row {

@@ -201,7 +201,7 @@ const { t } = useI18n()
   border: none;
   background: transparent;
   padding: 8px 12px;
-  font-size: 0.85rem;
+  font-size: 16px;
   outline: none;
   color: #FFFFFF;
   font-family: 'Plus Jakarta Sans', sans-serif;

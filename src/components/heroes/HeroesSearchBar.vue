@@ -106,6 +106,10 @@ const sortOptions = computed(() => [
   color: var(--home-text, #f1f5f9) !important;
 }
 
+.heroes-search :deep(input) {
+  font-size: 16px !important;
+}
+
 .heroes-search :deep(.v-field__outline) {
   --v-field-border-opacity: 1;
   color: var(--home-border, rgba(255, 255, 255, 0.08)) !important;

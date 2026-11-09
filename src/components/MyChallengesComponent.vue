@@ -1,6 +1,9 @@
 <template>
   <div class="my-missions">
-    <MyMissionsHeader :can-create-campaign="canCreateCampaign" />
+    <MyMissionsHeader
+      :can-create-campaign="canCreateCampaign"
+      :open-campaign-id="blockingCampaignId"
+    />
 
     <MyMissionsStatusTabs
       v-if="!listError && (loading || challenges.length > 0)"
@@ -238,6 +241,7 @@ const {
   visibleFinishedQuests,
   visibleFinishedRituals,
   draftCampaigns,
+  blockingCampaign,
   canCreateCampaign,
   activeCampaignFolders,
   upcomingCampaignFolders,
@@ -248,6 +252,8 @@ const {
   replaceChallengeInList,
   promoteChallengeToFront
 } = useMyChallenges(currentUserId)
+
+const blockingCampaignId = computed(() => String(blockingCampaign.value?._id || blockingCampaign.value?.id || ''))
 
 const { detailsDialogOpen } = useChallengeDetailsProvider()
 

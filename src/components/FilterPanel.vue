@@ -344,6 +344,10 @@ defineExpose({ hasActiveFilters, resetFilters })
   color: var(--home-text, #f1f5f9) !important;
 }
 
+.filter-search :deep(input) {
+  font-size: 16px !important;
+}
+
 .filter-search :deep(.v-field__outline) {
   --v-field-border-opacity: 1;
   color: var(--home-border, rgba(255, 255, 255, 0.08)) !important;

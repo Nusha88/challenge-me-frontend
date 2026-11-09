@@ -1,7 +1,7 @@
 <template>
   <button type="button" class="auth-back-link" @click="goBack">
     <v-icon size="18">mdi-arrow-left</v-icon>
-    <span>{{ t('auth.back') }}</span>
+    <span>{{ t('auth.backToHome') }}</span>
   </button>
 </template>
 
@@ -12,42 +12,7 @@ import { useI18n } from 'vue-i18n'
 const router = useRouter()
 const { t } = useI18n()
 
-/*
- * Routes that belong to the auth funnel. "Back" on login/register means leave
- * this funnel, not hop to a sibling (login → forgot → login → Back would
- * otherwise land on forgot-password again).
- */
-const AUTH_PATHS = new Set([
-  '/login',
-  '/register',
-  '/forgot-password',
-  '/reset-password',
-  '/auth/callback'
-])
-
-function isSafeInAppPath(path) {
-  return typeof path === 'string' && path.startsWith('/') && !path.startsWith('//')
-}
-
-function isAuthPath(path) {
-  if (!isSafeInAppPath(path)) return true
-  return AUTH_PATHS.has(path.split('?')[0])
-}
-
-/*
- * Prefer a real previous page outside the auth funnel (e.g. /missions). If the
- * visitor opened this page cold, or only moved between auth screens, send them
- * to the landing page instead of bouncing them around the funnel -- or worse,
- * off the site entirely via an external history entry.
- */
 function goBack() {
-  const previous = window.history.state?.back
-
-  if (isSafeInAppPath(previous) && !isAuthPath(previous)) {
-    router.back()
-    return
-  }
-
   router.push('/')
 }
 </script>

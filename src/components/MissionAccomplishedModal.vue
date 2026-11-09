@@ -24,23 +24,9 @@
           <span v-if="completionRate != null" class="ma-tier-rate">{{ completionRate }}%</span>
         </div>
 
-        <template v-if="step === 'reflection'">
-          <v-textarea
-            v-model="userReflection"
-            class="ma-reflection mt-3"
-            :placeholder="t('challenges.missionAccomplished.reflectionPlaceholder')"
-            variant="solo-filled"
-            flat
-            rows="2"
-            auto-grow
-            maxlength="150"
-            counter
-            hide-details="auto"
-          />
-        </template>
       </div>
 
-      <v-card-text v-if="step === 'rewards'" class="ma-body">
+      <v-card-text class="ma-body">
         <template v-if="isExtinguished">
           <p class="ma-support-text">{{ t('challenges.missionAccomplished.extinguishedSupport') }}</p>
           <p class="ma-support-subtext">{{ t('challenges.missionAccomplished.extinguishedReframe') }}</p>
@@ -83,29 +69,17 @@
 
       <div class="ma-actions">
         <v-btn
-          v-if="step === 'reflection'"
+          v-if="!isExtinguished"
           class="ma-share"
           block
           size="large"
-          @click="goToRewards"
+          @click="shareTriumph"
         >
-          {{ t('challenges.missionAccomplished.next') }}
+          {{ t('challenges.missionAccomplished.shareTriumph') }}
         </v-btn>
-
-        <template v-else>
-          <v-btn
-            v-if="!isExtinguished"
-            class="ma-share"
-            block
-            size="large"
-            @click="shareTriumph"
-          >
-            {{ t('challenges.missionAccomplished.shareTriumph') }}
-          </v-btn>
-          <v-btn variant="outlined" class="ma-continue" block size="large" @click="close">
-            {{ t('challenges.missionAccomplished.continue') }}
-          </v-btn>
-        </template>
+        <v-btn variant="outlined" class="ma-continue" block size="large" @click="close">
+          {{ t('challenges.missionAccomplished.continue') }}
+        </v-btn>
       </div>
     </v-card>
   </v-dialog>
@@ -132,7 +106,6 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'share'])
 
 const { t } = useI18n()
-const step = ref('reflection')
 const rewardsVisible = ref(false)
 const userReflection = ref('')
 
@@ -154,7 +127,7 @@ const tierIcon = computed(() => {
 })
 
 const headerTitle = computed(() => {
-  if (isExtinguished.value && step.value === 'rewards') {
+  if (isExtinguished.value) {
     return t('challenges.missionAccomplished.extinguishedTitle')
   }
   return t('challenges.missionAccomplished.title')
@@ -173,21 +146,15 @@ const headerSubtitle = computed(() => {
 watch(
   () => props.modelValue,
   (open) => {
-    step.value = 'reflection'
     rewardsVisible.value = false
     if (open) {
       userReflection.value = ''
+      requestAnimationFrame(() => {
+        rewardsVisible.value = true
+      })
     }
   }
 )
-
-function goToRewards() {
-  step.value = 'rewards'
-  rewardsVisible.value = false
-  requestAnimationFrame(() => {
-    rewardsVisible.value = true
-  })
-}
 
 function close() {
   emit('update:modelValue', false)

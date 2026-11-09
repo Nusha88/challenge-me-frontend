@@ -4,7 +4,6 @@ import { useRouter, useRoute } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import { useUserStore } from '../stores/user'
 import { useDemoStore } from '../stores/demo'
-import { useFirstDayQuestStore } from '../stores/firstDayQuest'
 import { useWatchedChallengesStore } from '../stores/watchedChallenges'
 import NotificationsComponent from './NotificationsComponent.vue'
 import ChallengeDetailsDialog from './ChallengeDetailsDialog.vue'
@@ -37,7 +36,6 @@ const demoStore = useDemoStore()
 const { applyRewardResponse } = useXpAwardFeedback()
 const { openAuthGate } = useDemoAuthGate()
 const { mobile } = useDisplay()
-const firstDayQuestStore = useFirstDayQuestStore()
 
 const isAuthPage = computed(() => {
   return ['login', 'register', 'forgot-password', 'auth-callback'].includes(route.name)
@@ -65,7 +63,7 @@ const showDemoBanner = computed(() => isDemoMode.value && showAppChrome.value)
 const showMobileFab = computed(() => {
   return showAppChrome.value
     && route.name !== 'add-challenge'
-    && !firstDayQuestStore.isQuestActive
+    && route.name !== 'edit-challenge'
 })
 
 const push = usePushNotifications()
@@ -105,6 +103,7 @@ const {
   scrollTarget: globalScrollTarget,
   initialTab: globalInitialTab,
   joinLoading: globalJoinLoading,
+  leaveError: globalLeaveError,
   selectedIsOwner: globalSelectedIsOwner,
   showDialogJoinButton: globalShowDialogJoinButton,
   openFromEvent,
@@ -329,7 +328,10 @@ watch(
         'auth-layout': isAuthPage
       }]"
     >
-      <div class="main-content-wrapper">
+      <div
+        class="main-content-wrapper"
+        :class="{ 'has-mobile-fab': showMobileFab }"
+      >
         <DemoModeBanner v-if="showDemoBanner" />
         <div
           :class="['main-content-inner', {
@@ -358,6 +360,7 @@ watch(
       :initial-tab="globalInitialTab"
       :scroll-target="globalScrollTarget"
       :join-loading="globalJoinLoading"
+      :leave-error="globalLeaveError"
       @update:model-value="handleGlobalDialogClose"
       @join="handleGlobalDialogJoin"
       @leave="handleGlobalDialogLeave"
@@ -433,6 +436,14 @@ watch(
   .main-content.with-sidebar .main-content-wrapper {
     padding: 8px 10px 16px;
   }
+
+  .main-content.public-view .main-content-wrapper {
+    padding: 0;
+  }
+
+  .main-content.with-sidebar .main-content-wrapper.has-mobile-fab {
+    padding-bottom: calc(88px + var(--safe-bottom, 0px));
+  }
 }
 
 .v-application {
@@ -462,12 +473,14 @@ watch(
   gap: 0;
   min-width: 0;
   max-width: 100%;
+  padding: 0;
 }
 
 .auth-layout {
   padding: 0 !important;
   margin: 0 !important;
   height: 100vh !important;
+  height: 100dvh !important;
   width: 100vw !important;
   overflow: hidden !important;
   display: flex;
@@ -484,6 +497,7 @@ watch(
 
 :deep(.v-application__wrap) {
   min-height: 100vh !important;
+  min-height: 100dvh !important;
   backface-visibility: hidden;
 }
 

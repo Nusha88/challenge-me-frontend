@@ -1,4 +1,5 @@
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { challengeService } from '../services/api'
 import {
   openChallengeDetails,
@@ -27,6 +28,7 @@ const initialTab = ref('progress')
 const loading = ref(false)
 const joinLoading = ref(false)
 const leaveLoading = ref(false)
+const leaveError = ref('')
 
 function getUserId() {
   return useUserStore().userId
@@ -36,6 +38,7 @@ function resetDialogState() {
   scrollTarget.value = null
   initialTab.value = 'progress'
   selectedChallenge.value = null
+  leaveError.value = ''
 }
 
 function notifyChallengeUpdated(challenge) {
@@ -102,6 +105,7 @@ export async function openChallengeDetailsProvider({
 }
 
 export function useChallengeDetailsProvider() {
+  const { t } = useI18n()
   const userStore = useUserStore()
   const { applyRewardResponse } = useXpAwardFeedback()
 
@@ -149,6 +153,7 @@ export function useChallengeDetailsProvider() {
     if (!selectedChallenge.value?._id || !userId) return
 
     leaveLoading.value = true
+    leaveError.value = ''
     try {
       const response = await challengeService.leaveChallenge(selectedChallenge.value._id, {
         userId
@@ -166,6 +171,7 @@ export function useChallengeDetailsProvider() {
       }
     } catch (error) {
       console.error('Error leaving challenge:', error)
+      leaveError.value = error.response?.data?.message || t('challenges.leaveError')
     } finally {
       leaveLoading.value = false
     }
@@ -231,6 +237,7 @@ export function useChallengeDetailsProvider() {
     loading,
     joinLoading,
     leaveLoading,
+    leaveError,
     selectedIsOwner,
     selectedIsParticipant,
     showDialogJoinButton,

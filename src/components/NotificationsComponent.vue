@@ -182,14 +182,105 @@ function handleNotificationClick(notification) {
 
 <template>
   <Teleport to="body">
+    <v-bottom-sheet
+      v-if="mobile"
+      :model-value="modelValue"
+      scrim
+      :z-index="2400"
+      content-class="notification-sheet-overlay"
+      @update:model-value="handleDrawerUpdate"
+    >
+      <div class="notification-sheet">
+        <div class="notification-sheet-handle" />
+        <header class="notification-header">
+          <div class="header-left">
+            <v-icon color="#4FD1C5" size="22">mdi-bell-outline</v-icon>
+            <div class="header-copy">
+              <h2 class="header-title">{{ t('notifications.title') }}</h2>
+              <p v-if="unreadCount > 0" class="header-meta">
+                {{ unreadCount }} {{ t('notifications.unreadMeta') }}
+              </p>
+            </div>
+          </div>
+
+          <div class="header-actions">
+            <v-btn
+              v-if="unreadCount > 0"
+              icon="mdi-check-all"
+              size="small"
+              variant="text"
+              class="action-btn"
+              :loading="markingAllAsRead"
+              :aria-label="t('notifications.markAllAsRead')"
+              :title="t('notifications.markAllAsRead')"
+              @click="markAllAsRead"
+            />
+            <v-btn
+              icon="mdi-close"
+              size="small"
+              variant="text"
+              class="action-btn"
+              :aria-label="t('notifications.close')"
+              @click.stop="closeDrawer"
+            />
+          </div>
+        </header>
+
+        <div class="notification-content">
+          <v-progress-linear
+            v-if="loading"
+            indeterminate
+            color="#4FD1C5"
+            height="2"
+            class="content-progress"
+          />
+
+          <div v-else-if="errorMessage" class="state-block">
+            <div class="state-icon state-icon--error">
+              <v-icon size="40">mdi-alert-circle-outline</v-icon>
+            </div>
+            <p class="state-text">{{ errorMessage }}</p>
+            <v-btn
+              variant="text"
+              color="#4FD1C5"
+              class="text-none mt-3"
+              @click="loadNotifications"
+            >
+              {{ t('notifications.retry') }}
+            </v-btn>
+          </div>
+
+          <div v-else-if="notifications.length === 0" class="state-block">
+            <div class="state-icon">
+              <v-icon size="40">mdi-inbox-outline</v-icon>
+            </div>
+            <p class="state-text">{{ t('notifications.noNotifications') }}</p>
+            <p class="state-lead">{{ t('notifications.emptyLead') }}</p>
+          </div>
+
+          <div v-else class="notification-list">
+            <NotificationListItem
+              v-for="notification in notifications"
+              :key="notification._id"
+              :notification="notification"
+              :acting="actingNotificationId === notification._id ? actingKind : ''"
+              @click="handleNotificationClick"
+              @delete="deleteNotification"
+              @accept="handleInviteDecision($event, 'accept')"
+              @reject="handleInviteDecision($event, 'reject')"
+            />
+          </div>
+        </div>
+      </div>
+    </v-bottom-sheet>
+
     <v-navigation-drawer
-      v-if="modelValue"
+      v-else-if="modelValue"
       :model-value="true"
       location="right"
       temporary
-      :width="mobile ? '100%' : '400'"
-      class="notification-drawer"
-      :class="{ 'notification-drawer-desktop': !mobile }"
+      width="400"
+      class="notification-drawer notification-drawer-desktop"
       :z-index="2400"
       @update:model-value="handleDrawerUpdate"
     >
@@ -283,6 +374,29 @@ function handleNotificationClick(notification) {
   color: var(--home-text, #f1f5f9) !important;
 }
 
+.notification-sheet {
+  display: flex;
+  flex-direction: column;
+  height: 85vh;
+  max-height: 85vh;
+  padding-bottom: var(--safe-bottom, 0px);
+  border-radius: 20px 20px 0 0;
+  background: #0f131c;
+  border: 1px solid var(--home-border, rgba(255, 255, 255, 0.08));
+  border-bottom: none;
+  color: var(--home-text, #f1f5f9);
+  overflow: hidden;
+}
+
+.notification-sheet-handle {
+  width: 40px;
+  height: 4px;
+  margin: 10px auto 0;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
 .notification-header {
   display: flex;
   align-items: flex-start;
@@ -290,6 +404,7 @@ function handleNotificationClick(notification) {
   gap: 12px;
   padding: 18px 16px 14px;
   border-bottom: 1px solid var(--home-border, rgba(255, 255, 255, 0.08));
+  flex-shrink: 0;
 }
 
 .header-left {
@@ -338,8 +453,13 @@ function handleNotificationClick(notification) {
 .notification-content {
   display: flex;
   flex-direction: column;
-  height: calc(100% - 72px);
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
+}
+
+.notification-drawer .notification-content {
+  height: calc(100% - 72px);
 }
 
 .content-progress {
@@ -402,5 +522,14 @@ function handleNotificationClick(notification) {
     margin-top: 64px !important;
     height: calc(100% - 64px) !important;
   }
+}
+</style>
+
+<style>
+.notification-sheet-overlay.v-bottom-sheet__content {
+  border-radius: 20px 20px 0 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
 }
 </style>

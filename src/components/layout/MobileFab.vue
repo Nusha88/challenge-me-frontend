@@ -19,7 +19,7 @@ defineProps({
 <style scoped>
 .fab-button {
   position: fixed !important;
-  bottom: 24px !important;
+  bottom: calc(24px + var(--safe-bottom, 0px)) !important;
   right: 24px !important;
   z-index: 1000;
   width: 56px !important;

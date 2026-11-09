@@ -33,6 +33,9 @@
         <span :class="['type-tag', challenge.challengeType]">
           {{ getMissionTypeLabel(challenge.challengeType) }}
         </span>
+        <span v-if="isUpcoming" class="upcoming-tag">
+          {{ upcomingChipLabel }}
+        </span>
         <v-spacer></v-spacer>
         <span v-if="challenge.inviteOnly" class="privacy-tag privacy-tag--squad">
           {{ t('challenges.squad.cardTitle') }}
@@ -280,6 +283,19 @@
 }
 .type-tag.habit { color: #7048E8; border: 1px solid rgba(112, 72, 232, 0.3); }
 .type-tag.result { color: #4FD1C5; border: 1px solid rgba(79, 209, 197, 0.3); }
+
+.upcoming-tag {
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.8px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  background: rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
+}
 
 .privacy-tag {
   font-size: 9px;
@@ -870,7 +886,7 @@ const props = defineProps({
 
 const emit = defineEmits(['click', 'update', 'extended'])
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const { getMissionTypeLabel } = useChallengeType()
 const {
   extendingId,
@@ -926,6 +942,22 @@ const participantCount = computed(() => {
 const isFinished = computed(() => isChallengeFinished(props.challenge))
 
 const isUpcoming = computed(() => isChallengeUpcoming(props.challenge))
+
+const upcomingChipLabel = computed(() => {
+  const raw = props.challenge?.startDate
+  if (!raw) return t('challenges.upcoming')
+  const date = new Date(raw)
+  if (Number.isNaN(date.getTime())) return t('challenges.upcoming')
+  try {
+    const formatted = new Intl.DateTimeFormat(locale.value, {
+      month: 'short',
+      day: 'numeric'
+    }).format(date)
+    return t('challenges.upcomingStarts', { date: formatted })
+  } catch {
+    return t('challenges.upcomingStarts', { date: date.toLocaleDateString() })
+  }
+})
 
 const isActiveHabit = computed(() => isHabitType.value && !isFinished.value && !isUpcoming.value)
 

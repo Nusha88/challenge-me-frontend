@@ -38,7 +38,7 @@
       </v-alert>
 
       <TodayProgressCard
-        v-if="state.activeTab === 'today' && !firstDayQuestStore.isQuestActive"
+        v-if="state.activeTab === 'today'"
         :loading="isTodayProgressLoading"
         :visible="totalItems > 0"
         :completed-items="completedItems"
@@ -95,7 +95,6 @@
       <v-window-item value="today" eager :transition="false" :reverse-transition="false">
         <div class="todays-cards-wrapper">
           <TodayChallengesCard
-            v-if="!firstDayQuestStore.isQuestActive"
             :challenges="todaysChallenges"
             :campaigns="campaigns"
             :loading="isTodayProgressLoading"
@@ -825,7 +824,7 @@ watch(
   flex-direction: column;
   align-items: stretch;
   gap: 1.25rem;
-  padding: 1.25rem 1rem 2rem;
+  padding: 1.25rem 0 2rem;
   box-sizing: border-box;
   overflow-x: clip;
 }

@@ -1,12 +1,17 @@
 <template>
   <v-dialog 
     v-model="dialogModel"
-    max-width="900"
+    :fullscreen="isPhoneDetails"
+    :max-width="isPhoneDetails ? undefined : '900'"
     scrollable
     transition="dialog-bottom-transition"
     @update:model-value="handleVisibility"
   >
-    <v-card v-if="!challenge" class="challenge-details-card rounded-xl overflow-hidden">
+    <v-card
+      v-if="!challenge"
+      class="challenge-details-card overflow-hidden"
+      :class="isPhoneDetails ? 'is-fullscreen' : 'rounded-xl'"
+    >
       <v-card-text class="d-flex justify-center align-center py-16">
         <v-progress-circular indeterminate color="#4FD1C5" size="48" />
       </v-card-text>
@@ -15,7 +20,8 @@
     <v-card
       v-else
       ref="dialogSurfaceRef"
-      class="challenge-details-card rounded-xl overflow-hidden"
+      class="challenge-details-card overflow-hidden"
+      :class="isPhoneDetails ? 'is-fullscreen' : 'rounded-xl'"
     >
       <ChallengeDetailsHeader
         :challenge="challenge"
@@ -78,7 +84,10 @@
         {{ feedbackMessage }}
       </v-alert>
 
-      <v-card-text class="pa-0 modal-body-bg">
+      <v-card-text
+        class="pa-0 modal-body-bg"
+        :class="{ 'modal-body-bg--community': isPhoneDetails && tab === 'community' }"
+      >
         <v-window
           v-model="tab"
           class="pa-6 details-window"
@@ -89,9 +98,11 @@
               <template v-if="challenge.challengeType === CHALLENGE_TYPES.HABIT">
                   <p class="progress-lead">
                     {{
-                      isCurrentUserParticipant
-                        ? t('challenges.progressRitualLead')
-                        : t('challenges.authorProgress')
+                      isUpcoming
+                        ? t('challenges.progressUpcomingLead')
+                        : isCurrentUserParticipant
+                          ? t('challenges.progressRitualLead')
+                          : t('challenges.authorProgress')
                     }}
                   </p>
                   <div class="progress-header mb-6">
@@ -198,7 +209,8 @@
               </template>
 
               <template v-else>
-                <p v-if="isCurrentUserParticipant" class="progress-lead">{{ t('challenges.progressQuestLead') }}</p>
+                <p v-if="isUpcoming" class="progress-lead">{{ t('challenges.progressUpcomingLead') }}</p>
+                <p v-else-if="isCurrentUserParticipant" class="progress-lead">{{ t('challenges.progressQuestLead') }}</p>
                 <div class="d-flex justify-space-between mb-2">
                   <span class="section-title">{{ progressPercentage }}% {{ t('challenges.completed') }}</span>
                 </div>
@@ -209,8 +221,15 @@
                   rounded
                   class="mission-progress mb-6"
                 ></v-progress-linear>
+                <div v-if="heavyContentReady && questActionsPending" class="actions-pending" aria-hidden="true">
+                  <div
+                    v-for="index in pendingQuestActionCount"
+                    :key="`pending-action-${index}`"
+                    class="actions-pending-row"
+                  />
+                </div>
                 <ChallengeActions
-                  v-if="heavyContentReady"
+                  v-else-if="heavyContentReady"
                   v-model="actionsViewModel"
                   :readonly="!canConfirmQuestActions"
                   hide-add-button
@@ -298,19 +317,34 @@
               </div>
 
               <div class="squad-member-list">
-                <button
+                <div
                   v-for="member in squadMembers"
                   :key="member.id"
-                  type="button"
                   class="squad-member-row"
-                  @click="navigateToParticipant(member.id)"
                 >
-                  <v-avatar size="36" class="participant-avatar">
-                    <v-img v-if="member.avatarUrl" :src="member.avatarUrl" cover />
-                    <span v-else>{{ getParticipantInitial(member.name) }}</span>
-                  </v-avatar>
-                  <span class="squad-member-name">{{ member.name || t('challenges.unknownHero') }}</span>
-                </button>
+                  <button
+                    type="button"
+                    class="squad-member-main"
+                    @click="navigateToParticipant(member.id)"
+                  >
+                    <v-avatar size="36" class="participant-avatar">
+                      <v-img v-if="member.avatarUrl" :src="member.avatarUrl" cover />
+                      <span v-else>{{ getParticipantInitial(member.name) }}</span>
+                    </v-avatar>
+                    <span class="squad-member-name">{{ member.name || t('challenges.unknownHero') }}</span>
+                  </button>
+                  <v-btn
+                    v-if="canKickMember(member)"
+                    variant="text"
+                    size="x-small"
+                    class="text-none squad-cancel-btn"
+                    :loading="kickingId === member.id"
+                    :disabled="Boolean(kickingId)"
+                    @click.stop="openKickConfirm(member)"
+                  >
+                    {{ t('campaigns.kick') }}
+                  </v-btn>
+                </div>
               </div>
 
               <div v-if="isOwner && pendingSquadInvites.length" class="squad-pending">
@@ -408,6 +442,7 @@
                 :scroll-target="scrollTarget"
                 @join="emitJoin"
                 @open-previous-run="openPreviousRun"
+                @user-navigated="handleVisibility(false)"
               />
             </div>
           </v-window-item>
@@ -416,17 +451,59 @@
 
       <v-card-actions ref="footerActionsRef" class="modal-footer px-6 py-4">
         <div class="footer-left d-flex align-center ga-2">
-          <v-btn v-if="showLeaveButtonEffective" color="#ff5252" variant="text" @click="openLeaveConfirm">
+          <v-btn
+            v-if="showLeaveButtonEffective && !isPhoneDetails"
+            color="#ff5252"
+            variant="text"
+            @click="openLeaveConfirm"
+          >
             {{ t('challenges.giveUp') }}
           </v-btn>
+          <v-menu
+            v-if="isPhoneDetails && showFooterOverflow"
+            location="top start"
+          >
+            <template #activator="{ props: menuProps }">
+              <v-btn
+                v-bind="menuProps"
+                icon="mdi-dots-vertical"
+                variant="text"
+                :aria-label="t('common.more')"
+              />
+            </template>
+            <v-list class="footer-overflow-list" density="compact">
+              <v-list-item
+                v-if="showWatchActionButton"
+                :disabled="watchingId === challenge._id"
+                @click="isWatched ? handleUnwatch() : handleWatch()"
+              >
+                <template #prepend>
+                  <v-icon size="18">{{ isWatched ? 'mdi-eye-off' : 'mdi-eye' }}</v-icon>
+                </template>
+                <v-list-item-title>
+                  {{ isWatched ? t('challenges.unwatch') : t('challenges.watch') }}
+                </v-list-item-title>
+              </v-list-item>
+              <v-list-item
+                v-if="showLeaveButtonEffective"
+                class="footer-overflow-leave"
+                @click="openLeaveConfirm"
+              >
+                <template #prepend>
+                  <v-icon size="18" color="#ff5252">mdi-exit-to-app</v-icon>
+                </template>
+                <v-list-item-title>{{ t('challenges.giveUp') }}</v-list-item-title>
+              </v-list-item>
+            </v-list>
+          </v-menu>
         </div>
 
-        <v-spacer></v-spacer>
+        <v-spacer v-if="!isPhoneDetails"></v-spacer>
 
         <div class="footer-actions-wrapper d-flex align-center gap-3">
           <template v-if="showProgressFooterActions">
             <v-btn
-              v-if="showWatchActionButton"
+              v-if="showWatchActionButton && !isPhoneDetails"
               variant="outlined"
               :color="isWatched ? '#4FD1C5' : 'rgba(255,255,255,0.3)'"
               class="rounded-lg action-outline-btn watch-action-btn"
@@ -498,6 +575,37 @@
         </v-card>
       </v-dialog>
 
+      <v-dialog
+        v-model="kickConfirmDialog"
+        max-width="420"
+      >
+        <v-card class="leave-confirm-card">
+          <v-card-title class="text-h6 font-weight-bold">
+            {{ t('campaigns.kickConfirmTitle') }}
+          </v-card-title>
+          <v-card-text class="text-body-2">
+            {{ t('campaigns.kickConfirmMessage') }}
+          </v-card-text>
+          <v-card-actions class="justify-end">
+            <v-btn
+              variant="text"
+              color="rgba(255,255,255,0.6)"
+              @click="kickConfirmDialog = false"
+            >
+              {{ t('common.cancel') }}
+            </v-btn>
+            <v-btn
+              color="#ff5252"
+              variant="flat"
+              :loading="Boolean(kickingId)"
+              @click="confirmKick"
+            >
+              {{ t('campaigns.kick') }}
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
       <MissionInviteModal
         v-model="inviteDialogOpen"
         :invite-url="inviteUrl"
@@ -544,6 +652,16 @@
   border: 1px solid var(--home-border, rgba(255, 255, 255, 0.08));
   /* Keep chrome (header/tabs/footer) from being crushed by scrollable dialog flex. */
   max-height: calc(100vh - 48px);
+  max-height: calc(100dvh - 48px);
+}
+
+.challenge-details-card.is-fullscreen {
+  border-radius: 0 !important;
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100vh;
+  max-height: 100dvh;
+  border: none;
 }
 
 .challenge-details-card :deep(.header-image) {
@@ -853,6 +971,19 @@
   border: 0;
   color: inherit;
   text-align: left;
+}
+
+.squad-member-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  text-align: left;
   cursor: pointer;
 }
 
@@ -893,6 +1024,23 @@
   flex-shrink: 0;
   background: #0f172a !important;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.challenge-details-card.is-fullscreen .modal-footer {
+  padding-bottom: calc(16px + var(--safe-bottom, 0px)) !important;
+}
+
+.footer-overflow-list {
+  background: #12141c !important;
+  color: #f1f5f9 !important;
+}
+
+.footer-overflow-list :deep(.v-list-item-title) {
+  color: #f1f5f9;
+}
+
+.footer-overflow-leave :deep(.v-list-item-title) {
+  color: #ff5252;
 }
 .footer-left {
   min-width: 0;
@@ -939,14 +1087,82 @@
   overflow-y: auto;
 }
 
+.challenge-details-card.is-fullscreen .v-card-text.pa-0.modal-body-bg {
+  max-height: none;
+  min-height: 0;
+}
+
+.challenge-details-card.is-fullscreen .modal-body-bg--community {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
 .details-window {
   min-height: 180px;
   overflow: visible;
 }
 
+.challenge-details-card.is-fullscreen .details-window {
+  min-height: 100%;
+}
+
+.challenge-details-card.is-fullscreen .modal-body-bg--community .details-window {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
 .diary-container,
 .tab-content-wrapper {
   min-height: 140px;
+}
+
+.challenge-details-card.is-fullscreen .diary-container {
+  min-height: 100%;
+}
+
+.challenge-details-card.is-fullscreen .modal-body-bg--community :deep(.v-window__container),
+.challenge-details-card.is-fullscreen .modal-body-bg--community :deep(.v-window-item),
+.challenge-details-card.is-fullscreen .modal-body-bg--community :deep(.v-window-item--active) {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+}
+
+.challenge-details-card.is-fullscreen .modal-body-bg--community .diary-container {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.actions-pending {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.actions-pending-row {
+  height: 52px;
+  border-radius: 12px;
+  background: linear-gradient(
+    90deg,
+    rgba(30, 41, 59, 0.45) 0%,
+    rgba(51, 65, 85, 0.7) 50%,
+    rgba(30, 41, 59, 0.45) 100%
+  );
+  background-size: 200% 100%;
+  animation: actions-pending-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes actions-pending-pulse {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
 }
 
 .progress-lead {
@@ -1157,29 +1373,48 @@
     align-self: flex-start;
   }
 
-  .modal-footer {
+  .challenge-details-card:not(.is-fullscreen) .modal-footer {
     flex-direction: column;
     align-items: stretch;
     gap: 10px;
   }
 
-  .modal-footer .v-spacer {
+  .challenge-details-card:not(.is-fullscreen) .modal-footer .v-spacer {
     display: none;
   }
 
-  .footer-left {
+  .challenge-details-card:not(.is-fullscreen) .footer-left {
     width: 100%;
     justify-content: space-between;
   }
 
-  .footer-actions-wrapper {
+  .challenge-details-card:not(.is-fullscreen) .footer-actions-wrapper {
     width: 100%;
     flex-direction: column;
     gap: 10px;
   }
 
-  .modal-footer .footer-actions-wrapper > .v-btn {
+  .challenge-details-card:not(.is-fullscreen) .modal-footer .footer-actions-wrapper > .v-btn {
     width: 100%;
+    justify-content: center;
+  }
+
+  .challenge-details-card.is-fullscreen .modal-footer {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .challenge-details-card.is-fullscreen .footer-actions-wrapper {
+    flex: 1;
+    min-width: 0;
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+
+  .challenge-details-card.is-fullscreen .modal-footer .footer-actions-wrapper > .v-btn {
+    width: auto;
+    flex: 1;
     justify-content: center;
   }
 }
@@ -1200,7 +1435,8 @@ import MissionInviteModal from './mission-invite/MissionInviteModal.vue'
 import ChallengeDetailsHeader from './challenge-details/ChallengeDetailsHeader.vue'
 import SquadInvitePicker from './challenge-form/SquadInvitePicker.vue'
 import CommentsComponent from './CommentsComponent.vue'
-import {challengeService} from '../services/api'
+import {campaignService, challengeService} from '../services/api'
+import { campaignIdOf } from '../utils/campaigns'
 import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
 import { useMissionCompletionFlow } from '../composables/useMissionCompletionFlow'
 import { useMissionInvite } from '../composables/useMissionInvite'
@@ -1260,12 +1496,19 @@ const props = defineProps({
   scrollTarget: {
     type: Object,
     default: null
+  },
+  leaveError: {
+    type: String,
+    default: ''
   }
 })
 
 const emit = defineEmits(['update:modelValue', 'join', 'leave', 'update'])
 
 const leaveConfirmDialog = ref(false)
+const kickConfirmDialog = ref(false)
+const kickTarget = ref(null)
+const kickingId = ref('')
 const participantSaveLoading = ref(false)
 const ownerActionsSaveLoading = ref(false)
 const endMissionLoading = ref(false)
@@ -1357,6 +1600,13 @@ watch(
   }
 )
 
+watch(
+  () => props.leaveError,
+  (message) => {
+    if (message) showFeedback(message)
+  }
+)
+
 const localCompletedDaysOverride = ref(null)
 
 const editForm = reactive({
@@ -1364,7 +1614,8 @@ const editForm = reactive({
 })
 
 const { t, locale } = useI18n()
-const { width: displayWidth } = useDisplay()
+const { width: displayWidth, smAndDown } = useDisplay()
+const isPhoneDetails = computed(() => smAndDown.value)
 const isMobileCalendar = computed(() => displayWidth.value < 1200)
 const openCalendarTooltipDate = ref(null)
 const { getChallengeTypeLabel } = useChallengeType()
@@ -1410,6 +1661,26 @@ const actionsViewModel = computed({
       ? JSON.parse(JSON.stringify(newActions))
       : []
   }
+})
+
+function actionTreeHasText(actions) {
+  if (!Array.isArray(actions)) return false
+  return actions.some((action) => {
+    if (String(action?.text || '').trim()) return true
+    return (action?.children || []).some((child) => String(child?.text || '').trim())
+  })
+}
+
+const questActionsPending = computed(() => {
+  if (props.challenge?.challengeType !== CHALLENGE_TYPES.RESULT) return false
+  const actions = actionsViewModel.value
+  if (!Array.isArray(actions) || actions.length === 0) return false
+  return !actionTreeHasText(actions)
+})
+
+const pendingQuestActionCount = computed(() => {
+  const count = actionsViewModel.value?.length || 0
+  return Math.max(count, 3)
 })
 
 
@@ -1468,6 +1739,8 @@ const isFinished = computed(() => {
 
   return false
 })
+
+const isUpcoming = computed(() => isChallengeUpcoming(props.challenge))
 
 const previousRunId = computed(() => {
   const raw = props.challenge?.extendedFrom
@@ -2160,6 +2433,10 @@ const showLeaveButtonEffective = computed(() => {
   return isCurrentUserParticipant.value
 })
 
+const showFooterOverflow = computed(() =>
+  showLeaveButtonEffective.value || showWatchActionButton.value
+)
+
 const showMainActionButton = computed(() => showJoinActionButton.value)
 
 const mainActionButtonText = computed(() => t('challenges.joinMission'))
@@ -2206,6 +2483,41 @@ const showPendingInviteBanner = computed(() =>
   isPendingSquadInvite(props.challenge, currentUserId.value) && !isCurrentUserParticipant.value
 )
 const squadMembers = computed(() => participantUsers.value)
+const campaignIdForKick = computed(() => campaignIdOf(props.challenge?.campaignId))
+const canKickFromRoster = computed(() => (
+  props.isOwner
+  && props.challenge?.campaignRole === 'shared'
+  && Boolean(campaignIdForKick.value)
+  && !isFinished.value
+))
+
+function canKickMember(member) {
+  if (!canKickFromRoster.value || !member?.id) return false
+  const ownerId = campaignIdOf(props.challenge?.owner)
+  return member.id !== ownerId
+}
+
+function openKickConfirm(member) {
+  kickTarget.value = member
+  kickConfirmDialog.value = true
+}
+
+async function confirmKick() {
+  const targetId = kickTarget.value?.id
+  const campaignId = campaignIdForKick.value
+  if (!targetId || !campaignId) return
+  kickingId.value = targetId
+  try {
+    await campaignService.kickCampaignMember(campaignId, targetId)
+    kickConfirmDialog.value = false
+    kickTarget.value = null
+    emit('update')
+  } catch (error) {
+    showFeedback(error.response?.data?.message || t('campaigns.kickError'))
+  } finally {
+    kickingId.value = ''
+  }
+}
 const pendingSquadInvites = computed(() => {
   if (!props.isOwner || !Array.isArray(props.challenge?.invites)) return []
   const memberIds = new Set(squadMembers.value.map((member) => member.id))

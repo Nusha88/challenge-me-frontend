@@ -560,7 +560,8 @@ export const campaignService = {
     headers: userService._clientDayHeaders()
   }),
   rejectCampaignInvite: (id) => api.post(`/campaigns/${id}/invites/reject`),
-  leaveCampaign: (id) => api.post(`/campaigns/${id}/leave`)
+  leaveCampaign: (id) => api.post(`/campaigns/${id}/leave`),
+  kickCampaignMember: (id, userId) => api.post(`/campaigns/${id}/kick`, { userId })
 }
 
 // Happiness tracking service
