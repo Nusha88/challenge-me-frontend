@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useDisplay } from 'vuetify'
@@ -60,6 +60,119 @@ function closeDrawer(event) {
   emit('update:modelValue', false)
   emit('close')
 }
+
+const listEl = ref(null)
+const dragPointerId = ref(null)
+const dragY = ref(0)
+const dragging = ref(false)
+let dragStartY = 0
+let dragStartX = 0
+let dragLastY = 0
+let dragLastAt = 0
+let dragVelocity = 0
+let dragPending = false
+let suppressSheetClick = false
+
+const sheetDragStyle = computed(() => {
+  if (!dragY.value && !dragging.value) return undefined
+  return {
+    transform: `translateY(${dragY.value}px)`,
+    transition: dragging.value ? 'none' : 'transform 0.2s ease'
+  }
+})
+
+function isSheetControl(target) {
+  return !!target?.closest?.('button, a, .v-btn, input, textarea')
+}
+
+function stopSheetDrag() {
+  dragPending = false
+  dragging.value = false
+  dragPointerId.value = null
+}
+
+function onSheetPointerDown(event) {
+  if (event.pointerType === 'mouse' && event.button !== 0) return
+  if (isSheetControl(event.target)) return
+  const list = listEl.value
+  if (list && list.contains(event.target) && list.scrollTop > 1) return
+
+  dragPending = true
+  dragging.value = false
+  dragStartY = event.clientY
+  dragStartX = event.clientX
+  dragLastY = event.clientY
+  dragLastAt = performance.now()
+  dragVelocity = 0
+  dragY.value = 0
+  dragPointerId.value = event.pointerId
+  event.currentTarget.setPointerCapture?.(event.pointerId)
+}
+
+function onSheetPointerMove(event) {
+  if (dragPointerId.value == null || event.pointerId !== dragPointerId.value) return
+  const dy = event.clientY - dragStartY
+  const dx = event.clientX - dragStartX
+  const now = performance.now()
+  if (dragPending) {
+    if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy)) {
+      stopSheetDrag()
+      dragY.value = 0
+      return
+    }
+    if (dy < -12) {
+      stopSheetDrag()
+      dragY.value = 0
+      return
+    }
+    if (dy > 12) {
+      dragPending = false
+      dragging.value = true
+    } else {
+      return
+    }
+  }
+  if (!dragging.value) return
+  dragY.value = Math.max(0, dy)
+  const dt = now - dragLastAt
+  if (dt > 0) dragVelocity = (event.clientY - dragLastY) / dt
+  dragLastY = event.clientY
+  dragLastAt = now
+}
+
+function onSheetClickCapture(event) {
+  if (!suppressSheetClick) return
+  event.preventDefault()
+  event.stopPropagation()
+  suppressSheetClick = false
+}
+
+function onSheetPointerUp(event) {
+  if (dragPointerId.value != null && event?.pointerId !== dragPointerId.value) return
+  const shouldClose = dragY.value > 72 || dragVelocity > 0.45
+  if (dragging.value || dragY.value > 12) suppressSheetClick = true
+  stopSheetDrag()
+  if (shouldClose) {
+    dragY.value = 0
+    closeDrawer()
+    return
+  }
+  dragY.value = 0
+}
+
+watch(
+  () => props.modelValue,
+  (open) => {
+    if (!open) {
+      stopSheetDrag()
+      dragY.value = 0
+    }
+  }
+)
+
+onBeforeUnmount(() => {
+  stopSheetDrag()
+})
 
 function senderId(notification) {
   return notification?.fromUserId?._id || notification?.fromUserId || null
@@ -190,7 +303,16 @@ function handleNotificationClick(notification) {
       content-class="notification-sheet-overlay"
       @update:model-value="handleDrawerUpdate"
     >
-      <div class="notification-sheet">
+      <div
+        class="notification-sheet"
+        :class="{ 'notification-sheet--dragging': dragging }"
+        :style="sheetDragStyle"
+        @pointerdown="onSheetPointerDown"
+        @pointermove="onSheetPointerMove"
+        @pointerup="onSheetPointerUp"
+        @pointercancel="onSheetPointerUp"
+        @click.capture="onSheetClickCapture"
+      >
         <div class="notification-sheet-handle" />
         <header class="notification-header">
           <div class="header-left">
@@ -258,7 +380,7 @@ function handleNotificationClick(notification) {
             <p class="state-lead">{{ t('notifications.emptyLead') }}</p>
           </div>
 
-          <div v-else class="notification-list">
+          <div v-else ref="listEl" class="notification-list">
             <NotificationListItem
               v-for="notification in notifications"
               :key="notification._id"
@@ -388,11 +510,26 @@ function handleNotificationClick(notification) {
   overflow: hidden;
 }
 
+.notification-sheet--dragging {
+  touch-action: none;
+  user-select: none;
+}
+
 .notification-sheet-handle {
+  width: 100%;
+  height: 24px;
+  margin: 0;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+}
+
+.notification-sheet-handle::after {
+  content: '';
   width: 40px;
   height: 4px;
-  margin: 10px auto 0;
-  flex-shrink: 0;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.18);
 }
@@ -402,9 +539,10 @@ function handleNotificationClick(notification) {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  padding: 18px 16px 14px;
+  padding: 10px 16px 14px;
   border-bottom: 1px solid var(--home-border, rgba(255, 255, 255, 0.08));
   flex-shrink: 0;
+  touch-action: none;
 }
 
 .header-left {
@@ -472,6 +610,8 @@ function handleNotificationClick(notification) {
   padding: 8px 0;
   display: flex;
   flex-direction: column;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .state-block {
