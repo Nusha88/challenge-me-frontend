@@ -1,6 +1,7 @@
 <template>
   <v-app-bar
     class="app-bar-custom"
+    :class="{ 'app-bar-custom--installed': installedPwa }"
     elevation="0"
     :fixed="isMobileHeader"
     :height="barHeight"
@@ -143,6 +144,7 @@ import { useDemoStore } from '../../stores/demo'
 import { setLocale, SUPPORTED_LOCALES } from '../../i18n'
 import { APP_EVENTS, addAppEventListener, removeAppEventListener } from '../../utils/appEvents'
 import brandLogo from '../../assets/landing/brand-256.webp'
+import { isInstalledPwa } from '../../utils/appBadge'
 import StreakBadge from './StreakBadge.vue'
 import SparksShopDialog from './SparksShopDialog.vue'
 
@@ -179,6 +181,7 @@ const gainedDelta = ref('')
 
 /** Below md: fixed bar so Vuetify reserves top space on v-main. */
 const isMobileHeader = computed(() => !mdAndUp.value)
+const installedPwa = ref(false)
 const safeTop = ref(0)
 const barHeight = computed(() => (mdAndUp.value ? 64 : 56) + safeTop.value)
 
@@ -186,8 +189,8 @@ function readSafeTop() {
   if (typeof window === 'undefined') return 0
   const raw = getComputedStyle(document.documentElement).getPropertyValue('--safe-top')
   const fromVar = Number.parseFloat(raw)
-  if (Number.isFinite(fromVar) && fromVar > 0) return fromVar
-  return Number.parseFloat(getComputedStyle(document.documentElement).paddingTop) || 0
+  if (Number.isFinite(fromVar) && fromVar > 0) return Math.round(fromVar)
+  return Math.round(Number.parseFloat(getComputedStyle(document.documentElement).paddingTop) || 0)
 }
 
 function measureSafeTop() {
@@ -253,6 +256,7 @@ onMounted(() => {
   showShopHint.value = !hasOpenedShop()
   addAppEventListener(APP_EVENTS.SPARKS_SPENT, handleSparksSpent)
   addAppEventListener(APP_EVENTS.SPARKS_AWARDED, handleSparksAwarded)
+  installedPwa.value = isInstalledPwa()
   measureSafeTop()
   window.visualViewport?.addEventListener('resize', measureSafeTop)
   window.addEventListener('resize', measureSafeTop)
@@ -271,9 +275,13 @@ onBeforeUnmount(() => {
 <style scoped>
 .app-bar-custom {
   --app-header-height: 64px;
-  background: rgba(11, 13, 18, 0.82) !important;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  position: relative;
+  isolation: isolate;
+  background: rgba(11, 13, 18, 0.92) !important;
+  /* Blur lives on ::before so Login / Sign Up are not part of the filtered layer.
+     Chromium PWAs otherwise paint the toolbar text slightly soft. */
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   border-bottom: 1px solid var(--home-border, rgba(255, 255, 255, 0.08)) !important;
   color: var(--home-text, #f1f5f9) !important;
   max-width: min(100%, 100dvw) !important;
@@ -283,9 +291,43 @@ onBeforeUnmount(() => {
   min-height: calc(var(--app-header-height) + var(--safe-top, 0px)) !important;
 }
 
+.app-bar-custom::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
 .app-bar-custom :deep(.v-toolbar__content) {
+  position: relative;
+  z-index: 1;
   height: var(--app-header-height) !important;
   min-height: var(--app-header-height) !important;
+}
+
+.app-bar-custom--installed,
+.app-bar-custom--installed::before {
+  background: #0b0d12 !important;
+}
+
+.app-bar-custom--installed::before {
+  content: none;
+}
+
+@media (display-mode: standalone),
+       (display-mode: fullscreen),
+       (display-mode: minimal-ui) {
+  .app-bar-custom,
+  .app-bar-custom::before {
+    background: #0b0d12 !important;
+  }
+
+  .app-bar-custom::before {
+    content: none;
+  }
 }
 
 /*
