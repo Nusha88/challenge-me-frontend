@@ -34,8 +34,18 @@
   --color-text: var(--vt-c-text-light-1);
 
   --section-gap: 160px;
+  --safe-top: 0px;
+  --safe-top: constant(safe-area-inset-top);
   --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: 0px;
+  --safe-bottom: constant(safe-area-inset-bottom);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: 0px;
+  --safe-left: constant(safe-area-inset-left);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: 0px;
+  --safe-right: constant(safe-area-inset-right);
+  --safe-right: env(safe-area-inset-right, 0px);
 }
 
 @media (prefers-color-scheme: dark) {

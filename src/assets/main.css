@@ -15,11 +15,13 @@
 html {
   overflow-x: hidden;
   max-width: 100%;
-  max-width: 100dvw;
+  /* Cap inflated iOS layout viewports without using raw 100dvw as a width —
+     in a desktop PWA window dvw can be the screen, not the window. */
+  max-width: min(100%, 100dvw);
 }
 
 .v-overlay {
-  max-width: 100dvw;
+  max-width: min(100%, 100dvw);
 }
 
 .v-overlay__content {
@@ -28,7 +30,7 @@ html {
 
 .v-application,
 .v-application__wrap {
-  max-width: 100dvw;
+  max-width: min(100%, 100dvw);
 }
 
 #app {

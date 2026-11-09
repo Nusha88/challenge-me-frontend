@@ -126,8 +126,8 @@ const inviteAriaLabel = computed(() =>
 <style scoped>
 .header-actions {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: max(12px, var(--safe-top, 0px));
+  right: max(12px, var(--safe-right, 0px));
   z-index: 2;
   display: flex;
   gap: 4px;

@@ -651,15 +651,15 @@
   color: var(--home-text, #f1f5f9) !important;
   border: 1px solid var(--home-border, rgba(255, 255, 255, 0.08));
   /* Keep chrome (header/tabs/footer) from being crushed by scrollable dialog flex. */
-  max-width: 100dvw;
+  max-width: min(100%, 100dvw);
   max-height: calc(100vh - 48px);
   max-height: calc(100dvh - 48px);
 }
 
 .challenge-details-card.is-fullscreen {
   border-radius: 0 !important;
-  width: 100dvw;
-  max-width: 100dvw;
+  width: 100%;
+  max-width: min(100%, 100dvw);
   height: 100vh;
   height: 100dvh;
   max-height: 100vh;

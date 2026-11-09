@@ -4,9 +4,9 @@
   "description": "Create, join, and conquer challenges together.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#1FA0F6",
-  "orientation": "portrait-primary",
+  "background_color": "#0b0d12",
+  "theme_color": "#1a1e2e",
+  "orientation": "any",
   "icons": [
     {
       "src": "/icons/android/android-launchericon-48-48.png",

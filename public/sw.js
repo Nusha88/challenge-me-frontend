@@ -1,10 +1,9 @@
 // Service Worker for Push Notifications and minimal static caching
 // Bump version to invalidate old caches on deploy
-const CACHE_NAME = 'challengeme-v2';
+const CACHE_NAME = 'challengeme-v3';
 const urlsToCache = [
-  // Do not cache "/" to avoid serving stale index.html after deploys
-  '/icons/icon2.png',
-  '/manifest.json'
+  // Do not cache "/" or the manifest — both must pick up PWA display/safe-area changes.
+  '/icons/icon2.png'
 ];
 
 // Install event - cache resources
@@ -46,7 +45,7 @@ self.addEventListener('fetch', (event) => {
   }
   
   // Always fetch documents (HTML) from network to avoid stale pages
-  if (event.request.destination === 'document') {
+  if (event.request.destination === 'document' || url.pathname === '/manifest.json') {
     event.respondWith(fetch(event.request));
     return;
   }

@@ -1,5 +1,10 @@
 <template>
-  <v-app-bar class="app-bar-custom" elevation="0" :fixed="isMobileHeader">
+  <v-app-bar
+    class="app-bar-custom"
+    elevation="0"
+    :fixed="isMobileHeader"
+    :height="barHeight"
+  >
     <div class="header-content-wrapper" :class="{ 'header-content-wrapper--guest': !showAppUserChrome }">
       <div class="header-section header-left">
         <v-app-bar-nav-icon
@@ -174,6 +179,20 @@ const gainedDelta = ref('')
 
 /** Below md: fixed bar so Vuetify reserves top space on v-main. */
 const isMobileHeader = computed(() => !mdAndUp.value)
+const safeTop = ref(0)
+const barHeight = computed(() => (mdAndUp.value ? 64 : 56) + safeTop.value)
+
+function readSafeTop() {
+  if (typeof window === 'undefined') return 0
+  const raw = getComputedStyle(document.documentElement).getPropertyValue('--safe-top')
+  const fromVar = Number.parseFloat(raw)
+  if (Number.isFinite(fromVar) && fromVar > 0) return fromVar
+  return Number.parseFloat(getComputedStyle(document.documentElement).paddingTop) || 0
+}
+
+function measureSafeTop() {
+  safeTop.value = readSafeTop()
+}
 const sparksCountClass = computed(() => ({
   'sparks-count--spent': sparksSpentAnimating.value,
   'sparks-count--gained': sparksGainedAnimating.value
@@ -234,35 +253,54 @@ onMounted(() => {
   showShopHint.value = !hasOpenedShop()
   addAppEventListener(APP_EVENTS.SPARKS_SPENT, handleSparksSpent)
   addAppEventListener(APP_EVENTS.SPARKS_AWARDED, handleSparksAwarded)
+  measureSafeTop()
+  window.visualViewport?.addEventListener('resize', measureSafeTop)
+  window.addEventListener('resize', measureSafeTop)
+  window.addEventListener('orientationchange', measureSafeTop)
 })
 
 onBeforeUnmount(() => {
   removeAppEventListener(APP_EVENTS.SPARKS_SPENT, handleSparksSpent)
   removeAppEventListener(APP_EVENTS.SPARKS_AWARDED, handleSparksAwarded)
+  window.visualViewport?.removeEventListener('resize', measureSafeTop)
+  window.removeEventListener('resize', measureSafeTop)
+  window.removeEventListener('orientationchange', measureSafeTop)
 })
 </script>
 
 <style scoped>
 .app-bar-custom {
+  --app-header-height: 64px;
   background: rgba(11, 13, 18, 0.82) !important;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--home-border, rgba(255, 255, 255, 0.08)) !important;
   color: var(--home-text, #f1f5f9) !important;
-  max-width: 100dvw !important;
+  max-width: min(100%, 100dvw) !important;
+  /* Standalone PWA / iOS home screen: black-translucent draws under the status bar. */
+  padding-top: var(--safe-top, 0px) !important;
+  height: calc(var(--app-header-height) + var(--safe-top, 0px)) !important;
+  min-height: calc(var(--app-header-height) + var(--safe-top, 0px)) !important;
+}
+
+.app-bar-custom :deep(.v-toolbar__content) {
+  height: var(--app-header-height) !important;
+  min-height: var(--app-header-height) !important;
 }
 
 /*
  * Vuetify writes an inline pixel width when the bar is `fixed`. After a shrink
  * that value can stay at the old desktop size, so Login / the menu icon sit
- * off-screen. Pin the bar to the viewport instead of the overflowing layout.
+ * off-screen. Pin with left/right instead of 100dvw (dvw can be the screen
+ * width inside a smaller installed PWA window).
  */
 @media (max-width: 959px) {
   .app-bar-custom {
+    --app-header-height: 56px;
     left: 0 !important;
     right: 0 !important;
-    width: 100% !important;
-    max-width: 100dvw !important;
+    width: auto !important;
+    max-width: none !important;
   }
 }
 
@@ -271,7 +309,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 0 16px;
+  padding: 0 max(16px, var(--safe-right, 0px)) 0 max(16px, var(--safe-left, 0px));
   gap: 16px;
 }
 
@@ -583,7 +621,8 @@ onBeforeUnmount(() => {
     overflow-x: auto;
     overflow-y: hidden;
     gap: 0.25em;
-    min-height: 56px;
+    height: var(--app-header-height) !important;
+    min-height: var(--app-header-height) !important;
     align-items: center;
   }
 
