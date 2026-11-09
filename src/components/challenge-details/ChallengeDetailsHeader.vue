@@ -85,7 +85,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useDisplay } from 'vuetify'
+import { useVisualViewport } from '../../composables/useVisualViewport'
 import { CHALLENGE_TYPES } from '../../constants/challengeTypes'
 import { isChallengeUpcoming } from '../../utils/challengeStatus'
 
@@ -103,7 +103,7 @@ const props = defineProps({
 defineEmits(['edit', 'invite', 'invite-squad', 'close'])
 
 const { t } = useI18n()
-const { smAndDown } = useDisplay()
+const { smAndDown } = useVisualViewport()
 const isHabit = computed(() => props.challenge.challengeType === CHALLENGE_TYPES.HABIT)
 const isUpcoming = computed(() => isChallengeUpcoming(props.challenge))
 const upcomingChipLabel = computed(() =>

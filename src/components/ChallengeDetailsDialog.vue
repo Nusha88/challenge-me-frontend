@@ -651,12 +651,15 @@
   color: var(--home-text, #f1f5f9) !important;
   border: 1px solid var(--home-border, rgba(255, 255, 255, 0.08));
   /* Keep chrome (header/tabs/footer) from being crushed by scrollable dialog flex. */
+  max-width: 100dvw;
   max-height: calc(100vh - 48px);
   max-height: calc(100dvh - 48px);
 }
 
 .challenge-details-card.is-fullscreen {
   border-radius: 0 !important;
+  width: 100dvw;
+  max-width: 100dvw;
   height: 100vh;
   height: 100dvh;
   max-height: 100vh;
@@ -1423,7 +1426,7 @@
 import {computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
-import { useDisplay } from 'vuetify'
+import { useVisualViewport } from '../composables/useVisualViewport'
 import {useChallengeType} from '../composables/useChallengeType'
 import {useUserStore} from '../stores/user'
 import { useDemoMode } from '../composables/useDemoMode'
@@ -1614,7 +1617,7 @@ const editForm = reactive({
 })
 
 const { t, locale } = useI18n()
-const { width: displayWidth, smAndDown } = useDisplay()
+const { width: displayWidth, smAndDown } = useVisualViewport()
 const isPhoneDetails = computed(() => smAndDown.value)
 const isMobileCalendar = computed(() => displayWidth.value < 1200)
 const openCalendarTooltipDate = ref(null)

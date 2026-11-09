@@ -6,6 +6,31 @@
 @import './styles/landing.css';
 @import './styles/home.css';
 
+/*
+ * iPhone expands the layout viewport (often to 980px) if any child is wider
+ * than the screen. Then Vuetify treats the phone as a desktop: dialogs are
+ * 900px, close/edit sit off-canvas, and the whole UI looks zoomed in.
+ * dvw follows the visual viewport even when the layout viewport is inflated.
+ */
+html {
+  overflow-x: hidden;
+  max-width: 100%;
+  max-width: 100dvw;
+}
+
+.v-overlay {
+  max-width: 100dvw;
+}
+
+.v-overlay__content {
+  max-width: min(100%, 100dvw) !important;
+}
+
+.v-application,
+.v-application__wrap {
+  max-width: 100dvw;
+}
+
 #app {
   font-weight: normal;
 }

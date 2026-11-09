@@ -3,8 +3,7 @@
     <div class="header-content-wrapper" :class="{ 'header-content-wrapper--guest': !showAppUserChrome }">
       <div class="header-section header-left">
         <v-app-bar-nav-icon
-          v-if="showAppUserChrome"
-          class="d-md-none"
+          v-if="showAppUserChrome && !mdAndUp"
           @click.stop="$emit('toggle-drawer')"
         ></v-app-bar-nav-icon>
         <StreakBadge
@@ -133,7 +132,7 @@
 import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { useDisplay } from 'vuetify'
+import { useVisualViewport } from '../../composables/useVisualViewport'
 import { useUserStore } from '../../stores/user'
 import { useDemoStore } from '../../stores/demo'
 import { setLocale, SUPPORTED_LOCALES } from '../../i18n'
@@ -157,7 +156,7 @@ defineEmits(['toggle-drawer', 'open-notifications'])
 
 const route = useRoute()
 const { t, locale } = useI18n()
-const { mdAndUp } = useDisplay()
+const { mdAndUp } = useVisualViewport()
 const userStore = useUserStore()
 const demoStore = useDemoStore()
 const showAppUserChrome = computed(() => props.isLoggedIn || props.isDemoMode)
@@ -250,6 +249,7 @@ onBeforeUnmount(() => {
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--home-border, rgba(255, 255, 255, 0.08)) !important;
   color: var(--home-text, #f1f5f9) !important;
+  max-width: 100dvw !important;
 }
 
 /*
@@ -262,7 +262,7 @@ onBeforeUnmount(() => {
     left: 0 !important;
     right: 0 !important;
     width: 100% !important;
-    max-width: 100% !important;
+    max-width: 100dvw !important;
   }
 }
 

@@ -29,7 +29,7 @@
 
 <script setup>
 import { computed, watch } from 'vue'
-import { useDisplay } from 'vuetify'
+import { useVisualViewport } from '../../composables/useVisualViewport'
 import AppSidebarContent from './AppSidebarContent.vue'
 import { useSidebarUser } from '../../composables/useSidebarUser'
 
@@ -45,7 +45,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:drawerOpen', 'profile', 'logout'])
 
-const { mdAndUp, lgAndUp } = useDisplay()
+const { mdAndUp, lgAndUp } = useVisualViewport()
 const { sidebarContentProps } = useSidebarUser()
 
 const drawerWidth = computed(() => {
