@@ -183,11 +183,18 @@ const safeTop = ref(0)
 const barHeight = computed(() => (mdAndUp.value ? 64 : 56) + safeTop.value)
 
 function readSafeTop() {
-  if (typeof window === 'undefined') return 0
-  const raw = getComputedStyle(document.documentElement).getPropertyValue('--safe-top')
-  const fromVar = Number.parseFloat(raw)
-  if (Number.isFinite(fromVar) && fromVar > 0) return Math.round(fromVar)
-  return Math.round(Number.parseFloat(getComputedStyle(document.documentElement).paddingTop) || 0)
+  if (typeof document === 'undefined') return 0
+  const probe = document.createElement('div')
+  probe.style.cssText = [
+    'position:absolute',
+    'visibility:hidden',
+    'pointer-events:none',
+    'padding-top:max(env(safe-area-inset-top, 0px), env(titlebar-area-height, 0px))'
+  ].join(';')
+  document.body.appendChild(probe)
+  const value = Math.round(Number.parseFloat(getComputedStyle(probe).paddingTop) || 0)
+  probe.remove()
+  return value
 }
 
 function measureSafeTop() {
@@ -254,16 +261,12 @@ onMounted(() => {
   addAppEventListener(APP_EVENTS.SPARKS_SPENT, handleSparksSpent)
   addAppEventListener(APP_EVENTS.SPARKS_AWARDED, handleSparksAwarded)
   measureSafeTop()
-  window.visualViewport?.addEventListener('resize', measureSafeTop)
-  window.addEventListener('resize', measureSafeTop)
   window.addEventListener('orientationchange', measureSafeTop)
 })
 
 onBeforeUnmount(() => {
   removeAppEventListener(APP_EVENTS.SPARKS_SPENT, handleSparksSpent)
   removeAppEventListener(APP_EVENTS.SPARKS_AWARDED, handleSparksAwarded)
-  window.visualViewport?.removeEventListener('resize', measureSafeTop)
-  window.removeEventListener('resize', measureSafeTop)
   window.removeEventListener('orientationchange', measureSafeTop)
 })
 </script>
@@ -288,11 +291,14 @@ onBeforeUnmount(() => {
   padding-top: var(--safe-top, 0px) !important;
   height: calc(var(--app-header-height) + var(--safe-top, 0px)) !important;
   min-height: calc(var(--app-header-height) + var(--safe-top, 0px)) !important;
+  /* Covers iOS overscroll so Today cards cannot peek above the bar. */
+  box-shadow: 0 -48px 0 0 #0b0d12 !important;
 }
 
 .app-bar-custom :deep(.v-toolbar__content) {
   height: var(--app-header-height) !important;
   min-height: var(--app-header-height) !important;
+  background-color: #0b0d12 !important;
 }
 
 .app-bar-custom :deep(.v-toolbar__overlay),

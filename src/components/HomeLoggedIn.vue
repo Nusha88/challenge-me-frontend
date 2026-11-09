@@ -891,12 +891,13 @@ watch(
 }
 
 .home-logged-in-container :deep(.v-window) {
-  overflow: visible;
+  overflow: hidden;
 }
 
 .home-logged-in-container :deep(.v-window__container) {
   height: auto !important;
-  overflow: visible;
+  overflow: hidden;
+  transform: none !important;
 }
 
 .home-logged-in-container :deep(.v-window),
