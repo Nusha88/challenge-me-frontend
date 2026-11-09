@@ -448,6 +448,8 @@ watch(
 
 .v-application {
   background-color: transparent !important;
+  max-width: 100%;
+  overflow-x: clip;
 }
 
 /*
@@ -457,6 +459,9 @@ watch(
 .main-content {
   min-height: auto;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: clip;
   background-color: transparent;
   border-radius: 0;
 }
@@ -481,7 +486,7 @@ watch(
   margin: 0 !important;
   height: 100vh !important;
   height: 100dvh !important;
-  width: 100vw !important;
+  width: 100% !important;
   overflow: hidden !important;
   display: flex;
   align-items: center;

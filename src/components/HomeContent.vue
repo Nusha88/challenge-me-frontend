@@ -51,6 +51,8 @@ useScrollDepth()
 <style scoped>
 .landing-page {
   position: relative;
+  width: 100%;
+  max-width: 100%;
   min-height: 100vh;
   background-color: #0b0d12;
   color: #f1f5f9;

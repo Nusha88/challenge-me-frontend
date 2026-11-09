@@ -48,7 +48,8 @@
 
 .lp-shell {
   width: 100%;
-  max-width: var(--lp-shell);
+  max-width: min(var(--lp-shell), 100%);
+  min-width: 0;
   margin: 0 auto;
   padding-inline: var(--lp-gutter);
   box-sizing: border-box;

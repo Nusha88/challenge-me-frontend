@@ -13,7 +13,9 @@ html, body {
   margin: 0;
   padding: 0;
   width: 100%;
+  max-width: 100%;
   height: 100%;
+  overflow-x: hidden;
   /* Глубокий «космический» фон */
   background-color: #0b0d12 !important; 
   color: #ffffff;
@@ -31,10 +33,14 @@ body::before {
   z-index: 0;
 }
 
+.app-dark-wrapper,
 #app {
   background: transparent !important;
   position: relative;
   z-index: 1;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
 }
 
 @media (min-width: 960px) {

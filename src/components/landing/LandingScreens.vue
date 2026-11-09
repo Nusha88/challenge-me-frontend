@@ -26,8 +26,6 @@
             src="data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA="
             :alt="t('home.landing.screens.alt')"
             class="screens-image"
-            :width="screenshot.width"
-            :height="screenshot.height"
             loading="lazy"
             decoding="async"
           />
@@ -59,9 +57,12 @@ const screenshot = computed(() => SCREENSHOTS[locale.value] ?? SCREENSHOTS.en)
   }
 }
 
-.screens-figure {
+.screens-figure,
+.screens-figure picture {
   margin: 0;
   position: relative;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .screens-figure::after {
@@ -77,6 +78,8 @@ const screenshot = computed(() => SCREENSHOTS[locale.value] ?? SCREENSHOTS.en)
 .screens-image {
   display: block;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   height: auto;
   border-radius: clamp(12px, 1.6vw, 18px);
   border: 1px solid rgba(79, 209, 197, 0.32);
