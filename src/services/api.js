@@ -190,6 +190,9 @@ export const userService = {
   getUserById: (userId) => {
     return api.get(`/auth/users/${userId}`)
   },
+  deleteAccount: () => {
+    return api.delete('/auth/account')
+  },
   getAdminOverview: () => {
     return api.get('/admin/overview')
   },

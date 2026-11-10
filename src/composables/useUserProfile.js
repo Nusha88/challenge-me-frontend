@@ -132,7 +132,7 @@ export function useUserProfile(props = {}) {
       const response = await userService.getUserById(targetUserId.value)
       if (response.data?.user) {
         user.value = response.data.user
-        checklistHistory.value = response.data.user.checklistHistory || []
+        checklistHistory.value = []
       } else {
         error.value = t('users.userNotFound')
       }

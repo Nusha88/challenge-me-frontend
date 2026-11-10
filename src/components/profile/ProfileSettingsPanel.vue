@@ -224,17 +224,49 @@
       {{ alert.message }}
     </v-alert>
 
+    <div v-if="!isDemoMode" class="setting-row setting-row--danger">
+      <div class="setting-copy">
+        <span class="setting-label">{{ t('profile.deleteAccount') }}</span>
+        <span class="setting-hint">{{ t('profile.deleteAccountHint') }}</span>
+      </div>
+      <v-btn
+        variant="outlined"
+        color="#FF5252"
+        size="small"
+        class="rounded-lg text-none"
+        :disabled="deletingAccount"
+        @click="deleteConfirmOpen = true"
+      >
+        {{ t('profile.deleteAccount') }}
+      </v-btn>
+    </div>
+
     <InstallAppInstructionModal v-model="installInstructionOpen" />
+    <DeleteChallengeDialog
+      v-model="deleteConfirmOpen"
+      :loading="deletingAccount"
+      :error="deleteAccountError"
+      :title="t('profile.deleteAccountConfirmTitle')"
+      :message="t('profile.deleteAccountConfirmMessage')"
+      :confirm-label="t('profile.deleteAccountConfirmAction')"
+      @confirm="confirmDeleteAccount"
+    />
   </section>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { SUPPORTED_LOCALES, setLocale } from '../../i18n'
 import { userService, pushService, authService } from '../../services/api'
 import { useUserStore } from '../../stores/user'
+import { useDemoStore } from '../../stores/demo'
+import { useWatchedChallengesStore } from '../../stores/watchedChallenges'
+import { APP_EVENTS, dispatchAppEvent } from '../../utils/appEvents'
+import { clearAppBadge } from '../../utils/appBadge'
 import SocialAuthButtons from '../auth/SocialAuthButtons.vue'
+import DeleteChallengeDialog from '../challenge-form/DeleteChallengeDialog.vue'
 import {
   getNotificationPermission,
   requestAndSubscribeToPushNotifications,
@@ -244,8 +276,11 @@ import {
 import InstallAppInstructionModal from '../InstallAppInstructionModal.vue'
 
 const { t, locale } = useI18n()
+const router = useRouter()
 const userStore = useUserStore()
+const demoStore = useDemoStore()
 const availableLocales = SUPPORTED_LOCALES
+const isDemoMode = computed(() => demoStore.isDemoMode)
 
 const currentLocale = computed(() => locale.value)
 const currentLocaleLabel = computed(
@@ -272,6 +307,9 @@ const emailSaving = ref(false)
 const emailError = ref('')
 const emailSuccess = ref('')
 const installInstructionOpen = ref(false)
+const deleteConfirmOpen = ref(false)
+const deletingAccount = ref(false)
+const deleteAccountError = ref('')
 const recapTimeInputRef = ref(null)
 const telegramAvailable = ref(false)
 const telegramLinked = ref(false)
@@ -523,6 +561,30 @@ async function handleWeeklyChronicleToggle(value) {
   await saveWeeklyChronicleSettings()
 }
 
+async function confirmDeleteAccount() {
+  if (deletingAccount.value) return
+  deletingAccount.value = true
+  deleteAccountError.value = ''
+  try {
+    try {
+      await unsubscribeFromPushNotifications()
+    } catch {
+      // Server-side delete still clears the stored subscription.
+    }
+    await userService.deleteAccount()
+    deleteConfirmOpen.value = false
+    useWatchedChallengesStore().clear()
+    userStore.clearUser()
+    clearAppBadge()
+    dispatchAppEvent(APP_EVENTS.AUTH_CHANGED)
+    router.push('/')
+  } catch {
+    deleteAccountError.value = t('profile.deleteAccountError')
+  } finally {
+    deletingAccount.value = false
+  }
+}
+
 async function checkPushNotificationStatus() {
   try {
     pushNotificationStatus.value = getNotificationPermission()
@@ -668,6 +730,10 @@ onMounted(() => {
 .setting-row--stack {
   align-items: flex-start;
   flex-direction: column;
+}
+
+.setting-row--danger {
+  border-bottom: none;
 }
 
 .linked-accounts {
