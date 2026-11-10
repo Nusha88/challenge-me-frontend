@@ -1,5 +1,8 @@
 export const MAX_CAMPAIGN_GUESTS = 7
 export const OWNED_BLOCKING_STATUSES = ['draft', 'open', 'active']
+export const EXTRA_SHARED_MAX = 1
+export const EXTRA_PERSONAL_MAX = 1
+export const EXTRA_SLOT_COST = 50
 
 export function isOwnedBlockingCampaign(campaign, userId) {
   if (!campaign || !userId) return false
@@ -27,6 +30,52 @@ export function hasSharedSlot(campaign) {
 
 export function hasBothSlots(campaign) {
   return hasSharedSlot(campaign) && hasPersonalTemplate(campaign)
+}
+
+export function extraSharedSlots(campaign) {
+  return (campaign?.extraSharedChallengeIds || []).filter((item) => campaignIdOf(item))
+}
+
+export function extraPersonalTemplates(campaign) {
+  return (campaign?.extraPersonalTemplates || []).filter((template) => (
+    Boolean(String(template?.title || '').trim())
+  ))
+}
+
+export function canAddExtraShared(campaign) {
+  return hasSharedSlot(campaign) && extraSharedSlots(campaign).length < EXTRA_SHARED_MAX
+}
+
+export function canAddExtraPersonal(campaign) {
+  return hasPersonalTemplate(campaign) && extraPersonalTemplates(campaign).length < EXTRA_PERSONAL_MAX
+}
+
+export function isExtraCampaignSlot(campaign, slot) {
+  if (slot === 'shared') return hasSharedSlot(campaign)
+  if (slot === 'personal') return hasPersonalTemplate(campaign)
+  return false
+}
+
+export function extraSlotUnlocked(campaign, slot) {
+  if (slot === 'shared') return Boolean(campaign?.extraSharedUnlocked)
+  if (slot === 'personal') return Boolean(campaign?.extraPersonalUnlocked)
+  return false
+}
+
+export function canAffordExtraSlot(campaign, slot, sparks) {
+  return extraSlotUnlocked(campaign, slot) || Number(sparks || 0) >= EXTRA_SLOT_COST
+}
+
+export function extraPersonalMissionId(campaign, template, userId, { isOwner = false } = {}) {
+  const sourceId = campaignIdOf(template?.challengeId)
+  const clones = campaign?.personalClones || []
+  const mine = clones.find((row) => (
+    campaignIdOf(row.userId) === String(userId || '')
+    && campaignIdOf(row.sourceChallengeId) === sourceId
+  ))
+  if (mine) return campaignIdOf(mine.challengeId)
+  if (isOwner) return sourceId
+  return ''
 }
 
 export function isPersonalTemplate(challenge) {

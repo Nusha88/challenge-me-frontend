@@ -16,6 +16,7 @@
       :mobile="!mdAndUp"
       :display-streak-days="displayStreakDays"
       :yesterday-streak-days="yesterdayStreakDays"
+      :streak-status="streakStatus"
       :has-today-completed-tasks="hasTodayCompletedTasks"
       :streak-days-text="streakDaysText"
       :show-streak="showStreak"
@@ -37,6 +38,7 @@ const props = defineProps({
   drawerOpen: { type: Boolean, default: false },
   displayStreakDays: { type: Number, default: 0 },
   yesterdayStreakDays: { type: Number, default: 0 },
+  streakStatus: { type: String, default: 'live' },
   hasTodayCompletedTasks: { type: Boolean, default: false },
   streakDaysText: { type: String, default: '' },
   showStreak: { type: Boolean, default: false },

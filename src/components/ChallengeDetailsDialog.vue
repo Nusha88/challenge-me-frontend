@@ -651,7 +651,7 @@
   color: var(--home-text, #f1f5f9) !important;
   border: 1px solid var(--home-border, rgba(255, 255, 255, 0.08));
   /* Keep chrome (header/tabs/footer) from being crushed by scrollable dialog flex. */
-  max-width: min(100%, 100dvw);
+  max-width: 100%;
   max-height: calc(100vh - 48px);
   max-height: calc(100dvh - 48px);
 }
@@ -659,7 +659,7 @@
 .challenge-details-card.is-fullscreen {
   border-radius: 0 !important;
   width: 100%;
-  max-width: min(100%, 100dvw);
+  max-width: 100%;
   height: 100vh;
   height: 100dvh;
   max-height: 100vh;
@@ -1283,14 +1283,13 @@
 }
 
 .day-cell.is-missed:not(.is-completed):not(.protected-day):not(.is-pre-join) {
-  background: rgba(255, 82, 82, 0.06) !important;
-  border: 1px solid rgba(255, 82, 82, 0.28) !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
   color: rgba(255, 255, 255, 0.42);
 }
 
 .day-cell.is-missed:not(.is-completed):not(.protected-day) .day-number {
-  text-decoration: line-through;
-  opacity: 0.75;
+  opacity: 0.55;
 }
 
 .day-cell.is-pre-join {

@@ -14,7 +14,8 @@
         :class="streakHeatClass"
       >
         <i class="mdi mdi-fire" aria-hidden="true"></i>
-        <span>{{ streakLabel }} {{ streakDaysText }}</span>
+        <span>{{ displayStreakDays }} {{ streakDaysText }}</span>
+        <span v-if="statusLabel" class="streak-ember-status">· {{ statusLabel }}</span>
       </div>
     </div>
 
@@ -42,7 +43,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useDisplay } from 'vuetify'
 import RankedAvatar from '../user/RankedAvatar.vue'
-import { getStreakHeatTier } from '../../utils/streakUtils'
+import { STREAK_STATUS, getStreakHeatTier } from '../../utils/streakUtils'
 
 const props = defineProps({
   userName: { type: String, default: '' },
@@ -51,6 +52,7 @@ const props = defineProps({
   motivationalMessageCompleted: { type: String, default: '' },
   displayStreakDays: { type: Number, default: 0 },
   yesterdayStreakDays: { type: Number, default: 0 },
+  streakStatus: { type: String, default: STREAK_STATUS.LIVE },
   streakDaysText: { type: String, default: '' },
   avatarUrl: { type: String, default: '' },
   userSeed: { type: [String, Number], default: '' },
@@ -71,24 +73,20 @@ const initials = computed(() => {
   return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
 })
 
-const showMobileStreak = computed(() => {
-  return props.yesterdayStreakDays > 0 || props.displayStreakDays > 0
-})
+const showMobileStreak = computed(() => props.displayStreakDays > 0)
 
-const isYesterdayStreak = computed(() => {
-  return !props.hasTodayCompletedTasks && props.yesterdayStreakDays > 0
-})
-
-const streakLabel = computed(() => {
-  if (isYesterdayStreak.value) return props.yesterdayStreakDays
-  return props.displayStreakDays
+const statusLabel = computed(() => {
+  if (props.streakStatus === STREAK_STATUS.PAUSED) return t('navigation.streakPaused')
+  if (props.streakStatus === STREAK_STATUS.COOLED) return t('navigation.streakCooled')
+  return ''
 })
 
 const streakHeatClass = computed(() => {
-  const tier = getStreakHeatTier(streakLabel.value)
+  const tier = getStreakHeatTier(props.displayStreakDays, props.streakStatus)
   return {
-    'streak-ember--yesterday': isYesterdayStreak.value,
-    'streak-ember--pulse': !isYesterdayStreak.value && tier >= 7,
+    'streak-ember--paused': props.streakStatus === STREAK_STATUS.PAUSED,
+    'streak-ember--cooled': props.streakStatus === STREAK_STATUS.COOLED,
+    'streak-ember--pulse': props.streakStatus === STREAK_STATUS.LIVE && tier >= 7,
     [`streak-ember--heat-${tier}`]: tier > 0
   }
 })
@@ -197,15 +195,18 @@ const streakHeatClass = computed(() => {
   animation: streak-fire-pulse 1.6s ease-in-out infinite;
 }
 
-.streak-ember--yesterday {
-  opacity: 0.7;
-  filter: saturate(0.55);
-  box-shadow: none;
-  animation: none;
+.streak-ember-status {
+  font-weight: 700;
+  opacity: 0.78;
 }
 
-.streak-ember--yesterday .mdi-fire {
-  animation: none;
+.streak-ember--paused,
+.streak-ember--cooled {
+  box-shadow: none;
+}
+
+.streak-ember--cooled {
+  opacity: 0.88;
 }
 
 @keyframes streak-fire-pulse {

@@ -70,6 +70,7 @@ const push = usePushNotifications()
 const {
   displayStreakDays,
   yesterdayStreakDays,
+  streakStatus,
   hasTodayCompletedTasks,
   auraDimmed,
   streakDaysText,
@@ -298,6 +299,7 @@ watch(
       :unread-count="unreadNotificationCount"
       :display-streak-days="displayStreakDays"
       :yesterday-streak-days="yesterdayStreakDays"
+      :streak-status="streakStatus"
       :has-today-completed-tasks="hasTodayCompletedTasks"
       :streak-days-text="streakDaysText"
       :show-streak="showStreak && (isLoggedIn || isDemoMode)"
@@ -310,6 +312,7 @@ watch(
       :drawer-open="drawerOpen"
       :display-streak-days="displayStreakDays"
       :yesterday-streak-days="yesterdayStreakDays"
+      :streak-status="streakStatus"
       :has-today-completed-tasks="hasTodayCompletedTasks"
       :streak-days-text="streakDaysText"
       :show-streak="showStreak && (isLoggedIn || isDemoMode)"

@@ -75,20 +75,30 @@
               </v-alert>
 
               <div class="create-button-wrapper create-button-wrapper--desktop">
-                <v-btn
-                  type="submit"
-                  size="large"
-                  :loading="loading"
-                  :disabled="loading"
-                  class="create-mission-btn app-cta-primary"
-                  :class="{
-                    'disabled-grayscale': !isFormValid,
-                    'create-mission-btn--ready': isFormValid && !loading
-                  }"
-                  :aria-disabled="!isFormValid || loading"
+                <v-tooltip
+                  :text="t('sparks.rituals.insufficientSparks')"
+                  :disabled="!extraSlotBlocked"
+                  location="top"
                 >
-                  {{ createButtonText }}
-                </v-btn>
+                  <template #activator="{ props: tooltipProps }">
+                    <span v-bind="tooltipProps" class="create-btn-wrap">
+                      <v-btn
+                        type="submit"
+                        size="large"
+                        :loading="loading"
+                        :disabled="loading || extraSlotBlocked"
+                        class="create-mission-btn app-cta-primary"
+                        :class="{
+                          'disabled-grayscale': !isFormValid || extraSlotBlocked,
+                          'create-mission-btn--ready': isFormValid && !loading && !extraSlotBlocked
+                        }"
+                        :aria-disabled="!isFormValid || loading || extraSlotBlocked"
+                      >
+                        {{ createButtonText }}
+                      </v-btn>
+                    </span>
+                  </template>
+                </v-tooltip>
               </div>
             </div>
           </v-col>
@@ -104,22 +114,32 @@
     </div>
 
     <div class="launch-sticky-cta">
-      <v-btn
-        type="button"
-        size="large"
-        block
-        :loading="loading"
-        :disabled="loading"
-        class="create-mission-btn app-cta-primary"
-        :class="{
-          'disabled-grayscale': !isFormValid,
-          'create-mission-btn--ready': isFormValid && !loading
-        }"
-        :aria-disabled="!isFormValid || loading"
-        @click="handleSubmit"
+      <v-tooltip
+        :text="t('sparks.rituals.insufficientSparks')"
+        :disabled="!extraSlotBlocked"
+        location="top"
       >
-        {{ createButtonText }}
-      </v-btn>
+        <template #activator="{ props: tooltipProps }">
+          <span v-bind="tooltipProps" class="create-btn-wrap create-btn-wrap--block">
+            <v-btn
+              type="button"
+              size="large"
+              block
+              :loading="loading"
+              :disabled="loading || extraSlotBlocked"
+              class="create-mission-btn app-cta-primary"
+              :class="{
+                'disabled-grayscale': !isFormValid || extraSlotBlocked,
+                'create-mission-btn--ready': isFormValid && !loading && !extraSlotBlocked
+              }"
+              :aria-disabled="!isFormValid || loading || extraSlotBlocked"
+              @click="handleSubmit"
+            >
+              {{ createButtonText }}
+            </v-btn>
+          </span>
+        </template>
+      </v-tooltip>
     </div>
 
     <SuccessModal
@@ -168,6 +188,7 @@ const {
   campaignContext,
   createButtonText,
   isFormValid,
+  extraSlotBlocked,
   initFromRestartDraft,
   selectChallengeType,
   handleSubmit,
@@ -204,6 +225,15 @@ onMounted(() => {
 
 .create-button-wrapper--desktop {
   display: flex;
+}
+
+.create-btn-wrap {
+  display: inline-flex;
+}
+
+.create-btn-wrap--block {
+  display: block;
+  width: 100%;
 }
 
 .launch-sticky-cta {

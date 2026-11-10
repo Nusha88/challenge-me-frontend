@@ -4,6 +4,7 @@ import { challengeService } from '../services/api'
 import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
 import { getScheduledDaysCount, normalizeDateKey, toDateInputValue } from '../utils/dateUtils'
 import { getEffectiveCompletedDays } from '../utils/participantDays'
+import { resolveStreak } from '../utils/streakUtils'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 import { shouldTriggerHabitMissionCompletion } from '../utils/missionParticipation'
 import { useMissionCompletionFlow } from './useMissionCompletionFlow'
@@ -108,34 +109,8 @@ export function useChallengeCardProgress(props, emit) {
   })
 
   const streakDays = computed(() => {
-    if (!isHabitType.value) return 0
-    if (!currentUserParticipant.value) return 0
-
-    const completedDates = currentUserCompletedDateSet.value
-    const todayStr = toDateInputValue(new Date())
-
-    const startDate = new Date()
-    startDate.setHours(0, 0, 0, 0)
-
-    if (!completedDates.has(todayStr)) {
-      startDate.setDate(startDate.getDate() - 1)
-    }
-
-    let streak = 0
-    const currentDate = new Date(startDate)
-
-    for (let i = 0; i < 365; i++) {
-      const dateStr = toDateInputValue(currentDate)
-
-      if (!completedDates.has(dateStr)) {
-        break
-      }
-
-      streak++
-      currentDate.setDate(currentDate.getDate() - 1)
-    }
-
-    return streak
+    if (!isHabitType.value || !currentUserParticipant.value) return 0
+    return resolveStreak(currentUserCompletedDateSet.value).days
   })
 
   const isTodayCompleted = computed(() => {

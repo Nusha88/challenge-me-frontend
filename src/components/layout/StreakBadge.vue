@@ -5,35 +5,39 @@
     :class="heatClass"
   >
     <i class="mdi mdi-fire"></i>
-    <span>{{ displayDays }} {{ streakDaysText }}</span>
+    <span>{{ displayStreakDays }} {{ streakDaysText }}</span>
+    <span v-if="statusLabel" class="streak-status">· {{ statusLabel }}</span>
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue'
-import { getStreakHeatTier } from '../../utils/streakUtils'
+import { useI18n } from 'vue-i18n'
+import { STREAK_STATUS, getStreakHeatTier } from '../../utils/streakUtils'
 
 const props = defineProps({
   displayStreakDays: { type: Number, default: 0 },
   yesterdayStreakDays: { type: Number, default: 0 },
+  streakStatus: { type: String, default: STREAK_STATUS.LIVE },
   hasTodayCompletedTasks: { type: Boolean, default: false },
   streakDaysText: { type: String, default: '' },
   visible: { type: Boolean, default: false }
 })
 
-const isYesterdayStreak = computed(() => {
-  return !props.hasTodayCompletedTasks && props.yesterdayStreakDays > 0
-})
+const { t } = useI18n()
 
-const displayDays = computed(() => {
-  return isYesterdayStreak.value ? props.yesterdayStreakDays : props.displayStreakDays
+const statusLabel = computed(() => {
+  if (props.streakStatus === STREAK_STATUS.PAUSED) return t('navigation.streakPaused')
+  if (props.streakStatus === STREAK_STATUS.COOLED) return t('navigation.streakCooled')
+  return ''
 })
 
 const heatClass = computed(() => {
-  const tier = getStreakHeatTier(displayDays.value)
+  const tier = getStreakHeatTier(props.displayStreakDays, props.streakStatus)
   return {
-    'streak-yesterday': isYesterdayStreak.value,
-    'streak-pulse': !isYesterdayStreak.value && tier >= 7,
+    'streak-paused': props.streakStatus === STREAK_STATUS.PAUSED,
+    'streak-cooled': props.streakStatus === STREAK_STATUS.COOLED,
+    'streak-pulse': props.streakStatus === STREAK_STATUS.LIVE && tier >= 7,
     [`streak-heat-${tier}`]: tier > 0
   }
 })
@@ -55,6 +59,11 @@ const heatClass = computed(() => {
 .streak-button i {
   font-size: 20px;
   color: #ff6b35;
+}
+
+.streak-status {
+  font-weight: 700;
+  opacity: 0.78;
 }
 
 .streak-heat-1 {
@@ -99,14 +108,13 @@ const heatClass = computed(() => {
   animation: streak-fire-pulse 1.6s ease-in-out infinite;
 }
 
-.streak-yesterday {
-  filter: grayscale(0.8);
-  opacity: 0.7;
+.streak-paused,
+.streak-cooled {
   box-shadow: none;
 }
 
-.streak-yesterday i {
-  animation: none;
+.streak-cooled {
+  opacity: 0.88;
 }
 
 @keyframes streak-fire-pulse {

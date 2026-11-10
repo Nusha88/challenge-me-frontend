@@ -10,7 +10,12 @@ import { useAppEventListeners } from './useAppEvents'
 import { APP_EVENTS } from '../utils/appEvents'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 import { toDateInputValue } from '../utils/dateUtils'
-import { buildCompletedDateSet, calculateStreakFromDate, isAuraDimmed } from '../utils/streakUtils'
+import {
+  STREAK_STATUS,
+  buildCompletedDateSet,
+  resolveStreak,
+  isAuraDimmed
+} from '../utils/streakUtils'
 
 export function useUserStreak() {
   const route = useRoute()
@@ -19,6 +24,7 @@ export function useUserStreak() {
   const demoStore = useDemoStore()
 
   const streakDays = ref(0)
+  const streakStatus = ref(STREAK_STATUS.EMPTY)
   const yesterdayStreakDays = ref(0)
   const hasTodayCompletedTasks = ref(false)
   const auraDimmed = ref(false)
@@ -34,15 +40,13 @@ export function useUserStreak() {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
-    const yesterday = new Date(today)
-    yesterday.setDate(yesterday.getDate() - 1)
-    yesterday.setHours(0, 0, 0, 0)
-
     const todayStr = toDateInputValue(today)
+    const resolved = resolveStreak(completedDates, today)
 
     hasTodayCompletedTasks.value = completedDates.has(todayStr)
-    streakDays.value = calculateStreakFromDate(today, completedDates)
-    yesterdayStreakDays.value = calculateStreakFromDate(yesterday, completedDates)
+    streakDays.value = resolved.days
+    streakStatus.value = resolved.status
+    yesterdayStreakDays.value = resolved.days
     auraDimmed.value = isAuraDimmed(completedDates, today)
   }
 
@@ -103,20 +107,13 @@ export function useUserStreak() {
 
   function reset() {
     streakDays.value = 0
+    streakStatus.value = STREAK_STATUS.EMPTY
     yesterdayStreakDays.value = 0
     hasTodayCompletedTasks.value = false
     auraDimmed.value = false
   }
 
-  const displayStreakDays = computed(() => {
-    if (hasTodayCompletedTasks.value) {
-      return streakDays.value
-    }
-    if (yesterdayStreakDays.value > 0) {
-      return yesterdayStreakDays.value
-    }
-    return streakDays.value
-  })
+  const displayStreakDays = computed(() => streakDays.value)
 
   function getRussianDayWord(days) {
     if (locale.value !== 'ru') {
@@ -139,17 +136,9 @@ export function useUserStreak() {
     return 'дней подряд'
   }
 
-  const streakDaysText = computed(() => {
-    const days = (!hasTodayCompletedTasks.value && yesterdayStreakDays.value > 0)
-      ? yesterdayStreakDays.value
-      : displayStreakDays.value
-    return getRussianDayWord(days)
-  })
+  const streakDaysText = computed(() => getRussianDayWord(displayStreakDays.value))
 
-  const showStreak = computed(() => {
-    return displayStreakDays.value > 0
-      || (!hasTodayCompletedTasks.value && yesterdayStreakDays.value > 0)
-  })
+  const showStreak = computed(() => displayStreakDays.value > 0)
 
   function markTodayInStreak() {
     if (!lastStreakFetchAt) return
@@ -180,6 +169,7 @@ export function useUserStreak() {
 
   return {
     streakDays,
+    streakStatus,
     yesterdayStreakDays,
     hasTodayCompletedTasks,
     auraDimmed,

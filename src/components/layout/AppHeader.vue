@@ -15,6 +15,7 @@
           :visible="showAppUserChrome && showStreak"
           :display-streak-days="displayStreakDays"
           :yesterday-streak-days="yesterdayStreakDays"
+          :streak-status="streakStatus"
           :has-today-completed-tasks="hasTodayCompletedTasks"
           :streak-days-text="streakDaysText"
         />
@@ -152,6 +153,7 @@ const props = defineProps({
   unreadCount: { type: Number, default: 0 },
   displayStreakDays: { type: Number, default: 0 },
   yesterdayStreakDays: { type: Number, default: 0 },
+  streakStatus: { type: String, default: 'live' },
   hasTodayCompletedTasks: { type: Boolean, default: false },
   streakDaysText: { type: String, default: '' },
   showStreak: { type: Boolean, default: false }

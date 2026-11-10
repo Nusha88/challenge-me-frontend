@@ -13,6 +13,11 @@ import { useXpAwardFeedback } from './useXpAwardFeedback'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 import { APP_EVENTS, dispatchAppEvent } from '../utils/appEvents'
 import { clearMyMissionsListCache } from './useMyMissionsListCache'
+import {
+  EXTRA_SLOT_COST,
+  isExtraCampaignSlot,
+  extraSlotUnlocked
+} from '../utils/campaigns'
 
 const VALIDATION_FIELD_ORDER = ['title', 'description', 'actions', 'endDate', 'duration', 'frequency']
 
@@ -181,9 +186,30 @@ export function useChallengeCreateForm() {
 
   const isHabit = computed(() => form.value.challengeType === CHALLENGE_TYPES.HABIT)
 
+  const isPaidExtraSlot = computed(() => {
+    const ctx = campaignContext.value
+    if (!ctx?.campaign) return false
+    return isExtraCampaignSlot(ctx.campaign, ctx.slot)
+  })
+
+  const extraSlotBlocked = computed(() => {
+    const ctx = campaignContext.value
+    if (!isPaidExtraSlot.value || !ctx?.campaign) return false
+    if (extraSlotUnlocked(ctx.campaign, ctx.slot)) return false
+    return userStore.userSparks < EXTRA_SLOT_COST
+  })
+
   const createButtonText = computed(() => {
-    if (campaignContext.value?.slot === 'shared') return t('campaigns.addShared')
-    if (campaignContext.value?.slot === 'personal') return t('campaigns.addPersonal')
+    if (campaignContext.value?.slot === 'shared') {
+      return isPaidExtraSlot.value
+        ? t('campaigns.addExtraShared', { cost: EXTRA_SLOT_COST })
+        : t('campaigns.addShared')
+    }
+    if (campaignContext.value?.slot === 'personal') {
+      return isPaidExtraSlot.value
+        ? t('campaigns.addExtraPersonal', { cost: EXTRA_SLOT_COST })
+        : t('campaigns.addPersonal')
+    }
     return form.value.challengeType === CHALLENGE_TYPES.RESULT
       ? t('challenges.createResult')
       : t('challenges.createHabit')
@@ -523,6 +549,10 @@ export function useChallengeCreateForm() {
 
   async function handleCreateSuccess(response) {
     applyRewardResponse(response)
+    const sparksSpent = Number(response?.data?.sparksSpent || 0)
+    if (sparksSpent > 0) {
+      dispatchAppEvent(APP_EVENTS.SPARKS_SPENT, { spent: sparksSpent })
+    }
     const challengeId = getCreatedChallengeId(response)
     if (challengeId) {
       createdChallengeId.value = challengeId
@@ -560,10 +590,18 @@ export function useChallengeCreateForm() {
     if (import.meta.env.DEV) {
       console.error('Error creating challenge:', error)
     }
+    if (error.response?.data?.reason === 'insufficient_sparks') {
+      errorMessage.value = t('sparks.rituals.insufficientSparks')
+      return
+    }
     errorMessage.value = error.response?.data?.message || error.message || t('notifications.createError')
   }
 
   async function handleSubmit() {
+    if (extraSlotBlocked.value) {
+      errorMessage.value = t('sparks.rituals.insufficientSparks')
+      return
+    }
     if (!validate()) {
       validationToastOpen.value = true
       await scrollToFirstValidationError()
@@ -622,6 +660,7 @@ export function useChallengeCreateForm() {
     campaignContext,
     createButtonText,
     isFormValid,
+    extraSlotBlocked,
     initFromRestartDraft,
     selectChallengeType,
     handleSubmit,

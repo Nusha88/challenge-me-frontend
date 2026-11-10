@@ -33,6 +33,8 @@
     "today": "Today",
     "language": "Language",
     "streakDays": "days streak",
+    "streakPaused": "paused",
+    "streakCooled": "cooled",
     "level": "Lv",
     "rank": "Rank",
     "xp": "XP",
@@ -75,7 +77,7 @@
       "currentBalance": "Your balance: {count}",
       "usesTitle": "What you can use them for",
       "freezeDay": "Freeze day",
-      "freezeDayHint": "Save your streak when you miss a day",
+      "freezeDayHint": "Cover a missed ritual day",
       "secondChance": "Second chance",
       "secondChanceHint": "Recover a missed day in a mission",
       "customization": "Extension and mission upgrade",
@@ -97,7 +99,7 @@
         "delete": "Remove",
         "redeemedToast": "You earned this",
         "priceHintDays": "≈ {days} live days of Ignite",
-        "priceHintFreeze": "like one streak freeze",
+        "priceHintFreeze": "like covering one ritual day",
         "priceHintLiveDay": "Earnings for a perfect day: ~20 ✦",
         "size": {
           "small": "Weakness",
@@ -121,7 +123,7 @@
       "defense": {
         "description": "Buy into your stock. When you freeze or use a second chance, a crystal is spent first — and Sparks only if you have none.",
         "freezeTitle": "Freeze crystal",
-        "freezeHint": "Holds a missed day so your streak survives.",
+        "freezeHint": "Covers a missed ritual day.",
         "secondChanceTitle": "Second chance crystal",
         "secondChanceHint": "Protects today's progress in one ritual.",
         "buy": "Buy",
@@ -132,7 +134,7 @@
     "rituals": {
       "freezeDayButton": "Freeze day",
       "freezeTodayButton": "FREEZE TODAY",
-      "saveYesterdayStreakButton": "SAVE YESTERDAY'S STREAK",
+      "saveYesterdayStreakButton": "FREEZE YESTERDAY",
       "secondChanceButton": "Second chance",
       "secondChanceButtonWithStock": "Second chance ({count} in stock)",
       "withStock": "{label} ({count} in stock)",
@@ -142,7 +144,7 @@
       "insufficientSparks": "Not enough Sparks",
       "freezeError": "Could not freeze the day",
       "freezeWindowError": "Freeze today is only available between 22:00 and 23:59",
-      "saveYesterdayWindowError": "Save yesterday streak is only available between 00:00 and 09:59",
+      "saveYesterdayWindowError": "Freeze yesterday is only available between 00:00 and 09:59",
       "secondChanceError": "Could not apply second chance",
       "secondChanceWindowError": "Second chance is only available between 22:00 and 23:59",
       "calendar": {
@@ -242,11 +244,11 @@
         },
         "sparks": {
           "title": "Sparks",
-          "text": "Earned for showing up. Spend them to freeze a streak or extend a ritual."
+          "text": "Earned for showing up. Spend them to cover a ritual day or extend a mission."
         },
         "freeze": {
-          "title": "Streak freeze",
-          "text": "Miss a day without breaking the run. A missed day never deletes your progress."
+          "title": "Day freeze",
+          "text": "Cover a missed ritual day. One or two misses pause the flame instead of resetting it."
         }
       },
       "privacy": {
@@ -295,7 +297,7 @@
         "aloneQuestion": "Can I use it completely alone?",
         "aloneAnswer": "Absolutely. Joining, commenting and following are all optional. Plenty of people run only private missions and never touch the social side.",
         "failQuestion": "What if I miss a day?",
-        "failAnswer": "Nothing is lost. You can spend Sparks to freeze your streak, and a missed day never deletes your progress."
+        "failAnswer": "One or two missed days pause the flame instead of resetting it. XP, the calendar and the mission stay. Freeze with Sparks if you want to cover that ritual day."
       },
       "finalCta": {
         "title": "Your first mission is one tap away",
@@ -1431,6 +1433,10 @@
     "slotRange": "{count} day · from {date} | {count} days · from {date}",
     "addShared": "Add ritual",
     "addPersonal": "Add quest",
+    "addExtraShared": "Another ritual · {cost}✦",
+    "addExtraPersonal": "Another quest · {cost}✦",
+    "extraSharedSlot": "Another ritual",
+    "extraPersonalSlot": "Another quest",
     "addSlot": "Add to challenge",
     "saveDraft": "Save draft",
     "saveChanges": "Save changes",

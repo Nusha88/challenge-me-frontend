@@ -1,4 +1,19 @@
 import { normalizeDateKey, toDateInputValue } from './dateUtils'
+import {
+  STREAK_STATUS,
+  MAX_STREAK_SKIPS,
+  MAX_CONSECUTIVE_EMPTY,
+  resolveStreakFromDays,
+  getStreakHeatTier
+} from './streakResolve'
+
+export {
+  STREAK_STATUS,
+  MAX_STREAK_SKIPS,
+  MAX_CONSECUTIVE_EMPTY,
+  resolveStreakFromDays,
+  getStreakHeatTier
+}
 
 export function buildCompletedDateSet(checklists, habitChallenges, userId) {
   const completedDates = new Set()
@@ -45,6 +60,18 @@ export function buildCompletedDateSet(checklists, habitChallenges, userId) {
   return completedDates
 }
 
+export function resolveStreak(completedDates, today = new Date()) {
+  const completed = completedDates instanceof Set ? completedDates : new Set(completedDates || [])
+  const cursor = new Date(today)
+  cursor.setHours(0, 0, 0, 0)
+  const keys = []
+  for (let i = 0; i < 365; i++) {
+    keys.push(toDateInputValue(cursor))
+    cursor.setDate(cursor.getDate() - 1)
+  }
+  return resolveStreakFromDays((index) => completed.has(keys[index]))
+}
+
 export function isAuraDimmed(completedDates, today = new Date()) {
   if (!(completedDates instanceof Set) || completedDates.size === 0) {
     return false
@@ -66,28 +93,5 @@ export function isAuraDimmed(completedDates, today = new Date()) {
 }
 
 export function calculateStreakFromDate(startDate, completedDates) {
-  let streak = 0
-  const currentDate = new Date(startDate)
-  currentDate.setHours(0, 0, 0, 0)
-
-  for (let i = 0; i < 365; i++) {
-    const dateStr = toDateInputValue(currentDate)
-
-    if (!completedDates.has(dateStr)) {
-      break
-    }
-
-    streak++
-    currentDate.setDate(currentDate.getDate() - 1)
-  }
-
-  return streak
-}
-
-export function getStreakHeatTier(days) {
-  const n = Math.max(0, Number(days) || 0)
-  if (n >= 14) return 14
-  if (n >= 7) return 7
-  if (n >= 3) return 3
-  return n > 0 ? 1 : 0
+  return resolveStreak(completedDates, startDate).days
 }

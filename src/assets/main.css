@@ -24,13 +24,19 @@ html {
   max-width: min(100%, 100dvw);
 }
 
-.v-overlay__content {
-  max-width: min(100%, 100dvw) !important;
-}
-
 .v-application,
 .v-application__wrap {
   max-width: min(100%, 100dvw);
+}
+
+/*
+ * Do not override Vuetify's per-dialog max-width. Dialogs default to
+ * width: calc(100% - 48px); an !important max-width of 100dvw made every
+ * modal full-bleed on desktop. Cap width to the visual viewport instead,
+ * so a smaller max-width (420 / 480 / 900) still wins.
+ */
+.v-dialog > .v-overlay__content {
+  width: min(calc(100% - 48px), calc(100dvw - 48px));
 }
 
 /*
@@ -43,8 +49,13 @@ html {
        (display-mode: minimal-ui) {
   html,
   .v-application,
-  .v-application__wrap {
+  .v-application__wrap,
+  .v-overlay {
     max-width: 100%;
+  }
+
+  .v-dialog > .v-overlay__content {
+    width: calc(100% - 48px);
   }
 
   .v-app-bar.app-bar-custom,

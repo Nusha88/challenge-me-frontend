@@ -518,7 +518,8 @@ import { challengeService } from '../services/api'
 import { useXpAwardFeedback } from '../composables/useXpAwardFeedback'
 import { useI18n } from 'vue-i18n'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
-import { normalizeDateKey, toDateInputValue } from '../utils/dateUtils'
+import { getEffectiveCompletedDays } from '../utils/participantDays'
+import { resolveStreak } from '../utils/streakUtils'
 import CommentComposer from './CommentComposer.vue'
 import DeleteChallengeDialog from './challenge-form/DeleteChallengeDialog.vue'
 import ReactionRow from './comments/ReactionRow.vue'
@@ -612,39 +613,8 @@ function getParticipantStreak(userId) {
     return pUserId && pUserId.toString() === userId.toString()
   })
 
-  if (!participant || !participant.completedDays || !Array.isArray(participant.completedDays)) return 0
-
-  const completedDateStrings = participant.completedDays
-    .map((date) => normalizeDateKey(date))
-    .filter(Boolean)
-    .sort((a, b) => b.localeCompare(a))
-
-  if (completedDateStrings.length === 0) return 0
-
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const todayStr = toDateInputValue(today)
-
-  let startDate = new Date(today)
-  if (!completedDateStrings.includes(todayStr)) {
-    startDate.setDate(today.getDate() - 1)
-  }
-
-  let streak = 0
-  let currentDate = new Date(startDate)
-
-  for (let i = 0; i < 365; i++) {
-    const dateStr = toDateInputValue(currentDate)
-    if (completedDateStrings.includes(dateStr)) {
-      streak++
-    } else {
-      break
-    }
-    currentDate.setDate(currentDate.getDate() - 1)
-    currentDate.setHours(0, 0, 0, 0)
-  }
-
-  return streak
+  if (!participant) return 0
+  return resolveStreak(new Set(getEffectiveCompletedDays(participant))).days
 }
 
 const feedItems = computed(() => {

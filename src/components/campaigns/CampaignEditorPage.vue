@@ -158,6 +158,47 @@
       </div>
 
       <div
+        v-for="slot in extraSharedList"
+        :key="`shared-extra-${slot.id}`"
+        class="slot-card"
+        :class="{ 'slot-card--link': extraSlotClickable(slot.id) }"
+        @click="openSlotMission(slot.id)"
+      >
+        <div>
+          <p class="slot-label">{{ t('campaigns.extraSharedSlot') }}</p>
+          <p class="slot-copy">{{ slot.title || t('campaigns.sharedSlotHint') }}</p>
+        </div>
+        <div v-if="slot.title" class="slot-status">
+          <v-icon color="#4FD1C5">mdi-check-circle</v-icon>
+          <v-icon v-if="extraSlotClickable(slot.id)" size="20">mdi-chevron-right</v-icon>
+        </div>
+      </div>
+
+      <div v-if="canEditShell && showExtraSharedCta" class="slot-card">
+        <div>
+          <p class="slot-label">{{ t('campaigns.extraSharedSlot') }}</p>
+          <p class="slot-copy">{{ t('campaigns.sharedSlotHint') }}</p>
+        </div>
+        <v-tooltip
+          :text="t('sparks.rituals.insufficientSparks')"
+          :disabled="canAffordExtraShared"
+          location="bottom"
+        >
+          <template #activator="{ props: tooltipProps }">
+            <span v-bind="tooltipProps" class="extra-slot-cta">
+              <v-btn
+                class="app-cta-primary text-none"
+                :disabled="!canAffordExtraShared"
+                @click.stop="openExtraCreate('shared')"
+              >
+                {{ t('campaigns.addExtraShared', { cost: EXTRA_SLOT_COST }) }}
+              </v-btn>
+            </span>
+          </template>
+        </v-tooltip>
+      </div>
+
+      <div
         class="slot-card"
         :class="{ 'slot-card--link': personalSlotClickable }"
         @click="openPersonalSlot"
@@ -178,6 +219,47 @@
           <v-icon color="#4FD1C5">mdi-check-circle</v-icon>
           <v-icon v-if="personalSlotClickable" size="20">mdi-chevron-right</v-icon>
         </div>
+      </div>
+
+      <div
+        v-for="slot in extraPersonalList"
+        :key="`personal-extra-${slot.id || slot.sourceId}`"
+        class="slot-card"
+        :class="{ 'slot-card--link': extraSlotClickable(slot.id) }"
+        @click="openSlotMission(slot.id)"
+      >
+        <div>
+          <p class="slot-label">{{ t('campaigns.extraPersonalSlot') }}</p>
+          <p class="slot-copy">{{ slot.title || t('campaigns.personalSlotHint') }}</p>
+        </div>
+        <div v-if="slot.title" class="slot-status">
+          <v-icon color="#4FD1C5">mdi-check-circle</v-icon>
+          <v-icon v-if="extraSlotClickable(slot.id)" size="20">mdi-chevron-right</v-icon>
+        </div>
+      </div>
+
+      <div v-if="canEditShell && showExtraPersonalCta" class="slot-card">
+        <div>
+          <p class="slot-label">{{ t('campaigns.extraPersonalSlot') }}</p>
+          <p class="slot-copy">{{ t('campaigns.personalSlotHint') }}</p>
+        </div>
+        <v-tooltip
+          :text="t('sparks.rituals.insufficientSparks')"
+          :disabled="canAffordExtraPersonal"
+          location="bottom"
+        >
+          <template #activator="{ props: tooltipProps }">
+            <span v-bind="tooltipProps" class="extra-slot-cta">
+              <v-btn
+                class="app-cta-primary text-none"
+                :disabled="!canAffordExtraPersonal"
+                @click.stop="openExtraCreate('personal')"
+              >
+                {{ t('campaigns.addExtraPersonal', { cost: EXTRA_SLOT_COST }) }}
+              </v-btn>
+            </span>
+          </template>
+        </v-tooltip>
       </div>
     </div>
 
@@ -286,9 +368,16 @@ import {
 } from '../../utils/dateUtils'
 import {
   MAX_CAMPAIGN_GUESTS,
+  EXTRA_SLOT_COST,
   campaignIdOf,
   findOwnedBlockingCampaign,
-  hasBothSlots
+  hasBothSlots,
+  extraSharedSlots,
+  extraPersonalTemplates,
+  extraPersonalMissionId,
+  canAddExtraShared,
+  canAddExtraPersonal,
+  canAffordExtraSlot
 } from '../../utils/campaigns'
 
 const { t, locale } = useI18n()
@@ -355,14 +444,36 @@ const canLeave = computed(() => (
 const sharedMissionId = computed(() => campaignIdOf(campaign.value?.sharedChallengeId))
 const personalMissionId = computed(() => {
   const clones = campaign.value?.personalClones || []
-  const mine = clones.find((row) => campaignIdOf(row.userId) === currentUserId.value)
+  const primarySource = campaignIdOf(campaign.value?.personalTemplateChallengeId)
+    || campaignIdOf(campaign.value?.personalTemplate?.challengeId)
+  const mine = clones.find((row) => {
+    if (campaignIdOf(row.userId) !== currentUserId.value) return false
+    const source = campaignIdOf(row.sourceChallengeId)
+    return !source || source === primarySource
+  })
   if (mine) return campaignIdOf(mine.challengeId)
-  if (isOwner.value) {
-    return campaignIdOf(campaign.value?.personalTemplateChallengeId)
-      || campaignIdOf(campaign.value?.personalTemplate?.challengeId)
-  }
+  if (isOwner.value) return primarySource
   return ''
 })
+const extraSharedList = computed(() => extraSharedSlots(campaign.value).map((item) => ({
+  id: campaignIdOf(item),
+  title: typeof item === 'object' ? String(item.title || '') : ''
+})))
+const extraPersonalList = computed(() => extraPersonalTemplates(campaign.value).map((template) => ({
+  sourceId: campaignIdOf(template.challengeId),
+  id: extraPersonalMissionId(campaign.value, template, currentUserId.value, {
+    isOwner: isOwner.value
+  }),
+  title: String(template.title || '')
+})))
+const showExtraSharedCta = computed(() => canAddExtraShared(campaign.value))
+const showExtraPersonalCta = computed(() => canAddExtraPersonal(campaign.value))
+const canAffordExtraShared = computed(() => (
+  canAffordExtraSlot(campaign.value, 'shared', userStore.userSparks)
+))
+const canAffordExtraPersonal = computed(() => (
+  canAffordExtraSlot(campaign.value, 'personal', userStore.userSparks)
+))
 const sharedSlotClickable = computed(() => Boolean(
   sharedMissionId.value && (canEditShell.value || isLaunched.value)
 ))
@@ -380,23 +491,30 @@ function slotEditTo(challengeId) {
 }
 
 function openSharedSlot() {
-  const id = sharedMissionId.value
-  if (!id) return
-  if (canEditShell.value) {
-    router.push(slotEditTo(id))
-    return
-  }
-  if (isLaunched.value) openMissionDetails({ challengeId: id })
+  openSlotMission(sharedMissionId.value)
 }
 
 function openPersonalSlot() {
-  const id = personalMissionId.value
-  if (!id) return
+  openSlotMission(personalMissionId.value)
+}
+
+function extraSlotClickable(challengeId) {
+  return Boolean(challengeId && (canEditShell.value || isLaunched.value))
+}
+
+function openSlotMission(challengeId) {
+  if (!challengeId) return
   if (canEditShell.value) {
-    router.push(slotEditTo(id))
+    router.push(slotEditTo(challengeId))
     return
   }
-  if (isLaunched.value) openMissionDetails({ challengeId: id })
+  if (isLaunched.value) openMissionDetails({ challengeId })
+}
+
+function openExtraCreate(slot) {
+  const canAfford = slot === 'personal' ? canAffordExtraPersonal.value : canAffordExtraShared.value
+  if (!canAfford || !campaignId.value) return
+  router.push({ path: '/missions/add', query: { campaignId: campaignId.value, slot } })
 }
 const inviteCount = computed(() => (campaign.value?.invites || []).length)
 const isInvited = computed(() => {
@@ -836,6 +954,14 @@ onMounted(loadCampaign)
   margin: 0;
   color: var(--home-text-dim, #94a3b8);
   font-size: 0.9rem;
+}
+
+.extra-slot-cta {
+  display: inline-flex;
+}
+
+.extra-slot-cta :deep(.v-btn--disabled) {
+  opacity: 0.4 !important;
 }
 
 .campaign-actions {

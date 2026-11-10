@@ -35,6 +35,7 @@ export function useTodayChallenges({ onUpdated } = {}) {
   const activeQuests = ref([])
   const loadingChallenges = ref(true)
   const hasLoadedOnce = ref(false)
+  const completingTodayIds = ref([])
 
   function getUserId() {
     if (userStore.userId) return userStore.userId
@@ -281,6 +282,10 @@ export function useTodayChallenges({ onUpdated } = {}) {
 
     if (!participant) return
 
+    const challengeId = String(challenge._id)
+    if (completingTodayIds.value.includes(challengeId)) return
+    completingTodayIds.value = [...completingTodayIds.value, challengeId]
+
     const currentCompletedDays = Array.isArray(participant.completedDays)
       ? [...participant.completedDays]
       : []
@@ -347,6 +352,8 @@ export function useTodayChallenges({ onUpdated } = {}) {
       window.dispatchEvent(new Event('participant-completed-days-updated'))
     } catch (error) {
       console.error('Error toggling completion:', error)
+    } finally {
+      completingTodayIds.value = completingTodayIds.value.filter((id) => id !== challengeId)
     }
   }
 
@@ -374,6 +381,7 @@ export function useTodayChallenges({ onUpdated } = {}) {
     isTodayValidForChallenge,
     isTomorrowValidForChallenge,
     toggleTodayCompletion,
+    completingTodayIds,
     getChallengeCompletedDays,
     getChallengeTotalDays
   }

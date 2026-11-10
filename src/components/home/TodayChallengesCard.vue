@@ -44,16 +44,27 @@
                   v-if="variant === 'today'"
                   type="button"
                   class="challenge-complete-btn"
-                  :class="{ 'is-done': isRowCompleted(challenge) }"
+                  :class="{
+                    'is-done': isRowCompleted(challenge),
+                    'is-loading': isCompleting(challenge)
+                  }"
                   :aria-label="
                     isRowCompleted(challenge)
                       ? t('home.loggedIn.dailyChecklist.stepCompleted')
                       : t('home.loggedIn.dailyChecklist.markComplete')
                   "
-                  :disabled="getDayStatus(challenge) !== 'incomplete'"
+                  :aria-busy="isCompleting(challenge)"
+                  :disabled="getDayStatus(challenge) !== 'incomplete' || isCompleting(challenge)"
                   @click.stop="$emit('toggle-completion', challenge, true)"
                 >
-                  <v-icon size="small" color="#7048e8">
+                  <v-progress-circular
+                    v-if="isCompleting(challenge)"
+                    indeterminate
+                    size="18"
+                    width="2"
+                    color="#7048e8"
+                  />
+                  <v-icon v-else size="small" color="#7048e8">
                     {{ isRowCompleted(challenge) ? 'mdi-check-circle' : 'mdi-flag' }}
                   </v-icon>
                 </button>
@@ -97,16 +108,27 @@
               v-if="variant === 'today'"
               type="button"
               class="challenge-complete-btn"
-              :class="{ 'is-done': isRowCompleted(challenge) }"
+              :class="{
+                'is-done': isRowCompleted(challenge),
+                'is-loading': isCompleting(challenge)
+              }"
               :aria-label="
                 isRowCompleted(challenge)
                   ? t('home.loggedIn.dailyChecklist.stepCompleted')
                   : t('home.loggedIn.dailyChecklist.markComplete')
               "
-              :disabled="getDayStatus(challenge) !== 'incomplete'"
+              :aria-busy="isCompleting(challenge)"
+              :disabled="getDayStatus(challenge) !== 'incomplete' || isCompleting(challenge)"
               @click.stop="$emit('toggle-completion', challenge, true)"
             >
-              <v-icon size="small" color="#7048e8">
+              <v-progress-circular
+                v-if="isCompleting(challenge)"
+                indeterminate
+                size="18"
+                width="2"
+                color="#7048e8"
+              />
+              <v-icon v-else size="small" color="#7048e8">
                 {{ isRowCompleted(challenge) ? 'mdi-check-circle' : 'mdi-flag' }}
               </v-icon>
             </button>
@@ -204,6 +226,7 @@ const props = defineProps({
   getTotalDays: { type: Function, default: () => 0 },
   canUseSecondChance: { type: Boolean, default: false },
   secondChanceLoadingId: { type: String, default: null },
+  completingIds: { type: Array, default: () => [] },
   secondChanceCost: { type: Number, default: 30 },
   secondChanceStock: { type: Number, default: 0 },
   campaigns: { type: Array, default: () => [] }
@@ -266,6 +289,10 @@ const sectionTitle = computed(() => {
 function isRowCompleted(challenge) {
   const status = props.getDayStatus(challenge)
   return status === 'completed' || status === 'protected'
+}
+
+function isCompleting(challenge) {
+  return props.completingIds.some((id) => String(id) === String(challenge?._id))
 }
 </script>
 
@@ -387,6 +414,10 @@ function isRowCompleted(challenge) {
 .challenge-complete-btn:disabled,
 .challenge-complete-btn.is-done {
   cursor: default;
+}
+
+.challenge-complete-btn.is-loading {
+  pointer-events: none;
 }
 
 .challenge-complete-btn.is-disabled {

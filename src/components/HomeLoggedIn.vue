@@ -7,7 +7,7 @@
         :motivational-message="dailyMotivationalMessage"
         :motivational-message-completed="dailyMotivationalMessageCompleted"
         :display-streak-days="displayStreakDays"
-        :yesterday-streak-days="state.yesterdayStreakDays"
+        :streak-status="state.streakStatus"
         :streak-days-text="streakDaysText"
         :avatar-url="greetingHero.avatarUrl"
         :user-seed="greetingHero.seed"
@@ -106,6 +106,7 @@
             :can-use-second-chance="hasEnoughSparksForSecondChance"
             :show-second-chance="showSecondChanceForChallenge"
             :second-chance-loading-id="secondChanceLoadingId"
+            :completing-ids="completingTodayIds"
             :second-chance-cost="SECOND_CHANCE_COST"
             :second-chance-stock="secondChanceTokens"
             @navigate="navigateToChallenge"
@@ -182,7 +183,7 @@ import CompletionCelebrationDialog from './home/CompletionCelebrationDialog.vue'
 import { userService, challengeService, campaignService } from '../services/api'
 import { CHALLENGE_TYPES } from '../constants/challengeTypes'
 import { toDateInputValue } from '../utils/dateUtils'
-import { buildCompletedDateSet, calculateStreakFromDate } from '../utils/streakUtils'
+import { STREAK_STATUS, buildCompletedDateSet, resolveStreak } from '../utils/streakUtils'
 import { useHomeWindowEvents } from '../composables/useHomeWindowEvents'
 import { useTodayChallenges } from '../composables/useTodayChallenges'
 import { useTomorrowChecklist } from '../composables/useTomorrowChecklist'
@@ -237,6 +238,7 @@ const firstDayClosedMessage = computed(() => {
 const state = reactive({
   userName: '',
   streakDays: 0,
+  streakStatus: STREAK_STATUS.EMPTY,
   yesterdayStreakDays: 0,
   hasTodayCompletedTasks: false,
   checklistLoading: true,
@@ -277,6 +279,7 @@ const {
   isTodayFullyComplete,
   shouldShowSecondChance,
   toggleTodayCompletion,
+  completingTodayIds,
   getChallengeCompletedDays,
   getChallengeTotalDays
 } = useTodayChallenges({
@@ -435,12 +438,11 @@ function applyStreakFromDates(completedDatesSet) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
+  const resolved = resolveStreak(completedDatesSet, today)
   state.hasTodayCompletedTasks = completedDatesSet.has(toDateInputValue(today))
-  state.streakDays = calculateStreakFromDate(today, completedDatesSet)
-
-  const yesterday = new Date(today)
-  yesterday.setDate(yesterday.getDate() - 1)
-  state.yesterdayStreakDays = calculateStreakFromDate(yesterday, completedDatesSet)
+  state.streakDays = resolved.days
+  state.streakStatus = resolved.status
+  state.yesterdayStreakDays = resolved.days
 }
 
 function applyStreakFromData(checklists, allChallenges, userId) {
@@ -466,6 +468,7 @@ function syncLocalStreak() {
 function resetStreakState() {
   completedDates.value = new Set()
   state.streakDays = 0
+  state.streakStatus = STREAK_STATUS.EMPTY
   state.yesterdayStreakDays = 0
   state.hasTodayCompletedTasks = false
 }
@@ -693,11 +696,7 @@ const unfinishedStepsCount = computed(() => {
   return steps.filter((step) => !step.done).length
 })
 
-const displayStreakDays = computed(() => {
-  if (state.hasTodayCompletedTasks) return state.streakDays
-  if (state.yesterdayStreakDays > 0) return state.yesterdayStreakDays
-  return state.streakDays
-})
+const displayStreakDays = computed(() => state.streakDays)
 
 function getRussianDayWord(days) {
   if (locale.value !== 'ru') return t('navigation.streakDays')
@@ -712,13 +711,7 @@ function getRussianDayWord(days) {
   return 'дней подряд'
 }
 
-const streakDaysText = computed(() => {
-  const days =
-    !state.hasTodayCompletedTasks && state.yesterdayStreakDays > 0
-      ? state.yesterdayStreakDays
-      : displayStreakDays.value
-  return getRussianDayWord(days)
-})
+const streakDaysText = computed(() => getRussianDayWord(displayStreakDays.value))
 
 const updateChecklistLoading = () => {
   const api = getChecklistApi()

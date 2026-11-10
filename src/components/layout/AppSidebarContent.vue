@@ -25,12 +25,16 @@
         </div>
 
         <div
-          v-if="mobile && showStreak && sidebarStreakDays > 0"
+          v-if="mobile && showStreak && displayStreakDays > 0"
           class="sidebar-streak-chip"
-          :class="{ 'is-yesterday': isYesterdayStreak }"
+          :class="{
+            'is-paused': streakStatus === 'paused',
+            'is-cooled': streakStatus === 'cooled'
+          }"
         >
           <v-icon size="16">mdi-fire</v-icon>
-          <span>{{ sidebarStreakDays }} {{ streakDaysText }}</span>
+          <span>{{ displayStreakDays }} {{ streakDaysText }}</span>
+          <span v-if="statusLabel" class="sidebar-streak-status">· {{ statusLabel }}</span>
         </div>
 
         <div class="pa-2">
@@ -243,6 +247,7 @@ const props = defineProps({
   mobile: { type: Boolean, default: false },
   displayStreakDays: { type: Number, default: 0 },
   yesterdayStreakDays: { type: Number, default: 0 },
+  streakStatus: { type: String, default: 'live' },
   hasTodayCompletedTasks: { type: Boolean, default: false },
   streakDaysText: { type: String, default: '' },
   showStreak: { type: Boolean, default: false },
@@ -255,12 +260,10 @@ const emit = defineEmits(['profile', 'logout', 'navigate'])
 const { t } = useI18n()
 const { isSuperAdmin } = useSuperAdmin()
 
-const isYesterdayStreak = computed(() => {
-  return !props.hasTodayCompletedTasks && props.yesterdayStreakDays > 0
-})
-
-const sidebarStreakDays = computed(() => {
-  return isYesterdayStreak.value ? props.yesterdayStreakDays : props.displayStreakDays
+const statusLabel = computed(() => {
+  if (props.streakStatus === 'paused') return t('navigation.streakPaused')
+  if (props.streakStatus === 'cooled') return t('navigation.streakCooled')
+  return ''
 })
 
 const {
@@ -345,9 +348,13 @@ function handleNavClick() {
   font-weight: 800;
 }
 
-.sidebar-streak-chip.is-yesterday {
-  filter: grayscale(0.75);
-  opacity: 0.75;
+.sidebar-streak-chip.is-cooled {
+  opacity: 0.88;
+}
+
+.sidebar-streak-status {
+  font-weight: 700;
+  opacity: 0.78;
 }
 
 .sidebar-streak-chip .v-icon {
