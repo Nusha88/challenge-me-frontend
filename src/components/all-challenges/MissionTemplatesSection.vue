@@ -66,7 +66,7 @@ import { useTemplateParticipants } from '../../composables/useTemplateParticipan
 import { useActiveTemplateMissions } from '../../composables/useActiveTemplateMissions'
 import { openMissionDetails } from '../../utils/openMissionDetails'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const weeklyRitualStore = useWeeklyRitualStore()
 const { currentWeeklyRitualId } = storeToRefs(weeklyRitualStore)
 const { isWeeklyRitual } = weeklyRitualStore
@@ -90,7 +90,7 @@ function handleUseTemplate(template) {
 
 const templates = computed(() => {
   const weeklyId = currentWeeklyRitualId.value
-  return getMissionTemplates().filter((template) => template.id !== weeklyId)
+  return getMissionTemplates(locale.value).filter((template) => template.id !== weeklyId)
 })
 
 const trackRef = ref(null)

@@ -22,6 +22,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { storeToRefs } from 'pinia'
 import MainRitualCard from '../MainRitualCard.vue'
 import { useWeeklyRitualStore } from '../../stores/weeklyRitual'
@@ -33,6 +34,7 @@ import { openMissionDetails } from '../../utils/openMissionDetails'
 defineEmits(['use'])
 
 const router = useRouter()
+const { locale } = useI18n()
 const { requireAuthOrPrompt } = useDemoMode()
 const weeklyRitualStore = useWeeklyRitualStore()
 const { currentWeeklyRitualId } = storeToRefs(weeklyRitualStore)
@@ -51,7 +53,9 @@ const {
   checkInToday
 } = useWeeklyRitualStatus()
 
-const weeklyRitual = computed(() => getMissionTemplateById(currentWeeklyRitualId.value))
+const weeklyRitual = computed(() => (
+  getMissionTemplateById(currentWeeklyRitualId.value, locale.value)
+))
 
 function openJoinedChallenge() {
   if (!joinedChallenge.value) return

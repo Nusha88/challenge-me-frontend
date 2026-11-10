@@ -1239,7 +1239,29 @@
       "weeklyRitualBadge": "🔥 Ritual of the week",
       "participants": "Ritual participants",
       "prev": "Previous templates",
-      "next": "Next templates"
+      "next": "Next templates",
+      "items": {
+        "elixir-of-life": {
+          "title": "💧 Elixir of Life: Morning Balance",
+          "description": "Drink one large glass of clean warm water right after you wake, before coffee or breakfast."
+        },
+        "ancient-scrolls": {
+          "title": "📚 Pages of the Ancient Scrolls",
+          "description": "Read at least 10 pages of any useful or fiction book."
+        },
+        "digital-detox": {
+          "title": "🧘‍♂️ Mental Shield: Digital Detox",
+          "description": "Spend the first 30 minutes after waking, or the last 30 minutes before sleep, without a smartphone or computer."
+        },
+        "eight-thousand-steps": {
+          "title": "🚶‍♂️ Recon by Fire: 8,000 Steps",
+          "description": "Go for a walk or skip the elevator. Movement generates energy for the hero."
+        },
+        "archivists-scroll": {
+          "title": "📅 Archivist's Scroll: Tomorrow's Map",
+          "description": "Fifteen minutes before bed, write down the 3 main tasks for tomorrow in a calendar or notebook."
+        }
+      }
     },
     "weeklyRitual": {
       "boostedHint": "Boosted reward for completing",
